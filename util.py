@@ -44,7 +44,7 @@ def strxor(aa, bb):
     return "".join([chr(ord(a) ^ ord(b)) for a, b in zip(aa, bb)])
 
 def sign_token(d, s):
-    "Sign the token dict d with key s; return \"signed\" and \"sig\""
+    '''Sign the token dict d with key s; return "signed" and "sig"'''
     k, t = kvform2(d)
     return ",".join(k), to_b64(hmac.new(s, t, sha).digest())
 
