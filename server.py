@@ -39,6 +39,12 @@ class OpenIDServer(object):
         # XXX what does the spec say to do here?
 
     def do_associate(self, args):
+        """Performs the actions needed for openid.mode=associate.  If
+        srand was provided when constructing this server instance,
+        this method supports the DH-SHA1 openid.session_type when
+        requested.  Returns (False, reply_body), where reply_body is
+        the body of the http response that should be sent back to the
+        consumer."""
         reply = {}
         assoc_type = args.pop('openid.assoc_type', 'HMAC-SHA1')
         ret = self.getNewSecret(secret_sizes[assoc_type])
