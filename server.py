@@ -9,6 +9,7 @@ __all__ = ['OpenIDServer']
 
 _enc_default_modulus = to_b64(long2a(default_dh_modulus))
 _enc_default_gen = to_b64(long2a(default_dh_gen))
+_signed_fields = ['mode', 'identity', 'issued', 'valid_to', 'return_to']
 
 class OpenIDServer(object):
     def __init__(self, srand=None):
@@ -128,11 +129,16 @@ class OpenIDServer(object):
                     'openid.mode': 'id_res',
                     'openid.identity': identity,
                     'openid.issued': w3cdate(now),
+                    'openid.assoc_handle': assoc_handle,
                     'openid.valid_to': w3cdate(now + expire_offset),
                     })
-                signed, sig = sign_token(reply, secret)
+
+                token = {}
+                for i in _signed_fields:
+                    token[i] = reply['openid.' + i]
+                
+                signed, sig = sign_token(token, secret)
                 reply.update({
-                    'openid.assoc_handle': assoc_handle,
                     'openid.signed': signed,
                     'openid.sig': sig,
                     })

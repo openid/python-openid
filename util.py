@@ -3,6 +3,7 @@ import pickle
 import binascii
 import sha
 import hmac
+from urllib import urlencode
 
 def sha1(s):
     return sha.new(s).digest()
@@ -46,4 +47,10 @@ def sign_token(d, s):
     "Sign the token dict d with key s; return \"signed\" and \"sig\""
     k, t = kvform2(d)
     return ",".join(k), to_b64(hmac.new(s, t, sha).digest())
+
+def append_args(url, args):
+    if len(args) == 0:
+        return url
+
+    return '%s%s%s' % (url, ('?' in url) and '&' or '?', urlencode(args))
 
