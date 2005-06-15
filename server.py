@@ -84,10 +84,59 @@ class OpenIDServer(object):
         
         return False, kvform(reply)
 
+    def do_checkid_immediate(self, args):
+        reply = {}
+
+        identity = args.get('openid.identity')
+        return_to = args.get('openid.return_to')
+        trust_root = args.get('openid.trust_root', return_to)
+
+        if not (identity and return_to and trust_root):
+            # XXX: protocol error of some sort
+            pass
+
+        if not self.is_sane_trust_root(trust_root):
+            # XXX: authentication error
+            pass
+
+        if 'openid.assoc_handle' in args:
+            # normal mode
+            assoc_handle = args['openid.assoc_handle']
+            ret = self.get_secret(assoc_handle)
+
+            if ret is None:
+                # XXX: authentication error
+                pass
+            
+            secret, expiry = ret
+        else:
+            # dumb mode
+            pass
+        
+
+    def do_checkid_setup(self, args):
+        pass
+
+    def do_check_authentication(self, args):
+        pass
+
+
+    # Helpers that can easily be overridden
+    def is_sane_trust_root(self, trust_root):
+        # XXX: do checking for sane trust_root
+        return True
+
+
+    # Callbacks:
     def get_new_secret(self, size):
         """Returns a tuple (secret, handle, issued, replace_after,
         expiry) for an association with a consumer.  The secret must
         be size bytes long."""
         raise NotImplementedError
 
-    
+    def get_secret(self, assoc_handle):
+        """Returns a tuple (secret, expiry) for an existing
+        association with a consumer.  If no association is found
+        (either it expired and was removed, or never existed), this
+        method should return None."""
+        raise NotImplementedError
