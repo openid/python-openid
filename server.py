@@ -41,7 +41,7 @@ class OpenIDServer(object):
         be sent back to the consumer."""
         reply = {}
         assoc_type = args.get('openid.assoc_type', 'HMAC-SHA1')
-        ret = self.getNewSecret(secret_sizes[assoc_type])
+        ret = self.get_new_secret(secret_sizes[assoc_type])
         secret, handle, issued, replace_after, expiry = ret
         
         if 'openid.session_type' in args and self.srand is not None:
