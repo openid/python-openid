@@ -23,20 +23,13 @@ class OpenIDServer(object):
         contents is a redirect url or page contents"""
 
         mode = args['openid.mode']
-
-        if mode == 'associate':
-            return self.do_associate(args)
-
-        if mode == 'checkid_immediate':
-            return self.do_checkid_immediate(args)
-
-        if mode == 'checkid_setup':
-            return self.do_checkid_setup(args)
-        
-        if mode == 'check_authentication':
-            return self.do_check_authentication(args)
-
-        # XXX what does the spec say to do here?
+        try:
+            method = getattr(self, 'do_' + mode)
+        except AttributeError:
+            # XXX what does the spec say to do here?
+            raise
+        else:
+            return method(args)
 
     def do_associate(self, args):
         """Performs the actions needed for openid.mode=associate.  If
