@@ -1,3 +1,4 @@
+import time
 import datetime
 import pickle
 import binascii
@@ -23,6 +24,9 @@ def w3cdate(x):
     dt = dt.replace(microsecond=0)
     return dt.isoformat() + 'Z'
 
+def w3c2datetime(x):
+    return datetime.datetime(time.strptime(x, '%Y-%m-%dT%H:%M:%SZ'))
+
 def to_b64(s):
     """Represent string s as base64, omitting newlines"""
     return binascii.b2a_base64(s)[:-1]
@@ -39,6 +43,10 @@ def kvform2(d):
 def kvform(d):
     "Represent dict d as newline-terminated key:value pairs"
     return kvform2(d)[1]
+
+def parsekv(d):
+    return dict([[(k.strip(), v.strip()) for k,v in line.split(':')]
+                 for line in d.split('\n') if line])
 
 def strxor(aa, bb):
     return "".join([chr(ord(a) ^ ord(b)) for a, b in zip(aa, bb)])
