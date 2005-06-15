@@ -42,9 +42,10 @@ class OpenIDServer(object):
         """Performs the actions needed for openid.mode=associate.  If
         srand was provided when constructing this server instance,
         this method supports the DH-SHA1 openid.session_type when
-        requested.  Returns (False, reply_body), where reply_body is
-        the body of the http response that should be sent back to the
-        consumer."""
+        requested.  This function requires that self.get_new_secret be
+        overriden to function properly.  Returns (False, reply_body),
+        where reply_body is the body of the http response that should
+        be sent back to the consumer."""
         reply = {}
         assoc_type = args.get('openid.assoc_type', 'HMAC-SHA1')
         ret = self.getNewSecret(secret_sizes[assoc_type])
