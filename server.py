@@ -92,7 +92,7 @@ class OpenIDServer(object):
         trust_root = args.get('openid.trust_root', return_to)
 
         if not (identity and return_to and trust_root):
-            # XXX: protocol error of some sort
+            # XXX: protocol error: missing arg
             pass
 
         if not self.is_sane_trust_root(trust_root):
@@ -105,7 +105,7 @@ class OpenIDServer(object):
             ret = self.get_secret(assoc_handle)
 
             if ret is None:
-                # XXX: authentication error
+                # XXX: protocol error: no such assoc_handle on server
                 pass
             
             secret, expiry = ret
