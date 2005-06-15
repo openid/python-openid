@@ -28,13 +28,13 @@ class OpenIDServer(object):
             return self.do_associate(args)
 
         if mode == 'checkid_immediate':
-            return do_checkid_immediate(args)
+            return self.do_checkid_immediate(args)
 
         if mode == 'checkid_setup':
-            return do_checkid_setup(args)
+            return self.do_checkid_setup(args)
         
         if mode == 'check_authentication':
-            return do_check_authentication(args)
+            return self.do_check_authentication(args)
 
         # XXX what does the spec say to do here?
 
