@@ -43,10 +43,15 @@ def kvform(d):
 def strxor(aa, bb):
     return "".join([chr(ord(a) ^ ord(b)) for a, b in zip(aa, bb)])
 
-def sign_token(d, s):
-    '''Sign the token dict d with key s; return "signed" and "sig"'''
-    k, t = kvform2(d)
-    return ",".join(k), to_b64(hmac.new(s, t, sha).digest())
+def sign_reply(reply, key, signed_fields):
+    """Sign the given fields from the reply with the specified key.
+    Return signed and sig"""
+    token = {}
+    for i in signed_fields:
+        token[i] = reply['openid.' + i]
+    
+    order, text = kvform2(token)
+    return ",".join(order), to_b64(hmac.new(key, text, sha).digest())
 
 def append_args(url, args):
     if len(args) == 0:

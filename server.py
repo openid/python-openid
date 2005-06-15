@@ -1,7 +1,7 @@
 import time
 
 from util import (sha1, long2a, a2long, w3cdate, to_b64, from_b64,
-                  kvform, strxor, sign_token, append_args)
+                  kvform, strxor, sign_reply, append_args)
 
 from constants import secret_sizes, default_dh_modulus, default_dh_gen
 
@@ -140,6 +140,8 @@ class OpenIDServer(object):
 
         reply = {
             'openid.return_to': return_to,
+            'openid.identity': identity,
+            'openid.mode': 'id_res',
             }
 
         if 'openid.assoc_handle' in args:
@@ -162,18 +164,12 @@ class OpenIDServer(object):
         if expire_offset:
             now = time.time()
             reply.update({
-                'openid.mode': 'id_res',
-                'openid.identity': identity,
                 'openid.issued': w3cdate(now),
                 'openid.assoc_handle': assoc_handle,
                 'openid.valid_to': w3cdate(now + expire_offset),
                 })
 
-            token = {}
-            for i in _signed_fields:
-                token[i] = reply['openid.' + i]
-
-            signed, sig = sign_token(token, secret)
+            signed, sig = sign_reply(reply, secret, _signed_fields)
             reply.update({
                 'openid.signed': signed,
                 'openid.sig': sig,
@@ -184,7 +180,7 @@ class OpenIDServer(object):
 
     def checkid_dumb(self, reply, identity, return_to, trust_root):
         raise NotImplementedError
-            
+
     # Helpers that can easily be overridden:
     def is_sane_trust_root(self, trust_root):
         # XXX: do checking for sane trust_root
