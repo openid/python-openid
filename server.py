@@ -46,20 +46,20 @@ class OpenIDServer(object):
         the body of the http response that should be sent back to the
         consumer."""
         reply = {}
-        assoc_type = args.pop('openid.assoc_type', 'HMAC-SHA1')
+        assoc_type = args.get('openid.assoc_type', 'HMAC-SHA1')
         ret = self.getNewSecret(secret_sizes[assoc_type])
         secret, handle, issued, replace_after, expiry = ret
         
         if 'openid.session_type' in args and self.srand is not None:
-            session_type = args.pop('openid.session_type')
+            session_type = args.get('openid.session_type')
 
             if session_type == 'DH-SHA1':
-                enc_dh_mod = args.pop('openid.dh_modulus', _enc_default_modulus)
-                enc_dh_gen = args.pop('openid.dh_gen', _enc_default_gen)
+                enc_dh_mod = args.get('openid.dh_modulus', _enc_default_modulus)
+                enc_dh_gen = args.get('openid.dh_gen', _enc_default_gen)
                 dh_modulus = a2long(from_b64(enc_dh_mod))
                 dh_gen = a2long(from_b64(enc_dh_gen))
 
-                enc_dh_cons_pub = args.pop('openid.dh_consumer_public')
+                enc_dh_cons_pub = args.get('openid.dh_consumer_public')
                 dh_cons_pub = a2long(from_b64(enc_dh_cons_pub))
 
                 dh_server_private = self.srand.randrange(1, dh_modulus - 1)
@@ -88,10 +88,6 @@ class OpenIDServer(object):
             'expiry': w3cdate(expiry),
             })
         
-        if len(args) > 0:
-            # this might be a bit strange, but ignoring for the moment
-            pass
-
         return False, kvform(reply)
 
     def get_new_secret(self, size):
