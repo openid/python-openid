@@ -25,11 +25,20 @@ class OpenIDServer(object):
         mode = args['openid.mode']
 
         if mode == 'associate':
-            return self.doAssociate(args)
+            return self.do_associate(args)
 
-        raise NotImplementedError
+        if mode == 'checkid_immediate':
+            return do_checkid_immediate(args)
 
-    def doAssociate(self, args):
+        if mode == 'checkid_setup':
+            return do_checkid_setup(args)
+        
+        if mode == 'check_authentication':
+            return do_check_authentication(args)
+
+        # XXX what does the spec say to do here?
+
+    def do_associate(self, args):
         reply = {}
         assoc_type = args.pop('openid.assoc_type', 'HMAC-SHA1')
         ret = self.getNewSecret(secret_sizes[assoc_type])
@@ -79,7 +88,7 @@ class OpenIDServer(object):
 
         return False, kvform(reply)
 
-    def getNewSecret(self, size):
+    def get_new_secret(self, size):
         """Returns a tuple (secret, handle, issued, replace_after,
         expiry) for an association with a consumer.  The secret must
         be size bytes long."""
