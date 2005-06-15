@@ -109,6 +109,16 @@ class OpenIDServer(object):
                 pass
             
             secret, expiry = ret
+            if expiry < time.time():
+                # XXX: protocol error: using an expired handle
+                pass
+
+            if self.id_allows_authentication(identity, trust_root):
+                pass
+            else:
+                # XXX: authentication error
+                pass
+            
         else:
             # dumb mode
             pass
@@ -131,12 +141,20 @@ class OpenIDServer(object):
     def get_new_secret(self, size):
         """Returns a tuple (secret, handle, issued, replace_after,
         expiry) for an association with a consumer.  The secret must
-        be size bytes long."""
+        be size bytes long.  replace_after and expiry are unix
+        timestamps in UTC (such as those returned by time.time())"""
         raise NotImplementedError
 
     def get_secret(self, assoc_handle):
         """Returns a tuple (secret, expiry) for an existing
         association with a consumer.  If no association is found
         (either it expired and was removed, or never existed), this
-        method should return None."""
+        method should return None.  expiry is a unix timestamp in UTC
+        (such as that returned by time.time())"""
+        raise NotImplementedError
+
+    def id_allows_authentication(self, identity, trust_root):
+        """Returns True if a user exists for identity, and allows this
+        server to authenticate them for trust_root.  Returns False
+        otherwise."""
         raise NotImplementedError
