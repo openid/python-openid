@@ -1,5 +1,7 @@
+import time
+
 from util import (sha1, long2a, a2long, w3cdate, to_b64, from_b64,
-                  kvform, kvform2, strxor)
+                  kvform, kvform2, strxor, sign_token)
 
 from constants import secret_sizes, default_dh_modulus, default_dh_gen
 
@@ -11,8 +13,8 @@ _enc_default_gen = to_b64(long2a(default_dh_gen))
 class OpenIDServer(object):
     def __init__(self, srand=None):
         """srand should be a cryptographic-quality source of random
-        bytes, if Diffie-Helman encoding is to be supported.  On
-        systems where it is available, an instance of
+        bytes, if Diffie-Helman secret exchange is to be supported.
+        On systems where it is available, an instance of
         random.SystemRandom is a good choice."""
         self.srand = srand
 
@@ -22,11 +24,14 @@ class OpenIDServer(object):
         (redirect, contents).  redirect is a bool indicating whether
         contents is a redirect url or page contents"""
 
-        mode = args['openid.mode']
         try:
+            mode = args['openid.mode']
             method = getattr(self, 'do_' + mode)
+        except KeyError:
+            # XXX: Protocol Error: no openid.mode specified
+            raise
         except AttributeError:
-            # XXX what does the spec say to do here?
+            # XXX: Protocol Error: Unsupported openid.mode
             raise
         else:
             return method(args)
@@ -42,7 +47,7 @@ class OpenIDServer(object):
         reply = {}
         assoc_type = args.get('openid.assoc_type', 'HMAC-SHA1')
         ret = self.get_new_secret(secret_sizes[assoc_type])
-        secret, handle, issued, replace_after, expiry = ret
+        secret, handle, replace_after, expiry = ret
         
         if 'openid.session_type' in args and self.srand is not None:
             session_type = args.get('openid.session_type')
@@ -77,7 +82,7 @@ class OpenIDServer(object):
         reply.update({
             'assoc_type': assoc_type,
             'handle': handle,
-            'issued': w3cdate(issued),
+            'issued': w3cdate(time.time()),
             'replace_after': w3cdate(replace_after),
             'expiry': w3cdate(expiry),
             })
@@ -85,11 +90,14 @@ class OpenIDServer(object):
         return False, kvform(reply)
 
     def do_checkid_immediate(self, args):
-        reply = {}
-
+        """"""
         identity = args.get('openid.identity')
         return_to = args.get('openid.return_to')
         trust_root = args.get('openid.trust_root', return_to)
+
+        reply = {
+            'openid.return_to': return_to,
+            }
 
         if not (identity and return_to and trust_root):
             # XXX: protocol error: missing arg
@@ -113,12 +121,25 @@ class OpenIDServer(object):
                 # XXX: protocol error: using an expired handle
                 pass
 
-            if self.id_allows_authentication(identity, trust_root):
-                pass
+            expire_offset = self.id_allows_authentication(identity, trust_root)
+            if expire_offset:
+                now = time.time()
+                reply.update({
+                    'openid.mode': 'id_res',
+                    'openid.identity': identity,
+                    'openid.issued': w3cdate(now),
+                    'openid.valid_to': w3cdate(now + expire_offset),
+                    })
+                signed, sig = sign_token(reply, secret)
+                reply.update({
+                    'openid.assoc_handle': assoc_handle,
+                    'openid.signed': signed,
+                    'openid.sig': sig,
+                    })
+                
             else:
                 # XXX: authentication error
                 pass
-            
         else:
             # dumb mode
             pass
@@ -139,10 +160,10 @@ class OpenIDServer(object):
 
     # Callbacks:
     def get_new_secret(self, size):
-        """Returns a tuple (secret, handle, issued, replace_after,
-        expiry) for an association with a consumer.  The secret must
-        be size bytes long.  replace_after and expiry are unix
-        timestamps in UTC (such as those returned by time.time())"""
+        """Returns a tuple (secret, handle, replace_after, expiry) for
+        an association with a consumer.  The secret must be size bytes
+        long.  replace_after and expiry are unix timestamps in UTC
+        (such as those returned by time.time())"""
         raise NotImplementedError
 
     def get_secret(self, assoc_handle):
@@ -154,7 +175,8 @@ class OpenIDServer(object):
         raise NotImplementedError
 
     def id_allows_authentication(self, identity, trust_root):
-        """Returns True if a user exists for identity, and allows this
-        server to authenticate them for trust_root.  Returns False
-        otherwise."""
+        """If the given identity exists and allows the given
+        trust_root to authenticate, this returns the positive number
+        of seconds the authentication will be valid for.  Otherwise,
+        this returns None."""
         raise NotImplementedError
