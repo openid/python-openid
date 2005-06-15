@@ -1,16 +1,12 @@
 from util import (sha1, long2a, a2long, w3cdate, to_b64, from_b64,
                   kvform, kvform2, strxor)
 
-_secret_sizes = {
-    'HMAC-SHA1': 20,
-    }
+from constants import secret_sizes, default_dh_modulus, default_dh_gen
 
-_default_modulus = 155172898181473697471232257763715539915724801966915404479707795314057629378541917580651227423698188993727816152646631438561595825688188889951272158842675419950341258706556549803580104870537681476726513255747040765857479291291572334510643245094715007229621094194349783925984760375594985848253359305585439638443L
+__all__ = ['OpenIDServer']
 
-_default_gen = 2
-
-_enc_default_modulus = to_b64(long2a(_default_modulus))
-_enc_default_gen = to_b64(long2a(_default_gen))
+_enc_default_modulus = to_b64(long2a(default_dh_modulus))
+_enc_default_gen = to_b64(long2a(default_dh_gen))
 
 class OpenIDServer(object):
     def __init__(self, srand=None):
@@ -32,7 +28,7 @@ class OpenIDServer(object):
     def doAssociate(self, args):
         reply = {}
         assoc_type = args.pop('openid.assoc_type', 'HMAC-SHA1')
-        ret = self.getNewSecret(_secret_sizes[assoc_type])
+        ret = self.getNewSecret(secret_sizes[assoc_type])
         secret, handle, issued, replace_after, expiry = ret
         
         if 'openid.session_type' in args and self.srand is not None:
