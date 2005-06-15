@@ -122,6 +122,12 @@ class OpenIDServer(object):
         pass
 
     def checkid_shared(self, args):
+        """This function does the logic for the checkid functions.
+        Since the only difference in behavior between them is how
+        authentication errors are handled, this does all logic for
+        dealing with successful authentication, and raises an
+        exception for its caller to handle on a failed authentication."""
+        
         identity = args.get('openid.identity')
         return_to = args.get('openid.return_to')
         trust_root = args.get('openid.trust_root', return_to)
