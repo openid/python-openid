@@ -10,6 +10,10 @@ _enc_default_gen = to_b64(long2a(default_dh_gen))
 
 class OpenIDServer(object):
     def __init__(self, srand=None):
+        """srand should be a cryptographic-quality source of random
+        bytes, if Diffie-Helman encoding is to be supported.  On
+        systems where it is available, an instance of
+        random.SystemRandom is a good choice."""
         self.srand = srand
 
     def handle(self, args):
@@ -76,8 +80,9 @@ class OpenIDServer(object):
         return False, kvform(reply)
 
     def getNewSecret(self, size):
-        """Returns a tuple (handle, secret) for an association with a
-        consumer.  The secret is size bytes long."""
+        """Returns a tuple (secret, handle, issued, replace_after,
+        expiry) for an association with a consumer.  The secret must
+        be size bytes long."""
         raise NotImplementedError
 
     
