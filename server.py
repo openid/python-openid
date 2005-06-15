@@ -41,7 +41,7 @@ class OpenIDServer(object):
         except _ProtocolError, (redirect, message):
             if redirect and 'return_to' in args:
                 err = {
-                    'openid.mode': 'error'
+                    'openid.mode': 'error',
                     'openid.error': message,
                     }
                 return True, append_args(args['return_to'], err)
@@ -108,7 +108,7 @@ class OpenIDServer(object):
         except _AuthenticationError:
             # XXX: do whatever is correct for auth failure in
             # immediate mode
-            pass
+            raise
 
     def do_checkid_setup(self, args):
         try:
@@ -116,7 +116,7 @@ class OpenIDServer(object):
         except _AuthenticationError:
             # XXX: do whatever is correct for auth failure in
             # setup mode
-            pass
+            raise
 
     def do_check_authentication(self, args):
         pass
@@ -179,7 +179,7 @@ class OpenIDServer(object):
                 raise _AuthenticationError
         else:
             # dumb mode
-            pass
+            raise NotImplementedError
         
 
     # Helpers that can easily be overridden:
