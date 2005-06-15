@@ -33,7 +33,7 @@ class OpenIDServer(object):
                 mode = args['openid.mode']
                 method = getattr(self, 'do_' + mode)
             except KeyError:
-                raise _ProtocolError(True, 'No openid.mode specified')
+                raise _ProtocolError(True, 'Expected openid argument missing')
             except AttributeError:
                 raise _ProtocolError(True, 'Unsupported openid.mode')
             else:
@@ -132,56 +132,59 @@ class OpenIDServer(object):
         return_to = args.get('openid.return_to')
         trust_root = args.get('openid.trust_root', return_to)
 
-        reply = {
-            'openid.return_to': return_to,
-            }
-
         if not (identity and return_to and trust_root):
             raise _ProtocolError(True, 'missing arg')
 
         if not self.is_sane_trust_root(trust_root):
             raise _AuthenticationError
 
+        reply = {
+            'openid.return_to': return_to,
+            }
+
         if 'openid.assoc_handle' in args:
-            # normal mode
-            assoc_handle = args['openid.assoc_handle']
-            ret = self.get_secret(assoc_handle)
-
-            if ret is None:
-                raise _ProtocolError(True, 'no such assoc_handle on server')
-            
-            secret, expiry = ret
-            if expiry < time.time():
-                raise _ProtocolError(True, 'using an expired handle')
-
-            expire_offset = self.id_allows_authentication(identity, trust_root)
-            if expire_offset:
-                now = time.time()
-                reply.update({
-                    'openid.mode': 'id_res',
-                    'openid.identity': identity,
-                    'openid.issued': w3cdate(now),
-                    'openid.assoc_handle': assoc_handle,
-                    'openid.valid_to': w3cdate(now + expire_offset),
-                    })
-
-                token = {}
-                for i in _signed_fields:
-                    token[i] = reply['openid.' + i]
-                
-                signed, sig = sign_token(token, secret)
-                reply.update({
-                    'openid.signed': signed,
-                    'openid.sig': sig,
-                    })
-                return True, append_args(return_to, reply)
-            else:
-                raise _AuthenticationError
+            return self.checkid_normal(reply, identity, return_to, trust_root,
+                                       args['openid.assoc_handle'])
         else:
-            # dumb mode
-            raise NotImplementedError
-        
+            return self.checkid_dumb(reply, identity, return_to, trust_root)
 
+    def checkid_normal(self, reply, identity, return_to, trust_root, assoc_handle):
+        ret = self.get_secret(assoc_handle)
+
+        if ret is None:
+            raise _ProtocolError(True, 'no such assoc_handle on server')
+
+        secret, expiry = ret
+        if expiry < time.time():
+            raise _ProtocolError(True, 'using an expired handle')
+
+        expire_offset = self.id_allows_authentication(identity, trust_root)
+        if expire_offset:
+            now = time.time()
+            reply.update({
+                'openid.mode': 'id_res',
+                'openid.identity': identity,
+                'openid.issued': w3cdate(now),
+                'openid.assoc_handle': assoc_handle,
+                'openid.valid_to': w3cdate(now + expire_offset),
+                })
+
+            token = {}
+            for i in _signed_fields:
+                token[i] = reply['openid.' + i]
+
+            signed, sig = sign_token(token, secret)
+            reply.update({
+                'openid.signed': signed,
+                'openid.sig': sig,
+                })
+            return True, append_args(return_to, reply)
+        else:
+            raise _AuthenticationError
+
+    def checkid_dumb(self, reply, identity, return_to, trust_root):
+        raise NotImplementedError
+            
     # Helpers that can easily be overridden:
     def is_sane_trust_root(self, trust_root):
         # XXX: do checking for sane trust_root
