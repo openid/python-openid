@@ -147,8 +147,11 @@ class OpenIDConsumer(object):
         # XXX: We need to handle the case where the server isn't up for
         #      DH and just returns mac_key in the clear.
 
+
+        # XXX: handle malformed data exceptions, call to parsekv could fail
         results = parsekv(data)
-        #XXX: check results?
+        # XXX: check results?
+        
         dh_server_pub = from_b64(a2long(
             _getArg('dh_server_public', results)))
         enc_mac_key = _getArg('enc_mac_key', results)
