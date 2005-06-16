@@ -11,6 +11,7 @@ _enc_default_modulus = to_b64(long2a(default_dh_modulus))
 _enc_default_gen = to_b64(long2a(default_dh_gen))
 _signed_fields = ['mode', 'identity', 'issued', 'valid_to', 'return_to']
 
+
 class _AuthenticationError(Exception): pass
 class _ProtocolError(Exception): pass
 
@@ -179,13 +180,29 @@ class OpenIDServer(object):
             raise _AuthenticationError
 
     def checkid_dumb(self, reply, identity, return_to, trust_root):
-        ret = self.get_new_secret(secret_sizes[assoc_type])
-        secret, handle, issued, replace_after, expiry = ret
-        
-        reply.update({
-            'openid.assoc_handle': handle,
-            'openid.issued': w3cdate(now),
-            })
+        ret = self.get_server_secret(secret_sizes['HMAC-SHA1'])
+        secret, handle, issued, valid_to = ret
+
+        ret = self.id_allows_authentication(identity, trust_root)
+        if ret:
+            auth_issued, auth_expires = ret
+            
+            reply.update({
+                'openid.assoc_handle': handle,
+                'openid.issued': w3cdate(issued), # XXX: Is this the right value?
+                'openid.valid_to': w3cdate(valid_to),
+                })
+
+            signed, sig = sign_reply(reply, secret, _signed_fields)
+
+            reply.update({
+                'openid.signed': signed,
+                'openid.sig': sig,
+                })
+
+            return True, append_args(return_to, reply)
+        else:
+            raise _AuthenticationError
 
     # Helpers that can easily be overridden:
     def is_sane_trust_root(self, trust_root):
@@ -198,15 +215,15 @@ class OpenIDServer(object):
 
     # Callbacks:
     def get_server_secret(self, size):
-        """Returns a tuple (secret, handle, issued, replace_after,
-        expiry) for this server to associate with itself.  This might
-        return a new secret, or it might return an existing one.
-        Either behavior is fine, as long as three conditions are met.
-        First, the handle must be useable with the get_secret call to
-        retrieve the secret at a later time.  Second, the secret
-        returned must be of the requested size.  Third, the expiry
-        value for the secret must be in the future, and the
-        replace_after value should be as well."""
+        """Returns a tuple (secret, handle, issued, valid_to) for this
+        server to associate with itself.  This might return a new
+        secret, or it might return an existing one.  Either behavior
+        is fine, as long as three conditions are met.  First, the
+        handle must be useable with the get_secret call to retrieve
+        the secret at a later time.  Second, the secret returned must
+        be of the requested size.  Third, the valid_to value must be
+        in the future and a unix timestamp in UTC (such as one
+        returned by time.time())"""
         raise NotImplementedError
     
     def get_new_secret(self, size):
