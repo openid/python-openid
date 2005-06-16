@@ -60,7 +60,7 @@ class OpenIDServer(object):
         reply = {}
         assoc_type = args.get('openid.assoc_type', 'HMAC-SHA1')
         ret = self.get_new_secret(secret_sizes[assoc_type])
-        secret, handle, replace_after, expiry = ret
+        secret, handle, issued, replace_after, expiry = ret
         
         if 'openid.session_type' in args and self.srand is not None:
             session_type = args.get('openid.session_type')
@@ -95,7 +95,7 @@ class OpenIDServer(object):
         reply.update({
             'assoc_type': assoc_type,
             'handle': handle,
-            'issued': w3cdate(time.time()),
+            'issued': w3cdate(issued),
             'replace_after': w3cdate(replace_after),
             'expiry': w3cdate(expiry),
             })
@@ -119,7 +119,7 @@ class OpenIDServer(object):
             raise
 
     def do_check_authentication(self, args):
-        pass
+        raise NotImplementedError
 
     def checkid_shared(self, args):
         """This function does the logic for the checkid functions.
@@ -160,13 +160,13 @@ class OpenIDServer(object):
         if expiry < time.time():
             raise _ProtocolError(True, 'using an expired handle')
 
-        expire_offset = self.id_allows_authentication(identity, trust_root)
-        if expire_offset:
-            now = time.time()
+        ret = self.id_allows_authentication(identity, trust_root)
+        if ret:
+            issued, expires = ret
             reply.update({
-                'openid.issued': w3cdate(now),
+                'openid.issued': w3cdate(issued),
                 'openid.assoc_handle': assoc_handle,
-                'openid.valid_to': w3cdate(now + expire_offset),
+                'openid.valid_to': w3cdate(expires),
                 })
 
             signed, sig = sign_reply(reply, secret, _signed_fields)
@@ -179,20 +179,41 @@ class OpenIDServer(object):
             raise _AuthenticationError
 
     def checkid_dumb(self, reply, identity, return_to, trust_root):
-        raise NotImplementedError
+        ret = self.get_new_secret(secret_sizes[assoc_type])
+        secret, handle, issued, replace_after, expiry = ret
+        
+        reply.update({
+            'openid.assoc_handle': handle,
+            'openid.issued': w3cdate(now),
+            })
 
     # Helpers that can easily be overridden:
     def is_sane_trust_root(self, trust_root):
-        # XXX: do checking for sane trust_root
+        # XXX: do more checking for sane trust_root
+        if trust_root in ['*.com', '*.co.uk']:
+            return False
+        
         return True
 
 
     # Callbacks:
+    def get_server_secret(self, size):
+        """Returns a tuple (secret, handle, issued, replace_after,
+        expiry) for this server to associate with itself.  This might
+        return a new secret, or it might return an existing one.
+        Either behavior is fine, as long as three conditions are met.
+        First, the handle must be useable with the get_secret call to
+        retrieve the secret at a later time.  Second, the secret
+        returned must be of the requested size.  Third, the expiry
+        value for the secret must be in the future, and the
+        replace_after value should be as well."""
+        raise NotImplementedError
+    
     def get_new_secret(self, size):
-        """Returns a tuple (secret, handle, replace_after, expiry) for
-        an association with a consumer.  The secret must be size bytes
-        long.  replace_after and expiry are unix timestamps in UTC
-        (such as those returned by time.time())"""
+        """Returns a tuple (secret, handle, issued, replace_after,
+        expiry) for an association with a consumer.  The secret must
+        be size bytes long.  issued, replace_after, and expiry are
+        unix timestamps in UTC (such as those returned by time.time())"""
         raise NotImplementedError
 
     def get_secret(self, assoc_handle):
@@ -205,7 +226,10 @@ class OpenIDServer(object):
 
     def id_allows_authentication(self, identity, trust_root):
         """If the given identity exists and allows the given
-        trust_root to authenticate, this returns the positive number
-        of seconds the authentication will be valid for.  Otherwise,
-        this returns None."""
+        trust_root to authenticate, this returns a tuple (issued,
+        expires), giving the time the authentication was issued and
+        when it expires.  Otherwise, return None.
+        
+        issued and expires are unix timestamps in UTC (such as those
+        returned by time.time()) """
         raise NotImplementedError
