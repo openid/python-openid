@@ -3,17 +3,14 @@ import time
 from openid.util import (sha1, long2a, a2long, w3cdate, to_b64, from_b64,
                   kvform, strxor, sign_reply, append_args)
 
-from constants import secret_sizes, default_dh_modulus, default_dh_gen
+from openid.constants import secret_sizes, default_dh_modulus, default_dh_gen
+from openid.errors import ProtocolError, AuthenticationError
 
 __all__ = ['OpenIDServer']
 
 _enc_default_modulus = to_b64(long2a(default_dh_modulus))
 _enc_default_gen = to_b64(long2a(default_dh_gen))
 _signed_fields = ['mode', 'issued', 'valid_to', 'identity', 'return_to']
-
-
-class _AuthenticationError(Exception): pass
-class _ProtocolError(Exception): pass
 
 class OpenIDServer(object):
     def __init__(self, srand=None):
@@ -34,12 +31,12 @@ class OpenIDServer(object):
                 mode = args['openid.mode']
                 method = getattr(self, 'do_' + mode)
             except KeyError:
-                raise _ProtocolError(True, 'Expected openid argument missing')
+                raise ProtocolError(True, 'Expected openid argument missing')
             except AttributeError:
-                raise _ProtocolError(True, 'Unsupported openid.mode')
+                raise ProtocolError(True, 'Unsupported openid.mode')
             else:
                 return method(args)
-        except _ProtocolError, (redirect, message):
+        except ProtocolError, (redirect, message):
             if redirect and 'return_to' in args:
                 err = {
                     'openid.mode': 'error',
@@ -89,7 +86,7 @@ class OpenIDServer(object):
                     'enc_mac_key': enc_mac_key,
                     })
             else:
-                raise _ProtocolError(False, 'session_type must be DH-SHA1')
+                raise ProtocolError(False, 'session_type must be DH-SHA1')
         else:
             reply['openid.mac_key'] = to_b64(secret)
 
@@ -106,7 +103,7 @@ class OpenIDServer(object):
     def do_checkid_immediate(self, args):
         try:
             return self.checkid_shared(args)
-        except _AuthenticationError:
+        except AuthenticationError:
             identity = args.get('openid.identity')
             return_to = args.get('openid.return_to')
             trust_root = args.get('openid.trust_root', return_to)
@@ -122,7 +119,7 @@ class OpenIDServer(object):
     def do_checkid_setup(self, args):
         try:
             return self.checkid_shared(args)
-        except _AuthenticationError:
+        except AuthenticationError:
             # XXX: do whatever is correct for auth failure in
             # setup mode
             raise
@@ -138,15 +135,15 @@ class OpenIDServer(object):
         
         if not (identity and assoc_handle and issued and valid_to and
                 return_to and signed and sig):
-            raise _ProtocolError(False, 'missing required argument')
+            raise ProtocolError(False, 'missing required argument')
 
         ret = self.get_secret(assoc_handle)
         if ret is None:
-            raise _ProtocolError(False, 'invalid assoc_handle')
+            raise ProtocolError(False, 'invalid assoc_handle')
         
         secret, expiry = ret
         if expiry < time.time():
-            raise _ProtocolError(False, 'using an expired assoc_handle')
+            raise ProtocolError(False, 'using an expired assoc_handle')
 
         token = args.copy()
         token['openid.mode'] = 'id_res'
@@ -171,10 +168,10 @@ class OpenIDServer(object):
         trust_root = args.get('openid.trust_root', return_to)
 
         if not (identity and return_to and trust_root):
-            raise _ProtocolError(True, 'missing arg')
+            raise ProtocolError(True, 'missing arg')
 
         if not self.is_sane_trust_root(trust_root):
-            raise _AuthenticationError
+            raise AuthenticationError
 
         reply = {
             'openid.return_to': return_to,
@@ -192,11 +189,11 @@ class OpenIDServer(object):
         ret = self.get_secret(assoc_handle)
 
         if ret is None:
-            raise _ProtocolError(True, 'no such assoc_handle on server')
+            raise ProtocolError(True, 'no such assoc_handle on server')
 
         secret, expiry = ret
         if expiry < time.time():
-            raise _ProtocolError(True, 'using an expired handle')
+            raise ProtocolError(True, 'using an expired handle')
 
         ret = self.id_allows_authentication(identity, trust_root)
         if ret:
@@ -214,7 +211,7 @@ class OpenIDServer(object):
                 })
             return True, append_args(return_to, reply)
         else:
-            raise _AuthenticationError
+            raise AuthenticationError
 
     def checkid_dumb(self, reply, identity, return_to, trust_root):
         ret = self.get_server_secret(secret_sizes['HMAC-SHA1'])
@@ -239,7 +236,7 @@ class OpenIDServer(object):
 
             return True, append_args(return_to, reply)
         else:
-            raise _AuthenticationError
+            raise AuthenticationError
 
     # Helpers that can easily be overridden:
     def is_sane_trust_root(self, trust_root):
