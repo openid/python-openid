@@ -39,8 +39,14 @@ def kvform(d):
     return ''.join(['%s:%s\n' % (k, v) for k, v in d.iteritems()])
 
 def parsekv(d):
-    return dict([[(k.strip(), v.strip()) for k,v in line.split(':')]
-                 for line in d.split('\n') if line])
+    d = d.strip()
+    args = {}
+    for line in d.split('\n'):
+        pair = line.split(':', 1)
+        if len(pair) != 2: continue
+        k, v = pair
+        args[k.strip()] = v.strip()
+    return args
 
 def strxor(aa, bb):
     return "".join([chr(ord(a) ^ ord(b)) for a, b in zip(aa, bb)])

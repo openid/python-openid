@@ -1,8 +1,8 @@
-from BaseHTTPServer import *
+import BaseHTTPServer
 from urlparse import urlparse
-import cgi
 import time
 
+from openid.examples import util
 from openid.consumer import OpenIDConsumer
 
 _consumer = None
@@ -12,13 +12,7 @@ def getConsumer():
         _consumer = OpenIDConsumer()
     return _consumer
 
-def parseQuery(qs):
-    query = cgi.parse_qs(qs)
-    for k, v in query.items():
-        query[k] = query[k][0]
-    return query
-
-class ConsumerHandler(BaseHTTPRequestHandler):
+class ConsumerHandler(util.HTTPHandler):
 
     def _inputForm(self):
         return """
@@ -33,36 +27,12 @@ class ConsumerHandler(BaseHTTPRequestHandler):
         </body>
         </html>
         """
-
-    def _simplePage(self, msg):
-        self._headers()
-        self.wfile.write("""
-        <html>
-        <head><title>Openid Consumer Example</title></head>
-        <body>
-        %s
-        </body>
-        </html>
-        """ % msg)
-
-    def _error(self, msg):
-        self._simplePage('Error: '+msg)
-
-    def _headers(self, code=200, content_type='text/html'):
-        self.send_response(code)
-        self.send_header('Content-type', content_type)
-        self.end_headers()        
-
-    def _redirect(self, url):
-        self.send_response(302)
-        self.send_header('Location', url)
-        self.end_headers()
-
+        
     def do_GET(self):
         try:
             # parse the input url
             proto, host, selector, params, qs, frag = urlparse(self.path)
-            query = parseQuery(qs)
+            query = util.parseQuery(qs)
 
             # grab the global OpenIDConsumer object - use singleton
             # to maintain same instance across requests
@@ -74,7 +44,10 @@ class ConsumerHandler(BaseHTTPRequestHandler):
                 # consumer's initailRequest which a server association
                 # and then redirect the UA to the server
                 identity_url = query['identity_url']
-                redirect_url = consumer.initialRequest(identity_url, '/')
+                print 'making initial request'
+                
+                redirect_url = consumer.handleRequest(identity_url, '/')
+
                 if redirect_url is not None:
                     self._redirect(redirect_url)
                 else:
@@ -82,16 +55,17 @@ class ConsumerHandler(BaseHTTPRequestHandler):
                                 + identity_url)
 
             elif 'openid.mode' in query:
-                mode = query['openid.mode']
-                if mode == 'id_res':
-                    valid_to = consumer.idResponse(query)
+                try:
+                    valid_to = consumer.handleResponse(query)
+                except Exception, e:
+                    self._error('Handling response: '+str(e))
+                else:
                     if valid_to:
                         self._simplePage('Logged in!  Until'+
                                          time.ctime(valid_to))
                     else:
                         self._simplePage('Not logged in. Invalid.')
-                else:
-                    self._error("Don't know about openid.mode: "+mode)
+
                     
             else:
                 self._headers()
@@ -104,7 +78,8 @@ class ConsumerHandler(BaseHTTPRequestHandler):
         
         
 if __name__ == '__main__':
-    print 'Server running...'
+    print 'Consumer Server running...'
     print 'Go to http://localhost:8081/ in your browser'
     print
-    HTTPServer(('', 8081), ConsumerHandler).serve_forever()
+    BaseHTTPServer.HTTPServer(('', 8081),
+                              ConsumerHandler).serve_forever()

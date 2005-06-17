@@ -33,8 +33,8 @@ class SimpleHTTPClient(object):
         
         return (f.geturl(), data)
 
-    def post(self, url, body, headers):
-        req = urllib2.Request(url, body, headers)
+    def post(self, url, body):
+        req = urllib2.Request(url, body)
         f = urllib2.urlopen(req)
         try:
             data = f.read()
@@ -49,7 +49,7 @@ class DumbAssociationManager(object):
     """This class provides the API for an association store to be used
     with an OpenIDConsumer instance. An instance of this class will
     cause the consumer to run in dumb mode."""
-    def put(self, *unused)
+    def put(self, *unused):
         pass
 
     def associate(self, *unused):
@@ -78,19 +78,18 @@ def DHAssociate(assoc_mngr, server_url, http_client):
         }
 
     body = urllib.urlencode(args)
-    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
-    url, data = http_client.post(server_url, body, headers)
+    url, data = http_client.post(server_url, body)
     results = parsekv(data)
     # XXX: check results?
     # XXX: We need to handle the case where the server isn't up for
     #      DH and just returns mac_key in the clear.
 
     dh_server_pub = from_b64(a2long(
-        _getArg('dh_server_public', results)))
-    enc_mac_key = _getArg('enc_mac_key', results)
-    expiry = w3c2datetime(_getArg('expiry', results))
-    assoc_handle = _getArg('assoc_handle', results)
+        results.get('dh_server_public')))
+    enc_mac_key = results.get('enc_mac_key')
+    expiry = w3c2datetime(results.get('expiry'))
+    assoc_handle = results.get('assoc_handle')
 
     dh_shared = pow(dh_server_pub, priv_key, p)
     secret = strxor(from_b64(enc_mac_key), sha1(long2a(dh_shared)))
@@ -146,7 +145,7 @@ class OpenIDConsumer(object):
         self.http_client = http_client
         
         if assoc_mngr is None:
-            assoc_mngr = DumbAssociationManager(http_client)
+            assoc_mngr = DumbAssociationManager()
         self.assoc_mngr = assoc_mngr
 
     def handleRequest(self, url, return_to, trust_root=None):
@@ -253,8 +252,7 @@ class OpenIDConsumer(object):
             check_args['openid.mode'] = 'check_authentication'
 
             body = urllib.urlencode(check_args)
-            headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-            _, data = self.http_client.post(server_url, body, headers)
+            _, data = self.http_client.post(server_url, body)
             results = parsekv(data)
             lifetime = float(results['lifetime'])
             if lifetime:

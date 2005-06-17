@@ -6,18 +6,18 @@ class ConcreteLinuxServer(OpenIDServer):
     def __init__(self):
         OpenIDServer.__init__(self, random.SystemRandom())
         self.secret = '12345678900987654321'
-        self.handle = 'huh'
+        self._handle = 'huh' # XXX: we already have a method called handle
         self.issued = time.time()
-        self.replace_after = issued + (60 * 60 * 24 * 29) 
-        self.expiry = replace_after + (60 * 60 * 24)
+        self.replace_after = self.issued + (60 * 60 * 24 * 29) 
+        self.expiry = self.replace_after + (60 * 60 * 24)
 
     def get_new_secret(self, size):
         assert size == 20
-        return (self.secret, self.handle, self.issued,
+        return (self.secret, self._handle, self.issued,
                 self.replace_after, self.expiry)
 
     def get_secret(self, assoc_handle):
-        if assoc_handle == self.handle:
+        if assoc_handle == self._handle:
             return self.secret, self.expiry 
         else:
             return None
