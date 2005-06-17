@@ -16,14 +16,21 @@ class ConcreteLinuxServer(OpenIDServer):
         return (self.secret, self._handle, self.issued,
                 self.replace_after, self.expiry)
 
-    def get_server_secret(self, assoc_handle):
+    def get_secret(self, assoc_handle):
         if assoc_handle == self._handle:
             return self.secret, self.expiry 
         else:
             return None
+
+    def get_server_secret(self, size):
+        # XXX: do something with size
+        return self.secret, self._handle, self.issued, self.expiry
 
     def id_allows_authentication(self, identity, trust_root):
         "Every identity trusts every trust_root!  Yay!"
         now = time.time()
         in_an_hour = now + (60 * 60)
         return now, in_an_hour
+
+    def get_lifetime(self, identity):
+        return 50

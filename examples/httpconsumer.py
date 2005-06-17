@@ -46,7 +46,8 @@ class ConsumerHandler(util.HTTPHandler):
                 identity_url = query['identity_url']
                 print 'making initial request'
                 
-                redirect_url = consumer.handleRequest(identity_url, '/')
+                redirect_url = consumer.handleRequest(identity_url,
+                                                      self.headers['Referer'])
 
                 if redirect_url is not None:
                     self._redirect(redirect_url)
