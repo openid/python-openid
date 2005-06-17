@@ -5,8 +5,8 @@ import time
 import urllib
 import urllib2
 
-from constants import *
-from util import *
+from openid.constants import *
+from openid.util import *
 from openid.errors import *
 
 def _getArg(name, args):
