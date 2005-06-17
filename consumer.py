@@ -7,9 +7,7 @@ import urllib2
 
 from constants import *
 from util import *
-
-class ProtocolError(Exception): pass
-class ValueMismatchError(Exception): pass
+from openid.errors import *
 
 def _getArg(name, args):
     arg = args.get("openid." + name)
