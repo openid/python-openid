@@ -107,9 +107,17 @@ class OpenIDServer(object):
         try:
             return self.checkid_shared(args)
         except _AuthenticationError:
-            # XXX: do whatever is correct for auth failure in
-            # immediate mode
-            raise
+            identity = args.get('openid.identity')
+            return_to = args.get('openid.return_to')
+            trust_root = args.get('openid.trust_root', return_to)
+            
+            user_setup_url = self.get_user_setup_url(identity, trust_root)
+            reply = {
+                'openid.mode': 'id_res',
+                'openid.user_setup_url': user_setup_url,
+                }
+            
+            return True, append_args(return_to, reply)
 
     def do_checkid_setup(self, args):
         try:
@@ -143,12 +151,11 @@ class OpenIDServer(object):
         token = args.copy()
         token['openid.mode'] = 'id_res'
         
-        reply = {}
         _, v_sig = sign_reply(token, secret, _signed_fields)
         if v_sig == sig:
-            reply['lifetime'] = str(self.get_lifetime(identity))
+            reply = {'lifetime': str(self.get_lifetime(identity))}
         else:
-            reply['lifetime'] = '0'
+            reply = {'lifetime': '0'}
 
         return False, kvform(reply)
 
@@ -285,4 +292,10 @@ class OpenIDServer(object):
         """In the case the consumer is in dumb mode, and has
         succesfully authenticated, return the lifetime that
         authentication is valid for in seconds."""
+        raise NotImplementedError
+
+    def get_user_setup_url(self, identity, trust_root):
+        """If an identity has failed to authenticate for a given
+        trust_root in immediate mode, this returns the URL to include
+        as the user_setup_url in the redirect sent to the consumer."""
         raise NotImplementedError
