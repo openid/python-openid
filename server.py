@@ -1,8 +1,6 @@
 import time
 
-from openid.util import (sha1, long2a, a2long, w3cdate, to_b64, from_b64,
-                  kvform, strxor, sign_reply, append_args)
-
+from openid.util import *
 from openid.constants import secret_sizes, default_dh_modulus, default_dh_gen
 from openid.errors import ProtocolError, AuthenticationError
 
@@ -29,23 +27,27 @@ class OpenIDServer(object):
         try:
             try:
                 mode = args['openid.mode']
-                method = getattr(self, 'do_' + mode)
             except KeyError:
-                raise ProtocolError(True, 'Expected openid argument missing')
+                raise ProtocolError('Expected openid argument missing')
+
+            try:
+                method = getattr(self, 'do_' + mode)
             except AttributeError:
-                raise ProtocolError(True, 'Unsupported openid.mode')
+                raise ProtocolError('Unsupported openid.mode')
             else:
                 return method(args)
-        except ProtocolError, (redirect, message):
-            if redirect and 'return_to' in args:
+        except ProtocolError, why:
+            message = why[0]
+            try:
+                return_to = get_arg(args, 'return_to')
+            except ProtocolError:
+                return False, message
+            else:
                 err = {
                     'openid.mode': 'error',
                     'openid.error': message,
                     }
-                return True, append_args(args['return_to'], err)
-            else:
-                return False, message
-            
+                return True, append_args(return_to, err)
 
     def do_associate(self, args):
         """Performs the actions needed for openid.mode=associate.  If
@@ -64,7 +66,8 @@ class OpenIDServer(object):
             session_type = args.get('openid.session_type')
 
             if session_type == 'DH-SHA1':
-                enc_dh_mod = args.get('openid.dh_modulus', _enc_default_modulus)
+                enc_dh_mod = args.get('openid.dh_modulus',
+                                      _enc_default_modulus)
                 enc_dh_gen = args.get('openid.dh_gen', _enc_default_gen)
                 dh_modulus = a2long(from_b64(enc_dh_mod))
                 dh_gen = a2long(from_b64(enc_dh_gen))
@@ -86,7 +89,7 @@ class OpenIDServer(object):
                     'enc_mac_key': enc_mac_key,
                     })
             else:
-                raise ProtocolError(False, 'session_type must be DH-SHA1')
+                raise ProtocolError('session_type must be DH-SHA1')
         else:
             reply['openid.mac_key'] = to_b64(secret)
 
@@ -135,15 +138,15 @@ class OpenIDServer(object):
         
         if not (identity and assoc_handle and issued and valid_to and
                 return_to and signed and sig):
-            raise ProtocolError(False, 'missing required argument')
+            raise ProtocolError('missing required argument')
 
         ret = self.get_secret(assoc_handle)
         if ret is None:
-            raise ProtocolError(False, 'invalid assoc_handle')
+            raise ProtocolError('invalid assoc_handle')
         
         secret, expiry = ret
         if expiry < time.time():
-            raise ProtocolError(False, 'using an expired assoc_handle')
+            raise ProtocolError('using an expired assoc_handle')
 
         token = args.copy()
         token['openid.mode'] = 'id_res'
@@ -168,7 +171,7 @@ class OpenIDServer(object):
         trust_root = args.get('openid.trust_root', return_to)
 
         if not (identity and return_to and trust_root):
-            raise ProtocolError(True, 'missing arg')
+            raise ProtocolError('missing arg')
 
         if not self.is_sane_trust_root(trust_root):
             raise AuthenticationError
@@ -189,11 +192,11 @@ class OpenIDServer(object):
         ret = self.get_secret(assoc_handle)
 
         if ret is None:
-            raise ProtocolError(True, 'no such assoc_handle on server')
+            raise ProtocolError('no such assoc_handle on server')
 
         secret, expiry = ret
         if expiry < time.time():
-            raise ProtocolError(True, 'using an expired handle')
+            raise ProtocolError('using an expired handle')
 
         ret = self.id_allows_authentication(identity, trust_root)
         if ret:
