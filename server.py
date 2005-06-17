@@ -1,6 +1,6 @@
 import time
 
-from util import (sha1, long2a, a2long, w3cdate, to_b64, from_b64,
+from openid.util import (sha1, long2a, a2long, w3cdate, to_b64, from_b64,
                   kvform, strxor, sign_reply, append_args)
 
 from constants import secret_sizes, default_dh_modulus, default_dh_gen
@@ -124,6 +124,8 @@ class OpenIDServer(object):
         assoc_handle = args.get('openid.assoc_handle')
         issued = args.get('openid.issued')
         valid_to = args.get('openid.valid_to')
+        return_to = args.get('openid.return_to')
+        raise NotImplementedError
         
 
     def checkid_shared(self, args):
