@@ -1,0 +1,39 @@
+The examples directory contains a working server and consumer that
+use the openid libraries.  They are both written using python's standard
+BaseHTTPServer.
+
+To get the example system running:
+
+1) Create an identity webpage with contents like:
+
+	<html>
+	  <head>
+	    <link rel="openid.server" href="http://localhost:8082" />
+  	  </head>
+	  <body>This is my identity webpage</body>
+	</html>
+
+2) Put your identity webpage in a public place, like on your local
+apache webserver (if you have one).
+
+3) Start the consumer server:
+
+	python examples/httpconsumer.py
+
+4) In a different terminal, start the server:
+
+	python examples/server.py
+
+
+5) Open your web browser, and go to the consumer server:
+
+	http://localhost:8081/
+
+	and type your identity url into the form:
+
+	http://localhost/myidentity.html (see step 1)
+
+
+	
+
+
