@@ -254,6 +254,7 @@ class OpenIDServer(object):
 
     def get_user_setup_url(self, identity, trust_root):
         """If an identity has failed to authenticate for a given
-        trust_root in immediate mode, this returns the URL to include
-        as the user_setup_url in the redirect sent to the consumer."""
+        trust_root in immediate mode, this is called.  It returns the
+        URL to include as the user_setup_url in the redirect sent to
+        the consumer."""
         raise NotImplementedError
