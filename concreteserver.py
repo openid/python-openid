@@ -16,7 +16,7 @@ class ConcreteLinuxServer(OpenIDServer):
         return (self.secret, self._handle, self.issued,
                 self.replace_after, self.expiry)
 
-    def get_secret(self, assoc_handle):
+    def get_server_secret(self, assoc_handle):
         if assoc_handle == self._handle:
             return self.secret, self.expiry 
         else:
