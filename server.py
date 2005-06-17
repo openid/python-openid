@@ -10,6 +10,26 @@ _enc_default_modulus = to_b64(long2a(default_dh_modulus))
 _enc_default_gen = to_b64(long2a(default_dh_gen))
 _signed_fields = ['mode', 'issued', 'valid_to', 'identity', 'return_to']
 
+class Request(object):
+    def __init__(self, args):
+        self.args = args
+
+    def get(self, key, default=None):
+        return self.args.get('openid.' + key, default)
+
+    def __getattr__(self, attr):
+        if attr[0] == '_':
+            raise AttributeError
+
+        val = self.get(attr)
+        if val is None:
+            raise ProtocolError('Query argument %r not found' % (attr,))
+
+        return val
+
+    def get_by_full_key(self, key, default=None):
+        return self.args.get(key, default)
+
 class OpenIDServer(object):
     def __init__(self, srand=None):
         """srand should be a cryptographic-quality source of random
@@ -24,22 +44,20 @@ class OpenIDServer(object):
         (redirect, contents).  redirect is a bool indicating whether
         contents is a redirect url or page contents"""
 
+        req = Request(args)
         try:
-            try:
-                mode = args['openid.mode']
-            except KeyError:
-                raise ProtocolError('Expected openid argument missing')
+            method_name = 'do_' + req.mode
 
             try:
-                method = getattr(self, 'do_' + mode)
+                method = getattr(self, method_name)
             except AttributeError:
                 raise ProtocolError('Unsupported openid.mode')
             else:
-                return method(args)
+                return method(req)
         except ProtocolError, why:
             message = why[0]
             try:
-                return_to = get_arg(args, 'return_to')
+                return_to = req.return_to
             except ProtocolError:
                 return False, message
             else:
@@ -49,7 +67,7 @@ class OpenIDServer(object):
                     }
                 return True, append_args(return_to, err)
 
-    def do_associate(self, args):
+    def do_associate(self, req):
         """Performs the actions needed for openid.mode=associate.  If
         srand was provided when constructing this server instance,
         this method supports the DH-SHA1 openid.session_type when
@@ -58,21 +76,19 @@ class OpenIDServer(object):
         where reply_body is the body of the http response that should
         be sent back to the consumer."""
         reply = {}
-        assoc_type = args.get('openid.assoc_type', 'HMAC-SHA1')
-        ret = self.get_new_secret(secret_sizes[assoc_type])
+        assoc_type = req.get('openid.assoc_type', 'HMAC-SHA1')
+        ret = self.get_new_secret()
         secret, handle, issued, replace_after, expiry = ret
-        
-        if 'openid.session_type' in args and self.srand is not None:
-            session_type = args.get('openid.session_type')
 
+        session_type = req.get('session_type')
+        if session_type and self.srand is not None:
             if session_type == 'DH-SHA1':
-                enc_dh_mod = args.get('openid.dh_modulus',
-                                      _enc_default_modulus)
-                enc_dh_gen = args.get('openid.dh_gen', _enc_default_gen)
+                enc_dh_mod = req.get('dh_modulus', _enc_default_modulus)
+                enc_dh_gen = req.get('dh_gen', _enc_default_gen)
                 dh_modulus = a2long(from_b64(enc_dh_mod))
                 dh_gen = a2long(from_b64(enc_dh_gen))
 
-                enc_dh_cons_pub = args.get('openid.dh_consumer_public')
+                enc_dh_cons_pub = req.dh_consumer_public
                 dh_cons_pub = a2long(from_b64(enc_dh_cons_pub))
 
                 dh_server_private = self.srand.randrange(1, dh_modulus - 1)
@@ -103,143 +119,86 @@ class OpenIDServer(object):
         
         return False, kvform(reply)
 
-    def do_checkid_immediate(self, args):
+    def do_checkid_immediate(self, req):
         try:
-            return self.checkid_shared(args)
+            return self.checkid(req)
         except AuthenticationError:
-            identity = args.get('openid.identity')
-            return_to = args.get('openid.return_to')
-            trust_root = args.get('openid.trust_root', return_to)
+            trust_root = req.get('trust_root', req.return_to)
             
-            user_setup_url = self.get_user_setup_url(identity, trust_root)
+            user_setup_url = self.get_user_setup_url(req.identity, trust_root)
             reply = {
                 'openid.mode': 'id_res',
                 'openid.user_setup_url': user_setup_url,
                 }
             
-            return True, append_args(return_to, reply)
+            return True, append_args(req.return_to, reply)
 
-    def do_checkid_setup(self, args):
+    def do_checkid_setup(self, req):
         try:
-            return self.checkid_shared(args)
+            return self.checkid(req)
         except AuthenticationError:
             # XXX: do whatever is correct for auth failure in
             # setup mode
             raise
 
-    def do_check_authentication(self, args):
-        identity = args.get('openid.identity')
-        assoc_handle = args.get('openid.assoc_handle')
-        issued = args.get('openid.issued')
-        valid_to = args.get('openid.valid_to')
-        return_to = args.get('openid.return_to')
-        signed = args.get('openid.signed')
-        sig = args.get('openid.sig')
-        
-        if not (identity and assoc_handle and issued and valid_to and
-                return_to and signed and sig):
-            raise ProtocolError('missing required argument')
-
-        ret = self.get_secret(assoc_handle)
-        if ret is None:
-            raise ProtocolError('invalid assoc_handle')
-        
-        secret, expiry = ret
-        if expiry < time.time():
-            raise ProtocolError('using an expired assoc_handle')
-
-        token = args.copy()
-        token['openid.mode'] = 'id_res'
-        
-        _, v_sig = sign_reply(token, secret, _signed_fields)
-        if v_sig == sig:
-            reply = {'lifetime': str(self.get_lifetime(identity))}
-        else:
-            reply = {'lifetime': '0'}
-
-        return False, kvform(reply)
-
-    def checkid_shared(self, args):
+    def checkid(self, req):
         """This function does the logic for the checkid functions.
         Since the only difference in behavior between them is how
         authentication errors are handled, this does all logic for
         dealing with successful authentication, and raises an
         exception for its caller to handle on a failed authentication."""
-        
-        identity = args.get('openid.identity')
-        return_to = args.get('openid.return_to')
-        trust_root = args.get('openid.trust_root', return_to)
-
-        if not (identity and return_to and trust_root):
-            raise ProtocolError('missing arg')
-
+        trust_root = req.get('trust_root', req.return_to)
         if not self.is_sane_trust_root(trust_root):
             raise AuthenticationError
 
+        assoc_handle = req.get('assoc_handle')
+        if assoc_handle:
+            secret, expiry = self.lookup_secret(assoc_handle)
+            if expiry < time.time():
+                raise ProtocolError('using an expired handle')
+        else:
+            secret, assoc_handle = self.get_server_secret()
+
+        issued, expires = self.get_auth_range(req.identity, trust_root)
         reply = {
-            'openid.return_to': return_to,
-            'openid.identity': identity,
             'openid.mode': 'id_res',
+            'openid.issued': w3cdate(issued),
+            'openid.valid_to': w3cdate(expires),
+            'openid.identity': req.identity,
+            'openid.return_to': req.return_to,
+            'openid.assoc_handle': assoc_handle,
             }
 
-        if 'openid.assoc_handle' in args:
-            return self.checkid_normal(reply, identity, return_to, trust_root,
-                                       args['openid.assoc_handle'])
-        else:
-            return self.checkid_dumb(reply, identity, return_to, trust_root)
+        signed, sig = sign_reply(reply, secret, _signed_fields)
 
-    def checkid_normal(self, reply, identity, return_to, trust_root, assoc_handle):
-        ret = self.get_secret(assoc_handle)
+        reply.update({
+            'openid.signed': signed,
+            'openid.sig': sig,
+            })
+    
+        return True, append_args(req.return_to, reply)
 
-        if ret is None:
-            raise ProtocolError('no such assoc_handle on server')
-
-        secret, expiry = ret
+    def do_check_authentication(self, req):
+        """Last step in dumb mode"""
+        secret, expiry = self.lookup_secret(req.assoc_handle)
         if expiry < time.time():
-            raise ProtocolError('using an expired handle')
+            raise ProtocolError('using an expired assoc_handle')
 
-        ret = self.id_allows_authentication(identity, trust_root)
-        if ret:
-            issued, expires = ret
-            reply.update({
-                'openid.issued': w3cdate(issued),
-                'openid.assoc_handle': assoc_handle,
-                'openid.valid_to': w3cdate(expires),
-                })
+        token = req.args.copy()
+        token['openid.mode'] = 'id_res'
+        
+        try:
+            _, v_sig = sign_reply(token, secret, _signed_fields)
+        except KeyError, why:
+            raise ProtocolError('Missing required query arg %r' % why.args)
 
-            signed, sig = sign_reply(reply, secret, _signed_fields)
-            reply.update({
-                'openid.signed': signed,
-                'openid.sig': sig,
-                })
-            return True, append_args(return_to, reply)
+        if v_sig == req.sig:
+            lifetime = self.get_lifetime(req.identity)
         else:
-            raise AuthenticationError
+            lifetime = 0
 
-    def checkid_dumb(self, reply, identity, return_to, trust_root):
-        ret = self.get_server_secret(secret_sizes['HMAC-SHA1'])
-        secret, handle, issued, valid_to = ret
-
-        ret = self.id_allows_authentication(identity, trust_root)
-        if ret:
-            auth_issued, auth_expires = ret
-            
-            reply.update({
-                'openid.assoc_handle': handle,
-                'openid.issued': w3cdate(issued), # XXX: Is this the right value?
-                'openid.valid_to': w3cdate(valid_to),
-                })
-
-            signed, sig = sign_reply(reply, secret, _signed_fields)
-
-            reply.update({
-                'openid.signed': signed,
-                'openid.sig': sig,
-                })
-
-            return True, append_args(return_to, reply)
-        else:
-            raise AuthenticationError
+        reply = {'lifetime': str(lifetime)}
+        return False, kvform(reply)
 
     # Helpers that can easily be overridden:
     def is_sane_trust_root(self, trust_root):
@@ -249,43 +208,42 @@ class OpenIDServer(object):
         
         return True
 
+    def get_auth_type(self):
+        """Returns the name of the authentication type"""
+        return 'HMAC-SHA1'
 
     # Callbacks:
-    def get_server_secret(self, size):
-        """Returns a tuple (secret, handle, issued, valid_to) for this
-        server to associate with itself.  This might return a new
-        secret, or it might return an existing one.  Either behavior
-        is fine, as long as three conditions are met.  First, the
-        handle must be useable with the get_secret call to retrieve
-        the secret at a later time.  Second, the secret returned must
-        be of the requested size.  Third, the valid_to value must be
-        in the future and a unix timestamp in UTC (such as one
-        returned by time.time())"""
+    def get_server_secret(self):
+        """Returns a tuple (secret, handle) for this server to
+        associate with itself. This might return a new secret, or it
+        might return an existing one. Either behavior is fine, as long
+        as the handle is usable with the get_secret call to retrieve
+        the secret at a later time."""
         raise NotImplementedError
     
-    def get_new_secret(self, size):
+    def get_new_secret(self):
         """Returns a tuple (secret, handle, issued, replace_after,
         expiry) for an association with a consumer.  The secret must
         be size bytes long.  issued, replace_after, and expiry are
         unix timestamps in UTC (such as those returned by time.time())"""
         raise NotImplementedError
 
-    def get_secret(self, assoc_handle):
+    def lookup_secret(self, assoc_handle):
         """Returns a tuple (secret, expiry) for an existing
         association with a consumer.  If no association is found
         (either it expired and was removed, or never existed), this
-        method should return None.  expiry is a unix timestamp in UTC
+        method should raise ProtocolError.  expiry is a unix timestamp in UTC
         (such as that returned by time.time())"""
         raise NotImplementedError
 
-    def id_allows_authentication(self, identity, trust_root):
+    def get_auth_range(self, identity, trust_root):
         """If the given identity exists and allows the given
         trust_root to authenticate, this returns a tuple (issued,
         expires), giving the time the authentication was issued and
-        when it expires.  Otherwise, return None.
+        when it expires.  Otherwise, raise an AuthenticationError.
         
         issued and expires are unix timestamps in UTC (such as those
-        returned by time.time()) """
+        returned by time.time())"""
         raise NotImplementedError
 
     def get_lifetime(self, identity):

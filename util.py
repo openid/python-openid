@@ -4,7 +4,12 @@ import pickle
 import binascii
 import sha
 import hmac
+
 from urllib import urlencode
+
+from openid.errors import ProtocolError
+
+# XXX: set __all__
 
 def sha1(s):
     return sha.new(s).digest()
@@ -67,3 +72,8 @@ def append_args(url, args):
 
     return '%s%s%s' % (url, ('?' in url) and '&' or '?', urlencode(args))
 
+def get_arg(name, args):
+    arg = args.get("openid." + name)
+    if arg is None:
+        raise ProtocolError("Missing Argument: %r" % (name,))
+    return arg
