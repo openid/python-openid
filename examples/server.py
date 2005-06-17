@@ -3,13 +3,13 @@ from urlparse import urlparse
 import time
 
 from openid.examples import util
-from openid.concreteserver import ConcreteLinuxServer
+from openid.concreteserver import ConcreteServer
 
 _server = None
 def getServer():
     global _server
     if _server is None:
-        _server = ConcreteLinuxServer()
+        _server = ConcreteServer()
     return _server
 
 class ServerHandler(util.HTTPHandler):
