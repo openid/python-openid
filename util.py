@@ -34,15 +34,9 @@ def to_b64(s):
 def from_b64(s):
     return binascii.a2b_base64(s)
 
-def kvform2(d):
-    """Represent dict d as newline-terminated key:value pairs; return
-    also order of keys"""
-    keys = d.keys()
-    return keys, ''.join(['%s:%s\n' % (k, d[k]) for k in keys])
-
 def kvform(d):
     "Represent dict d as newline-terminated key:value pairs"
-    return kvform2(d)[1]
+    return ''.join(['%s:%s\n' % (k, v) for k, v in d.iteritems()])
 
 def parsekv(d):
     return dict([[(k.strip(), v.strip()) for k,v in line.split(':')]

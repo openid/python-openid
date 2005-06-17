@@ -9,7 +9,7 @@ __all__ = ['OpenIDServer']
 
 _enc_default_modulus = to_b64(long2a(default_dh_modulus))
 _enc_default_gen = to_b64(long2a(default_dh_gen))
-_signed_fields = ['mode', 'identity', 'issued', 'valid_to', 'return_to']
+_signed_fields = ['mode', 'issued', 'valid_to', 'identity', 'return_to']
 
 
 class _AuthenticationError(Exception): pass
@@ -125,8 +125,32 @@ class OpenIDServer(object):
         issued = args.get('openid.issued')
         valid_to = args.get('openid.valid_to')
         return_to = args.get('openid.return_to')
-        raise NotImplementedError
+        signed = args.get('openid.signed')
+        sig = args.get('openid.sig')
         
+        if not (identity and assoc_handle and issued and valid_to and
+                return_to and signed and sig):
+            raise _ProtocolError(False, 'missing required argument')
+
+        ret = self.get_secret(assoc_handle)
+        if ret is None:
+            raise _ProtocolError(False, 'invalid assoc_handle')
+        
+        secret, expiry = ret
+        if expiry < time.time():
+            raise _ProtocolError(False, 'using an expired assoc_handle')
+
+        token = args.copy()
+        token['openid.mode'] = 'id_res'
+        
+        reply = {}
+        _, v_sig = sign_reply(token, secret, _signed_fields)
+        if v_sig == sig:
+            reply['lifetime'] = str(self.get_lifetime(identity))
+        else:
+            reply['lifetime'] = '0'
+
+        return False, kvform(reply)
 
     def checkid_shared(self, args):
         """This function does the logic for the checkid functions.
@@ -255,4 +279,10 @@ class OpenIDServer(object):
         
         issued and expires are unix timestamps in UTC (such as those
         returned by time.time()) """
+        raise NotImplementedError
+
+    def get_lifetime(self, identity):
+        """In the case the consumer is in dumb mode, and has
+        succesfully authenticated, return the lifetime that
+        authentication is valid for in seconds."""
         raise NotImplementedError
