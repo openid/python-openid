@@ -120,7 +120,11 @@ class OpenIDServer(object):
             raise
 
     def do_check_authentication(self, args):
-        raise NotImplementedError
+        identity = args.get('openid.identity')
+        assoc_handle = args.get('openid.assoc_handle')
+        issued = args.get('openid.issued')
+        valid_to = args.get('openid.valid_to')
+        
 
     def checkid_shared(self, args):
         """This function does the logic for the checkid functions.
