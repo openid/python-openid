@@ -54,12 +54,12 @@ def strxor(aa, bb):
 def sign_reply(reply, key, signed_fields):
     """Sign the given fields from the reply with the specified key.
     Return signed and sig"""
-    token = {}
+    token = []
     for i in signed_fields:
-        token[i] = reply['openid.' + i]
+        token.append((i, reply['openid.' + i]))
     
-    order, text = kvform2(token)
-    return ",".join(order), to_b64(hmac.new(key, text, sha).digest())
+    text = ''.join(['%s:%s\n' % (k, v) for k, v in token])
+    return ','.join(signed_fields), to_b64(hmac.new(key, text, sha).digest())
 
 def append_args(url, args):
     if len(args) == 0:
