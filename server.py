@@ -137,9 +137,7 @@ class OpenIDServer(object):
         try:
             return self.checkid(req)
         except AuthenticationError:
-            # XXX: do whatever is correct for auth failure in
-            # setup mode
-            raise
+            return self.setup_action(identity, trust_root, return_to)
 
     def checkid(self, req):
         """This function does the logic for the checkid functions.
@@ -252,4 +250,9 @@ class OpenIDServer(object):
         trust_root in immediate mode, this is called.  It returns the
         URL to include as the user_setup_url in the redirect sent to
         the consumer."""
+        raise NotImplementedError
+
+    def get_setup_action(self, identity, trust_root, return_to):
+        """If an identity has failed to authenticate for a given
+        trust_root in setup mode, this returns a tuple (redirect,"""
         raise NotImplementedError
