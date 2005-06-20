@@ -16,6 +16,19 @@ def normalize_url(url):
         url = 'http://' + url
     return url
 
+def getOpenIDConsumer(http_client=None, associator=None, assoc_mgr=None):
+    """factory function to get a functional OpenIDConsumer object"""
+    if http_client is None:
+        http_client = SimpleHTTPClient()
+
+    if associator is None:
+        associator = DiffieHelmanAssociator(http_client)
+
+    if assoc_mgr is None:
+        assoc_mgr = BaseAssociationManager(associator)
+
+    return OpenIDConsumer(http_client, assoc_mgr)
+    
 
 class SimpleHTTPClient(object):
     def get(self, url):
