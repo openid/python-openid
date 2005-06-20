@@ -46,8 +46,8 @@ class ConsumerHandler(util.HTTPHandler):
                 identity_url = query['identity_url']
                 print 'making initial request'
                 
-                redirect_url = consumer.handleRequest(identity_url,
-                                                      self.headers['Referer'])
+                redirect_url = consumer.handle_request(identity_url,
+                                                       self.headers['Referer'])
 
                 if redirect_url is not None:
                     self._redirect(redirect_url)
@@ -57,7 +57,7 @@ class ConsumerHandler(util.HTTPHandler):
 
             elif 'openid.mode' in query:
                 try:
-                    valid_to = consumer.handleResponse(query)
+                    valid_to = consumer.handle_response(query)
                 except Exception, e:
                     self._error('Handling response: '+str(e))
                 else:
@@ -76,7 +76,6 @@ class ConsumerHandler(util.HTTPHandler):
         except:
             self._headers(500)
             raise
-        
         
 if __name__ == '__main__':
     print 'Consumer Server running...'
