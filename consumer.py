@@ -192,7 +192,10 @@ class OpenIDConsumer(object):
 
         return time.mktime((now + (valid_to - issued)).utctimetuple())
 
-    def do_error(self, args):
-        # XXX: get message from args and raise protocol error
-        raise NotImplementedError
+    def do_error(self, req):
+        error = req.get('error')
+        if error is None:
+            raise ProtocolError("Unspecified Server Error: %r" % (req.args,))
+        else:
+            raise ProtocolError("Server Response: %r" % (error,))
 
