@@ -1,6 +1,7 @@
 import BaseHTTPServer
-from urlparse import urlparse
 import time
+
+from urlparse import urlparse
 
 from openid.examples import util
 from openid.consumer import OpenIDConsumer
