@@ -186,7 +186,7 @@ class OpenIDServer(object):
 
         token = req.args.copy()
         token['openid.mode'] = 'id_res'
-        
+
         try:
             _, v_sig = sign_reply(token, secret, _signed_fields)
         except KeyError, why:
@@ -208,17 +208,12 @@ class OpenIDServer(object):
         
         return True
 
-    def get_auth_type(self):
-        """Returns the name of the authentication type"""
-        return 'HMAC-SHA1'
-
     # Callbacks:
     def get_server_secret(self):
         """Returns a tuple (secret, handle) for this server to
-        associate with itself. This might return a new secret, or it
-        might return an existing one. Either behavior is fine, as long
-        as the handle is usable with the get_secret call to retrieve
-        the secret at a later time."""
+        associate with itself. This will return a new secret or
+        existing secret. Either is fine, as long as the handle is
+        usable with lookup_secret."""
         raise NotImplementedError
     
     def get_new_secret(self):
