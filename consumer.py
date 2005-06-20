@@ -9,13 +9,7 @@ from openid.constants import *
 from openid.util import *
 from openid.errors import *
 
-def _getArg(name, args):
-    arg = args.get("openid." + name)
-    if arg is None:
-        raise ProtocolError("Missing Argument: %r" % (name,))
-    return arg
-
-def normalizeURL(url):
+def normalize_url(url):
     assert isinstance(url, basestring), type(url)
     url = url.strip()
     if not (url.startswith('http://') or url.startswith('https://')):
@@ -43,75 +37,90 @@ class SimpleHTTPClient(object):
             
         return (f.geturl(), data)
 
-
-
 class DumbAssociationManager(object):
     """This class provides the API for an association store to be used
     with an OpenIDConsumer instance. An instance of this class will
     cause the consumer to run in dumb mode."""
-    def put(self, *unused):
+    def put(self, server_url, handle, key, expiry, replace_after):
         pass
 
-    def associate(self, *unused):
-        return None
+    def associate(self, server_url):
+        pass
 
-    def getSecret(self, *unused):
-        return None
+    def get_secret(self, server_url, assoc_handle):
+        pass
 
-def DHAssociate(assoc_mngr, server_url, http_client):
-    """Returns assoc_handle associated with server_url"""
-    handle = assoc_mngr.getMostRecent(server_url)
-    if handle is not None:
-        return handle
+class DiffieHelmanAssociator(object):
+    def __init__(self, http_client):
+        self.http_client = http_client
 
-    p = default_dh_modulus
-    g = default_dh_gen
-    priv_key = random.randrange(1, p-1)
+    def get_mod_gen(self):
+        """-> (modulus, generator) for Diffie-Helman
 
-    args = {
-        'openid.mode': 'associate',
-        'openid.assoc_type':'HMAC-SHA1',
-        'openid.session_type':'DH-SHA1',
-        'openid.dh_modulus': to_b64(long2a(p)),
-        'openid.dh_gen': to_b64(long2a(g)),
-        'openid.dh_consumer_public': to_b64(long2a(pow(p, priv_key, p))),
-        }
+        override this function to use different values"""
+        return (default_dh_modulus, default_dh_gen)
 
-    body = urllib.urlencode(args)
+    def associate(self, server_url):
+        p, g = self.get_mod_gen()
+        priv_key = random.randrange(1, p-1)
 
-    url, data = http_client.post(server_url, body)
-    results = parsekv(data)
-    # XXX: check results?
-    # XXX: We need to handle the case where the server isn't up for
-    #      DH and just returns mac_key in the clear.
+        args = {
+            'openid.mode': 'associate',
+            'openid.assoc_type':'HMAC-SHA1',
+            'openid.session_type':'DH-SHA1',
+            'openid.dh_modulus': to_b64(long2a(p)),
+            'openid.dh_gen': to_b64(long2a(g)),
+            'openid.dh_consumer_public': to_b64(long2a(pow(p, priv_key, p))),
+            }
 
-    dh_server_pub = from_b64(a2long(
-        results.get('dh_server_public')))
-    enc_mac_key = results.get('enc_mac_key')
-    expiry = w3c2datetime(results.get('expiry'))
-    assoc_handle = results.get('assoc_handle')
+        body = urllib.urlencode(args)
 
-    dh_shared = pow(dh_server_pub, priv_key, p)
-    secret = strxor(from_b64(enc_mac_key), sha1(long2a(dh_shared)))
+        url, data = self.http_client.post(server_url, body)
+        results = parsekv(data)
+        # XXX: check results?
+        # XXX: We need to handle the case where the server isn't up for
+        #      DH and just returns mac_key in the clear.
 
-    assoc_mngr.put(server_url, assoc_handle, secret, expiry)
+        dh_server_pub = from_b64(a2long(
+            results.get('dh_server_public')))
+        enc_mac_key = results.get('enc_mac_key')
+        expiry = w3c2datetime(results.get('expiry'))
+        assoc_handle = results.get('assoc_handle')
 
-    return assoc_handle
-    
-
+        dh_shared = pow(dh_server_pub, priv_key, p)
+        secret = strxor(from_b64(enc_mac_key), sha1(long2a(dh_shared)))
+        return (assoc_handle, secret, expiry)
+        
 class BaseAssociationManager(DumbAssociationManager):
     """Abstract base class for association manager implementations."""
-    
-    associate = DHAssociate
 
-    def getSecret(self, server_url, assoc_handle):
+    def __init__(self, associator):
+        self.associator = associator
+
+    def associate(self, server_url):
+        """Returns assoc_handle associated with server_url"""
+        assoc_handle = self.get_most_recent(server_url)
+        if assoc_handle is not None:
+            return assoc_handle
+
+        (assoc_handle, secret, expiry) = self.associator.associate(server_url)
+
+        # XXX: FIXME:
+        replace_after = expiry
+
+        self.put(server_url, assoc_handle, secret, expiry, replace_after)
+        return assoc_handle
+
+    def get_secret(self, server_url, assoc_handle):
         # Find the secret matching server_url and assoc_handle
-        associations = self.getAll(server_url)
+        associations = self.get_all(server_url)
         for _assoc_handle, secret in associations:
             if _assoc_handle == assoc_handle:
-                return secret
+                break
+        else:
+            secret = None
 
-        return None
+        return secret
 
     # Subclass should implement the rest of this classes methods.
     def put(self, server_url, handle, key, expiry, replace_after):
@@ -119,13 +128,13 @@ class BaseAssociationManager(DumbAssociationManager):
         server_url."""
         raise NotImplementedError
     
-    def getMostRecent(server_url):
+    def get_most_recent(self, server_url):
         """Subclasses should return the handle associated with
         server_url that expires furthest in the future if one exists
         and None otherwise."""
         raise NotImplementedError
     
-    def getAll(self, server_url):
+    def get_all(self, server_url):
         """Subclasses should return a list of (assoc_handle, secret)
         pairs associated with the server_url and that have not yet
         expired."""
@@ -148,11 +157,11 @@ class OpenIDConsumer(object):
             assoc_mngr = DumbAssociationManager()
         self.assoc_mngr = assoc_mngr
 
-    def handleRequest(self, url, return_to, trust_root=None):
+    def handle_request(self, url, return_to, trust_root=None):
         """Returns the url to redirect to or None if no identity was found."""
-        url = normalizeURL(url)
+        url = normalize_url(url)
         
-        server_info = self.findServer(url)
+        server_info = self.find_server(url)
         if server_info is None:
             return None
         
@@ -171,29 +180,29 @@ class OpenIDConsumer(object):
 
         return append_args(server_url, redir_args)
 
-    def handleResponse(self, args):
-        mode = _getArg('mode', args)
+    def handle_response(self, args):
+        mode = get_arg(args, 'mode')
         func = getattr(self, 'do_' + mode, None)
         if func is None:
             raise ProtocolError("Unknown Mode: %r" % (mode,))
 
         return func(args)
 
-    def determineServerURL(self, args):
+    def determine_server_url(self, args):
         """Subclasses might extract the server_url from a cache or
         from a signed parameter specified in the return_to url passed
         to initialRequest."""
-        id_url = _getArg('identity', args)
+        id_url = get_arg(args, 'identity')
 
         # Grab the server_url from the id_url in args
-        new_id_url, server_url = self.findServer(id_url)
+        new_id_url, server_url = self.find_server(id_url)
         if id_url != new_id_url:
             raise ValueMismatchError("ID URL %r seems to have moved: %r"
                                      % (id_url, new_id_url))
         
         return server_url
 
-    def findServer(self, url):
+    def find_server(self, url):
         """<--(identity_url, server_url) or None if no server found.
         Parse url and follow delegates to find ther openid.server url.
         """
@@ -237,10 +246,10 @@ class OpenIDConsumer(object):
 
         # XXX: What about trust_root acceptance?
 
-        server_url = self.determineServerURL(args)
-        assoc_handle = _getArg('assoc_handle', args)
+        server_url = self.determine_server_url(args)
+        assoc_handle = get_arg(args, 'assoc_handle')
         
-        secret = self.assoc_mngr.getSecret(server_url, assoc_handle)
+        secret = self.assoc_mngr.get_secret(server_url, assoc_handle)
         if secret is None:
             # No matching association found. I guess we're in dumb mode...
             # POST openid.mode=check_authentication
@@ -254,23 +263,23 @@ class OpenIDConsumer(object):
             body = urllib.urlencode(check_args)
             _, data = self.http_client.post(server_url, body)
             results = parsekv(data)
-            lifetime = float(results['lifetime'])
+            lifetime = int(results['lifetime'])
             if lifetime:
                 return time.mktime(now.utctimetuple()) + lifetime
             else:
                 return 0
 
         # Check the signature
-        sig = _getArg('sig', args)
-        signed_fields = _getArg('signed', args).strip().split(',')
+        sig = get_arg(args, 'sig')
+        signed_fields = get_arg(args, 'signed').strip().split(',')
 
         v_sig = sign_reply(args, secret, signed_fields)
         if v_sig != sig:
             raise ValueMismatchError("Signatures did not Match: %r" %
                                      ((args, assoc_handle, secret),))
 
-        issued = w3c2datetime(_getArg('issued', args))
-        valid_to = w3c2datetime(_getArg('valid_to', args))
+        issued = w3c2datetime(get_arg(args, 'issued'))
+        valid_to = w3c2datetime(get_arg(args, 'valid_to'))
 
         return time.mktime((now + (valid_to - issued)).utctimetuple())
         
