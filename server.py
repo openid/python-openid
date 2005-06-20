@@ -131,13 +131,21 @@ class OpenIDServer(object):
 
         assoc_handle = req.get('assoc_handle')
         if assoc_handle:
-            secret, expiry = self.lookup_secret(assoc_handle)
+            try:
+                secret, expiry = self.lookup_secret(assoc_handle)
+            except TypeError:
+                raise ProtocolError('no secret found for %r' % assoc_handle)
+
             if expiry < time.time():
                 raise ProtocolError('using an expired handle')
         else:
             secret, assoc_handle = self.get_server_secret()
 
-        issued, expires = self.get_auth_range(req.identity, trust_root)
+        try:
+            issued, expires = self.get_auth_range(req.identity, trust_root)
+        except TypeError:
+            raise AuthenticationError
+
         reply = {
             'openid.mode': 'id_res',
             'openid.issued': w3cdate(issued),
@@ -158,7 +166,11 @@ class OpenIDServer(object):
 
     def do_check_authentication(self, req):
         """Last step in dumb mode"""
-        secret, expiry = self.lookup_secret(req.assoc_handle)
+        try:
+            secret, expiry = self.lookup_secret(req.assoc_handle)
+        except TypeError:
+            raise ProtocolError('no secret found for %r' % req.assoc_handle)
+
         if expiry < time.time():
             raise ProtocolError('using an expired assoc_handle')
 
@@ -205,7 +217,7 @@ class OpenIDServer(object):
         """Returns a tuple (secret, expiry) for an existing
         association with a consumer.  If no association is found
         (either it expired and was removed, or never existed), this
-        method should raise ProtocolError.  expiry is a unix timestamp in UTC
+        method should return None.  expiry is a unix timestamp in UTC
         (like that returned by time.time())"""
         raise NotImplementedError
 
@@ -213,8 +225,7 @@ class OpenIDServer(object):
         """If the given identity exists and allows the given
         trust_root to authenticate, this returns a tuple (issued,
         expires), giving the time the authentication was issued and
-        when it expires.  Otherwise, it must raise an
-        AuthenticationError.
+        when it expires.  Otherwise, return None.
         
         issued and expires are unix timestamps in UTC (such as those
         returned by time.time())"""
