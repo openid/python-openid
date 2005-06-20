@@ -4,6 +4,7 @@ import time
 
 from openid.examples import util
 from openid.consumer import OpenIDConsumer
+from openid.interface import Request
 
 _consumer = None
 def getConsumer():    
@@ -11,6 +12,8 @@ def getConsumer():
     if _consumer is None:
         _consumer = OpenIDConsumer()
     return _consumer
+
+
 
 class ConsumerHandler(util.HTTPHandler):
 
@@ -57,7 +60,7 @@ class ConsumerHandler(util.HTTPHandler):
 
             elif 'openid.mode' in query:
                 try:
-                    valid_to = consumer.handle_response(query)
+                    valid_to = consumer.handle_response(Request(query, 'GET'))
                 except Exception, e:
                     self._error('Handling response: '+str(e))
                 else:

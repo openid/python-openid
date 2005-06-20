@@ -96,22 +96,28 @@ class OpenIDConsumer(object):
 
         return append_args(server_url, redir_args)
 
-    def handle_response(self, args):
-        mode = get_arg(args, 'mode')
-        func = getattr(self, 'do_' + mode, None)
+    def handle_response(self, req):
+        """Handles an OpenID GET request with openid.mode in the
+        arguments. req should be a Request instance, properly
+        initialized with the http arguments given, and the http method
+        used to make the request.  Returns a """
+
+        if req.http_method != 'GET':
+            raise ProtocolError("Expected HTTP Method 'GET', got %r" %
+                                (req.http_method,))
+        func = getattr(self, 'do_' + req.mode, None)
         if func is None:
-            raise ProtocolError("Unknown Mode: %r" % (mode,))
+            raise ProtocolError("Unknown Mode: %r" % (req.mode,))
 
-        return func(args)
+        return func(req)
 
-    def determine_server_url(self, args):
+    def determine_server_url(self, req):
         """Subclasses might extract the server_url from a cache or
         from a signed parameter specified in the return_to url passed
-        to initialRequest."""
-        id_url = get_arg(args, 'identity')
-
+        to initialRequest. Returns the unix timestamp when the session
+        will expire.  0 if invalid."""
         # Grab the server_url from the id_url in args
-        new_id_url, server_url = self.find_server(id_url)
+        new_id_url, server_url = self.find_server(req.id_url)
         if id_url != new_id_url:
             raise ValueMismatchError("ID URL %r seems to have moved: %r"
                                      % (id_url, new_id_url))
@@ -144,11 +150,9 @@ class OpenIDConsumer(object):
 
         return _(url)
 
-    def _dumb_auth(self, server_url, now, args):
-        # No matching association found. I guess we're in dumb mode...
-        # POST openid.mode=check_authentication
+    def _dumb_auth(self, server_url, now, req):
         check_args = {}
-        for k, v in args.iteritems():
+        for k, v in req.args.iteritems():
             if k.startswith('openid.'):
                 check_args[k] = v
 
@@ -163,45 +167,32 @@ class OpenIDConsumer(object):
         else:
             return 0
         
-    def do_id_res(self, args):
-        """Returns the unix timestamp when the session will expire.
-        0 if invalid."""
-        ################################################################
-        #  Expected Args
-        #
-        # 'openid.mode=id_res'
-        # 'openid.identity=' + OpenID URL
-        # 'openid.assoc_handle=' + HMAC secret handle
-        # 'openid.issued=' + UTC date
-        # 'openid.valid_to=' + UTC date
-        # 'openid.return_to=' + return URL
-        # 'openid.signed=' + 'mode,issued,valid_to,identity,return_to'
-        # 'openid.sig=' + base64(HMAC(secret(assoc_handle), token_contents))
+    def do_id_res(self, req):
         now = datetime.datetime.utcnow()
 
         # XXX: What about trust_root acceptance?
 
-        server_url = self.determine_server_url(args)
-        assoc_handle = get_arg(args, 'assoc_handle')
-        
-        secret = self.assoc_mngr.get_secret(server_url, assoc_handle)
+        server_url = self.determine_server_url(req)
+        secret = self.assoc_mngr.get_secret(server_url, req.assoc_handle)
         if secret is None:
-            return self._dumb_auth(server_url, now, args)
+            # No matching association found. I guess we're in dumb mode...
+            return self._dumb_auth(server_url, now, req)
 
         # Check the signature
-        sig = get_arg(args, 'sig')
-        signed_fields = get_arg(args, 'signed').strip().split(',')
+        sig = req.sig
+        signed_fields = req.signed.strip().split(',')
 
         v_sig = sign_reply(args, secret, signed_fields)
         if v_sig != sig:
             raise ValueMismatchError("Signatures did not Match: %r" %
-                                     ((args, assoc_handle, secret),))
+                                     ((req.args, assoc_handle, secret),))
 
-        issued = w3c2datetime(get_arg(args, 'issued'))
-        valid_to = w3c2datetime(get_arg(args, 'valid_to'))
+        issued = w3c2datetime(req.issued)
+        valid_to = w3c2datetime(req.valid_to)
 
         return time.mktime((now + (valid_to - issued)).utctimetuple())
 
     def do_error(self, args):
-        raise NotImplementedError #XXX: handle errors
+        # XXX: get message from args and raise protocol error
+        raise NotImplementedError
 
