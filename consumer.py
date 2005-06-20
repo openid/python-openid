@@ -192,7 +192,7 @@ class OpenIDConsumer(object):
         if trust_root is not None:
             redir_args["openid.trust_root"] = trust_root
 
-        assoc_handle = self.assoc_mngr.associate(server_url, self.http_client)
+        assoc_handle = self.assoc_mngr.associate(server_url)
         if assoc_handle is not None:
             redir_args["openid.assoc_handle"] = assoc_handle
 
