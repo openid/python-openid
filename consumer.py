@@ -67,7 +67,7 @@ class OpenIDConsumer(object):
             assoc_mngr = DumbAssociationManager()
         self.assoc_mngr = assoc_mngr
 
-    def handle_request(self, url, return_to, trust_root=None):
+    def handle_request(self, url, return_to, trust_root=None, immediate=False):
         """Returns the url to redirect to or None if no identity was found."""
         url = normalize_url(url)
         
@@ -77,12 +77,18 @@ class OpenIDConsumer(object):
         
         id_url, server_url = server_info
         
-        redir_args = {"openid.mode" : "checkid_immediate",
-                      "openid.identity" : id_url,
+        redir_args = {"openid.identity" : id_url,
                       "openid.return_to" : return_to,}
 
         if trust_root is not None:
             redir_args["openid.trust_root"] = trust_root
+
+        if immediate:
+            mode = "check_immediate"
+        else:
+            mode = "check_setup"
+
+        redir_args['openid.mode'] = mode
 
         assoc_handle = self.assoc_mngr.associate(server_url)
         if assoc_handle is not None:
