@@ -3,32 +3,13 @@ import time
 from openid.util import *
 from openid.constants import secret_sizes, default_dh_modulus, default_dh_gen
 from openid.errors import ProtocolError, AuthenticationError
+from openid.interface import Request, redirect, response_page, error_page
 
 __all__ = ['OpenIDServer']
 
 _enc_default_modulus = to_b64(long2a(default_dh_modulus))
 _enc_default_gen = to_b64(long2a(default_dh_gen))
 _signed_fields = ['mode', 'issued', 'valid_to', 'identity', 'return_to']
-
-class Request(object):
-    def __init__(self, args):
-        self.args = args
-
-    def get(self, key, default=None):
-        return self.args.get('openid.' + key, default)
-
-    def __getattr__(self, attr):
-        if attr[0] == '_':
-            raise AttributeError
-
-        val = self.get(attr)
-        if val is None:
-            raise ProtocolError('Query argument %r not found' % (attr,))
-
-        return val
-
-    def get_by_full_key(self, key, default=None):
-        return self.args.get(key, default)
 
 class OpenIDServer(object):
     def __init__(self, srand=None):
@@ -38,13 +19,13 @@ class OpenIDServer(object):
         random.SystemRandom is a good choice."""
         self.srand = srand
 
-    def handle(self, args):
-        """Args should be a dictionary-like object for looking up
-        either get or post args sent to this server.  Returns a pair,
-        (redirect, contents).  redirect is a bool indicating whether
-        contents is a redirect url or page contents"""
+    def handle(self, req):
+        """Handles an OpenID request.  req should be a Request
+        instance, properly initialized with the http arguments given,
+        and the method used to make the request.  Returns a Response
+        instance with the necessary fields set to indicate the
+        appropriate action."""
 
-        req = Request(args)
         try:
             method_name = 'do_' + req.mode
 
@@ -55,17 +36,15 @@ class OpenIDServer(object):
             else:
                 return method(req)
         except ProtocolError, why:
-            message = why[0]
-            try:
-                return_to = req.return_to
-            except ProtocolError:
-                return False, message
+            edict = {
+                'openid.mode': 'error',
+                'openid.error': why[0],
+                }
+            return_to = req.get('return_to')
+            if req.http_method == 'GET' and return_to:
+                return redirect(append_args(return_to, edict))
             else:
-                err = {
-                    'openid.mode': 'error',
-                    'openid.error': message,
-                    }
-                return True, append_args(return_to, err)
+                return error_page(kvform(edict))
 
     def do_associate(self, req):
         """Performs the actions needed for openid.mode=associate.  If
@@ -77,7 +56,7 @@ class OpenIDServer(object):
         be sent back to the consumer."""
         reply = {}
         assoc_type = req.get('openid.assoc_type', 'HMAC-SHA1')
-        ret = self.get_new_secret()
+        ret = self.get_new_secret(assoc_type)
         secret, handle, issued, replace_after, expiry = ret
 
         session_type = req.get('session_type')
@@ -117,7 +96,7 @@ class OpenIDServer(object):
             'expiry': w3cdate(expiry),
             })
         
-        return False, kvform(reply)
+        return response_page(kvform(reply))
 
     def do_checkid_immediate(self, req):
         try:
@@ -130,14 +109,15 @@ class OpenIDServer(object):
                 'openid.mode': 'id_res',
                 'openid.user_setup_url': user_setup_url,
                 }
-            
-            return True, append_args(req.return_to, reply)
+            return redirect(append_args(req.return_to, reply))
 
     def do_checkid_setup(self, req):
         try:
             return self.checkid(req)
         except AuthenticationError:
-            return self.setup_action(identity, trust_root, return_to)
+            return self.get_setup_response(req.identity,
+                                           req.trust_root,
+                                           req.return_to)
 
     def checkid(self, req):
         """This function does the logic for the checkid functions.
@@ -174,7 +154,7 @@ class OpenIDServer(object):
             'openid.sig': sig,
             })
     
-        return True, append_args(req.return_to, reply)
+        return redirect(append_args(req.return_to, reply))
 
     def do_check_authentication(self, req):
         """Last step in dumb mode"""
@@ -195,8 +175,7 @@ class OpenIDServer(object):
         else:
             lifetime = 0
 
-        reply = {'lifetime': str(lifetime)}
-        return False, kvform(reply)
+        return response_page(kvform({'lifetime': lifetime}))
 
     # Helpers that can easily be overridden:
     def is_sane_trust_root(self, trust_root):
@@ -214,7 +193,7 @@ class OpenIDServer(object):
         usable with lookup_secret."""
         raise NotImplementedError
     
-    def get_new_secret(self):
+    def get_new_secret(self, assoc_type):
         """Returns a tuple (secret, handle, issued, replace_after,
         expiry) for an association with a consumer.  The secret must
         be size bytes long.  issued, replace_after, and expiry are
@@ -252,7 +231,6 @@ class OpenIDServer(object):
         the consumer."""
         raise NotImplementedError
 
-    def get_setup_action(self, identity, trust_root, return_to):
-        """If an identity has failed to authenticate for a given
-        trust_root in setup mode, this returns a tuple (redirect,"""
+    def get_setup_response(self, identity, trust_root, return_to):
+        """ """
         raise NotImplementedError

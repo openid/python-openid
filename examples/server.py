@@ -5,6 +5,7 @@ import time, random
 from openid.examples import util
 from openid.errors import ProtocolError
 from openid.server import OpenIDServer
+from openid.interface import Request
 
 class ConcreteServer(OpenIDServer):
     def __init__(self):
@@ -15,9 +16,12 @@ class ConcreteServer(OpenIDServer):
         self.replace_after = self.issued + (60 * 60 * 24 * 29) 
         self.expiry = self.replace_after + (60 * 60 * 24)
 
-    def get_new_secret(self):
-        return (self.secret, self.assoc_handle, self.issued,
-                self.replace_after, self.expiry)
+    def get_new_secret(self, assoc_type):
+        if assoc_type == 'HMAC-SHA1':
+            return (self.secret, self.assoc_handle, self.issued,
+                    self.replace_after, self.expiry)
+        else:
+            raise ProtocolError('Unknown assoc_type: %r' % assoc_type)
 
     def lookup_secret(self, assoc_handle):
         if assoc_handle == self.assoc_handle:
@@ -35,7 +39,7 @@ class ConcreteServer(OpenIDServer):
         return now, in_an_hour
 
     def get_lifetime(self, identity):
-        return 50
+        return 500
 
 
 _server = None
@@ -47,15 +51,17 @@ def getServer():
 
 class ServerHandler(util.HTTPHandler):
 
-    def handleOpenIDRequest(self, query):
+    def handleOpenIDRequest(self, req):
         try:
             server = getServer()
-            is_redirect, data = server.handle(query)
-            if is_redirect:
-                self._redirect(data)
+            response = server.handle(req)
+            if response.code == 302:
+                self._redirect(response.redirect_url)
             else:
-                self._headers()
-                self.wfile.write(data)
+                self._headers(code=response.code,
+                              content_type=response.content_type)
+
+                self.wfile.write(response.body)
         except:
             self._headers(500)
             raise
@@ -65,14 +71,14 @@ class ServerHandler(util.HTTPHandler):
         print 'IN GET'
         qs = urlparse(self.path)[4]
         query = util.parseQuery(qs)
-        self.handleOpenIDRequest(query)
+        self.handleOpenIDRequest(Request(query, 'GET'))
 
     def do_POST(self):
         # post data is urlencoded args
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         query = util.parseQuery(post_data)
-        self.handleOpenIDRequest(query)
+        self.handleOpenIDRequest(Request(query, 'POST'))
 
 
 if __name__ == '__main__':
