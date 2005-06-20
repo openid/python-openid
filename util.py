@@ -72,7 +72,7 @@ def append_args(url, args):
 
     return '%s%s%s' % (url, ('?' in url) and '&' or '?', urlencode(args))
 
-def get_arg(name, args):
+def get_arg(args, name):
     arg = args.get("openid." + name)
     if arg is None:
         raise ProtocolError("Missing Argument: %r" % (name,))
