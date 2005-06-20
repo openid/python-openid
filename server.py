@@ -196,8 +196,9 @@ class OpenIDServer(object):
     def get_new_secret(self, assoc_type):
         """Returns a tuple (secret, handle, issued, replace_after,
         expiry) for an association with a consumer.  The secret must
-        be size bytes long.  issued, replace_after, and expiry are
-        unix timestamps in UTC (such as those returned by time.time())"""
+        be for an association of assoc_type.  issued, replace_after,
+        and expiry are unix timestamps in UTC (like those returned by
+        time.time())"""
         raise NotImplementedError
 
     def lookup_secret(self, assoc_handle):
@@ -205,14 +206,15 @@ class OpenIDServer(object):
         association with a consumer.  If no association is found
         (either it expired and was removed, or never existed), this
         method should raise ProtocolError.  expiry is a unix timestamp in UTC
-        (such as that returned by time.time())"""
+        (like that returned by time.time())"""
         raise NotImplementedError
 
     def get_auth_range(self, identity, trust_root):
         """If the given identity exists and allows the given
         trust_root to authenticate, this returns a tuple (issued,
         expires), giving the time the authentication was issued and
-        when it expires.  Otherwise, raise an AuthenticationError.
+        when it expires.  Otherwise, it must raise an
+        AuthenticationError.
         
         issued and expires are unix timestamps in UTC (such as those
         returned by time.time())"""
@@ -232,5 +234,8 @@ class OpenIDServer(object):
         raise NotImplementedError
 
     def get_setup_response(self, identity, trust_root, return_to):
-        """ """
+        """If an identity has failed to authenticate for a given
+        trust_root in setup mode, this is called.  It returns a
+        Response object containing either a page to draw or another
+        redirect to issue."""
         raise NotImplementedError
