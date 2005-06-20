@@ -43,11 +43,27 @@ class SimpleHTTPClient(object):
 
     def post(self, url, body):
         req = urllib2.Request(url, body)
-        f = urllib2.urlopen(req)
         try:
-            data = f.read()
-        finally:
-            f.close()
+            f = urllib2.urlopen(req)
+            try:
+                data = f.read()
+            finally:
+                f.close()
+        except urllib2.HTTPError, why:
+            if why.code == 400:
+                try:
+                    data = why.read()
+                finally:
+                    why.close()
+                args = parsekv(data)
+                error = args.get('error')
+                if error is None:
+                    raise ProtocolError("Unspecified Server Error: %r" %
+                                        (args,))
+                else:
+                    raise ProtocolError("Server Response: %r" % (error,))
+            else:
+                raise 
             
         return (f.geturl(), data)
 
