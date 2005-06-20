@@ -84,12 +84,19 @@ class DiffieHelmanAssociator(object):
         dh_server_pub = from_b64(a2long(
             results.get('dh_server_public')))
         enc_mac_key = results.get('enc_mac_key')
-        expiry = w3c2datetime(results.get('expiry'))
         assoc_handle = results.get('assoc_handle')
+
+        now = datetime.datetime.utcnow()
+        expiry = w3c2datetime(results.get('expiry'))
+        replace_after = w3c2datetime(results.get('replace_after'))
+        issued = w3c2datetime(results.get('issued'))
+        delta = now - issued
+        expiry = time.mktime(delta + expiry)
+        replace_after = time.mktime(delta + replace_after)
 
         dh_shared = pow(dh_server_pub, priv_key, p)
         secret = strxor(from_b64(enc_mac_key), sha1(long2a(dh_shared)))
-        return (assoc_handle, secret, expiry)
+        return (assoc_handle, secret, expiry, replace_after)
         
 class BaseAssociationManager(DumbAssociationManager):
     """Abstract base class for association manager implementations."""
@@ -103,10 +110,8 @@ class BaseAssociationManager(DumbAssociationManager):
         if assoc_handle is not None:
             return assoc_handle
 
-        (assoc_handle, secret, expiry) = self.associator.associate(server_url)
-
-        # XXX: FIXME:
-        replace_after = expiry
+        (assoc_handle, secret, expiry, replace_after) = \
+                       self.associator.associate(server_url)
 
         self.put(server_url, assoc_handle, secret, expiry, replace_after)
         return assoc_handle
@@ -122,7 +127,7 @@ class BaseAssociationManager(DumbAssociationManager):
 
         return secret
 
-    # Subclass should implement the rest of this classes methods.
+    # Subclass need to implement the rest of this classes methods.
     def put(self, server_url, handle, key, expiry, replace_after):
         """Subclasses should add the association information to
         server_url."""
