@@ -121,6 +121,7 @@ class OpenIDConsumer(object):
         if req.http_method != 'GET':
             raise ProtocolError("Expected HTTP Method 'GET', got %r" %
                                 (req.http_method,))
+
         func = getattr(self, 'do_' + req.mode, None)
         if func is None:
             raise ProtocolError("Unknown Mode: %r" % (req.mode,))

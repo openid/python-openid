@@ -1,4 +1,4 @@
-from openid.errors import ProtocolError
+from openid.errors import ProtocolError, NoArgumentsError
 
 class Response(object):
     def __init__(self, **kwargs):
@@ -18,6 +18,12 @@ class Request(object):
     def __init__(self, args, http_method):
         self.args = args
         self.http_method = http_method.upper()
+        if self.http_method == 'GET':
+            for k in args:
+                if k.startswith('openid.'):
+                    break
+            else:
+                raise NoArgumentsError
 
     def get(self, key, default=None):
         return self.args.get('openid.' + key, default)
