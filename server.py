@@ -44,7 +44,11 @@ class OpenIDServer(object):
             if req.http_method == 'GET' and return_to:
                 return redirect(append_args(return_to, edict))
             else:
-                return error_page(kvform(edict))
+                for k in req.args.iterkeys():
+                    if k.startswith('openid.'):
+                        return error_page(kvform(edict))
+
+                return self.get_openid_page()
 
     def do_associate(self, req):
         """Performs the actions needed for openid.mode=associate.  If
@@ -196,6 +200,24 @@ class OpenIDServer(object):
             return False
         
         return True
+
+    def get_openid_page(self):
+        """This method is called when the openid server is accessed
+        with no openid arguments.  It should return a Response object
+        that will paint a simple 'this is an openid server' page."""
+        text = """<html>
+<head>
+  <title>OpenID Server</title>
+</head>
+<body>
+<p>Hello.  You've reached an OpenId server.  See
+<a href="http://www.openid.net">openid.net</a> for more
+information.</p>
+</body>
+</html
+"""
+        return Response(code=200, content_type='text/html', body=text)
+
 
     # Callbacks:
     def get_server_secret(self):
