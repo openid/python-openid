@@ -7,11 +7,11 @@ from openid.util import *
 
 class Association(object):
     def __init__(self, server_url, handle, key, expiry, replace_after):
-        self.server_url = server_url
-        self.handle = handle
-        self.key = key
-        self.expiry = expiry
-        self.replace_after = replace_after
+        self.server_url = str(server_url)
+        self.handle = str(handle)
+        self.key = str(key)
+        self.expiry = float(expiry)
+        self.replace_after = float(replace_after)
 
 
 class DumbAssociationManager(object):
