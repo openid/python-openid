@@ -17,20 +17,6 @@ def normalize_url(url):
     return url
 
 
-def getOpenIDConsumer(http_client=None, associator=None, assoc_mgr=None):
-    """factory function to get a functional OpenIDConsumer object"""
-    if http_client is None:
-        http_client = SimpleHTTPClient()
-
-    if associator is None:
-        associator = DiffieHelmanAssociator(http_client)
-
-    if assoc_mgr is None:
-        assoc_mgr = DumbAssociationManager(associator)
-
-    return OpenIDConsumer(http_client, assoc_mgr)
-    
-
 class SimpleHTTPClient(object):
     def get(self, url):
         f = urllib2.urlopen(url)
@@ -80,7 +66,7 @@ class OpenIDConsumer(object):
         self.http_client = http_client
         
         if assoc_mngr is None:
-            assoc_mngr = DumbAssociationManager()
+            assoc_mngr = BaseAssociationManager()
         self.assoc_mngr = assoc_mngr
 
     def handle_request(self, url, return_to, trust_root=None, immediate=False):
