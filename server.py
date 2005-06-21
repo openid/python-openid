@@ -3,7 +3,7 @@ import time
 from openid.util import *
 from openid.constants import secret_sizes, default_dh_modulus, default_dh_gen
 from openid.errors import ProtocolError, AuthenticationError
-from openid.interface import Request, redirect, response_page, error_page
+from openid.interface import *
 
 __all__ = ['OpenIDServer']
 
@@ -208,7 +208,7 @@ class OpenIDServer(object):
   <title>OpenID Server</title>
 </head>
 <body>
-<p>Hello.  You've reached an OpenId server.  See
+<p>Hello.  You've reached an OpenID server.  See
 <a href="http://www.openid.net">openid.net</a> for more
 information.</p>
 </body>
