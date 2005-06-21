@@ -110,14 +110,14 @@ decidepage = """<html>
   <p>In practice, you'd only get this page if you are
      logged in as the listed identity.</p>
   <table>
-    <tr><td>Identity:</td><td>%{identity}</td></tr>
-    <tr><td>Trust Root:</td><td>%{trust_root}</td></tr>
+    <tr><td>Identity:</td><td>%(identity)s</td></tr>
+    <tr><td>Trust Root:</td><td>%(trust_root)s</td></tr>
   </table>
   <form method="POST" action="/">
     <input type="hidden" name="action" value="allow" />
-    <input type="hidden" name="identity" value="%{identity}" />
-    <input type="hidden" name="trust_root" value="%{trust_root}" />
-    <input type="hidden" name="return_to" value="%{return_to}" />
+    <input type="hidden" name="identity" value="%(identity)s" />
+    <input type="hidden" name="trust_root" value="%(trust_root)s" />
+    <input type="hidden" name="return_to" value="%(return_to)s" />
     <input type="submit" name="yes" value="yes" />
     <input type="submit" name="no" value="no" />
   </form>
