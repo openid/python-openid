@@ -257,7 +257,7 @@ information.</p>
         authentication is valid for in seconds."""
         raise NotImplementedError
 
-    def get_user_setup_url(self, identity, trust_root):
+    def get_user_setup_url(self, identity, trust_root, return_to):
         """If an identity has failed to authenticate for a given
         trust_root in immediate mode, this is called.  It returns the
         URL to include as the user_setup_url in the redirect sent to

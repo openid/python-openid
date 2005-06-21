@@ -64,7 +64,7 @@ class ConcreteServer(OpenIDServer):
     def get_lifetime(self, identity):
         return self.lifespan
 
-    def get_user_setup_url(self, identity, trust_root):
+    def get_user_setup_url(self, identity, trust_root, return_to):
         raise NotImplementedError
 
     def get_setup_response(self, identity, trust_root, return_to):
