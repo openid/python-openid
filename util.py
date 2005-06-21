@@ -27,7 +27,7 @@ class UTC(datetime.tzinfo):
 utc = UTC()
 
 def utc_now():
-    return utc.fromutc(datetime.utcnow().replace(tzinfo=utc))
+    return utc.fromutc(datetime.datetime.utcnow().replace(tzinfo=utc))
 
 def sha1(s):
     return sha.new(s).digest()
