@@ -22,7 +22,7 @@ apache webserver (if you have one).
 
 4) In a different terminal, start the server:
 
-	python examples/server.py
+	python examples/sampleserver.py
 
 
 5) Open your web browser, and go to the consumer server:
