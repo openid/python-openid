@@ -7,7 +7,8 @@ import urllib2
 from openid.constants import *
 from openid.util import *
 from openid.errors import *
-from openid.association import DumbAssociationManager, DiffieHelmanAssociator
+from openid.association import *
+from openid import parse
 
 from openid.parse import parseLinkAttrs
 
@@ -68,7 +69,8 @@ class OpenIDConsumer(object):
         self.http_client = http_client
         
         if assoc_mngr is None:
-            assoc_mngr = BaseAssociationManager()
+            assoc_mngr = BaseAssociationManager(
+                DiffieHelmanAssociator(http_client))
         self.assoc_mngr = assoc_mngr
 
     def handle_request(self, url, return_to, trust_root=None, immediate=False):
