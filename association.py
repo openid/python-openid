@@ -106,7 +106,7 @@ class DiffieHelmanAssociator(object):
         enc_mac_key = results.get('enc_mac_key')
         assoc_handle = results.get('assoc_handle')
 
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         expiry = w3c2datetime(results.get('expiry'))
         replace_after = w3c2datetime(results.get('replace_after'))
         issued = w3c2datetime(results.get('issued'))

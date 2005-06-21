@@ -11,6 +11,24 @@ from openid.errors import ProtocolError
 
 # XXX: set __all__
 
+
+class UTC(datetime.tzinfo):
+    ZERO = datetime.timedelta(0)
+
+    def utcoffset(self, dt):
+        return self.ZERO
+
+    def tzname(self, dt):
+        return "UTC"
+
+    def dst(self, dt):
+        return self.ZERO
+
+utc = UTC()
+
+def utc_now():
+    return utc.fromutc(datetime.utcnow().replace(tzinfo=utc))
+
 def sha1(s):
     return sha.new(s).digest()
 
@@ -30,7 +48,8 @@ def w3cdate(x):
     return dt.isoformat() + 'Z'
 
 def w3c2datetime(x):
-    return datetime.datetime(time.strptime(x, '%Y-%m-%dT%H:%M:%SZ'))
+    return datetime.datetime(
+        tzinfo=utc, *time.strptime(x, '%Y-%m-%dT%H:%M:%SZ')[:7])
 
 def to_b64(s):
     """Represent string s as base64, omitting newlines"""

@@ -173,9 +173,7 @@ class OpenIDConsumer(object):
             return 0
         
     def do_id_res(self, req):
-        now = datetime.datetime.utcnow()
-
-        # XXX: What about trust_root acceptance?
+        now = utc_now()
 
         server_url = self.determine_server_url(req)
         secret = self.assoc_mngr.get_secret(server_url, req.assoc_handle)
