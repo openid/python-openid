@@ -106,8 +106,8 @@ class DiffieHelmanAssociator(object):
                 return results[key]
             except KeyError:
                 raise ProtocolError(
-                    'Association server response missing argument: %r'
-                    % (key,))
+                    'Association server response missing argument %r:\n%r'
+                    % (key, data))
             
         assoc_type = getResult('assoc_type')
         if assoc_type != 'HMAC-SHA1':
