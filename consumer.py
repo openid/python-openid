@@ -137,16 +137,16 @@ class OpenIDConsumer(object):
 
             id_url, data = self.http_client.get(url)
 
-            for match in self.link_re.finditer(data):
-                linkinner = match.group('linkinner')
-                href_match = self.href_re.match(linkinner)
-
-                if href_match:
-                    href = href_match.group('href')
-
-                    if 'openid.server' in linkinner:
+            link_attrs = parse.parseLinkAttrs(data)
+            for attrs in link_attrs:
+                rel = attrs.get('rel')
+                if rel == 'openid.server':
+                    href = attrs.get('href')
+                    if href is not None:
                         return id_url, href
-                    elif 'openid.delegate' in linkinner:
+                if rel == 'openid.delegate':
+                    href = attrs.get('href')
+                    if href is not None:
                         return _(href, depth=depth+1)
 
             return None
