@@ -4,36 +4,19 @@ BaseHTTPServer.
 
 To get the example system running:
 
-1) Create an identity webpage with contents like:
-
-	<html>
-	  <head>
-	    <link rel="openid.server" href="http://localhost:8082" />
-  	  </head>
-	  <body>This is my identity webpage</body>
-	</html>
-
-2) Put your identity webpage in a public place, like on your local
-apache webserver (if you have one).
-
-3) Start the consumer server:
+1) Start the consumer server:
 
 	python examples/httpconsumer.py
 
-4) In a different terminal, start the server:
+2) In a different terminal, start the server:
 
 	python examples/sampleserver.py
 
 
-5) Open your web browser, and go to the consumer server:
+3) Open your web browser, and go to the consumer server:
 
 	http://localhost:8081/
 
-	and type your identity url into the form:
+	and type your identity url:
 
-	http://localhost/myidentity.html (see step 1)
-
-
-	
-
-
+        http://localhost:8082/whoever
