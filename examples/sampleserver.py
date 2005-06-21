@@ -6,7 +6,7 @@ from openid.util import random_string, w3cdate
 from openid.examples import util
 from openid.errors import ProtocolError
 from openid.server import OpenIDServer
-from openid.interface import Request, response_page
+from openid.interface import Request, response_page, redirect
 
 class ConcreteServer(OpenIDServer):
     def __init__(self):
@@ -51,7 +51,7 @@ class ConcreteServer(OpenIDServer):
 
         return secret, self.secret_handle
 
-    def get_auth_range(self, req, identity, trust_root):
+    def get_auth_range(self, unused_req, identity, trust_root):
         if (identity, trust_root) in self.trust_store:
             now = time.time()
             return now, now + self.lifespan
@@ -65,10 +65,16 @@ class ConcreteServer(OpenIDServer):
         return self.lifespan
 
     def get_user_setup_url(self, identity, trust_root, return_to):
-        raise NotImplementedError
+        args = {
+            'identity': identity,
+            'trust_root': trust_root,
+            'return_to': return_to,
+            }
+        return append_args('http://localhost:8082/?action=allow', args)
 
     def get_setup_response(self, identity, trust_root, return_to):
-        raise NotImplementedError
+        return redirect(self.get_user_setup_url(
+            identity, trust_root, return_to))
 
 
 server = ConcreteServer()
@@ -104,11 +110,14 @@ decidepage = """<html>
   <p>In practice, you'd only get this page if you are
      logged in as the listed identity.</p>
   <table>
-    <tr><td>Identity:</td><td>%s</td></tr>
-    <tr><td>Trust Root:</td><td>%s</td></tr>
+    <tr><td>Identity:</td><td>%{identity}</td></tr>
+    <tr><td>Trust Root:</td><td>%{trust_root}</td></tr>
   </table>
   <form method="POST" action="/">
-    <input type="hidden" name="return_to" value="%s">
+    <input type="hidden" name="action" value="allow" />
+    <input type="hidden" name="identity" value="%{identity}" />
+    <input type="hidden" name="trust_root" value="%{trust_root}" />
+    <input type="hidden" name="return_to" value="%{return_to}" />
     <input type="submit" name="yes" value="yes" />
     <input type="submit" name="no" value="no" />
   </form>
@@ -130,13 +139,15 @@ class ServerHandler(util.HTTPHandler):
         except:
             self._headers(500)
             raise
-        
 
     def do_GET(self):
         parsed = urlparse(self.path)
         query = util.parseQuery(parsed[4])
         if query.get('action') == 'openid':
             self.handleOpenIDRequest(Request(query, 'GET'))
+        if query.get('action') == 'allow':
+            self._headers()
+            self.wfile.write(decidepage % query)
         elif len(query) == 0:
             path = parsed[2]
             if path == '/':
@@ -155,6 +166,10 @@ class ServerHandler(util.HTTPHandler):
         query = util.parseQuery(post_data)
         if query.get('action') == 'openid':
             self.handleOpenIDRequest(Request(query, 'POST'))
+        elif query.get('action') == 'allow':
+            if 'yes' in query:
+                server.add_trust(query['identity'], query['trust_root'])
+            self._redirect(query['return_to'])
         else:
             self._headers(500)
 
