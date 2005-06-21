@@ -112,7 +112,6 @@ class ServerHandler(util.HTTPHandler):
         
 
     def do_GET(self):
-        print 'IN GET'
         parsed = urlparse(self.path)
         query = util.parseQuery(parsed[4])
         if query.get('action') == 'openid':
