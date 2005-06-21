@@ -101,8 +101,7 @@ class DiffieHelmanAssociator(object):
         # XXX: check results?
         # XXX: We need to handle the case where the server isn't up for
         #      DH and just returns mac_key in the clear.
-
-        dh_server_pub = from_b64(a2long(
+        dh_server_pub = a2long(from_b64(
             results.get('dh_server_public')))
         enc_mac_key = results.get('enc_mac_key')
         assoc_handle = results.get('assoc_handle')
