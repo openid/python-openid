@@ -105,7 +105,9 @@ class OpenIDConsumer(object):
         arguments. req should be a Request instance, properly
         initialized with the http arguments given, and the http method
         used to make the request.  Returns a """
-
+        if not req.hasOpenIDParams():
+            raise NoArgumentsError
+        
         if req.http_method != 'GET':
             raise ProtocolError("Expected HTTP Method 'GET', got %r" %
                                 (req.http_method,))
