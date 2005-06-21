@@ -43,12 +43,10 @@ class OpenIDServer(object):
             return_to = req.get('return_to')
             if req.http_method == 'GET' and return_to:
                 return redirect(append_args(return_to, edict))
-            else:
-                for k in req.args.iterkeys():
-                    if k.startswith('openid.'):
-                        return error_page(kvform(edict))
-
+            elif req.http_method == 'GET' and not req.hasOpenIDParams():
                 return self.get_openid_page()
+            else:
+                return error_page(kvform(edict))
 
     def do_associate(self, req):
         """Performs the actions needed for openid.mode=associate.  If
