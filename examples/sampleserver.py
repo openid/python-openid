@@ -95,6 +95,27 @@ mainpage = """<html>
 </html>
 """
 
+decidepage = """<html>
+<head>
+  <title>Allow Authorization?</title>
+</head>
+<body>
+  <h1>Allow Authorization?</h1>
+  <p>In practice, you'd only get this page if you are
+     logged in as the listed identity.</p>
+  <table>
+    <tr><td>Identity:</td><td>%s</td></tr>
+    <tr><td>Trust Root:</td><td>%s</td></tr>
+  </table>
+  <form method="POST" action="/">
+    <input type="hidden" name="return_to" value="%s">
+    <input type="submit" name="yes" value="yes" />
+    <input type="submit" name="no" value="no" />
+  </form>
+</body>
+</html>
+"""
+
 class ServerHandler(util.HTTPHandler):
     def handleOpenIDRequest(self, req):
         try:
