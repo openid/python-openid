@@ -91,8 +91,8 @@ def append_args(url, args):
 
     return '%s%s%s' % (url, ('?' in url) and '&' or '?', urlencode(args))
 
-def get_arg(args, name):
-    arg = args.get("openid." + name)
-    if arg is None:
-        raise ProtocolError("Missing Argument: %r" % (name,))
-    return arg
+def random_string(length, srand):
+    """Produce a string of length random bytes using srand as a source of
+    random numbers."""
+    return ''.join([chr(srand.randrange(256)) for i in xrange(length)])
+

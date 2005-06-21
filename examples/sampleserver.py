@@ -2,6 +2,7 @@ import BaseHTTPServer
 from urlparse import urlparse
 import time, random
 
+from openid.util import random_string, w3cdate
 from openid.examples import util
 from openid.errors import ProtocolError
 from openid.server import OpenIDServer
@@ -10,45 +11,69 @@ from openid.interface import Request, response_page
 class ConcreteServer(OpenIDServer):
     def __init__(self):
         OpenIDServer.__init__(self, random.SystemRandom())
-        self.secret = '12345678900987654321'
-        self.assoc_handle = 'huh'
-        self.issued = time.time()
-        self.replace_after = self.issued + (60 * 60 * 24 * 29) 
-        self.expiry = self.replace_after + (60 * 60 * 24)
+        self.counter = 0
+        self.assoc_store = {}
+        self.trust_store = set()  # (identity, trust_root)
+
+        self.secret_handle = None
+        self.lifespan = 60 * 60 * 24 * 30 # 30 days
 
     def get_new_secret(self, assoc_type):
         if assoc_type == 'HMAC-SHA1':
-            return (self.secret, self.assoc_handle, self.issued,
-                    self.replace_after, self.expiry)
+            self.counter += 1
+
+            secret = random_string(20, self.srand)
+            issued = time.time()
+            assoc_handle = '{HMAC-SHA1}%s/%i' % (w3cdate(issued), self.counter)
+            replace_after = issued + (60 * 60 * 24 * 28)
+            expiry = replace_after + (60 * 60 * 24 * 2)
+
+            self.assoc_store[assoc_handle] = secret, expiry
+
+            return secret, assoc_handle, issued, replace_after, expiry
         else:
             raise ProtocolError('Unknown assoc_type: %r' % assoc_type)
 
     def lookup_secret(self, assoc_handle):
-        if assoc_handle == self.assoc_handle:
-            return self.secret, self.expiry 
-        else:
-            raise ProtocolError('Unknown assoc_handle: %r' % assoc_handle)
+        return self.assoc_store.get(assoc_handle)
 
     def get_server_secret(self):
-        return self.secret, self.assoc_handle
+        if self.secret_handle == None:
+            ret = self.get_new_secret('HMAC-SHA1')
+            secret, issued, assoc_handle, replace_after, expiry = ret
+            self.assoc_store[assoc_handle] = secret, expiry
+            self.secret_handle = assoc_handle
+        else:
+            secret, expiry = self.assoc_store[assoc_handle]
+            if time.time() + (60 * 60 * 24 * 2) >= expiry:
+                self.secret_handle = None
+                return self.get_server_secret()
 
-    def get_auth_range(self, unused_identity, unused_trust_root):
-        "Every identity trusts every trust_root!  Yay!"
-        now = time.time()
-        in_an_hour = now + (60 * 60)
-        return now, in_an_hour
+        return secret, self.secret_handle
+
+    def get_auth_range(self, identity, trust_root):
+        if (identity, trust_root) in self.trust_store:
+            now = time.time()
+            return now, now + self.lifespan
+        else:
+            return None
+
+    def add_trust(self, identity, trust_root):
+        self.trust_store.add((identity, trust_root))
 
     def get_lifetime(self, identity):
-        return 60 * 60
+        return self.lifespan
 
     def get_user_setup_url(self, identity, trust_root):
-        return ''
+        raise NotImplementedError
 
     def get_setup_response(self, identity, trust_root, return_to):
-        return response_page('')
+        raise NotImplementedError
 
 
 server = ConcreteServer()
+server.add_trust('fred', 'http://localhost:8081/')
+
 identitypage = """<html>
 <head>
   <title>This is an identity page</title>
@@ -71,7 +96,6 @@ mainpage = """<html>
 """
 
 class ServerHandler(util.HTTPHandler):
-
     def handleOpenIDRequest(self, req):
         try:
             response = server.handle(req)
