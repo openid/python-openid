@@ -9,6 +9,8 @@ from openid.util import *
 from openid.errors import *
 from openid.association import DumbAssociationManager, DiffieHelmanAssociator
 
+from openid.parse import parseLinkAttrs
+
 def normalize_url(url):
     assert isinstance(url, basestring), type(url)
     url = url.strip()
@@ -137,7 +139,7 @@ class OpenIDConsumer(object):
 
             id_url, data = self.http_client.get(url)
 
-            link_attrs = parse.parseLinkAttrs(data)
+            link_attrs = parseLinkAttrs(data)
             for attrs in link_attrs:
                 rel = attrs.get('rel')
                 if rel == 'openid.server':
