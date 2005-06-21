@@ -51,7 +51,7 @@ class ConcreteServer(OpenIDServer):
 
         return secret, self.secret_handle
 
-    def get_auth_range(self, identity, trust_root):
+    def get_auth_range(self, req, identity, trust_root):
         if (identity, trust_root) in self.trust_store:
             now = time.time()
             return now, now + self.lifespan

@@ -241,11 +241,12 @@ information.</p>
         (like that returned by time.time())"""
         raise NotImplementedError
 
-    def get_auth_range(self, identity, trust_root):
-        """If the given identity exists and allows the given
-        trust_root to authenticate, this returns a tuple (issued,
-        expires), giving the time the authentication was issued and
-        when it expires.  Otherwise, return None.
+    def get_auth_range(self, req, identity, trust_root):
+        """If a valid authentication is supplied as part of the
+        request, and allows the given trust_root to authenticate the
+        identity url, this returns a tuple (issued, expires), giving
+        the time the authentication was issued and when it expires.
+        Otherwise, return None.
         
         issued and expires are unix timestamps in UTC (such as those
         returned by time.time())"""
