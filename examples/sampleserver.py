@@ -1,6 +1,6 @@
 import BaseHTTPServer
 from urlparse import urlparse
-import time, random
+import time, random, Cookie
 
 from openid.util import random_string, w3cdate
 from openid.examples import util
@@ -143,11 +143,25 @@ class ServerHandler(util.HTTPHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         query = util.parseQuery(parsed[4])
-        if query.get('action') == 'openid':
+        action = query.get('action')
+        if action == 'openid':
             self.handleOpenIDRequest(Request(query, 'GET'))
-        if query.get('action') == 'allow':
+        if action == 'allow':
             self._headers()
             self.wfile.write(decidepage % query)
+        elif action == 'login':
+            user = query['user']
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.send_header('Set-Cookie', 'user=%s;' % user)
+            self.end_headers()
+            self.wfile.write('logged in as %r' % user)
+        elif action == 'whoami':
+            c = Cookie.SimpleCookie(self.headers.get('cookie'))
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write('you are %r' % c['user'].value)
         elif len(query) == 0:
             path = parsed[2]
             if path == '/':
@@ -164,9 +178,10 @@ class ServerHandler(util.HTTPHandler):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         query = util.parseQuery(post_data)
-        if query.get('action') == 'openid':
+        action = query.get('action')
+        if action == 'openid':
             self.handleOpenIDRequest(Request(query, 'POST'))
-        elif query.get('action') == 'allow':
+        elif action == 'allow':
             if 'yes' in query:
                 server.add_trust(query['identity'], query['trust_root'])
             self._redirect(query['return_to'])
@@ -176,6 +191,5 @@ class ServerHandler(util.HTTPHandler):
 
 if __name__ == '__main__':
     print 'OpenID Example Server running...'
-    print
     BaseHTTPServer.HTTPServer(('', 8082),
                               ServerHandler).serve_forever()
