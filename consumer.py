@@ -8,8 +8,6 @@ from openid.constants import *
 from openid.util import *
 from openid.errors import *
 from openid.association import *
-from openid import parse
-
 from openid.parse import parseLinkAttrs
 
 def normalize_url(url):
