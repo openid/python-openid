@@ -97,25 +97,43 @@ class DiffieHelmanAssociator(object):
         body = urllib.urlencode(args)
 
         url, data = self.http_client.post(server_url, body)
-        results = parsekv(data)
-        # XXX: check results?
-        # XXX: We need to handle the case where the server isn't up for
-        #      DH and just returns mac_key in the clear.
-        dh_server_pub = a2long(from_b64(
-            results.get('dh_server_public')))
-        enc_mac_key = results.get('enc_mac_key')
-        assoc_handle = results.get('assoc_handle')
-
         now = utc_now()
-        expiry = w3c2datetime(results.get('expiry'))
-        replace_after = w3c2datetime(results.get('replace_after'))
-        issued = w3c2datetime(results.get('issued'))
-        delta = now - issued
-        expiry = time.mktime(delta + expiry)
-        replace_after = time.mktime(delta + replace_after)
 
-        dh_shared = pow(dh_server_pub, priv_key, p)
-        secret = strxor(from_b64(enc_mac_key), sha1(long2a(dh_shared)))
+        results = parsekv(data)
+
+        def getResult(key):
+            try:
+                return results[key]
+            except KeyError:
+                raise ProtocolError(
+                    'Association server response missing argument: %r'
+                    % (key,))
+            
+        assoc_type = getResult('assoc_type')
+        if assoc_type != 'HMAC-SHA1':
+            raise RuntimeError("Unknown association type: %r" % (assoc_type,))
+        
+        assoc_handle = getResult('assoc_handle')
+        issued = w3c2datetime(getResult('issued'))
+        replace_after = w3c2datetime(getResult('replace_after'))
+        expiry = w3c2datetime(getResult('expiry'))
+        
+        delta = now - issued
+        replace_after = time.mktime(delta + replace_after)
+        expiry = time.mktime(delta + expiry)
+        
+        secret = results.get('mac_key')
+        if secret is None:
+            # Regular DH response
+            dh_server_pub = a2long(from_b64(getResult('dh_server_public')))
+            enc_mac_key = getResult('enc_mac_key')
+
+            dh_shared = pow(dh_server_pub, priv_key, p)
+            secret = strxor(from_b64(enc_mac_key), sha1(long2a(dh_shared)))
+
+        # else: looks like the server wasn't up for DH ...
+
         return Association(server_url, assoc_handle, secret,
                            expiry, replace_after)
+
         
