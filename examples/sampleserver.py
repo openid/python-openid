@@ -51,7 +51,10 @@ class ConcreteServer(OpenIDServer):
 
         return secret, self.secret_handle
 
-    def get_auth_range(self, unused_req, identity, trust_root):
+    def get_auth_range(self, req, identity, trust_root):
+        if 'http://localhost:8082/' + req.authorization != identity:
+            return None
+
         if (identity, trust_root) in self.trust_store:
             now = time.time()
             return now, now + self.lifespan
@@ -140,12 +143,15 @@ class ServerHandler(util.HTTPHandler):
             self._headers(500)
             raise
 
+    def user(self):
+        return Cookie.SimpleCookie(self.headers.get('cookie'))['user'].value
+
     def do_GET(self):
         parsed = urlparse(self.path)
         query = util.parseQuery(parsed[4])
         action = query.get('action')
         if action == 'openid':
-            self.handleOpenIDRequest(Request(query, 'GET'))
+            self.handleOpenIDRequest(Request(query, 'GET', user()))
         if action == 'allow':
             self._headers()
             self.wfile.write(decidepage % query)
@@ -157,11 +163,10 @@ class ServerHandler(util.HTTPHandler):
             self.end_headers()
             self.wfile.write('logged in as %r' % user)
         elif action == 'whoami':
-            c = Cookie.SimpleCookie(self.headers.get('cookie'))
             self.send_response(200)
             self.send_header('Content-type', 'text/plain')
             self.end_headers()
-            self.wfile.write('you are %r' % c['user'].value)
+            self.wfile.write('you are %r' % user())
         elif len(query) == 0:
             path = parsed[2]
             if path == '/':
