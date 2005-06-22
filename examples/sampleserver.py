@@ -140,6 +140,7 @@ loginpage = """<html>
   <h1>Log In!</h1>
   <p>This isn't even supposed to be secure, so don't complain.</p>
   <form method="GET" action="/">
+    <input type="hidden" name="action" value="login" />
     <input type="hidden" name="dest" value="%s" />
     <input type="text" name="user" value="" />
     <input type="submit" name="submit" value="Log In" />
