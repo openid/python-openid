@@ -32,7 +32,8 @@ class OpenIDServer(object):
             try:
                 method = getattr(self, method_name)
             except AttributeError:
-                raise ProtocolError('Unsupported openid.mode')
+                raise ProtocolError(
+                    'Unsupported openid.mode: %s' % (req.mode,))
             else:
                 return method(req)
         except ProtocolError, why:
