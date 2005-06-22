@@ -79,9 +79,9 @@ class OpenIDConsumer(object):
         if server_info is None:
             return None
         
-        id_url, server_url = server_info
+        identity, server_url = server_info
         
-        redir_args = {"openid.identity" : id_url,
+        redir_args = {"openid.identity" : identity,
                       "openid.return_to" : return_to,}
 
         if trust_root is not None:
@@ -123,11 +123,11 @@ class OpenIDConsumer(object):
         from a signed parameter specified in the return_to url passed
         to initialRequest. Returns the unix timestamp when the session
         will expire.  0 if invalid."""
-        # Grab the server_url from the id_url in args
-        new_id_url, server_url = self.find_server(req.id_url)
-        if id_url != new_id_url:
+        # Grab the server_url from the identity in args
+        identity, server_url = self.find_server(req.identity)
+        if req.identity != identity:
             raise ValueMismatchError("ID URL %r seems to have moved: %r"
-                                     % (id_url, new_id_url))
+                                     % (req.identity, identity))
         
         return server_url
 
@@ -139,7 +139,7 @@ class OpenIDConsumer(object):
             if depth == max_depth:
                 return None
 
-            id_url, data = self.http_client.get(url)
+            identity, data = self.http_client.get(url)
 
             link_attrs = parseLinkAttrs(data)
             for attrs in link_attrs:
@@ -147,7 +147,7 @@ class OpenIDConsumer(object):
                 if rel == 'openid.server':
                     href = attrs.get('href')
                     if href is not None:
-                        return id_url, href
+                        return identity, href
                 if rel == 'openid.delegate':
                     href = attrs.get('href')
                     if href is not None:
