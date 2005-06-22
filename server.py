@@ -93,7 +93,7 @@ class OpenIDServer(object):
 
         reply.update({
             'assoc_type': assoc_type,
-            'handle': handle,
+            'assoc_handle': handle,
             'issued': w3cdate(issued),
             'replace_after': w3cdate(replace_after),
             'expiry': w3cdate(expiry),
