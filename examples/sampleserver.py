@@ -128,6 +128,22 @@ decidepage = """<html>
 </html>
 """
 
+loginpage = """<html>
+<head>
+  <title>Log In!</title>
+</head>
+<body>
+  <h1>Log In!</h1>
+  <p>This isn't even supposed to be secure, so don't complain.</p>
+  <form method="GET" action="/">
+    <input type="hidden" name="dest" value="%s" />
+    <input type="text" name="user" value="" />
+    <input type="submit" name="submit" value="Log In" />
+  </form>
+</body>
+</html>
+"""
+
 class ServerHandler(util.HTTPHandler):
     def handleOpenIDRequest(self, req):
         try:
@@ -144,29 +160,52 @@ class ServerHandler(util.HTTPHandler):
             raise
 
     def user(self):
-        return Cookie.SimpleCookie(self.headers.get('cookie'))['user'].value
+        try:
+            return Cookie.SimpleCookie(self.headers['cookie'])['user'].value
+        except:
+            return ''
+
+    def allow(self, query):
+        user = self.user()
+        identity = query['identity']
+        if 'http://localhost:8082/' + user == identity:
+            self._headers()
+            self.wfile.write(decidepage % query)
+        else:
+            self._headers()
+            self.wfile.write(loginpage % self.path)
+            pass
+
+    def login(self, query):
+        user = query['user']
+        dest = query.get('dest')
+        if dest:
+            self.send_response(302)
+            self.send_header('Set-Cookie', 'user=%s;' % user)
+            self.send_header('Location', dest)
+            self.end_headers()
+        else:
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.send_header('Set-Cookie', 'user=%s;' % user)
+            self.end_headers()
+            self.wfile.write('logged in as %r' % user)
 
     def do_GET(self):
         parsed = urlparse(self.path)
         query = util.parseQuery(parsed[4])
         action = query.get('action')
         if action == 'openid':
-            self.handleOpenIDRequest(Request(query, 'GET', user()))
+            self.handleOpenIDRequest(Request(query, 'GET', self.user()))
         if action == 'allow':
-            self._headers()
-            self.wfile.write(decidepage % query)
+            self.allow(query)
         elif action == 'login':
-            user = query['user']
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.send_header('Set-Cookie', 'user=%s;' % user)
-            self.end_headers()
-            self.wfile.write('logged in as %r' % user)
+            self.login(query)
         elif action == 'whoami':
             self.send_response(200)
             self.send_header('Content-type', 'text/plain')
             self.end_headers()
-            self.wfile.write('you are %r' % user())
+            self.wfile.write('you are %r' % self.user())
         elif len(query) == 0:
             path = parsed[2]
             if path == '/':
