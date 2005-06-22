@@ -216,6 +216,7 @@ def _test():
     assertValid('http://*.bar.co.uk', 'http://www.bar.co.uk', True)
     assertValid('http://*.uoregon.edu', 'http://*.cs.uoregon.edu', True)
 
+    assertValid('http://*.cs.uoregon.edu', 'http://*.uoregon.edu', False)
     assertValid('http://*.com', 'http://foo.com', False)
     assertValid('http://*.foo.com', 'http://bar.com', False)
     assertValid('http://*.foo.com', 'http://www.bar.com', False)
