@@ -118,19 +118,22 @@ class DiffieHelmanAssociator(object):
         expiry = w3c2datetime(getResult('expiry'))
         
         delta = now - issued
-        replace_after = time.mktime(delta + replace_after)
-        expiry = time.mktime(delta + expiry)
-        
-        secret = results.get('mac_key')
-        if secret is None:
-            # Regular DH response
+        replace_after = time.mktime((delta + replace_after).utctimetuple())
+        expiry = time.mktime((delta + expiry).utctimetuple())
+
+        session_type = results.get('session_type')
+        if session_type is None:
+            secret = getResult('mac_key')
+        else:
+            if session_type != 'DH-SHA1':
+                raise RuntimeError("Unknown Session Type: %r"
+                                   % (session_type,))
+            
             dh_server_pub = a2long(from_b64(getResult('dh_server_public')))
             enc_mac_key = getResult('enc_mac_key')
 
             dh_shared = pow(dh_server_pub, priv_key, p)
             secret = strxor(from_b64(enc_mac_key), sha1(long2a(dh_shared)))
-
-        # else: looks like the server wasn't up for DH ...
 
         return Association(server_url, assoc_handle, secret,
                            expiry, replace_after)
