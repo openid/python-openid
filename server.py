@@ -79,7 +79,6 @@ class OpenIDServer(object):
                 enc_dh_server_public = to_b64(long2a(dh_server_public))
 
                 dh_shared = pow(dh_cons_pub, dh_server_private, dh_modulus)
-                
                 enc_mac_key = to_b64(strxor(secret, sha1(long2a(dh_shared))))
 
                 reply.update({
@@ -146,7 +145,8 @@ class OpenIDServer(object):
             secret, assoc_handle = self.get_server_secret()
 
         try:
-            issued, expires = self.get_auth_range(req.identity, trust_root)
+            issued, expires = self.get_auth_range(
+                req, req.identity, trust_root)
         except TypeError:
             raise AuthenticationError
 
