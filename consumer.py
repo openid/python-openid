@@ -98,7 +98,7 @@ class OpenIDConsumer(object):
         if assoc_handle is not None:
             redir_args["openid.assoc_handle"] = assoc_handle
 
-        return append_args(server_url, redir_args)
+        return str(append_args(server_url, redir_args))
 
     def handle_response(self, req):
         """Handles an OpenID GET request with openid.mode in the
