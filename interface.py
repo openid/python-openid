@@ -48,7 +48,10 @@ class Request(object):
 
         val = self.get(attr)
         if val is None:
-            raise ProtocolError('Query argument %r not found' % (attr,))
+            if attr == 'trust_root':
+                return self.return_to
+            else:
+                raise ProtocolError('Query argument %r not found' % (attr,))
 
         return val
 

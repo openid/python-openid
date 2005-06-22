@@ -61,7 +61,7 @@ class OpenIDServer(object):
         reply = {}
         assoc_type = req.get('openid.assoc_type', 'HMAC-SHA1')
         ret = self.get_new_secret(assoc_type)
-        secret, handle, issued, replace_after, expiry = ret
+        secret, handle, replace_after, expiry = ret
 
         session_type = req.get('session_type')
         if session_type and self.srand is not None:
@@ -91,12 +91,14 @@ class OpenIDServer(object):
         else:
             reply['openid.mac_key'] = to_b64(secret)
 
+        now = time.time()
+        
         reply.update({
             'assoc_type': assoc_type,
             'assoc_handle': handle,
-            'issued': w3cdate(issued),
-            'replace_after': w3cdate(replace_after),
-            'expiry': w3cdate(expiry),
+            'issued': w3cdate(now),
+            'replace_after': w3cdate(now + replace_after),
+            'expiry': w3cdate(now + expiry),
             })
         
         return response_page(kvform(reply))
@@ -105,9 +107,7 @@ class OpenIDServer(object):
         try:
             return self.checkid(req)
         except AuthenticationError:
-            trust_root = req.get('trust_root', req.return_to)
-            
-            user_setup_url = self.get_user_setup_url(req.identity, trust_root)
+            user_setup_url = self.get_user_setup_url(req)
             reply = {
                 'openid.mode': 'id_res',
                 'openid.user_setup_url': user_setup_url,
@@ -118,10 +118,7 @@ class OpenIDServer(object):
         try:
             return self.checkid(req)
         except AuthenticationError:
-            trust_root = req.get('trust_root', req.return_to)
-            return self.get_setup_response(req.identity,
-                                           trust_root,
-                                           req.return_to)
+            return self.get_setup_response(req)
 
     def checkid(self, req):
         """This function does the logic for the checkid functions.
@@ -129,9 +126,8 @@ class OpenIDServer(object):
         authentication errors are handled, this does all logic for
         dealing with successful authentication, and raises an
         exception for its caller to handle on a failed authentication."""
-        trust_root = req.get('trust_root', req.return_to)
-        print (trust_root, req.return_to)
-        if not validateURL(trust_root, req.return_to):
+        print (req.trust_root, req.return_to)
+        if not validateURL(req.trust_root, req.return_to):
             raise ProtocolError('Invalid trust_root/return_to values')
 
         assoc_handle = req.get('assoc_handle')
@@ -146,7 +142,7 @@ class OpenIDServer(object):
         else:
             secret, assoc_handle = self.get_server_secret()
 
-        duration = self.get_auth_range(req, req.identity, trust_root)
+        duration = self.get_auth_range(req)
         if not duration:
             raise AuthenticationError
 
@@ -190,7 +186,7 @@ class OpenIDServer(object):
             raise ProtocolError('Missing required query arg %r' % why.args)
 
         if v_sig == req.sig:
-            lifetime = self.get_lifetime(req.identity)
+            lifetime = self.get_lifetime(req)
         else:
             lifetime = 0
 
@@ -224,11 +220,12 @@ information.</p>
         raise NotImplementedError
     
     def get_new_secret(self, assoc_type):
-        """Returns a tuple (secret, handle, issued, replace_after,
-        expiry) for an association with a consumer.  The secret must
-        be for an association of assoc_type.  issued, replace_after,
-        and expiry are unix timestamps in UTC (like those returned by
-        time.time())"""
+        """Returns a tuple (secret, handle, replace_after, expiry) for
+        an association with a consumer.  The secret must be for an
+        association of assoc_type.  replace_after and expiry are
+        offsets in seconds from the time this secret is sent to the
+        client that the client should and must replace this secret,
+        respectively."""
         raise NotImplementedError
 
     def lookup_secret(self, assoc_handle):
@@ -239,27 +236,27 @@ information.</p>
         (like that returned by time.time())"""
         raise NotImplementedError
 
-    def get_auth_range(self, req, identity, trust_root):
+    def get_auth_range(self, req):
         """If a valid authentication is supplied as part of the
         request, and allows the given trust_root to authenticate the
         identity url, this returns the session lifetime in seconds.
         Otherwise, return None."""        
         raise NotImplementedError
 
-    def get_lifetime(self, identity):
+    def get_lifetime(self, req):
         """In the case the consumer is in dumb mode, and has
         succesfully authenticated, return the lifetime that
         authentication is valid for in seconds."""
         raise NotImplementedError
 
-    def get_user_setup_url(self, identity, trust_root, return_to):
+    def get_user_setup_url(self, req):
         """If an identity has failed to authenticate for a given
         trust_root in immediate mode, this is called.  It returns the
         URL to include as the user_setup_url in the redirect sent to
         the consumer."""
         raise NotImplementedError
 
-    def get_setup_response(self, identity, trust_root, return_to):
+    def get_setup_response(self, req):
         """If an identity has failed to authenticate for a given
         trust_root in setup mode, this is called.  It returns a
         Response object containing either a page to draw or another

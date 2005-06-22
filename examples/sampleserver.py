@@ -23,14 +23,13 @@ class ConcreteServer(OpenIDServer):
             self.counter += 1
 
             secret = random_string(20, self.srand)
-            issued = time.time()
-            assoc_handle = '{HMAC-SHA1}%s/%i' % (w3cdate(issued), self.counter)
-            replace_after = issued + (60 * 60 * 24 * 28)
+            assoc_handle = '{HMAC-SHA1}%i/%i' % (time.time(), self.counter)
+            replace_after = 60 * 60 * 24 * 28
             expiry = replace_after + (60 * 60 * 24 * 2)
 
             self.assoc_store[assoc_handle] = secret, expiry
 
-            return secret, assoc_handle, issued, replace_after, expiry
+            return secret, assoc_handle, replace_after, expiry
         else:
             raise ProtocolError('Unknown assoc_type: %r' % assoc_type)
 
@@ -40,8 +39,8 @@ class ConcreteServer(OpenIDServer):
     def get_server_secret(self):
         if self.secret_handle == None:
             ret = self.get_new_secret('HMAC-SHA1')
-            secret, assoc_handle, issued, replace_after, expiry = ret
-            self.assoc_store[assoc_handle] = secret, expiry
+            secret, assoc_handle, _, expiry = ret
+            self.assoc_store[assoc_handle] = secret, (time.time() + expiry)
             self.secret_handle = assoc_handle
         else:
             secret, expiry = self.assoc_store[self.secret_handle]
@@ -51,11 +50,11 @@ class ConcreteServer(OpenIDServer):
 
         return secret, self.secret_handle
 
-    def get_auth_range(self, req, identity, trust_root):
-        if 'http://localhost:8082/' + req.authentication != identity:
+    def get_auth_range(self, req):
+        if 'http://localhost:8082/' + req.authentication != req.identity:
             return None
 
-        if (identity, trust_root) in self.trust_store:
+        if (req.identity, req.trust_root) in self.trust_store:
             return self.lifespan
         else:
             return None
@@ -63,24 +62,29 @@ class ConcreteServer(OpenIDServer):
     def add_trust(self, identity, trust_root):
         self.trust_store.add((identity, trust_root))
 
-    def get_lifetime(self, identity):
+    def get_lifetime(self, req):
         return self.lifespan
 
-    def get_user_setup_url(self, identity, trust_root, return_to):
+    def get_user_setup_url(self, req):
         args = {
-            'identity': identity,
-            'trust_root': trust_root,
-            'return_to': return_to,
+            'identity': req.identity,
+            'trust_root': req.trust_root,
+            'return_to': req.return_to,
+            'success_to': req.return_to,
             }
         return append_args('http://localhost:8082/?action=allow', args)
 
-    def get_setup_response(self, identity, trust_root, return_to):
-        return redirect(self.get_user_setup_url(
-            identity, trust_root, return_to))
-
+    def get_setup_response(self, req):
+        args = {
+            'identity': req.identity,
+            'trust_root': req.trust_root,
+            'return_to': req.return_to,
+            'success_to': append_args('http://localhost:8082/', req.args),
+            }
+        url = append_args('http://localhost:8082/?action=allow', args)
+        return redirect(url)
 
 server = ConcreteServer()
-server.add_trust('fred', 'http://localhost:8081/')
 
 identitypage = """<html>
 <head>
@@ -120,6 +124,7 @@ decidepage = """<html>
     <input type="hidden" name="identity" value="%(identity)s" />
     <input type="hidden" name="trust_root" value="%(trust_root)s" />
     <input type="hidden" name="return_to" value="%(return_to)s" />
+    <input type="hidden" name="success_to" value="%(success_to)s" />
     <input type="submit" name="yes" value="yes" />
     <input type="submit" name="no" value="no" />
   </form>
@@ -230,7 +235,9 @@ class ServerHandler(util.HTTPHandler):
         elif action == 'allow':
             if 'yes' in query:
                 server.add_trust(query['identity'], query['trust_root'])
-            self._redirect(query['return_to'])
+                self._redirect(query['success_to'])
+            else:
+                self._redirect(query['return_to'])
         else:
             self._headers(500)
 
