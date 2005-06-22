@@ -25,7 +25,7 @@ class SimpleHTTPClient(object):
             data = f.read()
         finally:
             f.close()
-        
+
         return (f.geturl(), data)
 
     def post(self, url, body):
@@ -187,7 +187,7 @@ class OpenIDConsumer(object):
         sig = req.sig
         signed_fields = req.signed.strip().split(',')
 
-        v_sig = sign_reply(req.args, secret, signed_fields)
+        _signed, v_sig = sign_reply(req.args, secret, signed_fields)
         if v_sig != sig:
             raise ValueMismatchError("Signatures did not Match: %r" %
                                      ((req.args, v_sig, secret),))
