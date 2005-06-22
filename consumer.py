@@ -187,10 +187,10 @@ class OpenIDConsumer(object):
         sig = req.sig
         signed_fields = req.signed.strip().split(',')
 
-        v_sig = sign_reply(args, secret, signed_fields)
+        v_sig = sign_reply(req.args, secret, signed_fields)
         if v_sig != sig:
             raise ValueMismatchError("Signatures did not Match: %r" %
-                                     ((req.args, assoc_handle, secret),))
+                                     ((req.args, v_sig, secret),))
 
         issued = w3c2datetime(req.issued)
         valid_to = w3c2datetime(req.valid_to)
