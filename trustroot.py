@@ -1,4 +1,4 @@
-from urlparse import urlparse
+from urlparse import urlparse, urlunparse
 
 def validateURL(trust_root, url):
     """quick func for validating a url against a trust root.  See the
@@ -26,17 +26,36 @@ _top_level_domains = (
     'vn|vu|wf|ws|ye|yt|yu|za|zm|zw|localhost'
     ).split('|')
 
+
+def parseURL(url):
+    proto, netloc, path, params, query, frag = urlparse(url)
+    path = urlunparse(('', '', path, params, query, frag))
+
+    if ':' in netloc:
+        try:
+            host, port = netloc.split(':')
+        except ValueError:
+            return None
+    else:
+        host = netloc
+        port = ''
+
+    return proto, host, port, path
+
+
+
 class TrustRoot(object):
     """Represents a valid openid trust root.  The parse classmethod
     accepts a trust root string, producing a TrustRoot object.
     """
     
-    def __init__(self, unparsed, proto, wildcard, host, port):
+    def __init__(self, unparsed, proto, wildcard, host, port, path):
         self.unparsed = unparsed
         self.proto = proto
         self.wildcard = wildcard
         self.host = host
         self.port = port
+        self.path = path
 
         self._is_sane = None
 
@@ -65,16 +84,11 @@ class TrustRoot(object):
         if not self.isSane():
             return False
 
-        proto, netloc, path, params, query, frag = urlparse(url)
-
-        if ':' in netloc:
-            try:
-                host, port = netloc.split(':')
-            except ValueError:
-                return False
-        else:
-            host = netloc
-            port = ''
+        url_parts = parseURL(url)
+        if url_parts is None:
+            return False
+        
+        proto, host, port, path = url_parts
 
         if proto != self.proto:
             return False
@@ -82,6 +96,9 @@ class TrustRoot(object):
         if port != self.port:
             return False
 
+        if not self.path.startswith(path):
+            return False
+        
         if not self.wildcard:
             return host == self.host
         else:
@@ -91,42 +108,32 @@ class TrustRoot(object):
     def parse(klass, trust_root, check_sanity=False):
         if not isinstance(trust_root, basestring):
             return None
+
+        url_parts = parseURL(trust_root)
+        if url_parts is None:
+            return None
         
-        proto, netloc, path, params, query, frag = urlparse(trust_root)
+        proto, host, port, path = url_parts
 
         # check for valid prototype
         if proto not in _protocols:
             return None        
 
-        # if the input has anything other than a domain, it is invalid
-        if path not in ('', '/') or params or query or frag:
-            return None
-
         # extract wildcard if it is there
-        if '*' in netloc:
+        if '*' in host:
             # wildcard must be at start of domain:  *.foo.com, not foo.*.com
-            if not netloc.startswith('*'):
+            if not host.startswith('*'):
                 return None
 
             # there should also be a '.' ala *.schtuff.com
-            if netloc[1] != '.':
+            if host[1] != '.':
                 return None
             
-            netloc = netloc[2:]
+            host = host[2:]
             wilcard = True
         else:
             wilcard = False
         
-        # extract host and port
-        if ':' in netloc:
-            try:
-                host, port = netloc.split(':')
-            except ValueError:
-                return None
-        else:
-            host = netloc
-            port = ''
-
         # at least needs to end in a top-level-domain
         ends_in_tld = False
         for tld in _top_level_domains:
@@ -138,7 +145,7 @@ class TrustRoot(object):
             return None
 
         # we have a valid trust root
-        tr = TrustRoot(trust_root, proto, wilcard, host, port)
+        tr = TrustRoot(trust_root, proto, wilcard, host, port, path)
         if check_sanity:
             if not tr.isSane():
                 return None
@@ -146,8 +153,9 @@ class TrustRoot(object):
         return tr
 
     def __repr__(self):
-        return "TrustRoot('%s', '%s', '%s', '%s', '%s')" % (
-            self.unparsed, self.proto, self.wildcard, self.host, self.port)
+        return "TrustRoot('%s', '%s', '%s', '%s', '%s', '%s')" % (
+            self.unparsed, self.proto, self.wildcard, self.host, self.port,
+            self.path)
 
     def __str__(self):
         return repr(self)
@@ -162,9 +170,6 @@ def _test():
         assert tr is None, repr(tr)
 
     assertBad('baz.org')
-    assertBad('http://*.foo.com/path')
-    assertBad('http://x.foo.com/path?action=foo2')
-    assertBad('http://*.foo.com/path?action=foo2')
     assertBad('*.foo.com')
     assertBad('ftp://foo.com')
     assertBad('ftp://*.foo.com')
@@ -188,6 +193,9 @@ def _test():
     assertGood('http://*.this.that.schtuff.com/')
     assertGood('http://*.com/')
     assertGood('http://*.com')
+    assertGood('http://*.foo.com/path')
+    assertGood('http://x.foo.com/path?action=foo2')
+    assertGood('http://*.foo.com/path?action=foo2')
 
     # test trust root sanity
     def assertSane(s, truth):
@@ -223,7 +231,16 @@ def _test():
     assertValid('http://*.co.uk', 'http://www.bar.com', False)
     assertValid('http://*.co.uk', 'http://www.bar.co.uk', False)
     assertValid('http://*.bar.co.uk', 'http://xxx.co.uk', False)
-        
+
+    # path validity
+    assertValid('http://x.com/abc', 'http://x.com/', True)
+    assertValid('http://x.com/abc', 'http://x.com/a', True)
+    assertValid('http://*.x.com/abc', 'http://foo.x.com/abc', True)
+    assertValid('http://*.x.com/abc', 'http://foo.x.com', True)
+    assertValid('http://*.x.com', 'http://foo.x.com/gallery', False)
+    assertValid('http://foo.x.com', 'http://foo.x.com/gallery', False)
+    assertValid('http://foo.x.com/gallery', 'http://foo.x.com/gallery/xxx', False)
+
 
     print 'All tests passed!'
 
