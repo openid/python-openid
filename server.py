@@ -144,11 +144,12 @@ class OpenIDServer(object):
         else:
             secret, assoc_handle = self.get_server_secret()
 
-        try:
-            issued, expires = self.get_auth_range(
-                req, req.identity, trust_root)
-        except TypeError:
+        duration = self.get_auth_range(req, req.identity, trust_root)
+        if not duration:
             raise AuthenticationError
+
+        issued = time.time()
+        expires = issued + duration
 
         reply = {
             'openid.mode': 'id_res',
@@ -239,12 +240,8 @@ information.</p>
     def get_auth_range(self, req, identity, trust_root):
         """If a valid authentication is supplied as part of the
         request, and allows the given trust_root to authenticate the
-        identity url, this returns a tuple (issued, expires), giving
-        the time the authentication was issued and when it expires.
-        Otherwise, return None.
-        
-        issued and expires are unix timestamps in UTC (such as those
-        returned by time.time())"""
+        identity url, this returns the session lifetime in seconds.
+        Otherwise, return None."""        
         raise NotImplementedError
 
     def get_lifetime(self, identity):

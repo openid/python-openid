@@ -56,8 +56,7 @@ class ConcreteServer(OpenIDServer):
             return None
 
         if (identity, trust_root) in self.trust_store:
-            now = time.time()
-            return now, now + self.lifespan
+            return self.lifespan
         else:
             return None
 
