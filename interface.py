@@ -6,7 +6,7 @@ class Response(object):
             setattr(self, attr, kwargs.get(attr))
 
 def redirect(url):
-    return Response(code=302, redirect_url=url)
+    return Response(code=302, redirect_url=str(url))
 
 def response_page(body):
     return Response(code=200, content_type='text/plain', body=body)
