@@ -67,8 +67,7 @@ class OpenIDConsumer(object):
         self.http_client = http_client
         
         if assoc_mngr is None:
-            assoc_mngr = BaseAssociationManager(
-                DiffieHelmanAssociator(http_client))
+            assoc_mngr = DumbAssociationManager()
         self.assoc_mngr = assoc_mngr
 
     def handle_request(self, url, return_to, trust_root=None, immediate=False):

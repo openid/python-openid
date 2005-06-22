@@ -2,7 +2,7 @@ import BaseHTTPServer
 from urlparse import urlparse
 import time, random, Cookie
 
-from openid.util import random_string, w3cdate
+from openid.util import random_string, w3cdate, append_args
 from openid.examples import util
 from openid.errors import ProtocolError
 from openid.server import OpenIDServer
@@ -40,11 +40,11 @@ class ConcreteServer(OpenIDServer):
     def get_server_secret(self):
         if self.secret_handle == None:
             ret = self.get_new_secret('HMAC-SHA1')
-            secret, issued, assoc_handle, replace_after, expiry = ret
+            secret, assoc_handle, issued, replace_after, expiry = ret
             self.assoc_store[assoc_handle] = secret, expiry
             self.secret_handle = assoc_handle
         else:
-            secret, expiry = self.assoc_store[assoc_handle]
+            secret, expiry = self.assoc_store[self.secret_handle]
             if time.time() + (60 * 60 * 24 * 2) >= expiry:
                 self.secret_handle = None
                 return self.get_server_secret()
@@ -52,7 +52,7 @@ class ConcreteServer(OpenIDServer):
         return secret, self.secret_handle
 
     def get_auth_range(self, req, identity, trust_root):
-        if 'http://localhost:8082/' + req.authorization != identity:
+        if 'http://localhost:8082/' + req.authentication != identity:
             return None
 
         if (identity, trust_root) in self.trust_store:
@@ -222,6 +222,9 @@ class ServerHandler(util.HTTPHandler):
         post_data = self.rfile.read(content_length)
         query = util.parseQuery(post_data)
         action = query.get('action')
+        if action is None:
+            action = util.parseQuery(urlparse(self.path)[4]).get('action')
+
         if action == 'openid':
             self.handleOpenIDRequest(Request(query, 'POST'))
         elif action == 'allow':

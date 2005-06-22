@@ -64,7 +64,10 @@ class TrustRoot(object):
         http://*.com/ for example is not sane.  Returns a bool."""        
         if self._is_sane is not None:
             return self._is_sane
-        
+
+        if self.host == 'localhost':
+            return True
+
         host_parts = self.host.split('.')
 
         # extract sane "top-level-domain"
@@ -207,6 +210,7 @@ def _test():
     assertSane('http://*.com/', False)
     assertSane('http://*.com.au/', False)
     assertSane('http://*.co.uk/', False)
+    assertSane('http://localhost:8082/?action=openid', True)
 
     # XXX: what exactly is a sane trust root?
     #assertSane('http://*.k12.va.us/', False)
@@ -241,6 +245,8 @@ def _test():
     assertValid('http://foo.x.com', 'http://foo.x.com/gallery', False)
     assertValid('http://foo.x.com/gallery', 'http://foo.x.com/gallery/xxx', False)
 
+    assertValid('http://localhost:8082/?action=openid',
+                'http://localhost:8082/?action=openid', True)
 
     print 'All tests passed!'
 

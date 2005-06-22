@@ -18,6 +18,7 @@ class DumbAssociationManager(object):
     """Using this class will cause a consumer to behave in dumb mode."""
     def put(self, server_url, handle, secret, expiry, replace_after): pass
     def get_secret(self, server_url, assoc_handle): return None
+    def associate(self, server_url): return None
 
 
 class BaseAssociationManager(DumbAssociationManager):

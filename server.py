@@ -118,8 +118,9 @@ class OpenIDServer(object):
         try:
             return self.checkid(req)
         except AuthenticationError:
+            trust_root = req.get('trust_root', req.return_to)
             return self.get_setup_response(req.identity,
-                                           req.trust_root,
+                                           trust_root,
                                            req.return_to)
 
     def checkid(self, req):
@@ -129,8 +130,9 @@ class OpenIDServer(object):
         dealing with successful authentication, and raises an
         exception for its caller to handle on a failed authentication."""
         trust_root = req.get('trust_root', req.return_to)
+        print (trust_root, req.return_to)
         if not validateURL(trust_root, req.return_to):
-            raise ProtocolError
+            raise ProtocolError('Invalid trust_root/return_to values')
 
         assoc_handle = req.get('assoc_handle')
         if assoc_handle:
