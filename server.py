@@ -4,6 +4,7 @@ from openid.util import *
 from openid.constants import secret_sizes, default_dh_modulus, default_dh_gen
 from openid.errors import ProtocolError, AuthenticationError
 from openid.interface import *
+from openid.trustroot import validateURL
 
 __all__ = ['OpenIDServer']
 
@@ -129,8 +130,8 @@ class OpenIDServer(object):
         dealing with successful authentication, and raises an
         exception for its caller to handle on a failed authentication."""
         trust_root = req.get('trust_root', req.return_to)
-        if not self.is_sane_trust_root(trust_root):
-            raise AuthenticationError
+        if not validateURL(trust_root, req.return_to):
+            raise ProtocolError
 
         assoc_handle = req.get('assoc_handle')
         if assoc_handle:
@@ -193,13 +194,6 @@ class OpenIDServer(object):
         return response_page(kvform({'lifetime': lifetime}))
 
     # Helpers that can easily be overridden:
-    def is_sane_trust_root(self, trust_root):
-        # XXX: do more checking for sane trust_root
-        if trust_root in ['*.com', '*.co.uk']:
-            return False
-        
-        return True
-
     def get_openid_page(self):
         """This method is called when the openid server is accessed
         with no openid arguments.  It should return a Response object
