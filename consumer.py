@@ -88,9 +88,9 @@ class OpenIDConsumer(object):
             redir_args["openid.trust_root"] = trust_root
 
         if immediate:
-            mode = "check_immediate"
+            mode = "checkid_immediate"
         else:
-            mode = "check_setup"
+            mode = "checkid_setup"
 
         redir_args['openid.mode'] = mode
 
