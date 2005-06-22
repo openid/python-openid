@@ -90,7 +90,7 @@ class DiffieHelmanAssociator(object):
             'openid.session_type':'DH-SHA1',
             'openid.dh_modulus': to_b64(long2a(p)),
             'openid.dh_gen': to_b64(long2a(g)),
-            'openid.dh_consumer_public': to_b64(long2a(pow(p, priv_key, p))),
+            'openid.dh_consumer_public': to_b64(long2a(pow(g, priv_key, p))),
             }
 
         body = urllib.urlencode(args)
