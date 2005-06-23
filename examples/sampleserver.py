@@ -93,6 +93,7 @@ identitypage = """<html>
 </head>
 <body style='background-color: #CCCCFF;'>
   <p>This is an identity page for %r.</p>
+  <p><a href="/">home</a></p>
 </body>
 </html>
 """
@@ -102,7 +103,11 @@ mainpage = """<html>
   <title>Simple OpenID server</title>
 </head>
 <body style='background-color: #CCCCFF;'>
-<p>This is a simple OpenID server</p>
+<h1>This is a simple OpenID server</h1>
+<p>
+  <a href="?action=login">login</a><br />
+  <a href="?action=whoami">who am I?</a>
+</p>
 </body>
 </html>
 """
@@ -136,7 +141,7 @@ loginpage = """<html>
 </head>
 <body style='background-color: #CCCCFF;'>
   <h1>Log In!</h1>
-  <p>This isn't even supposed to be secure, so don't complain.</p>
+  <p>No password used because this is just an example.</p>
   <form method="GET" action="/">
     <input type="hidden" name="action" value="login" />
     <input type="hidden" name="dest" value="%s" />
@@ -153,7 +158,8 @@ whoamipage = """<html>
 </head>
 <body style='background-color: #CCCCFF;'>
   <h1>Who are you?</h1>
-  <p>You seem to be %r...</p>
+  <p>You seem to be <a href="%s">%s<a>...</p>
+  <p><a href="/">home</a></p>
 </body>
 </html>
 """
@@ -165,6 +171,7 @@ loggedinpage = """<html>
 <body style='background-color: #CCCCFF;'>
   <h1>You've successfully logged in.</h1>
   <p>You have logged in as %r</p>
+  <p><a href="/">home</a></p>
 </body>
 </html>
 """
@@ -201,19 +208,23 @@ class ServerHandler(util.HTTPHandler):
             self.wfile.write(loginpage % query['success_to'])
 
     def login(self, query):
-        user = query['user']
-        dest = query.get('dest')
-        if dest:
-            self.send_response(302)
-            self.send_header('Set-Cookie', 'user=%s;' % user)
-            self.send_header('Location', dest)
-            self.end_headers()
+        user = query.get('user')
+        if user:
+            dest = query.get('dest')
+            if dest:
+                self.send_response(302)
+                self.send_header('Set-Cookie', 'user=%s;' % user)
+                self.send_header('Location', dest)
+                self.end_headers()
+            else:
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.send_header('Set-Cookie', 'user=%s;' % user)
+                self.end_headers()
+                self.wfile.write(loggedinpage % user)
         else:
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.send_header('Set-Cookie', 'user=%s;' % user)
-            self.end_headers()
-            self.wfile.write(loggedinpage % user)
+            self._headers()
+            self.wfile.write(loginpage % '')
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -227,7 +238,7 @@ class ServerHandler(util.HTTPHandler):
             self.login(query)
         elif action == 'whoami':
             self._headers()
-            self.wfile.write(whoamipage % self.user())
+            self.wfile.write(whoamipage % (self.user(), self.user()))
         elif len(query) == 0:
             path = parsed[2]
             if path == '/':
