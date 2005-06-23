@@ -227,6 +227,7 @@ class ServerHandler(util.HTTPHandler):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         query = util.parseQuery(post_data)
+        query.update(util.parseQuery(urlparse(self.path)[4]))
         action = query.get('action')
         if action is None:
             action = util.parseQuery(urlparse(self.path)[4]).get('action')
