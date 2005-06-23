@@ -147,7 +147,7 @@ class OpenIDServer(object):
             except TypeError:
                 raise ProtocolError('no secret found for %r' % assoc_handle)
 
-            if expiry < time.time():
+            if not expiry:
                 raise ProtocolError('using an expired handle')
         else:
             secret, assoc_handle = self.get_server_secret()
