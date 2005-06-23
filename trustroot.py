@@ -99,7 +99,10 @@ class TrustRoot(object):
         if port != self.port:
             return False
 
-        if not self.path.startswith(path):
+        if path.split('?', 1)[0] != self.path.split('?', 1)[0]:
+            return False
+            
+        if not path.startswith(self.path):
             return False
         
         if not self.wildcard:
@@ -199,6 +202,7 @@ def _test():
     assertGood('http://*.foo.com/path')
     assertGood('http://x.foo.com/path?action=foo2')
     assertGood('http://*.foo.com/path?action=foo2')
+    assertGood('http://localhost:8081/')
 
     # test trust root sanity
     def assertSane(s, truth):
@@ -237,13 +241,19 @@ def _test():
     assertValid('http://*.bar.co.uk', 'http://xxx.co.uk', False)
 
     # path validity
-    assertValid('http://x.com/abc', 'http://x.com/', True)
-    assertValid('http://x.com/abc', 'http://x.com/a', True)
+    assertValid('http://x.com/abc', 'http://x.com/', False)
+    assertValid('http://x.com/abc', 'http://x.com/a', False)
     assertValid('http://*.x.com/abc', 'http://foo.x.com/abc', True)
-    assertValid('http://*.x.com/abc', 'http://foo.x.com', True)
+    assertValid('http://*.x.com/abc', 'http://foo.x.com', False)
     assertValid('http://*.x.com', 'http://foo.x.com/gallery', False)
     assertValid('http://foo.x.com', 'http://foo.x.com/gallery', False)
     assertValid('http://foo.x.com/gallery', 'http://foo.x.com/gallery/xxx', False)
+    assertValid('http://localhost:8081/x?action=openid',
+                'http://localhost:8081/x?action=openid', True)
+    assertValid('http://*.x.com/gallery', 'http://foo.x.com/gallery', True)
+    assertValid('http://*.x.com/gallery?foo=bar', 'http://foo.x.com/gallery', False)
+    assertValid('http://*.x.com/gallery?foo=bar', 'http://foo.x.com/gallery?foo=bar', True)
+    assertValid('http://*.x.com/gallery?foo=bar', 'http://foo.x.com/gallery?foo=bar&x=y', True)
 
     assertValid('http://localhost:8082/?action=openid',
                 'http://localhost:8082/?action=openid', True)
