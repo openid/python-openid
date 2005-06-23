@@ -4,7 +4,7 @@ from openid.util import *
 from openid.constants import secret_sizes, default_dh_modulus, default_dh_gen
 from openid.errors import ProtocolError, AuthenticationError
 from openid.interface import *
-from openid.trustroot import validateURL
+from openid.trustroot import *
 
 __all__ = ['OpenIDServer']
 
@@ -126,9 +126,19 @@ class OpenIDServer(object):
         authentication errors are handled, this does all logic for
         dealing with successful authentication, and raises an
         exception for its caller to handle on a failed authentication."""
-        print (req.trust_root, req.return_to)
-        if not validateURL(req.trust_root, req.return_to):
-            raise ProtocolError('Invalid trust_root/return_to values')
+        trust_root = req.get('trust_root', req.return_to)
+
+        tr = TrustRoot.parse(trust_root)
+        if tr is None:
+            raise ProtocolError('Malformed trust_root: %s' % trust_root)
+
+        if not tr.isSane():
+            # XXX: do something here
+            pass
+
+        if not tr.validateURL(req.return_to):
+            raise ProtocolError('url(%s) not valid against trust_root(%s)' % (
+                req.return_to, trust_root))
 
         assoc_handle = req.get('assoc_handle')
         if assoc_handle:
