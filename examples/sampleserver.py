@@ -91,7 +91,7 @@ identitypage = """<html>
   <title>This is an identity page</title>
   <link rel="openid.server" href="http://localhost:8082/?action=openid">
 </head>
-<body>
+<body style='background-color: #CCCCFF;'>
   <p>This is an identity page for %r.</p>
 </body>
 </html>
@@ -101,7 +101,7 @@ mainpage = """<html>
 <head>
   <title>Simple OpenID server</title>
 </head>
-<body>
+<body style='background-color: #CCCCFF;'>
 <p>This is a simple OpenID server</p>
 </body>
 </html>
@@ -111,10 +111,8 @@ decidepage = """<html>
 <head>
   <title>Allow Authorization?</title>
 </head>
-<body>
+<body style='background-color: #CCCCFF;'>
   <h1>Allow Authorization?</h1>
-  <p>In practice, you'd only get this page if you are
-     logged in as the listed identity.</p>
   <table>
     <tr><td>Identity:</td><td>%(identity)s</td></tr>
     <tr><td>Trust Root:</td><td>%(trust_root)s</td></tr>
@@ -136,7 +134,7 @@ loginpage = """<html>
 <head>
   <title>Log In!</title>
 </head>
-<body>
+<body style='background-color: #CCCCFF;'>
   <h1>Log In!</h1>
   <p>This isn't even supposed to be secure, so don't complain.</p>
   <form method="GET" action="/">
@@ -145,6 +143,28 @@ loginpage = """<html>
     <input type="text" name="user" value="" />
     <input type="submit" name="submit" value="Log In" />
   </form>
+</body>
+</html>
+"""
+
+whoamipage = """<html>
+<head>
+  <title>Who are you?</title>
+</head>
+<body style='background-color: #CCCCFF;'>
+  <h1>Who are you?</h1>
+  <p>You seem to be %r...</p>
+</body>
+</html>
+"""
+
+loggedinpage = """<html>
+<head>
+  <title>You logged in!</title>
+</head>
+<body style='background-color: #CCCCFF;'>
+  <h1>You've successfully logged in.</h1>
+  <p>You have logged in as %r</p>
 </body>
 </html>
 """
@@ -178,8 +198,7 @@ class ServerHandler(util.HTTPHandler):
             self.wfile.write(decidepage % query)
         else:
             self._headers()
-            self.wfile.write(loginpage % self.path)
-            pass
+            self.wfile.write(loginpage % query['success_to'])
 
     def login(self, query):
         user = query['user']
@@ -191,10 +210,10 @@ class ServerHandler(util.HTTPHandler):
             self.end_headers()
         else:
             self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
+            self.send_header('Content-type', 'text/html')
             self.send_header('Set-Cookie', 'user=%s;' % user)
             self.end_headers()
-            self.wfile.write('logged in as %r' % user)
+            self.wfile.write(loggedinpage % user)
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -207,10 +226,8 @@ class ServerHandler(util.HTTPHandler):
         elif action == 'login':
             self.login(query)
         elif action == 'whoami':
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.end_headers()
-            self.wfile.write('you are %r' % self.user())
+            self._headers()
+            self.wfile.write(whoamipage % self.user())
         elif len(query) == 0:
             path = parsed[2]
             if path == '/':
