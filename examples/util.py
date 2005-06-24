@@ -11,19 +11,6 @@ def parseQuery(qs):
 
 class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
-    def _simplePage(self, msg):
-        self._headers()
-        self.wfile.write("""
-        <html>
-        <body>
-        %s
-        </body>
-        </html>
-        """ % msg)
-
-    def _error(self, msg):
-        self._simplePage('Error: '+msg)
-
     def _headers(self, code=200, content_type='text/html'):
         self.send_response(code)
         self.send_header('Content-type', content_type)

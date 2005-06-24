@@ -7,25 +7,31 @@ from openid.examples import util
 from openid.consumer import OpenIDConsumer
 from openid.interface import Request
 
-_consumer = None
-def getConsumer():    
-    global _consumer
-    if _consumer is None:
-        _consumer = OpenIDConsumer()
-    return _consumer
-
-
+consumer = OpenIDConsumer()
 
 class ConsumerHandler(util.HTTPHandler):
+
+    def _simplePage(self, msg):
+        self._headers()
+        self.wfile.write("""
+        <html>
+        <body style='background-color: #FFFFCC;'>
+        %s
+        </body>
+        </html>
+        """ % msg)
+
+    def _error(self, msg):
+        self._simplePage('Error: '+msg)
 
     def _inputForm(self):
         return """
         <html>
         <head><title>Openid Consumer Example</title></head>
-        <body>
+        <body style='background-color: #FFFFCC;'>
         <form method="GET" action="/">
-        Your Identity URL: <input type="text" name="identity_url" />
-        <input type="submit" value="Log in" />
+        Your Identity URL: <input type="text" name="identity_url" size="60"/>
+        <br /><input type="submit" value="Log in" />
         </form>
         
         </body>
@@ -37,10 +43,6 @@ class ConsumerHandler(util.HTTPHandler):
             # parse the input url
             proto, host, selector, params, qs, frag = urlparse(self.path)
             query = util.parseQuery(qs)
-
-            # grab the global OpenIDConsumer object - use singleton
-            # to maintain same instance across requests
-            consumer = getConsumer()
 
             # dispatch based on query args
             if 'identity_url' in query:
@@ -66,7 +68,7 @@ class ConsumerHandler(util.HTTPHandler):
                     self._error('Handling response: '+str(e))
                 else:
                     if valid_to:
-                        self._simplePage('Logged in!  Until'+
+                        self._simplePage('Logged in!  Until '+
                                          time.ctime(valid_to))
                     else:
                         self._simplePage('Not logged in. Invalid.')

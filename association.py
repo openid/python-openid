@@ -1,18 +1,30 @@
 import datetime
 import random
 import urllib
+import time
 
 from openid.constants import *
 from openid.util import *
 
 class Association(object):
-    def __init__(self, server_url, handle, secret, expiry, replace_after):
-        self.server_url = str(server_url)
+    def __init__(self, handle, secret, expiry, replace_after):
         self.handle = str(handle)
         self.secret = str(secret)
-        self.expiry = float(expiry)
         self.replace_after = float(replace_after)
+        self.expiry = float(expiry)
 
+class ConsumerAssociation(Association):
+    def __init__(self, server_url, *arg, **kwargs):
+        Association.__init__(self, *args, **kwargs)
+        self.server_url = str(server_url)
+
+class ServerAssociation(Association):
+    def __init__(self, handle, secret, expiry_off, replace_after_off):
+        now = time.time()
+        expiry = now + expiry_off
+        replace_after = now + replace_after_off
+        Association.__init__(self, handle, secret, expiry, replace_after)
+        self.issued = now
 
 class DumbAssociationManager(object):
     """Using this class will cause a consumer to behave in dumb mode."""
@@ -136,7 +148,7 @@ class DiffieHelmanAssociator(object):
             dh_shared = pow(dh_server_pub, priv_key, p)
             secret = strxor(from_b64(enc_mac_key), sha1(long2a(dh_shared)))
 
-        return Association(server_url, assoc_handle, secret,
-                           expiry, replace_after)
+        return ConsumerAssociation(server_url, assoc_handle, secret,
+                                   expiry, replace_after)
 
         

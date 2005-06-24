@@ -60,8 +60,7 @@ class OpenIDServer(object):
         be sent back to the consumer."""
         reply = {}
         assoc_type = req.get('openid.assoc_type', 'HMAC-SHA1')
-        ret = self.get_new_secret(assoc_type)
-        secret, handle, replace_after, expiry = ret
+        assoc = self.get_new_secret(assoc_type)
 
         session_type = req.get('session_type')
         if session_type and self.srand is not None:
@@ -79,7 +78,7 @@ class OpenIDServer(object):
                 enc_dh_server_public = to_b64(long2a(dh_server_public))
 
                 dh_shared = pow(dh_cons_pub, dh_server_private, dh_modulus)
-                enc_mac_key = to_b64(strxor(secret, sha1(long2a(dh_shared))))
+                enc_mac_key = to_b64(strxor(assoc.secret, sha1(long2a(dh_shared))))
 
                 reply.update({
                     'session_type': session_type,
@@ -89,16 +88,14 @@ class OpenIDServer(object):
             else:
                 raise ProtocolError('session_type must be DH-SHA1')
         else:
-            reply['openid.mac_key'] = to_b64(secret)
+            reply['openid.mac_key'] = to_b64(assoc.secret)
 
-        now = time.time()
-        
         reply.update({
             'assoc_type': assoc_type,
-            'assoc_handle': handle,
-            'issued': w3cdate(now),
-            'replace_after': w3cdate(now + replace_after),
-            'expiry': w3cdate(now + expiry),
+            'assoc_handle': assoc.handle,
+            'issued': w3cdate(assoc.issued),
+            'replace_after': w3cdate(assoc.replace_after),
+            'expiry': w3cdate(assoc.expiry),
             })
         
         return response_page(kvform(reply))
@@ -142,33 +139,29 @@ class OpenIDServer(object):
 
         assoc_handle = req.get('assoc_handle')
         if assoc_handle:
-            try:
-                secret, expiry = self.lookup_secret(assoc_handle)
-            except TypeError:
+            assoc = self.lookup_secret(assoc_handle)
+            if assoc is None:
                 raise ProtocolError('no secret found for %r' % assoc_handle)
 
-            if not expiry:
-                raise ProtocolError('using an expired handle')
+            if assoc.expiry < time.time():
+                raise ProtocolError('using an expired assoc_handle')
         else:
-            secret, assoc_handle = self.get_server_secret()
+            assoc = self.get_server_secret()
 
         duration = self.get_auth_range(req)
         if not duration:
             raise AuthenticationError
 
-        issued = time.time()
-        expires = issued + duration
-
         reply = {
             'openid.mode': 'id_res',
-            'openid.issued': w3cdate(issued),
-            'openid.valid_to': w3cdate(expires),
+            'openid.issued': w3cdate(assoc.issued),
+            'openid.valid_to': w3cdate(assoc.expiry),
             'openid.identity': req.identity,
             'openid.return_to': req.return_to,
-            'openid.assoc_handle': assoc_handle,
+            'openid.assoc_handle': assoc.handle,
             }
 
-        signed, sig = sign_reply(reply, secret, _signed_fields)
+        signed, sig = sign_reply(reply, assoc.secret, _signed_fields)
 
         reply.update({
             'openid.signed': signed,
@@ -179,19 +172,19 @@ class OpenIDServer(object):
 
     def do_check_authentication(self, req):
         """Last step in dumb mode"""
-        try:
-            secret, expiry = self.lookup_secret(req.assoc_handle)
-        except TypeError:
-            raise ProtocolError('no secret found for %r' % req.assoc_handle)
+        assoc = self.lookup_secret(req.assoc_handle)
+        if assoc is None:
+            raise ProtocolError('no secret found for %r' % assoc_handle)
 
-        if expiry < time.time():
+        if assoc.expiry < time.time():
             raise ProtocolError('using an expired assoc_handle')
 
         token = req.args.copy()
         token['openid.mode'] = 'id_res'
 
         try:
-            _, v_sig = sign_reply(token, secret, _signed_fields)
+            signed_fields = req.signed.strip().split(',')
+            _, v_sig = sign_reply(token, assoc.secret, signed_fields)
         except KeyError, why:
             raise ProtocolError('Missing required query arg %r' % why.args)
 
@@ -223,27 +216,24 @@ information.</p>
 
     # Callbacks:
     def get_server_secret(self):
-        """Returns a tuple (secret, handle) for this server to
-        associate with itself. This will return a new secret or
-        existing secret. Either is fine, as long as the handle is
-        usable with lookup_secret."""
+        """Returns an instance of openid.association.ServerAssociation
+        for this server to associate with itself.  The returned
+        ServerAssociation instance may represent either an existing or
+        a newly-created association, as long as it's not expired and
+        can be found with lookup_secret."""
         raise NotImplementedError
     
     def get_new_secret(self, assoc_type):
-        """Returns a tuple (secret, handle, replace_after, expiry) for
-        an association with a consumer.  The secret must be for an
-        association of assoc_type.  replace_after and expiry are
-        offsets in seconds from the time this secret is sent to the
-        client that the client should and must replace this secret,
-        respectively."""
+        """Returns an instance of openid.association.ServerAssociation
+        to send to a consumer.  The association must be valid for the
+        given assoc_type."""
         raise NotImplementedError
 
     def lookup_secret(self, assoc_handle):
-        """Returns a tuple (secret, expiry) for an existing
-        association with a consumer.  If no association is found
-        (either it expired and was removed, or never existed), this
-        method should return None.  expiry is a unix timestamp in UTC
-        (like that returned by time.time())"""
+        """Returns an instance of openid.association.ServerAssociation
+        for an existing association with a consumer.  If no
+        association is found (either it expired and was removed, or
+        never existed), this method should return None."""
         raise NotImplementedError
 
     def get_auth_range(self, req):

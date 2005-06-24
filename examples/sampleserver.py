@@ -7,6 +7,7 @@ from openid.examples import util
 from openid.errors import ProtocolError
 from openid.server import OpenIDServer
 from openid.interface import Request, response_page, redirect
+from openid.association import ServerAssociation
 
 class ConcreteServer(OpenIDServer):
     def __init__(self):
@@ -27,9 +28,11 @@ class ConcreteServer(OpenIDServer):
             replace_after = 60 * 60 * 24 * 28
             expiry = replace_after + (60 * 60 * 24 * 2)
 
-            self.assoc_store[assoc_handle] = secret, expiry
+            assoc = ServerAssociation(
+                assoc_handle, secret, expiry, replace_after)
 
-            return secret, assoc_handle, replace_after, expiry
+            self.assoc_store[assoc_handle] = assoc
+            return assoc
         else:
             raise ProtocolError('Unknown assoc_type: %r' % assoc_type)
 
@@ -38,17 +41,16 @@ class ConcreteServer(OpenIDServer):
 
     def get_server_secret(self):
         if self.secret_handle == None:
-            ret = self.get_new_secret('HMAC-SHA1')
-            secret, assoc_handle, _, expiry = ret
-            self.assoc_store[assoc_handle] = secret, (time.time() + expiry)
-            self.secret_handle = assoc_handle
+            assoc = self.get_new_secret('HMAC-SHA1')
+            self.secret_handle = assoc.handle
         else:
-            secret, expiry = self.assoc_store[self.secret_handle]
-            if time.time() + (60 * 60 * 24 * 2) >= expiry:
+            assoc = self.assoc_store[self.secret_handle]
+            if time.time() >= assoc.replace_after:
                 self.secret_handle = None
                 return self.get_server_secret()
 
-        return secret, self.secret_handle
+        print self.assoc_store
+        return assoc
 
     def get_auth_range(self, req):
         if 'http://localhost:8082/' + req.authentication != req.identity:
@@ -60,6 +62,7 @@ class ConcreteServer(OpenIDServer):
             return None
 
     def add_trust(self, identity, trust_root):
+        print 'HERE ' * 5
         self.trust_store.add((identity, trust_root))
 
     def get_lifetime(self, req):
@@ -189,7 +192,7 @@ class ServerHandler(util.HTTPHandler):
                 self.wfile.write(response.body)
         except:
             self._headers(500)
-            raise
+            raise KeyboardInterrupt
 
     def user(self):
         try:
