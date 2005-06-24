@@ -3,6 +3,7 @@ import re
 import time
 import urllib
 import urllib2
+import urlparse
 
 from openid.constants import *
 from openid.util import *
@@ -10,11 +11,32 @@ from openid.errors import *
 from openid.association import *
 from openid.parse import parseLinkAttrs
 
+# Do not escape anything that is already 7-bit safe, so we do the
+# minimal transform on the identity URL
+def quote_minimal(s):
+    res = []
+    for c in s:
+        if c >= u'\x80':
+            for b in c.encode('utf8'):
+                res.append('%%%02X' % ord(b))
+        else:
+            res.append(c)
+    return str(''.join(res))
+
 def normalize_url(url):
     assert isinstance(url, basestring), type(url)
     url = url.strip()
     if not (url.startswith('http://') or url.startswith('https://')):
         url = 'http://' + url
+
+    if isinstance(url, unicode):
+        parsed = urlparse.urlparse(url)
+        authority = parsed[1].encode('idna')
+        tail = map(quote_minimal, parsed[2:])
+        encoded = (str(parsed[0]), authority) + tuple(tail)
+        url = urlparse.urlunparse(encoded)
+        assert type(url) is str
+
     return url
 
 
