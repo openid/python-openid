@@ -42,6 +42,7 @@ class OpenIDServer(object):
                 'openid.mode': 'error',
                 'openid.error': why[0],
                 }
+            print edict
             return_to = req.get('return_to')
             if req.http_method == 'GET' and return_to:
                 return redirect(append_args(return_to, edict))

@@ -4,7 +4,6 @@ class Response(object):
     def __init__(self, **kwargs):
         for attr in ['code', 'content_type', 'body', 'redirect_url']:
             setattr(self, attr, kwargs.get(attr))
-            print self.__dict__
 
 def redirect(url):
     return Response(code=302, redirect_url=str(url))
