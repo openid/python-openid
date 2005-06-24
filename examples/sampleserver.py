@@ -244,7 +244,7 @@ class ServerHandler(util.HTTPHandler):
         action = query.get('action')
         if action == 'openid':
             self.handleOpenIDRequest(Request(query, 'GET', self.user()))
-        if action == 'allow':
+        elif action == 'allow':
             self.allow(query)
         elif action == 'login':
             self.login(query)
