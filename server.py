@@ -138,30 +138,39 @@ class OpenIDServer(object):
             raise ProtocolError('url(%s) not valid against trust_root(%s)' % (
                 req.return_to, trust_root))
 
-        assoc_handle = req.get('assoc_handle')
-        if assoc_handle:
-            assoc = self.lookup_secret(assoc_handle)
-
-            # fall back to dumb mode if assoc_handle not found
-            if assoc is None or assoc.expiry < time.time():
-                assoc = self.get_server_secret()
-        else:
-            assoc = self.get_server_secret()
-
         duration = self.get_auth_range(req)
         if not duration:
             raise AuthenticationError
 
         now = time.time()
-
         reply = {
             'openid.mode': 'id_res',
             'openid.issued': w3cdate(now),
             'openid.valid_to': w3cdate(now + duration),
             'openid.identity': req.identity,
             'openid.return_to': req.return_to,
-            'openid.assoc_handle': assoc.handle,
             }
+
+        signed_fields = list(_signed_fields)
+
+        assoc_handle = req.get('assoc_handle')
+        if assoc_handle:
+            assoc = self.lookup_secret(assoc_handle)
+
+            # fall back to dumb mode if assoc_handle not found,
+            # and send the consumer an invalidate_handle message
+            if assoc is None or assoc.expiry < time.time():
+                assoc = self.get_server_secret()
+                reply.update({
+                    'openid.invalidate_handle': assoc_handle,
+                    })
+                signed_fields.append('invalidate_handle')
+        else:
+            assoc = self.get_server_secret()
+
+        reply.update({
+            'openid.assoc_handle': assoc.handle,
+            })
 
         signed, sig = sign_reply(reply, assoc.secret, _signed_fields)
 
