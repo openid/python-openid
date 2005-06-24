@@ -285,6 +285,18 @@ class ServerHandler(util.HTTPHandler):
 
 
 if __name__ == '__main__':
+    import sys
+    try:
+        name = sys.argv[1]
+    except:
+        name = 'localhost'
+
+    try:
+        port = sys.argv[2]
+    except:
+        port = '8082'
+    addr = 'http://%s:%s/' % (name, port)
+
     print 'OpenID Example Server running...'
-    BaseHTTPServer.HTTPServer(('', 8082),
+    BaseHTTPServer.HTTPServer(('', int(port)),
                               ServerHandler).serve_forever()
