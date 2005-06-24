@@ -9,6 +9,8 @@ from openid.server import OpenIDServer
 from openid.interface import Request, response_page, redirect
 from openid.association import ServerAssociation
 
+addr = 'http://localhost:8082/'
+
 class ConcreteServer(OpenIDServer):
     def __init__(self):
         OpenIDServer.__init__(self, random.SystemRandom())
@@ -52,7 +54,7 @@ class ConcreteServer(OpenIDServer):
         return assoc
 
     def get_auth_range(self, req):
-        if 'http://localhost:8082/' + req.authentication != req.identity:
+        if addr + req.authentication != req.identity:
             return None
 
         if (req.identity, req.trust_root) in self.trust_store:
@@ -80,9 +82,10 @@ class ConcreteServer(OpenIDServer):
             'identity': req.identity,
             'trust_root': req.trust_root,
             'fail_to': append_args(req.return_to, {'openid.mode': 'cancel'}),
-            'success_to': append_args('http://localhost:8082/', req.args),
+            'success_to': append_args(addr, req.args),
+            'action':'allow',
             }
-        url = append_args('http://localhost:8082/?action=allow', args)
+        url = append_args(addr, args)
         return redirect(url)
 
 server = ConcreteServer()
@@ -90,7 +93,7 @@ server = ConcreteServer()
 identitypage = """<html>
 <head>
   <title>This is an identity page</title>
-  <link rel="openid.server" href="http://localhost:8082/?action=openid">
+  <link rel="openid.server" href="%s?action=openid">
 </head>
 <body style='background-color: #CCCCFF;'>
   <p>This is an identity page for %r.</p>
@@ -203,7 +206,7 @@ class ServerHandler(util.HTTPHandler):
     def allow(self, query):
         user = self.user()
         identity = query['identity']
-        if 'http://localhost:8082/' + user == identity:
+        if addr + user == identity:
             self._headers()
             self.wfile.write(decidepage % query)
         else:
@@ -255,7 +258,7 @@ class ServerHandler(util.HTTPHandler):
                 self.wfile.write(mainpage)
             else:
                 self._headers()
-                self.wfile.write(identitypage % path[1:])
+                self.wfile.write(identitypage % (addr, path[1:]))
         else:
             self._headers(500)
 
