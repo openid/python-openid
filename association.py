@@ -31,6 +31,7 @@ class DumbAssociationManager(object):
     def put(self, server_url, handle, secret, expiry, replace_after): pass
     def get_secret(self, server_url, assoc_handle): return None
     def associate(self, server_url): return None
+    def invalidate(self, server_url, assoc_handle): pass
 
 
 class BaseAssociationManager(DumbAssociationManager):
