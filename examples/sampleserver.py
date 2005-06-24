@@ -195,8 +195,10 @@ class ServerHandler(util.HTTPHandler):
 
                 self.wfile.write(response.body)
         except:
+            import sys
+            sys.excepthook(*sys.exc_info())
             self._headers(500)
-            raise KeyboardInterrupt
+            raise SystemExit
 
     def user(self):
         try:
