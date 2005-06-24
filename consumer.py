@@ -125,7 +125,11 @@ class OpenIDConsumer(object):
         """Handles an OpenID GET request with openid.mode in the
         arguments. req should be a Request instance, properly
         initialized with the http arguments given, and the http method
-        used to make the request.  Returns a """
+        used to make the request. Returns the expiry time of the
+        session as a Unix timestamp.
+
+        If the server returns a lifetime of 0 in dumb mode, a
+        ValueMismatchError will be raised."""
         if not req.hasOpenIDParams():
             raise NoArgumentsError
         
@@ -193,7 +197,7 @@ class OpenIDConsumer(object):
         if lifetime:
             return time.mktime(now.utctimetuple()) + lifetime
         else:
-            return 0
+            raise ValueMismatchError("Server failed to validate signature")
         
     def do_id_res(self, req):
         now = utc_now()
