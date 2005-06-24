@@ -90,7 +90,7 @@ class TrustRoot(object):
         url_parts = parseURL(url)
         if url_parts is None:
             return False
-        
+
         proto, host, port, path = url_parts
 
         if proto != self.proto:
@@ -99,12 +99,12 @@ class TrustRoot(object):
         if port != self.port:
             return False
 
-        if path.split('?', 1)[0] != self.path.split('?', 1)[0]:
+        if not path.split('?', 1)[0].startswith(self.path.split('?', 1)[0]):
             return False
-            
-        if not path.startswith(self.path):
-            return False
-        
+
+##         if not path.startswith(self.path):
+##             return False
+
         if not self.wildcard:
             return host == self.host
         else:
@@ -222,6 +222,7 @@ def _test():
     # validate a url against a trust root
     def assertValid(trust_root, url, truth):
         tr = TrustRoot.parse(trust_root)
+        assert tr.isSane()
         assert tr.validateURL(url) == truth, (tr.validateURL(url), truth)
 
     assertValid('http://*.foo.com', 'http://b.foo.com', True)
@@ -233,11 +234,8 @@ def _test():
     assertValid('http://*.uoregon.edu', 'http://*.cs.uoregon.edu', True)
 
     assertValid('http://*.cs.uoregon.edu', 'http://*.uoregon.edu', False)
-    assertValid('http://*.com', 'http://foo.com', False)
     assertValid('http://*.foo.com', 'http://bar.com', False)
     assertValid('http://*.foo.com', 'http://www.bar.com', False)
-    assertValid('http://*.co.uk', 'http://www.bar.com', False)
-    assertValid('http://*.co.uk', 'http://www.bar.co.uk', False)
     assertValid('http://*.bar.co.uk', 'http://xxx.co.uk', False)
 
     # path validity
@@ -245,18 +243,17 @@ def _test():
     assertValid('http://x.com/abc', 'http://x.com/a', False)
     assertValid('http://*.x.com/abc', 'http://foo.x.com/abc', True)
     assertValid('http://*.x.com/abc', 'http://foo.x.com', False)
-    assertValid('http://*.x.com', 'http://foo.x.com/gallery', False)
-    assertValid('http://foo.x.com', 'http://foo.x.com/gallery', False)
-    assertValid('http://foo.x.com/gallery', 'http://foo.x.com/gallery/xxx', False)
+    assertValid('http://*.x.com', 'http://foo.x.com/gallery', True)
+    assertValid('http://foo.x.com', 'http://foo.x.com/gallery', True)
+    assertValid('http://foo.x.com/gallery', 'http://foo.x.com/gallery/xxx', True)
     assertValid('http://localhost:8081/x?action=openid',
                 'http://localhost:8081/x?action=openid', True)
     assertValid('http://*.x.com/gallery', 'http://foo.x.com/gallery', True)
-    assertValid('http://*.x.com/gallery?foo=bar', 'http://foo.x.com/gallery', False)
-    assertValid('http://*.x.com/gallery?foo=bar', 'http://foo.x.com/gallery?foo=bar', True)
-    assertValid('http://*.x.com/gallery?foo=bar', 'http://foo.x.com/gallery?foo=bar&x=y', True)
 
     assertValid('http://localhost:8082/?action=openid',
                 'http://localhost:8082/?action=openid', True)
+    assertValid('http://goathack.livejournal.org:8020/',
+                'http://goathack.livejournal.org:8020/openid/login.bml', True)
 
     print 'All tests passed!'
 
