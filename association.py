@@ -14,7 +14,7 @@ class Association(object):
         self.expiry = float(expiry)
 
 class ConsumerAssociation(Association):
-    def __init__(self, server_url, *arg, **kwargs):
+    def __init__(self, server_url, *args, **kwargs):
         Association.__init__(self, *args, **kwargs)
         self.server_url = str(server_url)
 

@@ -15,13 +15,13 @@ from openid.errors import ProtocolError
 class UTC(datetime.tzinfo):
     ZERO = datetime.timedelta(0)
 
-    def utcoffset(self, dt):
+    def utcoffset(self, unused_dt):
         return self.ZERO
 
-    def tzname(self, dt):
+    def tzname(self, unused_dt):
         return "UTC"
 
-    def dst(self, dt):
+    def dst(self, unused_dt):
         return self.ZERO
 
 utc = UTC()
@@ -94,5 +94,5 @@ def append_args(url, args):
 def random_string(length, srand):
     """Produce a string of length random bytes using srand as a source of
     random numbers."""
-    return ''.join([chr(srand.randrange(256)) for i in xrange(length)])
+    return ''.join([chr(srand.randrange(256)) for _ in xrange(length)])
 
