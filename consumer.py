@@ -195,7 +195,7 @@ class OpenIDConsumer(object):
         results = parsekv(data)
         lifetime = int(results['lifetime'])
         if lifetime:
-            return time.mktime(now.utctimetuple()) + lifetime
+            return datetime2timestamp(now) + lifetime
         else:
             raise ValueMismatchError("Server failed to validate signature")
         
@@ -219,8 +219,8 @@ class OpenIDConsumer(object):
 
         issued = w3c2datetime(req.issued)
         valid_to = w3c2datetime(req.valid_to)
-
-        return time.mktime((now + (valid_to - issued)).utctimetuple())
+    
+        return datetime2timestamp(now + (valid_to - issued))
 
     def do_error(self, req):
         error = req.get('error')

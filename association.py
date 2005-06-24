@@ -131,8 +131,8 @@ class DiffieHelmanAssociator(object):
         expiry = w3c2datetime(getResult('expiry'))
         
         delta = now - issued
-        replace_after = time.mktime((delta + replace_after).utctimetuple())
-        expiry = time.mktime((delta + expiry).utctimetuple())
+        replace_after = datetime2timestamp(delta + replace_after)
+        expiry = datetime2timestamp(delta + expiry)
 
         session_type = results.get('session_type')
         if session_type is None:

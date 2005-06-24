@@ -1,3 +1,4 @@
+import calendar
 import time
 import datetime
 import pickle
@@ -25,6 +26,9 @@ class UTC(datetime.tzinfo):
         return self.ZERO
 
 utc = UTC()
+
+def datetime2timestamp(dt):
+    return calendar.timegm(dt.utctimetuple())
 
 def utc_now():
     return utc.fromutc(datetime.datetime.utcnow().replace(tzinfo=utc))
