@@ -22,11 +22,12 @@ class ConcreteServer(OpenIDServer):
         self.lifespan = 60 * 60 * 24 * 30 # 30 days
 
     def get_new_secret(self, assoc_type):
+        tmpl = '{%s}%i/%i'
         if assoc_type == 'HMAC-SHA1':
             self.counter += 1
 
             secret = random_string(20, self.srand)
-            assoc_handle = '{HMAC-SHA1}%i/%i' % (time.time(), self.counter)
+            assoc_handle = tmpl % (assoc_type, time.time(), self.counter)
             replace_after_offset = 60
             expiry = replace_after_offset + 60
 

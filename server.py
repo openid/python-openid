@@ -141,11 +141,10 @@ class OpenIDServer(object):
         assoc_handle = req.get('assoc_handle')
         if assoc_handle:
             assoc = self.lookup_secret(assoc_handle)
-            if assoc is None:
-                raise ProtocolError('no secret found for %r' % assoc_handle)
 
-            if assoc.expiry < time.time():
-                raise ProtocolError('using an expired assoc_handle')
+            # fall back to dumb mode if assoc_handle not found
+            if assoc is None or assoc.expiry < time.time():
+                assoc = self.get_server_secret()
         else:
             assoc = self.get_server_secret()
 
@@ -153,10 +152,12 @@ class OpenIDServer(object):
         if not duration:
             raise AuthenticationError
 
+        now = time.time()
+
         reply = {
             'openid.mode': 'id_res',
-            'openid.issued': w3cdate(assoc.issued),
-            'openid.valid_to': w3cdate(assoc.expiry),
+            'openid.issued': w3cdate(now),
+            'openid.valid_to': w3cdate(now + duration),
             'openid.identity': req.identity,
             'openid.return_to': req.return_to,
             'openid.assoc_handle': assoc.handle,
