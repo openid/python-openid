@@ -6,6 +6,7 @@ from urlparse import urlparse
 from openid.examples import util
 from openid.consumer import OpenIDConsumer
 from openid.interface import Request
+from openid.errors import *
 
 consumer = OpenIDConsumer()
 
@@ -64,6 +65,8 @@ class ConsumerHandler(util.HTTPHandler):
             elif 'openid.mode' in query:
                 try:
                     valid_to = consumer.handle_response(Request(query, 'GET'))
+                except UserCancelled, e:
+                    self._simplePage('Cancelled by user')
                 except Exception, e:
                     self._error('Handling response: '+str(e))
                 else:
