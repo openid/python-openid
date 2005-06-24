@@ -27,8 +27,8 @@ class ConcreteServer(OpenIDServer):
 
             secret = random_string(20, self.srand)
             assoc_handle = '{HMAC-SHA1}%i/%i' % (time.time(), self.counter)
-            replace_after = 60 * 60 * 24 * 28
-            expiry = replace_after + (60 * 60 * 24 * 2)
+            replace_after = 60
+            expiry = replace_after + 60
 
             assoc = ServerAssociation(
                 assoc_handle, secret, expiry, replace_after)
