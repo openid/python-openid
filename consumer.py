@@ -203,3 +203,6 @@ class OpenIDConsumer(object):
         else:
             raise ProtocolError("Server Response: %r" % (error,))
 
+    def do_cancel(self, req):
+        raise UserCancelled()
+        
