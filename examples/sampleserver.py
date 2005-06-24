@@ -66,20 +66,20 @@ class ConcreteServer(OpenIDServer):
     def get_lifetime(self, req):
         return self.lifespan
 
-    def get_user_setup_url(self, req):
-        args = {
-            'identity': req.identity,
-            'trust_root': req.trust_root,
-            'return_to': req.return_to,
-            'success_to': req.return_to,
-            }
-        return append_args('http://localhost:8082/?action=allow', args)
+##     def get_user_setup_url(self, req):
+##         args = {
+##             'identity': req.identity,
+##             'trust_root': req.trust_root,
+##             'return_to': req.return_to,
+##             'success_to': req.return_to,
+##             }
+##         return append_args('http://localhost:8082/?action=allow', args)
 
     def get_setup_response(self, req):
         args = {
             'identity': req.identity,
             'trust_root': req.trust_root,
-            'return_to': req.return_to,
+            'fail_to': append_args(req.return_to, {'openid.mode': 'cancel'}),
             'success_to': append_args('http://localhost:8082/', req.args),
             }
         url = append_args('http://localhost:8082/?action=allow', args)
@@ -127,7 +127,7 @@ decidepage = """<html>
     <input type="hidden" name="action" value="allow" />
     <input type="hidden" name="identity" value="%(identity)s" />
     <input type="hidden" name="trust_root" value="%(trust_root)s" />
-    <input type="hidden" name="return_to" value="%(return_to)s" />
+    <input type="hidden" name="fail_to" value="%(fail_to)s" />
     <input type="hidden" name="success_to" value="%(success_to)s" />
     <input type="submit" name="yes" value="yes" />
     <input type="submit" name="no" value="no" />
@@ -145,9 +145,11 @@ loginpage = """<html>
   <p>No password used because this is just an example.</p>
   <form method="GET" action="/">
     <input type="hidden" name="action" value="login" />
-    <input type="hidden" name="dest" value="%s" />
+    <input type="hidden" name="fail_to" value="%s" />
+    <input type="hidden" name="success_to" value="%s" />
     <input type="text" name="user" value="" />
     <input type="submit" name="submit" value="Log In" />
+    <input type="submit" name="cancel" value="Cancel" />
   </form>
 </body>
 </html>
@@ -206,12 +208,18 @@ class ServerHandler(util.HTTPHandler):
             self.wfile.write(decidepage % query)
         else:
             self._headers()
-            self.wfile.write(loginpage % query['success_to'])
+            self.wfile.write(
+                loginpage % (query['fail_to'], query['success_to']))
 
     def login(self, query):
         user = query.get('user')
-        if user:
-            dest = query.get('dest')
+        if 'cancel' in query:
+            dest = query.get('fail_to')
+            if not dest:
+                dest = '/'
+            self._redirect(dest)
+        elif user:
+            dest = query.get('success_to')
             if dest:
                 self.send_response(302)
                 self.send_header('Set-Cookie', 'user=%s;' % user)
@@ -225,7 +233,7 @@ class ServerHandler(util.HTTPHandler):
                 self.wfile.write(loggedinpage % user)
         else:
             self._headers()
-            self.wfile.write(loginpage % '')
+            self.wfile.write(loginpage % ('', ''))
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -268,7 +276,7 @@ class ServerHandler(util.HTTPHandler):
                 server.add_trust(query['identity'], query['trust_root'])
                 self._redirect(query['success_to'])
             else:
-                self._redirect(query['return_to'])
+                self._redirect(query['fail_to'])
         else:
             self._headers(500)
 
