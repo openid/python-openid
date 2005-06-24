@@ -49,7 +49,6 @@ class ConcreteServer(OpenIDServer):
                 self.secret_handle = None
                 return self.get_server_secret()
 
-        print self.assoc_store
         return assoc
 
     def get_auth_range(self, req):
@@ -62,7 +61,6 @@ class ConcreteServer(OpenIDServer):
             return None
 
     def add_trust(self, identity, trust_root):
-        print 'HERE ' * 5
         self.trust_store.add((identity, trust_root))
 
     def get_lifetime(self, req):
