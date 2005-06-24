@@ -182,11 +182,8 @@ class OpenIDServer(object):
         token = req.args.copy()
         token['openid.mode'] = 'id_res'
 
-        try:
-            signed_fields = req.signed.strip().split(',')
-            _, v_sig = sign_reply(token, assoc.secret, signed_fields)
-        except KeyError, why:
-            raise ProtocolError('Missing required query arg %r' % why.args)
+        signed_fields = req.signed.strip().split(',')
+        _, v_sig = sign_reply(token, assoc.secret, signed_fields)
 
         if v_sig == req.sig:
             lifetime = self.get_lifetime(req)
