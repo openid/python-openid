@@ -83,6 +83,11 @@ class BaseAssociationManager(DumbAssociationManager):
         server_url attribute is equal to server_url."""
         raise NotImplementedError
 
+    def invalidate(self, server_url, assoc_handle):
+        """Subclasses should remove the association for the given
+        server_url and assoc_handle from their stores."""
+        raise NotImplementedError
+
 
 class DiffieHelmanAssociator(object):
     def __init__(self, http_client):
