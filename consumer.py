@@ -157,31 +157,35 @@ class OpenIDConsumer(object):
         return server_url
 
     def find_server(self, url):
-        """<--(identity_url, server_url) or None if no server found.
-        Parse url and follow delegates to find ther openid.server url.
+        """<--(identity_url, server_url) or None if no server
+        found. Fetch url and parse openid.server and potentially
+        openid.delegate urls.
         """
-        def _(url, depth=0, max_depth=5):
-            if depth == max_depth:
-                return None
+        identity, data = self.http_client.get(url)
 
-            identity, data = self.http_client.get(url)
+        server = None
+        delegate = None
+        link_attrs = parseLinkAttrs(data)
+        for attrs in link_attrs:
+            rel = attrs.get('rel')
+            if rel == 'openid.server' and server is None:
+                href = attrs.get('href')
+                if href is not None:
+                    server = href
+                    
+            if rel == 'openid.delegate' and delegate is None:
+                href = attrs.get('href')
+                if href is not None:
+                    delegate = href
 
-            link_attrs = parseLinkAttrs(data)
-            for attrs in link_attrs:
-                rel = attrs.get('rel')
-                if rel == 'openid.server':
-                    href = attrs.get('href')
-                    if href is not None:
-                        return identity, href
-                if rel == 'openid.delegate':
-                    href = attrs.get('href')
-                    if href is not None:
-                        return _(href, depth=depth+1)
-
+        if server is None:
             return None
 
-        return _(url)
-
+        if delegate is not None:
+            identity = delegate
+        
+        return normalize_url(identity), normalize_url(server)
+    
     def _dumb_auth(self, server_url, now, req):
         check_args = {}
         for k, v in req.args.iteritems():
