@@ -171,7 +171,6 @@ class OpenIDServer(object):
             'openid.sig': sig,
             })
 
-        print reply
         return redirect(append_args(req.return_to, reply))
 
     def do_check_authentication(self, req):
@@ -195,7 +194,6 @@ class OpenIDServer(object):
             invalidate_handle = req.get('invalidate_handle')
             if invalidate_handle and not self.lookup_secret(invalidate_handle):
                 reply['invalidate_handle'] = invalidate_handle
-            print (invalidate_handle, reply, req.args)
         else:
             lifetime = 0
 
