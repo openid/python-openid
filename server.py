@@ -151,8 +151,6 @@ class OpenIDServer(object):
             'openid.return_to': req.return_to,
             }
 
-        signed_fields = list(_signed_fields)
-
         assoc_handle = req.get('assoc_handle')
         if assoc_handle:
             assoc = self.lookup_secret(assoc_handle)
@@ -161,10 +159,7 @@ class OpenIDServer(object):
             # and send the consumer an invalidate_handle message
             if assoc is None or assoc.expiry < time.time():
                 assoc = self.get_server_secret()
-                reply.update({
-                    'openid.invalidate_handle': assoc_handle,
-                    })
-                signed_fields.append('invalidate_handle')
+                reply['openid.invalidate_handle'] = assoc_handle,
         else:
             assoc = self.get_server_secret()
 
@@ -196,12 +191,17 @@ class OpenIDServer(object):
         signed_fields = req.signed.strip().split(',')
         _, v_sig = sign_reply(token, assoc.secret, signed_fields)
 
+        reply = {}
         if v_sig == req.sig:
             lifetime = self.get_lifetime(req)
+            invalid_handle = req.get('invalid_handle')
+            if invalid_handle and not self.lookup_secret(invalid_handle):
+                reply['invalid_handle'] = invalid_handle
         else:
             lifetime = 0
 
-        return response_page(kvform({'lifetime': lifetime}))
+        reply['lifetime'] = lifetime
+        return response_page(kvform(reply))
 
     # Helpers that can easily be overridden:
     def get_openid_page(self):

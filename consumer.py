@@ -195,7 +195,7 @@ class OpenIDConsumer(object):
         results = parsekv(data)
         lifetime = int(results['lifetime'])
         if lifetime:
-            invalidate_handle = req.get('invalidate_handle')
+            invalidate_handle = results.get('invalidate_handle')
             if invalidate_handle is not None:
                 self.assoc_mngr.invalidate(server_url, invalidate_handle)
             return datetime2timestamp(now) + lifetime
