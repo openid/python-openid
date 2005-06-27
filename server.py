@@ -170,7 +170,8 @@ class OpenIDServer(object):
             'openid.signed': signed,
             'openid.sig': sig,
             })
-    
+
+        print reply
         return redirect(append_args(req.return_to, reply))
 
     def do_check_authentication(self, req):
