@@ -1,5 +1,7 @@
 import time
 
+from datetime import datetime
+
 from openid.util import *
 from openid.constants import secret_sizes, default_dh_modulus, default_dh_gen
 from openid.errors import ProtocolError, AuthenticationError
@@ -191,10 +193,8 @@ class OpenIDServer(object):
         reply = {}
         if v_sig == req.sig:
             # calculate remaining lifetime
-            lifetime = self.get_lifetime(req)
-            offset = w3c2datetime(req.valid_to) - w3c2datetime(req.issued)
-            lifetime -= offset.seconds + (offset.days * 3600 * 24)
-            lifetime = max(0, lifetime)
+            offset = w3c2datetime(req.valid_to) - datetime.utcnow()
+            lifetime = max(0, offset.seconds + (offset.days * 3600 * 24))
 
             # if an invalidate_handle request is present, verify it
             invalidate_handle = req.get('invalidate_handle')
@@ -252,12 +252,6 @@ information.</p>
         request, and allows the given trust_root to authenticate the
         identity url, this returns the session lifetime in seconds.
         Otherwise, return None."""        
-        raise NotImplementedError
-
-    def get_lifetime(self, req):
-        """In the case the consumer is in dumb mode, and has
-        succesfully authenticated, return the lifetime that
-        authentication is valid for in seconds."""
         raise NotImplementedError
 
     def get_user_setup_url(self, req):

@@ -73,9 +73,6 @@ class ConcreteServer(OpenIDServer):
     def add_trust(self, identity, trust_root):
         self.trust_store.add((identity, trust_root))
 
-    def get_lifetime(self, req):
-        return self.lifespan
-
     def get_user_setup_url(self, req):
         args = {
             'identity': req.identity,
