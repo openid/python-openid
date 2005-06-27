@@ -124,9 +124,7 @@ class OpenIDServer(object):
         authentication errors are handled, this does all logic for
         dealing with successful authentication, and raises an
         exception for its caller to handle on a failed authentication."""
-        trust_root = req.get('trust_root', req.return_to)
-
-        tr = TrustRoot.parse(trust_root)
+        tr = TrustRoot.parse(req.trust_root)
         if tr is None:
             raise ProtocolError('Malformed trust_root: %s' % trust_root)
 
@@ -136,7 +134,7 @@ class OpenIDServer(object):
 
         if not tr.validateURL(req.return_to):
             raise ProtocolError('url(%s) not valid against trust_root(%s)' % (
-                req.return_to, trust_root))
+                req.return_to, req.trust_root))
 
         duration = self.get_auth_range(req)
         if not duration:
