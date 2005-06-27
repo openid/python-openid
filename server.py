@@ -1,6 +1,4 @@
-import time
-
-from datetime import datetime
+import time, datetime
 
 from openid.util import *
 from openid.constants import secret_sizes, default_dh_modulus, default_dh_gen
@@ -193,7 +191,7 @@ class OpenIDServer(object):
         reply = {}
         if v_sig == req.sig:
             # calculate remaining lifetime
-            offset = w3c2datetime(req.valid_to) - datetime.utcnow()
+            offset = w3c2datetime(req.valid_to) - datetime.datetime.utcnow()
             lifetime = max(0, offset.seconds + (offset.days * 3600 * 24))
 
             # if an invalidate_handle request is present, verify it
