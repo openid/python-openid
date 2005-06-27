@@ -190,7 +190,13 @@ class OpenIDServer(object):
 
         reply = {}
         if v_sig == req.sig:
+            # calculate remaining lifetime
             lifetime = self.get_lifetime(req)
+            offset = w3c2datetime(req.valid_to) - w3c2datetime(req.issued)
+            lifetime -= offset.seconds + (offset.days * 3600 * 24)
+            lifetime = max(0, lifetime)
+
+            # if an invalidate_handle request is present, verify it
             invalidate_handle = req.get('invalidate_handle')
             if invalidate_handle and not self.lookup_secret(invalidate_handle):
                 reply['invalidate_handle'] = invalidate_handle
