@@ -195,6 +195,7 @@ class OpenIDServer(object):
             invalid_handle = req.get('invalid_handle')
             if invalid_handle and not self.lookup_secret(invalid_handle):
                 reply['invalid_handle'] = invalid_handle
+            print (invalid_handle, reply)
         else:
             lifetime = 0
 
