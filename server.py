@@ -42,7 +42,6 @@ class OpenIDServer(object):
                 'openid.mode': 'error',
                 'openid.error': why[0],
                 }
-            print edict
             return_to = req.get('return_to')
             if req.http_method == 'GET' and return_to:
                 return redirect(append_args(return_to, edict))
@@ -192,10 +191,9 @@ class OpenIDServer(object):
         reply = {}
         if v_sig == req.sig:
             lifetime = self.get_lifetime(req)
-            invalid_handle = req.get('invalid_handle')
+            invalidate_handle = req.get('invalidate_handle')
             if invalid_handle and not self.lookup_secret(invalid_handle):
-                reply['invalid_handle'] = invalid_handle
-            print (invalid_handle, reply)
+                reply['invalidate_handle'] = invalid_handle
         else:
             lifetime = 0
 
