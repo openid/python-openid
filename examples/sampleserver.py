@@ -26,7 +26,7 @@ class ConcreteServer(OpenIDServer):
         # debugging/tracing information can be extracted.  It isn't
         # necessary in the general case.
         print 'handling openid.mode=%r' % (req.get('openid.mode'),)
-        return OpenIDServer.__init__(self, req)
+        return OpenIDServer.handle(self, req)
 
     def get_new_secret(self, assoc_type):
         tmpl = '{%s}%i/%i'
