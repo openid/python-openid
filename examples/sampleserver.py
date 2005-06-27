@@ -205,7 +205,6 @@ class ServerHandler(util.HTTPHandler):
             import sys
             sys.excepthook(*sys.exc_info())
             self._headers(500)
-            raise SystemExit
 
     def user(self):
         try:
