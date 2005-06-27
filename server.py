@@ -192,8 +192,8 @@ class OpenIDServer(object):
         if v_sig == req.sig:
             lifetime = self.get_lifetime(req)
             invalidate_handle = req.get('invalidate_handle')
-            if invalid_handle and not self.lookup_secret(invalid_handle):
-                reply['invalidate_handle'] = invalid_handle
+            if invalid_handle and not self.lookup_secret(invalidate_handle):
+                reply['invalidate_handle'] = invalidate_handle
         else:
             lifetime = 0
 
