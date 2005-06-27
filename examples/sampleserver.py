@@ -84,7 +84,7 @@ class ConcreteServer(OpenIDServer):
         return append_args(addr, args)
 
     def get_setup_response(self, req):
-        return redirect(self.get_user_setup_url())
+        return redirect(self.get_user_setup_url(req))
 
 server = ConcreteServer()
 
