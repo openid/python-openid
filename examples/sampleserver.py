@@ -75,16 +75,23 @@ class ConcreteServer(OpenIDServer):
 
     def get_user_setup_url(self, req):
         args = {
+            'openid.mode': 'checkid_setup',
+            'openid.identity': req.identity,
+            'openid.trust_root': req.trust_root,
+            'openid.return_to': req.return_to,
+            'openid.assoc_handle': req.assoc_handle,
+            }
+        return append_args(addr + '?action=openid', args)
+
+    def get_setup_response(self, req):
+        args = {
             'identity': req.identity,
             'trust_root': req.trust_root,
             'fail_to': append_args(req.return_to, {'openid.mode': 'cancel'}),
             'success_to': append_args(addr, req.args),
             'action':'allow',
             }
-        return append_args(addr, args)
-
-    def get_setup_response(self, req):
-        return redirect(self.get_user_setup_url(req))
+        return redirect(append_args(addr, args))
 
 server = ConcreteServer()
 

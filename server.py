@@ -139,39 +139,43 @@ class OpenIDServer(object):
         if not duration:
             raise AuthenticationError
 
-        now = time.time()
-        reply = {
-            'openid.mode': 'id_res',
-            'openid.issued': w3cdate(now),
-            'openid.valid_to': w3cdate(now + duration),
-            'openid.identity': req.identity,
-            'openid.return_to': req.return_to,
-            }
+        post_grant = req.get('post_grant', 'return')
+        if post_grant == 'return':
+            now = time.time()
+            reply = {
+                'openid.mode': 'id_res',
+                'openid.issued': w3cdate(now),
+                'openid.valid_to': w3cdate(now + duration),
+                'openid.identity': req.identity,
+                'openid.return_to': req.return_to,
+                }
 
-        assoc_handle = req.get('assoc_handle')
-        if assoc_handle:
-            assoc = self.lookup_secret(assoc_handle)
+            assoc_handle = req.get('assoc_handle')
+            if assoc_handle:
+                assoc = self.lookup_secret(assoc_handle)
 
-            # fall back to dumb mode if assoc_handle not found,
-            # and send the consumer an invalidate_handle message
-            if assoc is None or assoc.expiry < time.time():
+                # fall back to dumb mode if assoc_handle not found,
+                # and send the consumer an invalidate_handle message
+                if assoc is None or assoc.expiry < time.time():
+                    assoc = self.get_server_secret()
+                    reply['openid.invalidate_handle'] = assoc_handle
+            else:
                 assoc = self.get_server_secret()
-                reply['openid.invalidate_handle'] = assoc_handle
+
+            reply.update({
+                'openid.assoc_handle': assoc.handle,
+                })
+
+            signed, sig = sign_reply(reply, assoc.secret, _signed_fields)
+
+            reply.update({
+                'openid.signed': signed,
+                'openid.sig': sig,
+                })
+
+            return redirect(append_args(req.return_to, reply))
         else:
-            assoc = self.get_server_secret()
-
-        reply.update({
-            'openid.assoc_handle': assoc.handle,
-            })
-
-        signed, sig = sign_reply(reply, assoc.secret, _signed_fields)
-
-        reply.update({
-            'openid.signed': signed,
-            'openid.sig': sig,
-            })
-
-        return redirect(append_args(req.return_to, reply))
+            return self.get_close_page()
 
     def do_check_authentication(self, req):
         """Last step in dumb mode"""
@@ -222,6 +226,17 @@ information.</p>
 """
         return Response(code=200, content_type='text/html', body=text)
 
+    def get_close_page(self):
+        """This method is called when the openid server needs to close
+        the current window.  It should return a Response object that
+        closes the current window."""
+        text = """<html>
+<head>
+  <script type="text/javascript">window.close()</script>
+</head>
+</html>
+"""
+        return Response(code=200, content_type='text/html', body=text)
 
     # Callbacks:
     def get_server_secret(self):
