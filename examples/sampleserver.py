@@ -76,14 +76,16 @@ class ConcreteServer(OpenIDServer):
     def get_lifetime(self, req):
         return self.lifespan
 
-##     def get_user_setup_url(self, req):
-##         args = {
-##             'identity': req.identity,
-##             'trust_root': req.trust_root,
-##             'return_to': req.return_to,
-##             'success_to': req.return_to,
-##             }
-##         return append_args('http://localhost:8082/?action=allow', args)
+    def get_user_setup_url(self, req):
+        args = {
+            'identity': req.identity,
+            'trust_root': req.trust_root,
+            'fail_to': append_args(req.return_to, {'openid.mode': 'cancel'}),
+            'success_to': append_args(addr, req.args),
+            'action':'allow',
+            }
+        url = append_args(addr, args)
+        return url
 
     def get_setup_response(self, req):
         args = {
