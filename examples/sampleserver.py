@@ -47,6 +47,7 @@ class ConcreteServer(OpenIDServer):
             raise ProtocolError('Unknown assoc_type: %r' % assoc_type)
 
     def lookup_secret(self, assoc_handle):
+        print (assoc_handle, self.assoc_store)
         return self.assoc_store.get(assoc_handle)
 
     def get_server_secret(self):
