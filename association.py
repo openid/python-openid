@@ -10,13 +10,22 @@ class Association(object):
     def __init__(self, handle, secret, expiry, replace_after):
         self.handle = str(handle)
         self.secret = str(secret)
-        self.replace_after = float(replace_after)
+        if replace_after is None:
+            self.replace_after = replace_after
+        else:
+            self.replace_after = float(replace_after)
         self.expiry = float(expiry)
 
 class ConsumerAssociation(Association):
     def __init__(self, server_url, *args, **kwargs):
         Association.__init__(self, *args, **kwargs)
         self.server_url = str(server_url)
+
+    def get_replace_after(self):
+        if self.replace_after is None:
+            return self.expiry
+        else:
+            return self.replace_after
 
 class ServerAssociation(Association):
     def __init__(self, handle, secret, expiry_off, replace_after_off):
@@ -46,12 +55,13 @@ class BaseAssociationManager(DumbAssociationManager):
         expired = []
         assoc = None
         for current in self.get_all(server_url):
+            replace_after = current.get_replace_after()
             if current.expiry < now:
                 expired.append(current)
             elif assoc is None:
-                if current.replace_after > now:
+                if replace_after > now:
                     assoc = current
-            elif current.replace_after > assoc.replace_after:
+            elif replace_after > assoc.replace_after:
                 assoc = current
 
         new_assoc = None
@@ -133,12 +143,17 @@ class DiffieHelmanAssociator(object):
         
         assoc_handle = getResult('assoc_handle')
         issued = w3c2datetime(getResult('issued'))
-        replace_after = w3c2datetime(getResult('replace_after'))
         expiry = w3c2datetime(getResult('expiry'))
         
         delta = now - issued
-        replace_after = datetime2timestamp(delta + replace_after)
         expiry = datetime2timestamp(delta + expiry)
+
+        replace_after_s = results.get('replace_after')
+        if replace_after_s is None:
+            replace_after = None
+        else:
+            replace_after = w3c2datetime(replace_after_s)
+            replace_after = datetime2timestamp(delta + replace_after)
 
         session_type = results.get('session_type')
         if session_type is None:
