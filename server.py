@@ -127,7 +127,7 @@ class OpenIDServer(object):
         exception for its caller to handle on a failed authentication."""
         tr = TrustRoot.parse(req.trust_root)
         if tr is None:
-            raise ProtocolError('Malformed trust_root: %s' % trust_root)
+            raise ProtocolError('Malformed trust_root: %s' % req.trust_root)
 
         if not tr.isSane():
             # XXX: do something here
@@ -179,7 +179,7 @@ class OpenIDServer(object):
         """Last step in dumb mode"""
         assoc = self.lookup_secret(req.assoc_handle)
         if assoc is None:
-            raise ProtocolError('no secret found for %r' % assoc_handle)
+            raise ProtocolError('no secret found for %r' % req.assoc_handle)
 
         if assoc.expiry < time.time():
             raise ProtocolError('using an expired assoc_handle')
