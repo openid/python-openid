@@ -36,7 +36,7 @@ class ConcreteServer(OpenIDServer):
             secret = random_string(20, self.srand)
             assoc_handle = tmpl % (assoc_type, time.time(), self.counter)
             replace_after_offset = 60 * 60
-            expiry = replace_after_offset + 60 * 60
+            expiry_offset = replace_after_offset + 60 * 60
 
             assoc = ServerAssociation(
                 assoc_handle, secret, expiry_offset, replace_after_offset)
