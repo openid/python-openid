@@ -156,7 +156,7 @@ class OpenIDServer(object):
             # and send the consumer an invalidate_handle message
             if assoc is None or assoc.expiry < time.time():
                 assoc = self.get_server_secret()
-                reply['openid.invalidate_handle'] = assoc_handle,
+                reply['openid.invalidate_handle'] = assoc_handle
         else:
             assoc = self.get_server_secret()
 
