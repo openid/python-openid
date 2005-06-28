@@ -4,14 +4,48 @@ import time
 from urlparse import urlparse
 
 from openid.examples import util
-from openid.consumer import OpenIDConsumer
+from openid.consumer import OpenIDConsumer, SimpleHTTPClient
 from openid.interface import Request
+from openid.association import *
 from openid.errors import *
 
-consumer = OpenIDConsumer()
+http_client = SimpleHTTPClient()
+consumer = None
+
+class DictionaryAssociationManager(BaseAssociationManager):
+    def __init__(self):
+        associator = DiffieHelmanAssociator(http_client)
+        BaseAssociationManager.__init__(self, associator)
+        self.associations = [] # inefficient, but ok for a toy example
+
+    def update(self, new_assoc, expired):
+        # This is horribly inefficient.  Don't use this code outside
+        # of toy examples.
+        if new_assoc is not None:
+            self.associations.append(new_assoc)
+
+        if expired is not None:
+            for assoc1 in expired:
+                for i, assoc2 in enumerate(self.associations):
+                    if assoc1 == assoc2:
+                        del self.associations[i]
+                        break
+
+    def get_all(self, server_url):
+        results = []
+        for assoc in self.associations:
+            if assoc.server_url == server_url:
+                results.append(assoc)
+
+        return results
+
+    def invalidate(self, server_url, assoc_handle):
+        for i, assoc in enumerate(self.associations):
+            if assoc.server_url == server_url and assoc.handle == assoc_handle:
+                del self.associations[i]
+                break
 
 class ConsumerHandler(util.HTTPHandler):
-
     def _simplePage(self, msg):
         self._headers()
         self.wfile.write("""
@@ -75,8 +109,6 @@ class ConsumerHandler(util.HTTPHandler):
                                          time.ctime(valid_to))
                     else:
                         self._simplePage('Not logged in. Invalid.')
-
-                    
             else:
                 self._headers()
                 self.wfile.write(self._inputForm())
@@ -87,8 +119,20 @@ class ConsumerHandler(util.HTTPHandler):
             raise
         
 if __name__ == '__main__':
+    import sys
+
+    dumb = False
+    if 'dumb' in sys.argv:
+        dumb = True
+
+    if dumb:
+        assoc_mngr = DumbAssociationManager()
+    else:
+        assoc_mngr = DictionaryAssociationManager()
+
+    consumer = OpenIDConsumer(http_client, assoc_mngr)
+
     print 'Consumer Server running...'
     print 'Go to http://localhost:8081/ in your browser'
-    print
     BaseHTTPServer.HTTPServer(('', 8081),
                               ConsumerHandler).serve_forever()
