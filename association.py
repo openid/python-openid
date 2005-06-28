@@ -95,8 +95,8 @@ class BaseAssociationManager(DumbAssociationManager):
         raise NotImplementedError
     
     def get_all(self, server_url):
-        """Subclasses should return a list of Association objects whos
-        server_url attribute is equal to server_url."""
+        """Subclasses should return a list of Association objects
+        whose server_url attribute is equal to server_url."""
         raise NotImplementedError
 
     def invalidate(self, server_url, assoc_handle):
