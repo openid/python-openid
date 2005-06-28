@@ -16,6 +16,12 @@ class Association(object):
             self.replace_after = float(replace_after)
         self.expiry = float(expiry)
 
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return self.__dict__ != other.__dict__
+
 class ConsumerAssociation(Association):
     def __init__(self, server_url, *args, **kwargs):
         Association.__init__(self, *args, **kwargs)
