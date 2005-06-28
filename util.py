@@ -27,11 +27,14 @@ class UTC(datetime.tzinfo):
 
 utc = UTC()
 
+def timestamp2datetime(ts):
+    return datetime.datetime.fromtimestamp(ts, utc)
+
 def datetime2timestamp(dt):
     return calendar.timegm(dt.utctimetuple())
 
 def utc_now():
-    return utc.fromutc(datetime.datetime.utcnow().replace(tzinfo=utc))
+    return datetime.datetime.now(utc)
 
 def sha1(s):
     return sha.new(s).digest()

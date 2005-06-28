@@ -225,7 +225,8 @@ class OpenIDConsumer(object):
                                      ((req.args, v_sig, secret),))
 
         issued = w3c2datetime(req.issued)
-        valid_to = w3c2datetime(req.valid_to)
+        valid_to = min(timestamp2datetime(secret.expiry),
+                       w3c2datetime(req.valid_to))
     
         return datetime2timestamp(now + (valid_to - issued))
 
