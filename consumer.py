@@ -210,8 +210,12 @@ class OpenIDConsumer(object):
         now = utc_now()
 
         server_url = self.determine_server_url(req)
-        secret = self.assoc_mngr.get_secret(server_url, req.assoc_handle)
-        if secret is None:
+
+        if req.get('user_setup_url') is not None:
+            raise NotImplementedError
+
+        assoc = self.assoc_mngr.get_association(server_url, req.assoc_handle)
+        if assoc is None:
             # No matching association found. I guess we're in dumb mode...
             return self._dumb_auth(server_url, now, req)
 
@@ -219,13 +223,13 @@ class OpenIDConsumer(object):
         sig = req.sig
         signed_fields = req.signed.strip().split(',')
 
-        _signed, v_sig = sign_reply(req.args, secret, signed_fields)
+        _signed, v_sig = sign_reply(req.args, assoc.secret, signed_fields)
         if v_sig != sig:
             raise ValueMismatchError("Signatures did not Match: %r" %
-                                     ((req.args, v_sig, secret),))
+                                     ((req.args, v_sig, assoc.secret),))
 
         issued = w3c2datetime(req.issued)
-        valid_to = min(timestamp2datetime(secret.expiry),
+        valid_to = min(timestamp2datetime(assoc.expiry),
                        w3c2datetime(req.valid_to))
     
         return datetime2timestamp(now + (valid_to - issued))

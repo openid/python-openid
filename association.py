@@ -43,8 +43,7 @@ class ServerAssociation(Association):
 
 class DumbAssociationManager(object):
     """Using this class will cause a consumer to behave in dumb mode."""
-    def put(self, server_url, handle, secret, expiry, replace_after): pass
-    def get_secret(self, server_url, assoc_handle): return None
+    def get_association(self, server_url, assoc_handle): return None
     def associate(self, server_url): return None
     def invalidate(self, server_url, assoc_handle): pass
 
@@ -79,19 +78,21 @@ class BaseAssociationManager(DumbAssociationManager):
         
         return assoc.handle
 
-    def get_secret(self, server_url, assoc_handle):
+    def get_association(self, server_url, assoc_handle):
         # Find the secret matching server_url and assoc_handle
         associations = self.get_all(server_url)
         for assoc in associations:
             if assoc.handle == assoc_handle:
-                return assoc.secret
+                return assoc
 
         return None
 
     # Subclass need to implement the rest of this classes methods.
     def update(self, new_assoc, expired):
-        """Subclasses should add new_assoc if it is not None and
-        expire each association in the expired."""
+        """new_assoc is either a new association object or None.
+        Expired is a possibly empty list of expired associations.
+        Subclasses should add new_assoc if it is not None and expire
+        each association in the expired list."""
         raise NotImplementedError
     
     def get_all(self, server_url):
