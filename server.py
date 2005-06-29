@@ -174,8 +174,11 @@ class OpenIDServer(object):
                 })
 
             return redirect(append_args(req.return_to, reply))
-        else:
+        elif post_grant == 'close':
             return self.get_close_page()
+        else:
+            raise ProtocolError('post_grant is not allowed to be %r'
+                                % (post_grant,))
 
     def do_check_authentication(self, req):
         """Last step in dumb mode"""
