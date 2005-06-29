@@ -126,8 +126,7 @@ class OpenIDServer(object):
             raise ProtocolError('Malformed trust_root: %s' % req.trust_root)
 
         if not tr.isSane():
-            # XXX: do something here
-            pass
+            raise ProtocolError('trust_root %r makes no sense' % req.trust_root)
 
         if not tr.validateURL(req.return_to):
             raise ProtocolError('url(%s) not valid against trust_root(%s)' % (
