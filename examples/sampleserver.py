@@ -89,7 +89,7 @@ class ConcreteServer(OpenIDServer):
             'trust_root': req.trust_root,
             'fail_to': append_args(req.return_to, {'openid.mode': 'cancel'}),
             'success_to': append_args(addr, req.args),
-            'action':'allow',
+            'action': 'allow',
             }
         return redirect(append_args(addr, args))
 
