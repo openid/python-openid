@@ -22,9 +22,9 @@ class ConcreteServer(OpenIDServer):
         self.lifespan = 60 * 60 * 24 * 30 # 30 days
 
     def handle(self, req):
-        # This is reimplemented in the subclass so that extra
-        # debugging/tracing information can be extracted.  It isn't
-        # necessary in the general case.
+        # This is reimplemented in the subclass so that extra tracing
+        # information can be extracted.  It isn't necessary in the
+        # general case.
         print 'handling openid.mode=%r' % (req.get('mode'),)
         return OpenIDServer.handle(self, req)
 
