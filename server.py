@@ -45,8 +45,6 @@ class OpenIDServer(object):
             return_to = req.get('return_to')
             if req.http_method == 'GET' and return_to:
                 return redirect(append_args(return_to, edict))
-            elif req.http_method == 'GET' and not req.hasOpenIDParams():
-                return self.get_openid_page()
             else:
                 return error_page(kvform(edict))
 
@@ -210,36 +208,6 @@ class OpenIDServer(object):
 
         reply['lifetime'] = str(lifetime)
         return response_page(kvform(reply))
-
-    # Helpers that can easily be overridden:
-    def get_openid_page(self):
-        """This method is called when the openid server is accessed
-        with no openid arguments.  It should return a Response object
-        that will paint a simple 'this is an openid server' page."""
-        text = """<html>
-<head>
-  <title>OpenID Server</title>
-</head>
-<body>
-<p>Hello.  You've reached an OpenID server.  See
-<a href="http://www.openid.net">openid.net</a> for more
-information.</p>
-</body>
-</html
-"""
-        return Response(code=200, content_type='text/html', body=text)
-
-    def get_close_page(self):
-        """This method is called when the openid server needs to close
-        the current window.  It should return a Response object that
-        closes the current window."""
-        text = """<html>
-<head>
-  <script type="text/javascript">window.close()</script>
-</head>
-</html>
-"""
-        return Response(code=200, content_type='text/html', body=text)
 
     # Callbacks:
     def get_server_secret(self):

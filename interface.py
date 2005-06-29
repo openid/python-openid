@@ -1,4 +1,4 @@
-from openid.errors import ProtocolError
+from openid.errors import ProtocolError, NoOpenIDArgs
 
 class Response(object):
     def __init__(self, **kwargs):
@@ -27,12 +27,18 @@ class Request(object):
         authentication credentials are needed to allow it correctly
         calculate the return from get_auth_range.  A typical value of
         the authentication field would be the username of the
-        logged-in user making the http request from the server."""
+        logged-in user making the http request from the server.
+
+        If an instance of this is created with any openid.* arguments,
+        a NoOpenIDArgs exception is raised.  This should be caught and
+        handled appropriately."""
         self.args = args
         self.http_method = http_method.upper()
         self.authentication = authentication
+        if not self._hasOpenIDParams():
+            raise NoOpenIDArgs
 
-    def hasOpenIDParams(self):
+    def _hasOpenIDParams(self):
         for k in self.args:
             if k.startswith('openid.'):
                 return True

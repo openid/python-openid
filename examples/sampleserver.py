@@ -4,7 +4,7 @@ import time, random, Cookie
 
 from openid.util import random_string, w3cdate, append_args
 from openid.examples import util
-from openid.errors import ProtocolError
+from openid.errors import ProtocolError, NoOpenIDArgs
 from openid.server import OpenIDServer
 from openid.interface import Request, response_page, redirect
 from openid.association import ServerAssociation
@@ -187,6 +187,18 @@ loggedinpage = """<html>
 </html>
 """
 
+openidpage = """<html>
+<head>
+  <title>You've found an openid server</title>
+</head>
+<body style='background-color: #CCCCFF;'>
+  <h1>This is an OpenID server</h1>
+  <p>See <a href="http://www.openid.net/">openid.net</a>
+  for more information.</p>
+</body>
+</html>
+"""
+
 class ServerHandler(util.HTTPHandler):
     def handleOpenIDRequest(self, req):
         try:
@@ -249,7 +261,11 @@ class ServerHandler(util.HTTPHandler):
         query = util.parseQuery(parsed[4])
         action = query.get('action')
         if action == 'openid':
-            self.handleOpenIDRequest(Request(query, 'GET', self.user()))
+            try:
+                self.handleOpenIDRequest(Request(query, 'GET', self.user()))
+            except NoOpenIDArgs, e:
+                self._headers()
+                self.wfile.write(openidpage)
         elif action == 'allow':
             self.allow(query)
         elif action == 'login':
