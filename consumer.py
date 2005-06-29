@@ -209,10 +209,11 @@ class OpenIDConsumer(object):
     def do_id_res(self, req):
         now = utc_now()
 
-        server_url = self.determine_server_url(req)
+        user_setup_url = req.get('user_setup_url')
+        if user_setup_url is not None:
+            raise UserSetupNeeded(user_setup_url)
 
-        if req.get('user_setup_url') is not None:
-            raise NotImplementedError
+        server_url = self.determine_server_url(req)
 
         assoc = self.assoc_mngr.get_association(server_url, req.assoc_handle)
         if assoc is None:
