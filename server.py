@@ -136,46 +136,39 @@ class OpenIDServer(object):
         if not duration:
             raise AuthenticationError
 
-        post_grant = req.get('post_grant', 'return')
-        if post_grant == 'return':
-            now = time.time()
-            reply = {
-                'openid.mode': 'id_res',
-                'openid.issued': w3cdate(now),
-                'openid.valid_to': w3cdate(now + duration),
-                'openid.identity': req.identity,
-                'openid.return_to': req.return_to,
-                }
+        now = time.time()
+        reply = {
+            'openid.mode': 'id_res',
+            'openid.issued': w3cdate(now),
+            'openid.valid_to': w3cdate(now + duration),
+            'openid.identity': req.identity,
+            'openid.return_to': req.return_to,
+            }
 
-            assoc_handle = req.get('assoc_handle')
-            if assoc_handle:
-                assoc = self.lookup_secret(assoc_handle)
+        assoc_handle = req.get('assoc_handle')
+        if assoc_handle:
+            assoc = self.lookup_secret(assoc_handle)
 
-                # fall back to dumb mode if assoc_handle not found,
-                # and send the consumer an invalidate_handle message
-                if assoc is None or assoc.expiry < time.time():
-                    assoc = self.get_server_secret()
-                    reply['openid.invalidate_handle'] = assoc_handle
-            else:
+            # fall back to dumb mode if assoc_handle not found,
+            # and send the consumer an invalidate_handle message
+            if assoc is None or assoc.expiry < time.time():
                 assoc = self.get_server_secret()
-
-            reply.update({
-                'openid.assoc_handle': assoc.handle,
-                })
-
-            signed, sig = sign_reply(reply, assoc.secret, _signed_fields)
-
-            reply.update({
-                'openid.signed': signed,
-                'openid.sig': sig,
-                })
-
-            return redirect(append_args(req.return_to, reply))
-        elif post_grant == 'close':
-            return self.get_close_page()
+                reply['openid.invalidate_handle'] = assoc_handle
         else:
-            raise ProtocolError('post_grant is not allowed to be %r'
-                                % (post_grant,))
+            assoc = self.get_server_secret()
+
+        reply.update({
+            'openid.assoc_handle': assoc.handle,
+            })
+
+        signed, sig = sign_reply(reply, assoc.secret, _signed_fields)
+
+        reply.update({
+            'openid.signed': signed,
+            'openid.sig': sig,
+            })
+
+        return redirect(append_args(req.return_to, reply))
 
     def do_check_authentication(self, req):
         """Last step in dumb mode"""
