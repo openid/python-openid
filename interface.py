@@ -35,15 +35,12 @@ class Request(object):
         self.args = args
         self.http_method = http_method.upper()
         self.authentication = authentication
-        if not self._hasOpenIDParams():
-            raise NoOpenIDArgs
 
-    def _hasOpenIDParams(self):
         for k in self.args:
             if k.startswith('openid.'):
-                return True
-
-        return False
+                break
+        else:
+            raise NoOpenIDArgs
 
     def get(self, key, default=None):
         return self.args.get('openid.' + key, default)

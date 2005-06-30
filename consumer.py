@@ -130,9 +130,6 @@ class OpenIDConsumer(object):
 
         If the server returns a lifetime of 0 in dumb mode, a
         ValueMismatchError will be raised."""
-        if not req.hasOpenIDParams():
-            raise NoArgumentsError
-        
         if req.http_method != 'GET':
             raise ProtocolError("Expected HTTP Method 'GET', got %r" %
                                 (req.http_method,))
