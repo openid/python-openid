@@ -1,3 +1,7 @@
+"""
+w3cdate, strxor and random_string functions are written by Paul Crowley and distributed with this package under separate MIT license. paul@ciphergoth.org
+"""
+
 import calendar
 import time
 import datetime
