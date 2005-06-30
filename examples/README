@@ -4,13 +4,13 @@ BaseHTTPServer.
 
 To get the example system running:
 
-1) Start the consumer server:
+1) Start the consumer server (from within the examples dir):
 
-	python examples/httpconsumer.py
+	python httpconsumer.py
 
 2) In a different terminal, start the server:
 
-	python examples/sampleserver.py
+	python sampleserver.py
 
 
 3) Open your web browser, and go to the consumer server:

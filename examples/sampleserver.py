@@ -3,11 +3,12 @@ from urlparse import urlparse
 import time, random, Cookie
 
 from openid.util import random_string, w3cdate, append_args
-from openid.examples import util
 from openid.errors import ProtocolError, NoOpenIDArgs
 from openid.server import OpenIDServer
 from openid.interface import Request, response_page, redirect
 from openid.association import ServerAssociation
+
+import exutil
 
 addr = 'http://localhost:8082/'
 
@@ -199,7 +200,7 @@ openidpage = """<html>
 </html>
 """
 
-class ServerHandler(util.HTTPHandler):
+class ServerHandler(exutil.HTTPHandler):
     def handleOpenIDRequest(self, req):
         try:
             response = server.handle(req)
@@ -258,7 +259,7 @@ class ServerHandler(util.HTTPHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
-        query = util.parseQuery(parsed[4])
+        query = exutil.parseQuery(parsed[4])
         action = query.get('action')
         if action == 'openid':
             try:
@@ -288,11 +289,11 @@ class ServerHandler(util.HTTPHandler):
         # post data is urlencoded args
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
-        query = util.parseQuery(post_data)
-        query.update(util.parseQuery(urlparse(self.path)[4]))
+        query = exutil.parseQuery(post_data)
+        query.update(exutil.parseQuery(urlparse(self.path)[4]))
         action = query.get('action')
         if action is None:
-            action = util.parseQuery(urlparse(self.path)[4]).get('action')
+            action = exutil.parseQuery(urlparse(self.path)[4]).get('action')
 
         if action == 'openid':
             self.handleOpenIDRequest(Request(query, 'POST'))

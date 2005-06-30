@@ -3,7 +3,7 @@ import time
 
 from urlparse import urlparse
 
-from openid.examples import util
+import exutil
 from openid.consumer import OpenIDConsumer, SimpleHTTPClient
 from openid.interface import Request
 from openid.association import *
@@ -45,7 +45,7 @@ class DictionaryAssociationManager(BaseAssociationManager):
                 del self.associations[i]
                 break
 
-class ConsumerHandler(util.HTTPHandler):
+class ConsumerHandler(exutil.HTTPHandler):
     def _simplePage(self, msg):
         self._headers()
         self.wfile.write("""
@@ -78,7 +78,7 @@ class ConsumerHandler(util.HTTPHandler):
         try:
             # parse the input url
             proto, host, selector, params, qs, frag = urlparse(self.path)
-            query = util.parseQuery(qs)
+            query = exutil.parseQuery(qs)
 
             # dispatch based on query args
             if 'identity_url' in query:
