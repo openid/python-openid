@@ -83,15 +83,6 @@ class OpenIDConsumer(object):
     href_re = re.compile(r'.*?href\s*=\s*[\'"](?P<href>.*?)[\'"].*?',
                          re.M|re.U|re.I)
     
-    def __init__(self, http_client=None, assoc_mngr=None):
-        if http_client is None:
-            http_client = SimpleHTTPClient()
-        self.http_client = http_client
-        
-        if assoc_mngr is None:
-            assoc_mngr = DumbAssociationManager()
-        self.assoc_mngr = assoc_mngr
-
     def handle_request(self, url, return_to, trust_root=None, immediate=False):
         """Returns the url to redirect to or None if no identity was found."""
         url = normalize_url(url)
@@ -184,6 +175,9 @@ class OpenIDConsumer(object):
         return normalize_url(identity), normalize_url(server)
     
     def _dumb_auth(self, server_url, now, req):
+        if not self.verify_return_to(req):
+            raise ValueMismatchError("return_to not valid")
+
         check_args = {}
         for k, v in req.args.iteritems():
             if k.startswith('openid.'):
@@ -241,4 +235,50 @@ class OpenIDConsumer(object):
 
     def do_cancel(self, req):
         raise UserCancelled()
-        
+
+
+    # Callbacks
+    def get_http_client(self):
+        """This method returns an http client that the consumer will
+        use to fetch the identity url page and make posts to the
+        identity server.  The client should provide get and post
+        methods.  See the SimpleHTTPClient class definition above for
+        more on the expected interface.  The default implementation of
+        this method returns an instance of SimpleHTTPClient, which is
+        functional but doesn't try to prevent any kind of bad behavior
+        like tarpitting the http requests.
+
+        This method will be called repeatedly, so care should be taken
+        to return the same instance each time if the returned instance
+        will store state in itself."""
+        return SimpleHTTPClient()
+
+    def get_assoc_mngr(self):
+        """This method returns an AssociationManager (see
+        openid.association) instance that will manage associations
+        between this consumer and openid servers that it connects to.
+        The default implemention of this method returns an
+        AssociationManager that doesn't keep track of anything,
+        putting the consumer into dumb mode perpetually.
+
+        This method will be called repeatedly, so care should be taken
+        to return the same instance each time if the returned instance
+        will store state in itself."""
+        return DumbAssociationManager()
+
+    def verify_return_to(self, req):
+        """This method is called before the consumer makes a
+        check_authentication call to the server.  It helps verify that
+        the request being authenticated is valid by confirming that
+        the openid.return_to value signed by the server corresponds to
+        this consumer.  The full Request object (see openid.interface)
+        is passed in, though most implementations will only use its
+        return_to field.  The return value should be True if the
+        return_to field corresponds to this consumer, or False
+        otherwise.  This method must be overridden, as it has no
+        default implementation."""
+        raise NotImplementedError
+
+    # properties for accessing some of the callbacks
+    http_client = property(get_http_client)
+    assoc_mngr = property(get_assoc_mngr)
