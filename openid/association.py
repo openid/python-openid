@@ -165,7 +165,7 @@ class DiffieHelmanAssociator(object):
 
         session_type = results.get('session_type')
         if session_type is None:
-            secret = getResult('mac_key')
+            secret = from_b64(getResult('mac_key'))
         else:
             if session_type != 'DH-SHA1':
                 raise RuntimeError("Unknown Session Type: %r"
