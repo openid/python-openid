@@ -6,8 +6,10 @@ from urlparse import urlparse
 import exutil
 from openid.consumer import OpenIDConsumer, SimpleHTTPClient
 from openid.interface import Request
-from openid.association import *
-from openid.errors import *
+from openid.association import (BaseAssociationManager,
+                                DiffieHelmanAssociator)
+from openid.errors import (ProtocolError, UserCancelled,
+                           ValueMismatchError)
 
 http_client = SimpleHTTPClient()
 
