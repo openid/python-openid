@@ -119,15 +119,16 @@ class DiffieHelmanAssociator(object):
 
     def associate(self, server_url):
         p, g = self.get_mod_gen()
-        priv_key = self.srand.randrange(1, p-1)
+        dh = DiffieHellman(p, g, srand=self.srand)
+        cpub = dh.createKeyExchange()
 
         args = {
             'openid.mode': 'associate',
             'openid.assoc_type':'HMAC-SHA1',
             'openid.session_type':'DH-SHA1',
-            'openid.dh_modulus': to_b64(long2a(p)),
-            'openid.dh_gen': to_b64(long2a(g)),
-            'openid.dh_consumer_public': to_b64(long2a(pow(g, priv_key, p))),
+            'openid.dh_modulus': to_b64(long2a(dh.p)),
+            'openid.dh_gen': to_b64(long2a(dh.g)),
+            'openid.dh_consumer_public': to_b64(long2a(cpub)),
             }
 
         body = urllib.urlencode(args)
@@ -170,11 +171,10 @@ class DiffieHelmanAssociator(object):
             if session_type != 'DH-SHA1':
                 raise RuntimeError("Unknown Session Type: %r"
                                    % (session_type,))
-            
-            dh_server_pub = a2long(from_b64(getResult('dh_server_public')))
-            enc_mac_key = getResult('enc_mac_key')
 
-            dh_shared = pow(dh_server_pub, priv_key, p)
+            spub = a2long(from_b64(getResult('dh_server_public')))
+            dh_shared = dh.decryptKeyExchange(spub)
+            enc_mac_key = getResult('enc_mac_key')
             secret = strxor(from_b64(enc_mac_key), sha1(long2a(dh_shared)))
 
         return ConsumerAssociation(server_url, assoc_handle, secret,

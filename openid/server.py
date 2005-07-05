@@ -1,15 +1,13 @@
 import time, datetime
 
 from openid.util import *
-from openid.constants import secret_sizes, default_dh_modulus, default_dh_gen
+from openid.constants import secret_sizes
 from openid.errors import ProtocolError, AuthenticationError
 from openid.interface import *
 from openid.trustroot import *
 
 __all__ = ['OpenIDServer']
 
-_enc_default_modulus = to_b64(long2a(default_dh_modulus))
-_enc_default_gen = to_b64(long2a(default_dh_gen))
 _signed_fields = ['mode', 'issued', 'valid_to', 'identity', 'return_to']
 
 class OpenIDServer(object):
@@ -63,25 +61,19 @@ class OpenIDServer(object):
         session_type = req.get('session_type')
         if session_type and self.srand is not None:
             if session_type == 'DH-SHA1':
-                enc_dh_mod = req.get('dh_modulus', _enc_default_modulus)
-                enc_dh_gen = req.get('dh_gen', _enc_default_gen)
-                dh_modulus = a2long(from_b64(enc_dh_mod))
-                dh_gen = a2long(from_b64(enc_dh_gen))
-
-                enc_dh_cons_pub = req.dh_consumer_public
-                dh_cons_pub = a2long(from_b64(enc_dh_cons_pub))
-
-                dh_server_private = self.srand.randrange(1, dh_modulus - 1)
-                dh_server_public = pow(dh_gen, dh_server_private, dh_modulus)
-                enc_dh_server_public = to_b64(long2a(dh_server_public))
-
-                dh_shared = pow(dh_cons_pub, dh_server_private, dh_modulus)
-                enc_mac_key = to_b64(strxor(assoc.secret, sha1(long2a(dh_shared))))
+                p = req.get('dh_modulus')
+                g = req.get('dh_gen')
+                dh = DiffieHellman.fromBase64(p, g, self.srand)
+                
+                cpub = a2long(from_b64(req.dh_consumer_public))
+                dh_shared = dh.decryptKeyExchange(cpub)
+                mac_key = strxor(assoc.secret, sha1(long2a(dh_shared)))
+                spub = dh.createKeyExchange()
 
                 reply.update({
                     'session_type': session_type,
-                    'dh_server_public': enc_dh_server_public,
-                    'enc_mac_key': enc_mac_key,
+                    'dh_server_public': to_b64(long2a(spub)),
+                    'enc_mac_key': to_b64(mac_key),
                     })
             else:
                 raise ProtocolError('session_type must be DH-SHA1')
