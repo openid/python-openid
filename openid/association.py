@@ -109,6 +109,7 @@ class BaseAssociationManager(DumbAssociationManager):
 class DiffieHelmanAssociator(object):
     def __init__(self, http_client):
         self.http_client = http_client
+        self.rand = random.SystemRandom()
 
     def get_mod_gen(self):
         """-> (modulus, generator) for Diffie-Helman
@@ -118,7 +119,7 @@ class DiffieHelmanAssociator(object):
 
     def associate(self, server_url):
         p, g = self.get_mod_gen()
-        priv_key = random.randrange(1, p-1)
+        priv_key = self.rand.randrange(1, p-1)
 
         args = {
             'openid.mode': 'associate',
