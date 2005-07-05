@@ -1,12 +1,14 @@
-The examples directory contains a working server and consumer that
-use the openid libraries.  They are both written using python's standard
+The examples directory contains a working server and consumer that use
+the openid libraries.  They are both written using python's standard
 BaseHTTPServer.
 
-To get the example system running:
+
+To go through the example login:
 
 1) Start the consumer server (from within the examples dir):
 
 	python httpconsumer.py
+
 
 2) In a different terminal, start the server:
 
@@ -17,6 +19,38 @@ To get the example system running:
 
 	http://localhost:8081/
 
-	and type your identity url:
+   Note that all pages the consumer shows will have a yellow
+   background.
 
-        http://localhost:8082/whoever
+
+4) Enter an identity url managed by the sample identity server:
+
+        http://localhost:8082/bob
+
+
+5) The browser will redirect you to the sample server, which will want
+   you to log in.  Enter the username for the identity url into login
+   box:
+ 
+        bob
+
+   Note that all pages the id server shows will have a blue/purple
+   background
+
+
+6) After you log in as bob, the sample server will ask you if you want
+   to allow http://localhost:8081/ to know your identity.  Say yes.
+
+
+7) You should end up back on the consumer site (yellow background) at
+   a page indicating how long it thinks you should stay logged in at
+   the consumer's site.
+
+
+You can then click on the "home" link and try different logins, to get
+ideas of the flow through the sample system in different cases.  The id
+server stores your current identity in your browser with a cookie, and
+it stores what trust roots each user has authorized in a small table
+in memory.  The main id server page (http://localhost:8082/) has links
+to let you see and change who you are logged in as.  To reset the list
+of authorized trust_roots, restart the sample server.
