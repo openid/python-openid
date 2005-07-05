@@ -41,14 +41,34 @@ class ServerAssociation(Association):
         Association.__init__(self, handle, secret, expiry, replace_after)
         self.issued = now
 
-class DumbAssociationManager(object):
+
+class AssociationManager(object):
+    """Base class for type unification of Association Managers.  Most
+    implementations of this should extend the BaseAssociationManager
+    class below."""
+    def get_association(self, server_url, assoc_handle):
+        raise NotImplementedError
+    
+    def associate(self, server_url):
+        raise NotImplementedError
+    
+    def invalidate(self, server_url, assoc_handle):
+        raise NotImplementedError
+
+
+class DumbAssociationManager(AssociationManager):
     """Using this class will cause a consumer to behave in dumb mode."""
-    def get_association(self, server_url, assoc_handle): return None
-    def associate(self, server_url): return None
-    def invalidate(self, server_url, assoc_handle): pass
+    def get_association(self, server_url, assoc_handle):
+        return None
+    
+    def associate(self, server_url):
+        return None
+    
+    def invalidate(self, server_url, assoc_handle):
+        pass
 
 
-class BaseAssociationManager(DumbAssociationManager):
+class BaseAssociationManager(AssociationManager):
     """Abstract base class for association manager implementations."""
 
     def __init__(self, associator):
