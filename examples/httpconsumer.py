@@ -10,7 +10,6 @@ from openid.association import *
 from openid.errors import *
 
 http_client = SimpleHTTPClient()
-consumer = None
 
 class DictionaryAssociationManager(BaseAssociationManager):
     def __init__(self):
@@ -45,6 +44,20 @@ class DictionaryAssociationManager(BaseAssociationManager):
                 del self.associations[i]
                 break
 
+assoc_mngr = None
+
+class SampleConsumer(OpenIDConsumer):
+    def get_assoc_mngr(self):
+        return assoc_mngr
+
+    def get_http_client(self):
+        return http_client
+
+    def verify_return_to(self, req):
+        return req.return_to.startswith('http://localhost:8081')
+
+consumer = SampleConsumer()
+
 class ConsumerHandler(exutil.HTTPHandler):
     def _simplePage(self, msg):
         self._headers()
@@ -73,7 +86,7 @@ class ConsumerHandler(exutil.HTTPHandler):
         </body>
         </html>
         """
-        
+
     def do_GET(self):
         try:
             # parse the input url
@@ -90,7 +103,7 @@ class ConsumerHandler(exutil.HTTPHandler):
                 print 'making initial request'
                 
                 redirect_url = consumer.handle_request(
-                    identity_url, self.headers['Referer'])
+                    identity_url, 'http://localhost:8081')
 
                 if redirect_url is not None:
                     self._redirect(redirect_url)
@@ -131,8 +144,6 @@ if __name__ == '__main__':
         assoc_mngr = DumbAssociationManager()
     else:
         assoc_mngr = DictionaryAssociationManager()
-
-    consumer = OpenIDConsumer(http_client, assoc_mngr)
 
     print 'Consumer Server running...'
     print 'Go to http://localhost:8081/ in your browser'
