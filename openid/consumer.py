@@ -5,10 +5,15 @@ import urllib
 import urllib2
 import urlparse
 
-from openid.constants import *
-from openid.util import *
-from openid.errors import *
-from openid.association import *
+from openid.util import (w3c2datetime, parsekv, append_args,
+                         datetime2timestamp, utc_now, sign_reply,
+                         timestamp2datetime)
+
+from openid.errors import (ProtocolError, ValueMismatchError,
+                           UserSetupNeeded, UserCancelled)
+
+from openid.association import DumbAssociationManager
+
 from openid.parse import parseLinkAttrs
 
 # Do not escape anything that is already 7-bit safe, so we do the

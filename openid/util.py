@@ -17,7 +17,6 @@ from openid.errors import ProtocolError
 
 # XXX: set __all__
 
-
 class UTC(datetime.tzinfo):
     ZERO = datetime.timedelta(0)
 

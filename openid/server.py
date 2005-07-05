@@ -1,10 +1,12 @@
-import time, datetime
+import time
 
-from openid.util import *
+from openid.util import (append_args, kvform, DiffieHellman, a2long,
+                         from_b64, long2a, sha1, strxor, to_b64, w3cdate,
+                         sign_reply, datetime2timestamp, w3c2datetime)
 from openid.constants import secret_sizes
 from openid.errors import ProtocolError, AuthenticationError
-from openid.interface import *
-from openid.trustroot import *
+from openid.interface import Request, error_page, redirect, response_page
+from openid.trustroot import TrustRoot
 
 __all__ = ['OpenIDServer']
 
