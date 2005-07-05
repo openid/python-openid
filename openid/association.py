@@ -1,10 +1,14 @@
-import datetime
 import random
 import urllib
 import time
 
-from openid.constants import *
-from openid.util import *
+from openid.constants import default_dh_modulus, default_dh_gen
+from openid.errors import ProtocolError
+
+from openid.util import (DiffieHellman, long2a, to_b64, utc_now,
+                         parsekv, w3c2datetime, datetime2timestamp,
+                         from_b64, a2long, sha1, strxor)
+
 
 class Association(object):
     def __init__(self, handle, secret, expiry, replace_after):
