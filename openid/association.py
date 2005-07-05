@@ -179,5 +179,3 @@ class DiffieHelmanAssociator(object):
 
         return ConsumerAssociation(server_url, assoc_handle, secret,
                                    expiry, replace_after)
-
-        
