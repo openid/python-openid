@@ -71,8 +71,12 @@ class ConcreteServer(OpenIDServer):
             'openid.identity': req.identity,
             'openid.trust_root': req.trust_root,
             'openid.return_to': req.return_to,
-            'openid.assoc_handle': req.assoc_handle,
             }
+
+        assoc_handle = req.get('assoc_handle')
+        if assoc_handle is not None:
+            args['openid.assoc_handle'] = req.assoc_handle
+
         return append_args(addr + '?action=openid', args)
 
     def get_setup_response(self, req):
