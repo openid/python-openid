@@ -80,7 +80,7 @@ class OpenIDServer(object):
             else:
                 raise ProtocolError('session_type must be DH-SHA1')
         else:
-            reply['openid.mac_key'] = to_b64(assoc.secret)
+            reply['mac_key'] = to_b64(assoc.secret)
 
         reply.update({
             'assoc_type': assoc_type,
