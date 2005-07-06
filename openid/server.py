@@ -57,7 +57,7 @@ class OpenIDServer(object):
         indicating what should be sent back to the consumer."""
         reply = {}
         assoc_type = req.get('openid.assoc_type', 'HMAC-SHA1')
-        assoc = self.get_new_secret(assoc_type)
+        assoc = self.get_association(assoc_type, for_consumer=True)
 
         session_type = req.get('session_type')
         if session_type and self.srand is not None:
@@ -140,15 +140,16 @@ class OpenIDServer(object):
 
         assoc_handle = req.get('assoc_handle')
         if assoc_handle:
-            assoc = self.lookup_secret(assoc_handle)
+            assoc = self.lookup_association(
+                assoc_handle, 'HMAC-SHA1', from_consumer=True)
 
             # fall back to dumb mode if assoc_handle not found,
             # and send the consumer an invalidate_handle message
             if assoc is None or assoc.expiry < time.time():
-                assoc = self.get_server_secret()
+                assoc = self.get_association('HMAC-SHA1', for_consumer=False)
                 reply['openid.invalidate_handle'] = assoc_handle
         else:
-            assoc = self.get_server_secret()
+            assoc = self.get_association('HMAC-SHA1', for_consumer=False)
 
         reply.update({
             'openid.assoc_handle': assoc.handle,
@@ -165,7 +166,9 @@ class OpenIDServer(object):
 
     def do_check_authentication(self, req):
         """Last step in dumb mode"""
-        assoc = self.lookup_secret(req.assoc_handle)
+        assoc = self.lookup_association(
+            req.assoc_handle, 'HMAC-SHA1', from_consumer=False)
+
         if assoc is None:
             raise ProtocolError('no secret found for %r' % req.assoc_handle)
 
@@ -186,7 +189,9 @@ class OpenIDServer(object):
 
             # if an invalidate_handle request is present, verify it
             invalidate_handle = req.get('invalidate_handle')
-            if invalidate_handle and not self.lookup_secret(invalidate_handle):
+            if invalidate_handle and not self.lookup_association(
+                invalidate_handle, 'HMAC-SHA1', from_consumer=False):
+
                 reply['invalidate_handle'] = invalidate_handle
         else:
             lifetime = 0
@@ -195,25 +200,27 @@ class OpenIDServer(object):
         return response_page(kvform(reply))
 
     # Callbacks:
-    def get_server_secret(self):
-        """Returns an instance of openid.association.ServerAssociation
-        for this server to associate with itself.  The returned
-        ServerAssociation instance may represent either an existing or
-        a newly-created association, as long as it's not expired and
-        can be found with lookup_secret."""
-        raise NotImplementedError
-    
-    def get_new_secret(self, assoc_type):
-        """Returns an instance of openid.association.ServerAssociation
-        to send to a consumer.  The association must be valid for the
-        given assoc_type."""
+    def get_association(self, assoc_type, for_consumer):
+        """Returns an instance of ServerAssociation (from
+        openid.association).  The association must be valid for the
+        given assoc_type.  The for_consumer flag indicates whether the
+        association generated is to be sent to a consumer, or used
+        locally only.
+
+        Associations this returns with for_consumer True must have a
+        new secret each time.  If for_consumer is False, this need not
+        return a new association each time, but it does need to return
+        a non-expired association."""
         raise NotImplementedError
 
-    def lookup_secret(self, assoc_handle):
+    def lookup_association(self, assoc_handle, assoc_type, from_consumer):
         """Returns an instance of openid.association.ServerAssociation
-        for an existing association with a consumer.  If no
-        association is found (either it expired and was removed, or
-        never existed), this method should return None."""
+        for an existing association.  This method *MUST* check that
+        the association described by the handle is valid for the given
+        association type, and for whether it came from a consumer or
+        the server.  If no association matching those criteria is
+        found (either it expired and was removed, or never existed),
+        this method should return None."""
         raise NotImplementedError
 
     def get_auth_range(self, req):
