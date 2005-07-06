@@ -203,9 +203,9 @@ class OpenIDServer(object):
     def get_association(self, assoc_type, for_consumer):
         """Returns an instance of ServerAssociation (from
         openid.association).  The association must be valid for the
-        given assoc_type.  The for_consumer flag indicates whether the
-        association generated is to be sent to a consumer, or used
-        locally only.
+        given assoc_type.  The for_consumer flag is a bool that
+        indicates whether the association generated is to be sent to a
+        consumer, or used locally only.
 
         Associations this returns with for_consumer True must have a
         new secret each time.  If for_consumer is False, this need not
