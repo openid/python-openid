@@ -7,7 +7,8 @@ import exutil
 from openid.consumer import OpenIDConsumer, SimpleHTTPClient
 from openid.interface import Request
 from openid.association import (BaseAssociationManager,
-                                DiffieHelmanAssociator)
+                                DiffieHelmanAssociator,
+                                DumbAssociationManager)
 from openid.errors import (ProtocolError, UserCancelled,
                            ValueMismatchError)
 

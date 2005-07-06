@@ -16,7 +16,7 @@ class ConcreteServer(OpenIDServer):
     def __init__(self):
         OpenIDServer.__init__(self, random.SystemRandom())
         self.counter = 0
-        self.assoc_store = {}
+        self.assoc_stores = [{}, {}]
         self.trust_store = set()  # (identity, trust_root)
 
         self.secret_handle = None
@@ -29,7 +29,7 @@ class ConcreteServer(OpenIDServer):
         print 'handling openid.mode=%r' % (req.get('mode'),)
         return OpenIDServer.handle(self, req)
 
-    def get_new_secret(self, assoc_type):
+    def get_association(self, assoc_type, for_consumer):
         tmpl = '{%s}%i/%i'
         if assoc_type == 'HMAC-SHA1':
             self.counter += 1
@@ -42,25 +42,16 @@ class ConcreteServer(OpenIDServer):
             assoc = ServerAssociation(
                 assoc_handle, secret, expiry_offset, replace_after_offset)
 
-            self.assoc_store[assoc_handle] = assoc
+            self.assoc_stores[for_consumer][assoc_handle] = assoc
             return assoc
         else:
             raise ProtocolError('Unknown assoc_type: %r' % assoc_type)
 
-    def lookup_secret(self, assoc_handle):
-        return self.assoc_store.get(assoc_handle)
-
-    def get_server_secret(self):
-        if self.secret_handle == None:
-            assoc = self.get_new_secret('HMAC-SHA1')
-            self.secret_handle = assoc.handle
-        else:
-            assoc = self.assoc_store[self.secret_handle]
-            if time.time() >= assoc.replace_after:
-                self.secret_handle = None
-                return self.get_server_secret()
-
-        return assoc
+    def lookup_association(self, assoc_handle, assoc_type, from_consumer):
+        r = self.assoc_stores[from_consumer].get(assoc_handle)
+        if r is None or not r.handle.startswith('{%s}' % assoc_type):
+            return None
+        return r
 
     def get_auth_range(self, req):
         if addr + req.authentication != req.identity:
@@ -264,7 +255,7 @@ class ServerHandler(exutil.HTTPHandler):
         if action == 'openid':
             try:
                 self.handleOpenIDRequest(Request(query, 'GET', self.user()))
-            except NoOpenIDArgs, e:
+            except NoOpenIDArgs:
                 self._headers()
                 self.wfile.write(openidpage)
         elif action == 'allow':
