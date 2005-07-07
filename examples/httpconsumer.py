@@ -1,9 +1,10 @@
 import BaseHTTPServer
 import time
+import sys
+import cgitb
 
 from urlparse import urlparse
 
-import exutil
 from openid.consumer import OpenIDConsumer, SimpleHTTPClient
 from openid.interface import Request
 from openid.association import (BaseAssociationManager,
@@ -11,6 +12,8 @@ from openid.association import (BaseAssociationManager,
                                 DumbAssociationManager)
 from openid.errors import (ProtocolError, UserCancelled,
                            ValueMismatchError)
+
+import exutil
 
 http_client = SimpleHTTPClient()
 
@@ -108,11 +111,11 @@ class ConsumerHandler(exutil.HTTPHandler):
                 redirect_url = consumer.handle_request(
                     identity_url, 'http://localhost:8081')
 
-                if redirect_url is not None:
-                    self._redirect(redirect_url)
+                if redirect_url is None:
+                    fmt = 'Unable to find openid.server for %r. Query was %r.'
+                    self._error(fmt % (identity_url, qs))
                 else:
-                    self._error('Unable to find openid.server for ' +
-                                identity_url)
+                    self._redirect(redirect_url)
 
             elif 'openid.mode' in query:
                 try:
@@ -134,6 +137,7 @@ class ConsumerHandler(exutil.HTTPHandler):
 
         except:
             self._headers(500)
+            self.wfile.write(cgitb.html(sys.exc_info(), context=10))
             raise
         
 if __name__ == '__main__':
