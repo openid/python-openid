@@ -83,11 +83,6 @@ class SimpleHTTPClient(object):
 
 
 class OpenIDConsumer(object):
-    # regexes for parsing out server url
-    link_re = re.compile(r'<link(?P<linkinner>.*?)>', re.M|re.U|re.I)
-    href_re = re.compile(r'.*?href\s*=\s*[\'"](?P<href>.*?)[\'"].*?',
-                         re.M|re.U|re.I)
-    
     def handle_request(self, url, return_to, trust_root=None, immediate=False):
         """Returns the url to redirect to or None if no identity was found."""
         url = normalize_url(url)
