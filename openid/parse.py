@@ -174,6 +174,7 @@ def replaceEntityStr(crange):
 def parseLinkAttrs(data):
     """Generates dictionarys of tag attributes for link tags"""
     pos = 0
+    in_head = False
 
     while True:
         mo = interesting.search(data, pos)
@@ -182,8 +183,12 @@ def parseLinkAttrs(data):
 
         if mo.lastgroup in ('short', 'attrs'):
             tag_name = mo.group('open').lower()
-            
-            if tag_name == 'link':
+
+            if tag_name == 'head' and mo.lastgroup == 'attrs':
+                in_head = True
+            elif tag_name == 'body':
+                return
+            elif tag_name == 'link' and in_head:
                 attrs = {}
                 for amo in attrfind.finditer(data, mo.start('attrs'),
                                              mo.end('attrs')):
@@ -192,7 +197,15 @@ def parseLinkAttrs(data):
 
                 yield attrs
 
-            pos = mo.end()
-        else:
-            pos = mo.end()
+        elif mo.lastgroup == 'open':
+            tagname = mo.group('open').lower()
+            if tagname == 'head':
+                in_head = True
+            elif tagname == 'body':
+                return
 
+        elif mo.lastgroup == 'close':
+            if mo.group('close').lower() == 'head':
+                return
+
+        pos = mo.end()
