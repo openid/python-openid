@@ -131,19 +131,6 @@ class OpenIDConsumer(object):
 
         return func(req)
 
-    def determine_server_url(self, req):
-        """Subclasses might extract the server_url from a cache or
-        from a signed parameter specified in the return_to url passed
-        to initialRequest. Returns the unix timestamp when the session
-        will expire.  0 if invalid."""
-        # Grab the server_url from the identity in args
-        identity, server_url = self.find_server(req.identity)
-        if req.identity != identity:
-            raise ValueMismatchError("ID URL %r seems to have moved: %r"
-                                     % (req.identity, identity))
-        
-        return server_url
-
     def find_server(self, url):
         """<--(identity_url, server_url) or None if no server
         found. Fetch url and parse openid.server and potentially
@@ -238,6 +225,24 @@ class OpenIDConsumer(object):
 
 
     # Callbacks
+    def determine_server_url(self, req):
+        """Returns the url of the identity server for the identity in
+        the request.
+
+        Subclasses might extract the server_url from a cache or from a
+        signed parameter specified in the return_to url passed to
+        initialRequest.
+
+        The default implementation fetches the identity page again,
+        and parses the server url out of it."""
+        # Grab the server_url from the identity in args
+        identity, server_url = self.find_server(req.identity)
+        if req.identity != identity:
+            raise ValueMismatchError("ID URL %r seems to have moved: %r"
+                                     % (req.identity, identity))
+
+        return server_url
+
     def get_http_client(self):
         """This method returns an http client that the consumer will
         use to fetch the identity url page and make posts to the
