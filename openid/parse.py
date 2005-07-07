@@ -194,5 +194,5 @@ def parseLinkAttrs(data):
 
             pos = mo.end()
         else:
-            pos = mo.start() + 1
+            pos = mo.end()
 
