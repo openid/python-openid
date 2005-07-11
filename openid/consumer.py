@@ -147,7 +147,7 @@ class OpenIDConsumer(object):
                 href = attrs.get('href')
                 if href is not None:
                     server = href
-                    
+
             if rel == 'openid.delegate' and delegate is None:
                 href = attrs.get('href')
                 if href is not None:
@@ -158,7 +158,7 @@ class OpenIDConsumer(object):
 
         if delegate is not None:
             identity = delegate
-        
+
         return normalize_url(identity), normalize_url(server)
     
     def _dumb_auth(self, server_url, now, req):
