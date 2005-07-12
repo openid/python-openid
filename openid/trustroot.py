@@ -102,16 +102,13 @@ class TrustRoot(object):
         if not path.split('?', 1)[0].startswith(self.path.split('?', 1)[0]):
             return False
 
-##         if not path.startswith(self.path):
-##             return False
-
         if not self.wildcard:
             return host == self.host
         else:
             return host.endswith(self.host)
 
     @classmethod
-    def parse(klass, trust_root, check_sanity=False):
+    def parse(cls, trust_root, check_sanity=False):
         if not isinstance(trust_root, basestring):
             return None
 
@@ -151,7 +148,7 @@ class TrustRoot(object):
             return None
 
         # we have a valid trust root
-        tr = TrustRoot(trust_root, proto, wilcard, host, port, path)
+        tr = cls(trust_root, proto, wilcard, host, port, path)
         if check_sanity:
             if not tr.isSane():
                 return None

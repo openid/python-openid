@@ -1,12 +1,13 @@
 import BaseHTTPServer
 from urlparse import urlparse
 import time, random, Cookie
+import cgitb
 
-from openid.util import random_string, w3cdate, append_args
+from openid.util import random_string, append_args
 from openid.errors import ProtocolError, NoOpenIDArgs
 from openid.server import OpenIDServer
 from openid.interface import Request, response_page, redirect
-from openid.association import ServerAssociation
+from openid.association import Association
 
 import exutil
 
@@ -18,9 +19,6 @@ class ConcreteServer(OpenIDServer):
         self.counter = 0
         self.assoc_stores = [{}, {}]
         self.trust_store = set()  # (identity, trust_root)
-
-        self.secret_handle = None
-        self.lifespan = 60 * 60 * 24 * 30 # 30 days
 
     def handle(self, req):
         # This is reimplemented in the subclass so that extra tracing
@@ -36,11 +34,8 @@ class ConcreteServer(OpenIDServer):
 
             secret = random_string(20, self.srand)
             assoc_handle = tmpl % (assoc_type, time.time(), self.counter)
-            replace_after_offset = 60 * 60
-            expiry_offset = replace_after_offset + 60 * 60
 
-            assoc = ServerAssociation(
-                assoc_handle, secret, expiry_offset, replace_after_offset)
+            assoc = Association.from_expires_in(60 * 60, assoc_handle, secret)
 
             self.assoc_stores[for_consumer][assoc_handle] = assoc
             return assoc
@@ -53,14 +48,11 @@ class ConcreteServer(OpenIDServer):
             return None
         return r
 
-    def get_auth_range(self, req):
+    def is_valid(self, req):
         if addr + req.authentication != req.identity:
-            return None
+            return False
 
-        if (req.identity, req.trust_root) in self.trust_store:
-            return self.lifespan
-        else:
-            return None
+        return (req.identity, req.trust_root) in self.trust_store
 
     def add_trust(self, identity, trust_root):
         self.trust_store.add((identity, trust_root))
@@ -279,6 +271,8 @@ class ServerHandler(exutil.HTTPHandler):
                 self.wfile.write(identitypage % (addr, path[1:]))
         else:
             self._headers(500)
+            self.wfile.write(cgitb.html(sys.exc_info(), context=10))
+            raise
 
     def do_POST(self):
         # post data is urlencoded args

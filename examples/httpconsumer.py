@@ -2,6 +2,8 @@ import BaseHTTPServer
 import time
 import sys
 import cgitb
+import random
+import hmac, sha
 
 from urlparse import urlparse
 
@@ -12,6 +14,7 @@ from openid.association import (BaseAssociationManager,
                                 DumbAssociationManager)
 from openid.errors import (ProtocolError, UserCancelled,
                            ValueMismatchError)
+from openid.util import random_string, append_args, hmacsha1, to_b64
 
 import exutil
 
@@ -53,6 +56,10 @@ class DictionaryAssociationManager(BaseAssociationManager):
 assoc_mngr = None
 
 class SampleConsumer(OpenIDConsumer):
+    def __init__(self, *args, **kwargs):
+        OpenIDConsumer.__init__(self, *args, **kwargs)
+        self.secret = random_string(20, random.SystemRandom())
+
     def get_assoc_mngr(self):
         return assoc_mngr
 
@@ -60,7 +67,33 @@ class SampleConsumer(OpenIDConsumer):
         return http_client
 
     def verify_return_to(self, req):
-        return req.return_to.startswith('http://localhost:8081')
+        return_to = req.return_to
+        if not return_to.startswith('http://localhost:8081/'):
+            return False
+
+        # parse the input url
+        proto, host, selector, params, qs, frag = urlparse(return_to)
+        query = exutil.parseQuery(qs)
+
+        v = to_b64(hmacsha1(self.secret, query['id'] + query['time']))
+
+        if v != query['v']:
+            return False
+
+        # reject really old return_to urls
+        if int(query['time']) + 60 * 60 * 6 > int(time.time()):
+            return False
+
+        return True
+
+    def create_return_to(self, base, identity):
+        args = {
+            'id': identity,
+            'time': str(int(time.time())),
+            }
+
+        args['v'] = to_b64(hmacsha1(self.secret, args['id'] + args['time']))
+        return append_args(base, args)
 
 consumer = SampleConsumer()
 
@@ -77,7 +110,7 @@ class ConsumerHandler(exutil.HTTPHandler):
         """ % msg)
 
     def _error(self, msg):
-        self._simplePage('Error: '+msg)
+        self._simplePage('Error: ' + msg)
 
     def _inputForm(self):
         return """
@@ -107,27 +140,33 @@ class ConsumerHandler(exutil.HTTPHandler):
                 # the UA to the server
                 identity_url = query['identity_url']
                 print 'making initial request'
-                
-                redirect_url = consumer.handle_request(
-                    identity_url, 'http://localhost:8081')
 
-                if redirect_url is None:
+                ret = consumer.find_identity_info(identity_url)
+                if ret is None:
                     fmt = 'Unable to find openid.server for %r. Query was %r.'
                     self._error(fmt % (identity_url, qs))
                 else:
+                    consumer_id, server_id, server_url = ret
+
+                    return_to = consumer.create_return_to(
+                        'http://localhost:8081/', consumer_id)
+                    trust_root = 'http://localhost:8081/'
+
+                    redirect_url = consumer.handle_request(
+                        server_id, server_url, return_to, trust_root)
+
                     self._redirect(redirect_url)
 
             elif 'openid.mode' in query:
                 try:
-                    valid_to = consumer.handle_response(Request(query, 'GET'))
+                    is_valid = consumer.handle_response(Request(query, 'GET'))
                 except UserCancelled, e:
                     self._simplePage('Cancelled by user')
                 except Exception, e:
                     self._error('Handling response: ' + str(e))
                 else:
-                    if valid_to:
-                        self._simplePage('Logged in!  Until ' +
-                                         time.ctime(valid_to))
+                    if is_valid:
+                        self._simplePage('Logged in as ' + query['id'])
                     else:
                         self._simplePage('Not logged in. Invalid.')
             else:

@@ -1,16 +1,13 @@
-import time
-
 from openid.util import (append_args, kvform, DiffieHellman, a2long,
-                         from_b64, long2a, sha1, strxor, to_b64, w3cdate,
-                         sign_reply, datetime2timestamp, w3c2datetime)
-from openid.constants import secret_sizes
+                         from_b64, long2a, sha1, strxor, to_b64, sign_reply)
+
 from openid.errors import ProtocolError, AuthenticationError
 from openid.interface import Request, error_page, redirect, response_page
 from openid.trustroot import TrustRoot
 
 __all__ = ['OpenIDServer']
 
-_signed_fields = ['mode', 'issued', 'valid_to', 'identity', 'return_to']
+_signed_fields = ['mode', 'identity', 'return_to']
 
 class OpenIDServer(object):
     def __init__(self, srand=None):
@@ -84,9 +81,7 @@ class OpenIDServer(object):
         reply.update({
             'assoc_type': assoc_type,
             'assoc_handle': assoc.handle,
-            'issued': w3cdate(assoc.issued),
-            'replace_after': w3cdate(assoc.replace_after),
-            'expiry': w3cdate(assoc.expiry),
+            'expires_in': str(assoc.expires_in),
             })
         
         return response_page(kvform(reply))
@@ -125,17 +120,13 @@ class OpenIDServer(object):
             raise ProtocolError('url(%s) not valid against trust_root(%s)' % (
                 req.return_to, req.trust_root))
 
-        duration = self.get_auth_range(req)
-        if not duration:
+        if not self.is_valid(req):
             raise AuthenticationError
 
-        now = time.time()
         reply = {
             'openid.mode': 'id_res',
-            'openid.issued': w3cdate(now),
-            'openid.valid_to': w3cdate(now + duration),
-            'openid.identity': req.identity,
             'openid.return_to': req.return_to,
+            'openid.identity': req.identity,
             }
 
         assoc_handle = req.get('assoc_handle')
@@ -145,7 +136,7 @@ class OpenIDServer(object):
 
             # fall back to dumb mode if assoc_handle not found,
             # and send the consumer an invalidate_handle message
-            if assoc is None or assoc.expiry < time.time():
+            if assoc is None or assoc.expires_in <= 0:
                 assoc = self.get_association('HMAC-SHA1', for_consumer=False)
                 reply['openid.invalidate_handle'] = assoc_handle
         else:
@@ -172,7 +163,7 @@ class OpenIDServer(object):
         if assoc is None:
             raise ProtocolError('no secret found for %r' % req.assoc_handle)
 
-        if assoc.expiry < time.time():
+        if assoc.expires_in <= 0:
             raise ProtocolError('using an expired assoc_handle')
 
         token = req.args.copy()
@@ -183,51 +174,49 @@ class OpenIDServer(object):
 
         reply = {}
         if v_sig == req.sig:
-            # calculate remaining lifetime
-            valid_to = datetime2timestamp(w3c2datetime(req.valid_to))
-            lifetime = max(0, int(valid_to - time.time()))
+            is_valid = "true"
 
             # if an invalidate_handle request is present, verify it
             invalidate_handle = req.get('invalidate_handle')
             if invalidate_handle and not self.lookup_association(
-                invalidate_handle, 'HMAC-SHA1', from_consumer=False):
+                invalidate_handle, 'HMAC-SHA1', from_consumer=True):
 
                 reply['invalidate_handle'] = invalidate_handle
         else:
-            lifetime = 0
+            is_valid = "false"
 
-        reply['lifetime'] = str(lifetime)
+        reply['is_valid'] = is_valid
         return response_page(kvform(reply))
 
     # Callbacks:
     def get_association(self, assoc_type, for_consumer):
-        """Returns an instance of ServerAssociation (from
-        openid.association).  The association must be valid for the
-        given assoc_type.  The for_consumer flag is a bool that
-        indicates whether the association generated is to be sent to a
-        consumer, or used locally only.
+        """Returns an instance openid.association.Association.  The
+        association must be valid for the given assoc_type.  The
+        for_consumer flag is a bool that indicates whether the
+        association generated is to be sent to a consumer, or used
+        locally only.
 
         Associations this returns with for_consumer True must have a
         new secret each time.  If for_consumer is False, this need not
         return a new association each time, but it does need to return
-        a non-expired association."""
+        an association which will remain valid for a reasonable amount
+        of time."""
         raise NotImplementedError
 
     def lookup_association(self, assoc_handle, assoc_type, from_consumer):
-        """Returns an instance of openid.association.ServerAssociation
-        for an existing association.  This method *MUST* check that
-        the association described by the handle is valid for the given
+        """Returns an instance of openid.association.Association for
+        an existing association.  This method *MUST* check that the
+        association described by the handle is valid for the given
         association type, and for whether it came from a consumer or
         the server.  If no association matching those criteria is
         found (either it expired and was removed, or never existed),
         this method should return None."""
         raise NotImplementedError
 
-    def get_auth_range(self, req):
+    def is_valid(self, req):
         """If a valid authentication is supplied as part of the
         request, and allows the given trust_root to authenticate the
-        identity url, this returns the session lifetime in seconds.
-        Otherwise, return None."""        
+        identity url, this returns True.  Otherwise, it returns False."""
         raise NotImplementedError
 
     def get_user_setup_url(self, req):

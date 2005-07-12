@@ -2,23 +2,28 @@ import random
 import urllib
 import time
 
-from openid.constants import default_dh_modulus, default_dh_gen
 from openid.errors import ProtocolError
 
-from openid.util import (DiffieHellman, long2a, to_b64, utc_now,
-                         parsekv, w3c2datetime, datetime2timestamp,
+from openid.util import (DiffieHellman, long2a, to_b64, parsekv,
                          from_b64, a2long, sha1, strxor)
 
-
 class Association(object):
-    def __init__(self, handle, secret, expiry, replace_after):
+    @classmethod
+    def from_expires_in(cls, expires_in, *args, **kwargs):
+        kwargs['issued'] = int(time.time())
+        kwargs['lifetime'] = int(expires_in)
+        return cls(*args, **kwargs)
+
+    def __init__(self, handle, secret, issued, lifetime):
         self.handle = str(handle)
         self.secret = str(secret)
-        if replace_after is None:
-            self.replace_after = replace_after
-        else:
-            self.replace_after = float(replace_after)
-        self.expiry = float(expiry)
+        self.issued = int(issued)
+        self.lifetime = int(lifetime)
+
+    def get_expires_in(self):
+        return max(0, self.issued + self.lifetime - int(time.time()))
+
+    expires_in = property(get_expires_in)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -30,21 +35,6 @@ class ConsumerAssociation(Association):
     def __init__(self, server_url, *args, **kwargs):
         Association.__init__(self, *args, **kwargs)
         self.server_url = str(server_url)
-
-    def get_replace_after(self):
-        if self.replace_after is None:
-            return self.expiry
-        else:
-            return self.replace_after
-
-class ServerAssociation(Association):
-    def __init__(self, handle, secret, expiry_off, replace_after_off):
-        now = time.time()
-        expiry = now + expiry_off
-        replace_after = now + replace_after_off
-        Association.__init__(self, handle, secret, expiry, replace_after)
-        self.issued = now
-
 
 class AssociationManager(object):
     """Base class for type unification of Association Managers.  Most
@@ -139,7 +129,7 @@ class DiffieHelmanAssociator(object):
         """-> (modulus, generator) for Diffie-Helman
 
         override this function to use different values"""
-        return (default_dh_modulus, default_dh_gen)
+        return (DiffieHellman.DEFAULT_MOD, DiffieHellman.DEFAULT_GEN)
 
     def associate(self, server_url):
         p, g = self.get_mod_gen()
@@ -158,8 +148,6 @@ class DiffieHelmanAssociator(object):
         body = urllib.urlencode(args)
 
         url, data = self.http_client.post(server_url, body)
-        now = utc_now()
-
         results = parsekv(data)
 
         def getResult(key):
@@ -175,18 +163,7 @@ class DiffieHelmanAssociator(object):
             raise RuntimeError("Unknown association type: %r" % (assoc_type,))
         
         assoc_handle = getResult('assoc_handle')
-        issued = w3c2datetime(getResult('issued'))
-        expiry = w3c2datetime(getResult('expiry'))
-        
-        delta = now - issued
-        expiry = datetime2timestamp(delta + expiry)
-
-        replace_after_s = results.get('replace_after')
-        if replace_after_s is None:
-            replace_after = None
-        else:
-            replace_after = w3c2datetime(replace_after_s)
-            replace_after = datetime2timestamp(delta + replace_after)
+        expires_in = results.get('expires_in')
 
         session_type = results.get('session_type')
         if session_type is None:
@@ -201,5 +178,4 @@ class DiffieHelmanAssociator(object):
             enc_mac_key = getResult('enc_mac_key')
             secret = strxor(from_b64(enc_mac_key), sha1(long2a(dh_shared)))
 
-        return ConsumerAssociation(server_url, assoc_handle, secret,
-                                   expiry, replace_after)
+        return ConsumerAssociation(server_url, assoc_handle, secret, expires_in)

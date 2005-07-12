@@ -1,13 +1,8 @@
-import datetime
-import re
-import time
 import urllib
 import urllib2
 import urlparse
 
-from openid.util import (w3c2datetime, parsekv, append_args,
-                         datetime2timestamp, utc_now, sign_reply,
-                         timestamp2datetime)
+from openid.util import parsekv, append_args, sign_reply
 
 from openid.errors import (ProtocolError, ValueMismatchError,
                            UserSetupNeeded, UserCancelled)
@@ -83,32 +78,27 @@ class SimpleHTTPClient(object):
 
 
 class OpenIDConsumer(object):
-    def handle_request(self, url, return_to, trust_root=None, immediate=False):
-        """Returns the url to redirect to or None if no identity was found."""
-        url = normalize_url(url)
-        
-        server_info = self.find_server(url)
-        if server_info is None:
-            return None
-        
-        identity, server_url = server_info
-        
-        redir_args = {"openid.identity" : identity,
-                      "openid.return_to" : return_to,}
+    def handle_request(self, server_id, server_url, return_to,
+                       trust_root=None, immediate=False):
+        """Returns the url to redirect to, where server_id is the
+        identity url the server is checking and server_url is the url
+        of the openid server."""
+        redir_args = {'openid.identity': server_id,
+                      'openid.return_to': return_to,}
 
         if trust_root is not None:
-            redir_args["openid.trust_root"] = trust_root
+            redir_args['openid.trust_root'] = trust_root
 
         if immediate:
-            mode = "checkid_immediate"
+            mode = 'checkid_immediate'
         else:
-            mode = "checkid_setup"
+            mode = 'checkid_setup'
 
         redir_args['openid.mode'] = mode
 
         assoc_handle = self.assoc_mngr.associate(server_url)
         if assoc_handle is not None:
-            redir_args["openid.assoc_handle"] = assoc_handle
+            redir_args['openid.assoc_handle'] = assoc_handle
 
         return str(append_args(server_url, redir_args))
 
@@ -116,11 +106,12 @@ class OpenIDConsumer(object):
         """Handles an OpenID GET request with openid.mode in the
         arguments. req should be a Request instance, properly
         initialized with the http arguments given, and the http method
-        used to make the request. Returns the expiry time of the
-        session as a Unix timestamp.
+        used to make the request.
 
-        If the server returns a lifetime of 0 in dumb mode, a
-        ValueMismatchError will be raised."""
+        This method returns True if the identity was authenticated,
+        False if the authentication was canceled or (in dumb mode
+        only) failed, and raises openid.errors.UserSetupNeeded with
+        the appropriate url if more work is needed in immediate mode."""
         if req.http_method != 'GET':
             raise ProtocolError("Expected HTTP Method 'GET', got %r" %
                                 (req.http_method,))
@@ -131,12 +122,16 @@ class OpenIDConsumer(object):
 
         return func(req)
 
-    def find_server(self, url):
-        """<--(identity_url, server_url) or None if no server
-        found. Fetch url and parse openid.server and potentially
-        openid.delegate urls.
-        """
-        identity, data = self.http_client.get(url)
+    def find_identity_info(self, identity_url):
+        """Returns (consumer_id, server_id, server_url) or None if no
+        server found. Fetch url and parse openid.server and
+        potentially openid.delegate urls.  consumer_id is the identity
+        url the consumer should use.  It is the url after following
+        any redirects the url passed in might use.  server_id is the
+        url actually sent to the server to verify, and may be the
+        result of finding a delegate link."""
+        url = normalize_url(identity_url)
+        consumer_id, data = self.http_client.get(url)
 
         server = None
         delegate = None
@@ -157,13 +152,15 @@ class OpenIDConsumer(object):
             return None
 
         if delegate is not None:
-            identity = delegate
+            server_id = delegate
+        else:
+            server_id = consumer_id
 
-        return normalize_url(identity), normalize_url(server)
-    
-    def _dumb_auth(self, server_url, now, req):
+        return tuple(map(normalize_url, (consumer_id, server_id, server)))
+
+    def _dumb_auth(self, server_url, req):
         if not self.verify_return_to(req):
-            raise ValueMismatchError("return_to not valid")
+            return False
 
         check_args = {}
         for k, v in req.args.iteritems():
@@ -174,19 +171,19 @@ class OpenIDConsumer(object):
 
         body = urllib.urlencode(check_args)
         _, data = self.http_client.post(server_url, body)
+
         results = parsekv(data)
-        lifetime = int(results['lifetime'])
-        if lifetime:
+        is_valid = results.get('is_valid', 'false')
+        if is_valid == 'true':
             invalidate_handle = results.get('invalidate_handle')
             if invalidate_handle is not None:
                 self.assoc_mngr.invalidate(server_url, invalidate_handle)
-            return datetime2timestamp(now) + lifetime
-        else:
-            raise ValueMismatchError("Server failed to validate signature")
-        
-    def do_id_res(self, req):
-        now = utc_now()
 
+            return True
+        else:
+            return False
+
+    def do_id_res(self, req):
         user_setup_url = req.get('user_setup_url')
         if user_setup_url is not None:
             raise UserSetupNeeded(user_setup_url)
@@ -196,7 +193,7 @@ class OpenIDConsumer(object):
         assoc = self.assoc_mngr.get_association(server_url, req.assoc_handle)
         if assoc is None:
             # No matching association found. I guess we're in dumb mode...
-            return self._dumb_auth(server_url, now, req)
+            return self._dumb_auth(server_url, req)
 
         # Check the signature
         sig = req.sig
@@ -204,14 +201,9 @@ class OpenIDConsumer(object):
 
         _signed, v_sig = sign_reply(req.args, assoc.secret, signed_fields)
         if v_sig != sig:
-            raise ValueMismatchError("Signatures did not Match: %r" %
-                                     ((req.args, v_sig, assoc.secret),))
+            return False
 
-        issued = w3c2datetime(req.issued)
-        valid_to = min(timestamp2datetime(assoc.expiry),
-                       w3c2datetime(req.valid_to))
-    
-        return datetime2timestamp(now + (valid_to - issued))
+        return True
 
     def do_error(self, req):
         error = req.get('error')
@@ -220,7 +212,7 @@ class OpenIDConsumer(object):
         else:
             raise ProtocolError("Server Response: %r" % (error,))
 
-    def do_cancel(self, req):
+    def do_cancel(self, unused_req):
         raise UserCancelled()
 
 
@@ -236,10 +228,15 @@ class OpenIDConsumer(object):
         The default implementation fetches the identity page again,
         and parses the server url out of it."""
         # Grab the server_url from the identity in args
-        identity, server_url = self.find_server(req.identity)
-        if req.identity != identity:
-            raise ValueMismatchError("ID URL %r seems to have moved: %r"
-                                     % (req.identity, identity))
+        ret = self.find_identity_info(req.identity)
+        if ret is None:
+            raise ValueMismatchError(
+                'ID URL %r seems not to be an OpenID identity.' % req.identity)
+
+        _, server_id, server_url = ret
+        if req.identity != server_id:
+            raise ValueMismatchError('ID URL %r seems to have moved: %r'
+                                     % (req.identity, server_id))
 
         return server_url
 
@@ -255,7 +252,7 @@ class OpenIDConsumer(object):
 
         This method will be called repeatedly, so care should be taken
         to return the same instance each time if the returned instance
-        will store state in itself."""
+        will maintain internal state."""
         return SimpleHTTPClient()
 
     def get_assoc_mngr(self):
@@ -268,7 +265,7 @@ class OpenIDConsumer(object):
 
         This method will be called repeatedly, so care should be taken
         to return the same instance each time if the returned instance
-        will store state in itself."""
+        will maintain internal state."""
         return DumbAssociationManager()
 
     def verify_return_to(self, req):
