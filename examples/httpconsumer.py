@@ -160,8 +160,6 @@ class ConsumerHandler(exutil.HTTPHandler):
                     is_valid = consumer.handle_response(Request(query, 'GET'))
                 except UserCancelled, e:
                     self._simplePage('Cancelled by user')
-                except Exception, e:
-                    self._error('Handling response: ' + str(e))
                 else:
                     if is_valid:
                         self._simplePage('Logged in as ' + query['id'])
