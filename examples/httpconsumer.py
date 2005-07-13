@@ -192,6 +192,5 @@ if __name__ == '__main__':
         assoc_mngr = DictionaryAssociationManager()
 
     print 'Consumer Server running...'
-    print 'Go to http://localhost:8081/ in your browser'
     BaseHTTPServer.HTTPServer(('', 8081),
                               ConsumerHandler).serve_forever()

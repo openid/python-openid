@@ -96,7 +96,8 @@ class OpenIDConsumer(object):
 
         redir_args['openid.mode'] = mode
 
-        assoc_handle = self.assoc_mngr.associate(server_url)
+        assoc_handle = self.get_assoc_mngr().associate(server_url)
+
         if assoc_handle is not None:
             redir_args['openid.assoc_handle'] = assoc_handle
 
@@ -131,7 +132,7 @@ class OpenIDConsumer(object):
         url actually sent to the server to verify, and may be the
         result of finding a delegate link."""
         url = normalize_url(identity_url)
-        consumer_id, data = self.http_client.get(url)
+        consumer_id, data = self.get_http_client().get(url)
 
         server = None
         delegate = None
@@ -170,14 +171,14 @@ class OpenIDConsumer(object):
         check_args['openid.mode'] = 'check_authentication'
 
         body = urllib.urlencode(check_args)
-        _, data = self.http_client.post(server_url, body)
+        _, data = self.get_http_client().post(server_url, body)
 
         results = parsekv(data)
         is_valid = results.get('is_valid', 'false')
         if is_valid == 'true':
             invalidate_handle = results.get('invalidate_handle')
             if invalidate_handle is not None:
-                self.assoc_mngr.invalidate(server_url, invalidate_handle)
+                self.get_assoc_mngr().invalidate(server_url, invalidate_handle)
 
             return True
         else:
@@ -190,7 +191,9 @@ class OpenIDConsumer(object):
 
         server_url = self.determine_server_url(req)
 
-        assoc = self.assoc_mngr.get_association(server_url, req.assoc_handle)
+        assoc = self.get_assoc_mngr().get_association(
+            server_url, req.assoc_handle)
+
         if assoc is None:
             # No matching association found. I guess we're in dumb mode...
             return self._dumb_auth(server_url, req)
@@ -280,7 +283,3 @@ class OpenIDConsumer(object):
         otherwise.  This method must be overridden, as it has no
         default implementation."""
         raise NotImplementedError
-
-    # properties for accessing some of the callbacks
-    http_client = property(get_http_client)
-    assoc_mngr = property(get_assoc_mngr)

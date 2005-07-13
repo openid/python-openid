@@ -70,17 +70,12 @@ class BaseAssociationManager(AssociationManager):
 
     def associate(self, server_url):
         """Returns assoc_handle associated with server_url"""
-        now = time.time()
         expired = []
         assoc = None
         for current in self.get_all(server_url):
-            replace_after = current.get_replace_after()
-            if current.expiry < now:
+            if current.expires_in <= 0:
                 expired.append(current)
             elif assoc is None:
-                if replace_after > now:
-                    assoc = current
-            elif replace_after > assoc.replace_after:
                 assoc = current
 
         new_assoc = None
@@ -178,4 +173,5 @@ class DiffieHelmanAssociator(object):
             enc_mac_key = getResult('enc_mac_key')
             secret = strxor(from_b64(enc_mac_key), sha1(long2a(dh_shared)))
 
-        return ConsumerAssociation(server_url, assoc_handle, secret, expires_in)
+        return ConsumerAssociation.from_expires_in(
+            expires_in, server_url, assoc_handle, secret)
