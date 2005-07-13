@@ -67,14 +67,12 @@ class SampleConsumer(OpenIDConsumer):
         return http_client
 
     def verify_return_to(self, req):
-        return_to = req.return_to
-        if not return_to.startswith('http://localhost:8081/'):
+        # parse the input url
+        proto, host, selector, params, qs, frag = urlparse(req.return_to)
+        if host != 'localhost:8081':
             return False
 
-        # parse the input url
-        proto, host, selector, params, qs, frag = urlparse(return_to)
         query = exutil.parseQuery(qs)
-
         v = to_b64(hmacsha1(self.secret, query['id'] + query['time']))
 
         if v != query['v']:
