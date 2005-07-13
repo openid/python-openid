@@ -79,7 +79,7 @@ class SampleConsumer(OpenIDConsumer):
             return False
 
         # reject really old return_to urls
-        if int(query['time']) + 60 * 60 * 6 > int(time.time()):
+        if int(query['time']) + 60 * 60 * 6 < int(time.time()):
             return False
 
         return True
