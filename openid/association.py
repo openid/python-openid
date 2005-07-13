@@ -158,7 +158,7 @@ class DiffieHelmanAssociator(object):
             raise RuntimeError("Unknown association type: %r" % (assoc_type,))
         
         assoc_handle = getResult('assoc_handle')
-        expires_in = results.get('expires_in')
+        expires_in = results.get('expires_in', '0')
 
         session_type = results.get('session_type')
         if session_type is None:
