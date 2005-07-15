@@ -178,7 +178,7 @@ class OpenIDConsumer(object):
             if invalidate_handle is not None:
                 self.get_assoc_mngr().invalidate(server_url, invalidate_handle)
 
-            identity = cgi.parse_qsl(post_data)['openid.identity'][0]
+            identity = cgi.parse_qs(post_data)['openid.identity'][0]
             return ValidLogin(self, identity)
         else:
             return InvalidLogin()
