@@ -122,10 +122,8 @@ class ConsumerHandler(exutil.HTTPHandler):
         </html>
         """
 
-    def doValidLogin(self, identity):
-        # double-check that the identity confirmed belongs with the display id.
-        ret = consumer.find_identity_info(self.query['id'])
-        if ret is not None and ret[1] == identity:
+    def doValidLogin(self, login):
+        if login.verifyIdentity(self.query['id']):
             self._simplePage('Logged in as ' + self.query['id'])
         else:
             self.doInvalidLogin()

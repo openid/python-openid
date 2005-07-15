@@ -179,7 +179,7 @@ class OpenIDConsumer(object):
                 self.get_assoc_mngr().invalidate(server_url, invalidate_handle)
 
             identity = cgi.parse_qsl(post_data)['openid.identity'][0]
-            return ValidLogin(identity)
+            return ValidLogin(self, identity)
         else:
             return InvalidLogin()
 
@@ -216,7 +216,7 @@ class OpenIDConsumer(object):
         if v_sig != sig:
             return InvalidLogin()
 
-        return ValidLogin(req.identity)
+        return ValidLogin(self, req.identity)
 
     def do_error(self, req):
         error = req.get('error')

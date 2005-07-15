@@ -31,16 +31,36 @@ class ValidLogin(ConsumerResponse):
     """This subclass is used when the login succeeded.  The identity
     parameter is the value that the id server has confirmed.
 
-    The identity contained in this response is to be used only to
-    verify that the identity the consumer should have been keeping
-    track of already.  It is not to be used as the identity blindly,
-    because that will cause a consumer to violate the OpenID spec
-    whenever delegation is used."""
-    def __init__(self, identity):
+    This method passes itself into its visitor pattern implementation.
+    This is so that its verifyIdentity method can be used in the
+    handler funtion."""
+    def __init__(self, consumer, identity):
+        self.consumer = consumer
         self.identity = identity
 
     def doAction(self, handler):
-        return handler.doValidLogin(self.identity)
+        return handler.doValidLogin(self)
+
+    def verifyIdentity(self, identity):
+        """This method verifies that the identity passed in is one
+        that this response is actually claiming is valid.  It takes
+        care of checking if the identity url that the server actually
+        verified is delegated to by the identity passed in, if such a
+        check is needed.  Returns True if the identity passed in was
+        authenticated by the server, False otherwise."""
+        if identity == self.identity:
+            return True
+
+        try:
+            ret = self.consumer.find_identity_info(identity)
+        except:
+            # anything goes wrong, not a valid login
+            return False
+
+        if ret is None:
+            return False
+
+        return ret[1] == server_id
 
 class InvalidLogin(ConsumerResponse):
     """This subclass is used when the login wasn't valid."""
