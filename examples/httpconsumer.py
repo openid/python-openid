@@ -12,8 +12,6 @@ from openid.interface import Request
 from openid.association import (BaseAssociationManager,
                                 DiffieHelmanAssociator,
                                 DumbAssociationManager)
-from openid.errors import (ProtocolError, UserCancelled,
-                           ValueMismatchError)
 from openid.util import random_string, append_args, hmacsha1, to_b64
 
 import exutil
@@ -66,9 +64,9 @@ class SampleConsumer(OpenIDConsumer):
     def get_http_client(self):
         return http_client
 
-    def verify_return_to(self, req):
+    def verify_return_to(self, return_to):
         # parse the input url
-        proto, host, selector, params, qs, frag = urlparse(req.return_to)
+        proto, host, selector, params, qs, frag = urlparse(return_to)
         if host != 'localhost:8081':
             return False
 
@@ -124,11 +122,36 @@ class ConsumerHandler(exutil.HTTPHandler):
         </html>
         """
 
+    def doValidLogin(self, identity):
+        # double-check that the identity confirmed belongs with the display id.
+        ret = consumer.find_identity_info(self.query['id'])
+        if ret is not None and ret[1] == identity:
+            self._simplePage('Logged in as ' + self.query['id'])
+        else:
+            self.doInvalidLogin()
+
+    def doInvalidLogin(self):
+        self._simplePage('Not logged in. Invalid.')
+
+    def doUserCancelled(self):
+        self._simplePage('Cancelled by user')
+
+    def doCheckAuthRequired(self, server_url, return_to, post_data):
+        response = consumer.check_auth(server_url, return_to, post_data)
+        response.doAction(self)
+
+    def doErrorFromServer(self, message):
+        raise RuntimeError(message)
+
+    def doUserSetupNeeded(self, user_setup_url):
+        # Not using checkid_immediate, so this shouldn't happen.
+        raise RuntimeError(user_setup_url)
+
     def do_GET(self):
         try:
             # parse the input url
             proto, host, selector, params, qs, frag = urlparse(self.path)
-            query = exutil.parseQuery(qs)
+            self.query = query = exutil.parseQuery(qs)
 
             # dispatch based on query args
             if 'identity_url' in query:
@@ -156,19 +179,11 @@ class ConsumerHandler(exutil.HTTPHandler):
                     self._redirect(redirect_url)
 
             elif 'openid.mode' in query:
-                try:
-                    is_valid = consumer.handle_response(Request(query, 'GET'))
-                except UserCancelled, e:
-                    self._simplePage('Cancelled by user')
-                else:
-                    if is_valid:
-                        self._simplePage('Logged in as ' + query['id'])
-                    else:
-                        self._simplePage('Not logged in. Invalid.')
+                response = consumer.handle_response(Request(query, 'GET'))
+                response.doAction(self) # using visitor pattern approach
             else:
                 self._headers()
                 self.wfile.write(self._inputForm())
-                return
 
         except:
             self._headers(500)

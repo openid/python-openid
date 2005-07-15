@@ -1,18 +1,84 @@
 from openid.errors import ProtocolError, NoOpenIDArgs
 
-class Response(object):
+class ServerResponse(object):
     def __init__(self, **kwargs):
         for attr in ['code', 'content_type', 'body', 'redirect_url']:
             setattr(self, attr, kwargs.get(attr))
 
 def redirect(url):
-    return Response(code=302, redirect_url=str(url))
+    return ServerResponse(code=302, redirect_url=str(url))
 
 def response_page(body):
-    return Response(code=200, content_type='text/plain', body=body)
+    return ServerResponse(code=200, content_type='text/plain', body=body)
 
 def error_page(body):
-    return Response(code=400, content_type='text/plain', body=body)
+    return ServerResponse(code=400, content_type='text/plain', body=body)
+
+
+
+class ConsumerResponse(object):
+    """This is a superclass to provide type unification for all the
+    various responses the consumer library can provide after
+    interpreting an openid query.
+
+    A Visitor pattern interface for dispatching to the various
+    subclasses is provided for users of the library who wish to use
+    it."""
+    def doAction(self, handler):
+        raise NotImplementedError
+
+class ValidLogin(ConsumerResponse):
+    """This subclass is used when the login succeeded.  The identity
+    parameter is the value that the id server has confirmed.
+
+    The identity contained in this response is to be used only to
+    verify that the identity the consumer should have been keeping
+    track of already.  It is not to be used as the identity blindly,
+    because that will cause a consumer to violate the OpenID spec
+    whenever delegation is used."""
+    def __init__(self, identity):
+        self.identity = identity
+
+    def doAction(self, handler):
+        return handler.doValidLogin(self.identity)
+
+class InvalidLogin(ConsumerResponse):
+    """This subclass is used when the login wasn't valid."""
+    def doAction(self, handler):
+        return handler.doInvalidLogin()
+
+class UserCancelled(ConsumerResponse):
+    """This subclass is used when the user cancelled the login."""
+    def doAction(self, handler):
+        return handler.doUserCancelled()
+
+class UserSetupNeeded(ConsumerResponse):
+    """This subclass is used when the UA needs to be sent to the given
+    user_setup_url to complete their login."""
+    def __init__(self, user_setup_url):
+        self.user_setup_url = user_setup_url
+
+    def doAction(self, handler):
+        return handler.doUserSetupNeeded(self.user_setup_url)
+
+class ErrorFromServer(ConsumerResponse):
+    """This subclass is used"""
+    def __init__(self, message):
+        self.message = message
+
+    def doAction(self, handler):
+        return handler.doErrorFromServer(self.message)
+
+class CheckAuthRequired(ConsumerResponse):
+    def __init__(self, server_url, return_to, post_data):
+        self.server_url = server_url
+        self.return_to = return_to
+        self.post_data = post_data
+
+    def doAction(self, handler):
+        return handler.doCheckAuthRequired(
+            self.server_url, self.return_to, self.post_data)
+
 
 class Request(object):
     def __init__(self, args, http_method, authentication=None):

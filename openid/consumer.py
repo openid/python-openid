@@ -1,15 +1,15 @@
 import urllib
 import urllib2
 import urlparse
+import cgi
 
 from openid.util import parsekv, append_args, sign_reply
-
-from openid.errors import (ProtocolError, ValueMismatchError,
-                           UserSetupNeeded, UserCancelled)
-
+from openid.errors import ProtocolError, ValueMismatchError
 from openid.association import DumbAssociationManager
-
 from openid.parse import parseLinkAttrs
+from openid.interface import (ValidLogin, InvalidLogin, ErrorFromServer,
+                              UserCancelled, UserSetupNeeded,
+                              CheckAuthRequired)
 
 # Do not escape anything that is already 7-bit safe, so we do the
 # minimal transform on the identity URL
@@ -109,10 +109,9 @@ class OpenIDConsumer(object):
         initialized with the http arguments given, and the http method
         used to make the request.
 
-        This method returns True if the identity was authenticated,
-        False if the authentication was canceled or (in dumb mode
-        only) failed, and raises openid.errors.UserSetupNeeded with
-        the appropriate url if more work is needed in immediate mode."""
+        This method returns a subclass of
+        openid.interface.ConsumerResponse.  See the openid.interface
+        module for the list of subclasses possible."""
         if req.http_method != 'GET':
             raise ProtocolError("Expected HTTP Method 'GET', got %r" %
                                 (req.http_method,))
@@ -159,19 +158,18 @@ class OpenIDConsumer(object):
 
         return tuple(map(normalize_url, (consumer_id, server_id, server)))
 
-    def _dumb_auth(self, server_url, req):
-        if not self.verify_return_to(req):
-            return False
+    def check_auth(self, server_url, return_to, post_data):
+        """This method is called to perform the openid.mode =
+        check_authentication call.  The identity argument should be
+        the identity url you are confirming (from the consumer's
+        viewpoint, ie. not a delegated identity).  The return_to and
+        post_data arguments should be as contained in the
+        CheckAuthRequired object returned by a previous call to
+        handle_response."""
+        if not self.verify_return_to(return_to):
+            return InvalidLogin()
 
-        check_args = {}
-        for k, v in req.args.iteritems():
-            if k.startswith('openid.'):
-                check_args[k] = v
-
-        check_args['openid.mode'] = 'check_authentication'
-
-        body = urllib.urlencode(check_args)
-        _, data = self.get_http_client().post(server_url, body)
+        _, data = self.get_http_client().post(server_url, post_data)
 
         results = parsekv(data)
         is_valid = results.get('is_valid', 'false')
@@ -180,14 +178,18 @@ class OpenIDConsumer(object):
             if invalidate_handle is not None:
                 self.get_assoc_mngr().invalidate(server_url, invalidate_handle)
 
-            return True
+            identity = cgi.parse_qsl(post_data)['openid.identity'][0]
+            return ValidLogin(identity)
         else:
-            return False
+            return InvalidLogin()
 
     def do_id_res(self, req):
+        if not self.verify_return_to(req.return_to):
+            return InvalidLogin()
+
         user_setup_url = req.get('user_setup_url')
         if user_setup_url is not None:
-            raise UserSetupNeeded(user_setup_url)
+            return UserSetupNeeded(user_setup_url)
 
         server_url = self.determine_server_url(req)
 
@@ -196,7 +198,15 @@ class OpenIDConsumer(object):
 
         if assoc is None:
             # No matching association found. I guess we're in dumb mode...
-            return self._dumb_auth(server_url, req)
+            check_args = {}
+            for k, v in req.args.iteritems():
+                if k.startswith('openid.'):
+                    check_args[k] = v
+
+            check_args['openid.mode'] = 'check_authentication'
+
+            post_data = urllib.urlencode(check_args)
+            return CheckAuthRequired(server_url, req.return_to, post_data)
 
         # Check the signature
         sig = req.sig
@@ -204,19 +214,19 @@ class OpenIDConsumer(object):
 
         _signed, v_sig = sign_reply(req.args, assoc.secret, signed_fields)
         if v_sig != sig:
-            return False
+            return InvalidLogin()
 
-        return True
+        return ValidLogin(req.identity)
 
     def do_error(self, req):
         error = req.get('error')
         if error is None:
-            raise ProtocolError("Unspecified Server Error: %r" % (req.args,))
+            return ErrorFromServer("Unspecified Server Error: %r" % (req.args,))
         else:
-            raise ProtocolError("Server Response: %r" % (error,))
+            return ErrorFromServer("Server Response: %r" % (error,))
 
     def do_cancel(self, unused_req):
-        raise UserCancelled()
+        return UserCancelled()
 
 
     # Callbacks
@@ -271,14 +281,12 @@ class OpenIDConsumer(object):
         will maintain internal state."""
         return DumbAssociationManager()
 
-    def verify_return_to(self, req):
+    def verify_return_to(self, return_to):
         """This method is called before the consumer makes a
         check_authentication call to the server.  It helps verify that
         the request being authenticated is valid by confirming that
         the openid.return_to value signed by the server corresponds to
-        this consumer.  The full Request object (see openid.interface)
-        is passed in, though most implementations will only use its
-        return_to field.  The return value should be True if the
+        this consumer.  The return value should be True if the
         return_to field corresponds to this consumer, or False
         otherwise.  This method must be overridden, as it has no
         default implementation."""
