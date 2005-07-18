@@ -96,7 +96,7 @@ class BaseAssociationManager(AssociationManager):
 
         return None
 
-    # Subclass need to implement the rest of this classes methods.
+    # Subclass need to implement the following methods:
     def update(self, new_assoc, expired):
         """new_assoc is either a new association object or None.
         Expired is a possibly empty list of expired associations.
