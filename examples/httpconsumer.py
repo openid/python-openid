@@ -18,6 +18,10 @@ import exutil
 
 http_client = SimpleHTTPClient()
 
+# flags used to control consumer behavior.
+dumb = False
+split = False
+
 class DictionaryAssociationManager(BaseAssociationManager):
     def __init__(self):
         associator = DiffieHelmanAssociator(http_client)
@@ -122,6 +126,26 @@ class ConsumerHandler(exutil.HTTPHandler):
         </html>
         """
 
+    def _splitpage(self, server_url, return_to, post_data):
+        self._headers()
+        self.wfile.write("""
+        <html>
+        <body style='background-color: #FFFFCC;'>
+        <p>If this were a guestbook style application, it would ask you
+        to enter your comment now, and use the check_authorization call
+        to confirm that you are in fact the user you say you are.</p>
+        <p>This is a demo of the flow that would provide, and nothing
+        more.</p>
+        <form method="GET" action="/">
+        <input type="hidden" name="server_url" value="%s" />
+        <input type="hidden" name="return_to" value="%s" />
+        <input type="hidden" name="post_data" value="%s" />
+        <input type="submit" value="Check Authorization" />
+        </form>
+        </body>
+        </html>
+        """ % (server_url, return_to, post_data))
+
     def doValidLogin(self, login):
         if login.verifyIdentity(self.query['id']):
             self._simplePage('Logged in as ' + self.query['id'])
@@ -135,8 +159,11 @@ class ConsumerHandler(exutil.HTTPHandler):
         self._simplePage('Cancelled by user')
 
     def doCheckAuthRequired(self, server_url, return_to, post_data):
-        response = consumer.check_auth(server_url, return_to, post_data)
-        response.doAction(self)
+        if split:
+            self._splitpage(server_url, return_to, post_data)
+        else:
+            response = consumer.check_auth(server_url, return_to, post_data)
+            response.doAction(self)
 
     def doErrorFromServer(self, message):
         raise RuntimeError(message)
@@ -179,6 +206,18 @@ class ConsumerHandler(exutil.HTTPHandler):
             elif 'openid.mode' in query:
                 response = consumer.handle_response(Request(query, 'GET'))
                 response.doAction(self) # using visitor pattern approach
+            elif 'post_data' in query:
+                # extract necessary information from current query
+                su = query['server_url']
+                rt = query['return_to']
+                pd = query['post_data']
+
+                # replace query with the query from the return_to url
+                _, _, _, _, qs, _ = urlparse(rt)
+                self.query = query = exutil.parseQuery(qs)
+                
+                response = consumer.check_auth(su, rt, pd)
+                response.doAction(self)
             else:
                 self._headers()
                 self.wfile.write(self._inputForm())
@@ -189,11 +228,11 @@ class ConsumerHandler(exutil.HTTPHandler):
             raise
         
 if __name__ == '__main__':
-    import sys
-
-    dumb = False
     if 'dumb' in sys.argv:
         dumb = True
+    if 'dumbsplit' in sys.argv:
+        dumb = True
+        split = True
 
     if dumb:
         assoc_mngr = DumbAssociationManager()
