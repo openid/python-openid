@@ -60,7 +60,7 @@ class ValidLogin(ConsumerResponse):
         if ret is None:
             return False
 
-        return ret[1] == server_id
+        return ret[1] == self.identity
 
 class InvalidLogin(ConsumerResponse):
     """This subclass is used when the login wasn't valid."""
