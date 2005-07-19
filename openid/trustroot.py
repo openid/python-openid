@@ -1,14 +1,5 @@
 from urlparse import urlparse, urlunparse
 
-def validateURL(trust_root, url):
-    """quick func for validating a url against a trust root.  See the
-    TrustRoot class if you need more control."""
-    tr = TrustRoot.parse(trust_root, check_sanity=True)
-    if tr is not None:
-        return tr.validateURL(url)
-
-    return False
-
 ############################################
 _protocols = ['http', 'https']
 _top_level_domains = (
@@ -154,6 +145,21 @@ class TrustRoot(object):
                 return None
 
         return tr
+
+    @classmethod
+    def checkSanity(cls, trust_root_string):
+        """str -> bool
+
+        is this a sane trust root?
+        """
+        return cls.parse(trust_root_string).isSane()
+
+    @classmethod
+    def checkURL(cls, trust_root, url):
+        """quick func for validating a url against a trust root.  See the
+        TrustRoot class if you need more control."""
+        tr = cls.parse(trust_root, check_sanity=True)
+        return tr is not None and tr.validateURL(url)
 
     def __repr__(self):
         return "TrustRoot('%s', '%s', '%s', '%s', '%s', '%s')" % (
