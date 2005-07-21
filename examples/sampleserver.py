@@ -32,13 +32,13 @@ class Store(ServerAssociationStore):
         self.assocs[handle] = assoc
         return assoc
 
-    def lookup(self, handle, assoc_type):
+    def lookup(self, assoc_handle, assoc_type):
         """This method returns the stored association for a given
         handle and association type.  If there is no such stored
         association, it should return None."""
-        if not handle.startswith('{%s}' % assoc_type):
+        if not assoc_handle.startswith('{%s}' % assoc_type):
             return None
-        return self.assocs.get(handle)
+        return self.assocs.get(assoc_handle)
 
     def remove(self, handle):
         """If the server code notices that an association it retrieves

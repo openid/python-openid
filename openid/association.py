@@ -192,7 +192,7 @@ class ServerAssociationStore(object):
         a new association each time this method is called."""
         raise NotImplementedError
 
-    def lookup(self, handle, assoc_type):
+    def lookup(self, assoc_handle, assoc_type):
         """This method returns the stored association for a given
         handle and association type.  If there is no such stored
         association, it should return None."""
