@@ -54,7 +54,7 @@ class ValidLogin(ConsumerResponse):
         try:
             ret = self.consumer.find_identity_info(identity)
         except:
-            # anything goes wrong, not a valid login
+            # if anything goes wrong, it's not a valid login
             return False
 
         if ret is None:

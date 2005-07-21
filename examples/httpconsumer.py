@@ -9,7 +9,7 @@ from urlparse import urlparse
 
 from openid.consumer import OpenIDConsumer, SimpleHTTPClient
 from openid.interface import Request
-from openid.association import (BaseAssociationManager,
+from openid.association import (AbstractConsumerAssociationManager,
                                 DiffieHelmanAssociator,
                                 DumbAssociationManager)
 from openid.util import random_string, append_args, hmacsha1, to_b64
@@ -22,10 +22,10 @@ http_client = SimpleHTTPClient()
 dumb = False
 split = False
 
-class DictionaryAssociationManager(BaseAssociationManager):
+class DictionaryAssociationManager(AbstractConsumerAssociationManager):
     def __init__(self):
         associator = DiffieHelmanAssociator(http_client)
-        BaseAssociationManager.__init__(self, associator)
+        AbstractConsumerAssociationManager.__init__(self, associator)
         self.associations = [] # inefficient, but ok for a toy example
 
     def update(self, new_assoc, expired):
@@ -95,7 +95,7 @@ class SampleConsumer(OpenIDConsumer):
         args['v'] = to_b64(hmacsha1(self.secret, args['id'] + args['time']))
         return append_args(base, args)
 
-consumer = SampleConsumer()
+consumer = None
 
 class ConsumerHandler(exutil.HTTPHandler):
     def _simplePage(self, msg):
@@ -238,6 +238,8 @@ if __name__ == '__main__':
         assoc_mngr = DumbAssociationManager()
     else:
         assoc_mngr = DictionaryAssociationManager()
+
+    consumer = SampleConsumer(assoc_mngr=assoc_mngr)
 
     print 'Consumer Server running...'
     BaseHTTPServer.HTTPServer(('', 8081),

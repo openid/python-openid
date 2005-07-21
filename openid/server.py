@@ -10,11 +10,13 @@ __all__ = ['OpenIDServer']
 _signed_fields = ['mode', 'identity', 'return_to']
 
 class OpenIDServer(object):
-    def __init__(self, srand=None):
+    def __init__(self, internal_store, external_store, srand=None):
         """srand should be a cryptographic-quality source of random
         bytes, if Diffie-Helman secret exchange is to be supported.
         On systems where it is available, an instance of
         random.SystemRandom is a good choice."""
+        self.istore = internal_store
+        self.estore = external_store
         self.srand = srand
 
     def handle(self, req):
@@ -54,7 +56,7 @@ class OpenIDServer(object):
         indicating what should be sent back to the consumer."""
         reply = {}
         assoc_type = req.get('openid.assoc_type', 'HMAC-SHA1')
-        assoc = self.get_association(assoc_type, for_consumer=True)
+        assoc = self.estore.get(assoc_type)
 
         session_type = req.get('session_type')
         if session_type and self.srand is not None:
@@ -131,16 +133,17 @@ class OpenIDServer(object):
 
         assoc_handle = req.get('assoc_handle')
         if assoc_handle:
-            assoc = self.lookup_association(
-                assoc_handle, 'HMAC-SHA1', from_consumer=True)
+            assoc = self.estore.lookup(assoc_handle, 'HMAC-SHA1')
 
             # fall back to dumb mode if assoc_handle not found,
             # and send the consumer an invalidate_handle message
             if assoc is None or assoc.expires_in <= 0:
-                assoc = self.get_association('HMAC-SHA1', for_consumer=False)
+                if assoc is not None and assoc.expires_in <= 0:
+                    self.estore.remove(assoc.handle)
+                assoc = self.istore.get('HMAC-SHA1')
                 reply['openid.invalidate_handle'] = assoc_handle
         else:
-            assoc = self.get_association('HMAC-SHA1', for_consumer=False)
+            assoc = self.istore.get('HMAC-SHA1')
 
         reply.update({
             'openid.assoc_handle': assoc.handle,
@@ -157,62 +160,38 @@ class OpenIDServer(object):
 
     def do_check_authentication(self, req):
         """Last step in dumb mode"""
-        assoc = self.lookup_association(
-            req.assoc_handle, 'HMAC-SHA1', from_consumer=False)
+        assoc = self.istore.lookup(req.assoc_handle, 'HMAC-SHA1')
 
         if assoc is None:
             raise ProtocolError('no secret found for %r' % req.assoc_handle)
 
-        if assoc.expires_in <= 0:
-            raise ProtocolError('using an expired assoc_handle')
-
-        token = req.args.copy()
-        token['openid.mode'] = 'id_res'
-
-        signed_fields = req.signed.strip().split(',')
-        _, v_sig = sign_reply(token, assoc.secret, signed_fields)
-
         reply = {}
-        if v_sig == req.sig:
-            is_valid = "true"
+        if assoc.expires_in > 0:
+            token = req.args.copy()
+            token['openid.mode'] = 'id_res'
 
-            # if an invalidate_handle request is present, verify it
-            invalidate_handle = req.get('invalidate_handle')
-            if invalidate_handle and not self.lookup_association(
-                invalidate_handle, 'HMAC-SHA1', from_consumer=True):
+            signed_fields = req.signed.strip().split(',')
+            _, v_sig = sign_reply(token, assoc.secret, signed_fields)
 
-                reply['invalidate_handle'] = invalidate_handle
+            if v_sig == req.sig:
+                is_valid = 'true'
+
+                # if an invalidate_handle request is present, verify it
+                invalidate_handle = req.get('invalidate_handle')
+                if invalidate_handle:
+                    if not self.estore.lookup(invalidate_handle, 'HMAC-SHA1'):
+                        reply['invalidate_handle'] = invalidate_handle
+            else:
+                is_valid = 'false'
+
         else:
-            is_valid = "false"
+            self.istore.remove(req.assoc_handle)
+            is_valid = 'false'
 
         reply['is_valid'] = is_valid
         return response_page(kvform(reply))
 
     # Callbacks:
-    def get_association(self, assoc_type, for_consumer):
-        """Returns an instance openid.association.Association.  The
-        association must be valid for the given assoc_type.  The
-        for_consumer flag is a bool that indicates whether the
-        association generated is to be sent to a consumer, or used
-        locally only.
-
-        Associations this returns with for_consumer True must have a
-        new secret each time.  If for_consumer is False, this need not
-        return a new association each time, but it does need to return
-        an association which will remain valid for a reasonable amount
-        of time."""
-        raise NotImplementedError
-
-    def lookup_association(self, assoc_handle, assoc_type, from_consumer):
-        """Returns an instance of openid.association.Association for
-        an existing association.  This method *MUST* check that the
-        association described by the handle is valid for the given
-        association type, and for whether it came from a consumer or
-        the server.  If no association matching those criteria is
-        found (either it expired and was removed, or never existed),
-        this method should return None."""
-        raise NotImplementedError
-
     def is_valid(self, req):
         """If a valid authentication is supplied as part of the
         request, and allows the given trust_root to authenticate the
@@ -229,6 +208,6 @@ class OpenIDServer(object):
     def get_setup_response(self, req):
         """If an identity has failed to authenticate for a given
         trust_root in setup mode, this is called.  It returns a
-        Response object containing either a page to draw or another
-        redirect to issue."""
+        Response object containing either a page to draw or a redirect
+        to issue."""
         raise NotImplementedError

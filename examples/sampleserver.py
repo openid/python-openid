@@ -7,17 +7,54 @@ from openid.util import random_string, append_args
 from openid.errors import ProtocolError, NoOpenIDArgs
 from openid.server import OpenIDServer
 from openid.interface import Request, response_page, redirect
-from openid.association import Association
+from openid.association import Association, ServerAssociationStore
 
 import exutil
 
 addr = 'http://localhost:8082/'
 
+class Store(ServerAssociationStore):
+    """This is a simple, in-memory store.  Any server using it will be
+    generating transient secrets that will only be available to the
+    process that generated them."""
+    def __init__(self):
+        self.count = 0
+        self.assocs = {}
+        self.srand = random.SystemRandom()
+        self.lifespan = 60 * 60 * 2
+
+    def get(self, assoc_type):
+        assert assoc_type == 'HMAC-SHA1'
+        handle = '{%s}%d/%d' % (assoc_type, time.time(), self.count)
+        self.count += 1
+        secret = random_string(20, self.srand)
+        assoc = Association.from_expires_in(self.lifespan, handle, secret)
+        self.assocs[handle] = assoc
+        return assoc
+
+    def lookup(self, handle, assoc_type):
+        """This method returns the stored association for a given
+        handle and association type.  If there is no such stored
+        association, it should return None."""
+        if not handle.startswith('{%s}' % assoc_type):
+            return None
+        return self.assocs.get(handle)
+
+    def remove(self, handle):
+        """If the server code notices that an association it retrieves
+        has expired, it will call this method to let the store know it
+        should remove the given association.  In general, the
+        implementation should take care of that without the server
+        code getting involved.  This exists primarily to deal with
+        corner cases correctly."""
+        if handle in self.assocs:
+            del self.assocs[handle]
+
+
 class ConcreteServer(OpenIDServer):
     def __init__(self):
-        OpenIDServer.__init__(self, random.SystemRandom())
+        OpenIDServer.__init__(self, Store(), Store(), random.SystemRandom())
         self.counter = 0
-        self.assoc_stores = [{}, {}]
         self.trust_store = set()  # (identity, trust_root)
 
     def handle(self, req):
@@ -26,27 +63,6 @@ class ConcreteServer(OpenIDServer):
         # general case.
         print 'handling openid.mode=%r' % (req.get('mode'),)
         return OpenIDServer.handle(self, req)
-
-    def get_association(self, assoc_type, for_consumer):
-        tmpl = '{%s}%i/%i'
-        if assoc_type == 'HMAC-SHA1':
-            self.counter += 1
-
-            secret = random_string(20, self.srand)
-            assoc_handle = tmpl % (assoc_type, time.time(), self.counter)
-
-            assoc = Association.from_expires_in(60 * 60, assoc_handle, secret)
-
-            self.assoc_stores[for_consumer][assoc_handle] = assoc
-            return assoc
-        else:
-            raise ProtocolError('Unknown assoc_type: %r' % assoc_type)
-
-    def lookup_association(self, assoc_handle, assoc_type, from_consumer):
-        r = self.assoc_stores[from_consumer].get(assoc_handle)
-        if r is None or not r.handle.startswith('{%s}' % assoc_type):
-            return None
-        return r
 
     def is_valid(self, req):
         if addr + req.authentication != req.identity:

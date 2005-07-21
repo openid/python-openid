@@ -36,7 +36,8 @@ class ConsumerAssociation(Association):
         Association.__init__(self, *args, **kwargs)
         self.server_url = str(server_url)
 
-class AssociationManager(object):
+
+class ConsumerAssociationManager(object):
     """Base class for type unification of Association Managers.  Most
     implementations of this should extend the BaseAssociationManager
     class below."""
@@ -50,7 +51,7 @@ class AssociationManager(object):
         raise NotImplementedError
 
 
-class DumbAssociationManager(AssociationManager):
+class DumbAssociationManager(ConsumerAssociationManager):
     """Using this class will cause a consumer to behave in dumb mode."""
     def get_association(self, server_url, assoc_handle):
         return None
@@ -62,7 +63,7 @@ class DumbAssociationManager(AssociationManager):
         pass
 
 
-class BaseAssociationManager(AssociationManager):
+class AbstractConsumerAssociationManager(ConsumerAssociationManager):
     """Abstract base class for association manager implementations."""
 
     def __init__(self, associator):
@@ -75,7 +76,7 @@ class BaseAssociationManager(AssociationManager):
         for current in self.get_all(server_url):
             if current.expires_in <= 0:
                 expired.append(current)
-            elif assoc is None:
+            elif assoc is None or current.expires_in > assoc.expires_in:
                 assoc = current
 
         new_assoc = None
@@ -84,7 +85,7 @@ class BaseAssociationManager(AssociationManager):
 
         if new_assoc or expired:
             self.update(new_assoc, expired)
-        
+
         return assoc.handle
 
     def get_association(self, server_url, assoc_handle):
@@ -105,13 +106,13 @@ class BaseAssociationManager(AssociationManager):
         raise NotImplementedError
     
     def get_all(self, server_url):
-        """Subclasses should return a list of Association objects
-        whose server_url attribute is equal to server_url."""
+        """Subclasses should return a list of ConsumerAssociation
+        objects whose server_url attribute is equal to server_url."""
         raise NotImplementedError
 
     def invalidate(self, server_url, assoc_handle):
-        """Subclasses should remove the association for the given
-        server_url and assoc_handle from their stores."""
+        """Subclasses should remove the ConsumerAssociation for the
+        given server_url and assoc_handle from their stores."""
         raise NotImplementedError
 
 
@@ -175,3 +176,33 @@ class DiffieHelmanAssociator(object):
 
         return ConsumerAssociation.from_expires_in(
             expires_in, server_url, assoc_handle, secret)
+
+
+
+class ServerAssociationStore(object):
+    """This is the interface the OpenIDServer class expects its
+    internal_store and external_store objects to support."""
+
+    def get(self, assoc_type):
+        """This method returns an association handle for the given
+        association type.  For the internal_store, implementations may
+        return either a new association, or an existing one, as long
+        as the association it returns won't expire too soon to be
+        useable.  For the external_store, implementations must return
+        a new association each time this method is called."""
+        raise NotImplementedError
+
+    def lookup(self, handle, assoc_type):
+        """This method returns the stored association for a given
+        handle and association type.  If there is no such stored
+        association, it should return None."""
+        raise NotImplementedError
+
+    def remove(self, handle):
+        """If the server code notices that an association it retrieves
+        has expired, it will call this method to let the store know it
+        should remove the given association.  In general, the
+        implementation should take care of that without the server
+        code getting involved.  This exists primarily to deal with
+        corner cases correctly."""
+        raise NotImplementedError

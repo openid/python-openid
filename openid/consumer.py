@@ -78,6 +78,10 @@ class SimpleHTTPClient(object):
 
 
 class OpenIDConsumer(object):
+    def __init__(self, http_client=None, assoc_mngr=None):
+        self.http_client = http_client or SimpleHTTPClient()
+        self.assoc_mngr = assoc_mngr or DumbAssociationManager()
+
     def handle_request(self, server_id, server_url, return_to,
                        trust_root=None, immediate=False):
         """Returns the url to redirect to, where server_id is the
@@ -96,7 +100,7 @@ class OpenIDConsumer(object):
 
         redir_args['openid.mode'] = mode
 
-        assoc_handle = self.get_assoc_mngr().associate(server_url)
+        assoc_handle = self.assoc_mngr.associate(server_url)
 
         if assoc_handle is not None:
             redir_args['openid.assoc_handle'] = assoc_handle
@@ -131,7 +135,7 @@ class OpenIDConsumer(object):
         url actually sent to the server to verify, and may be the
         result of finding a delegate link."""
         url = normalize_url(identity_url)
-        consumer_id, data = self.get_http_client().get(url)
+        consumer_id, data = self.http_client.get(url)
 
         server = None
         delegate = None
@@ -169,14 +173,14 @@ class OpenIDConsumer(object):
         if not self.verify_return_to(return_to):
             return InvalidLogin()
 
-        _, data = self.get_http_client().post(server_url, post_data)
+        _, data = self.http_client.post(server_url, post_data)
 
         results = parsekv(data)
         is_valid = results.get('is_valid', 'false')
         if is_valid == 'true':
             invalidate_handle = results.get('invalidate_handle')
             if invalidate_handle is not None:
-                self.get_assoc_mngr().invalidate(server_url, invalidate_handle)
+                self.assoc_mngr.invalidate(server_url, invalidate_handle)
 
             identity = cgi.parse_qs(post_data)['openid.identity'][0]
             return ValidLogin(self, identity)
@@ -193,8 +197,7 @@ class OpenIDConsumer(object):
 
         server_url = self.determine_server_url(req)
 
-        assoc = self.get_assoc_mngr().get_association(
-            server_url, req.assoc_handle)
+        assoc = self.assoc_mngr.get_association(server_url, req.assoc_handle)
 
         if assoc is None:
             # No matching association found. I guess we're in dumb mode...
@@ -252,34 +255,6 @@ class OpenIDConsumer(object):
                                      % (req.identity, server_id))
 
         return server_url
-
-    def get_http_client(self):
-        """This method returns an http client that the consumer will
-        use to fetch the identity url page and make posts to the
-        identity server.  The client should provide get and post
-        methods.  See the SimpleHTTPClient class definition above for
-        more on the expected interface.  The default implementation of
-        this method returns an instance of SimpleHTTPClient, which is
-        functional but doesn't try to prevent any kind of bad behavior
-        like tarpitting the http requests.
-
-        This method will be called repeatedly, so care should be taken
-        to return the same instance each time if the returned instance
-        will maintain internal state."""
-        return SimpleHTTPClient()
-
-    def get_assoc_mngr(self):
-        """This method returns an AssociationManager (see
-        openid.association) instance that will manage associations
-        between this consumer and openid servers that it connects to.
-        The default implemention of this method returns an
-        AssociationManager that doesn't keep track of anything,
-        putting the consumer into dumb mode perpetually.
-
-        This method will be called repeatedly, so care should be taken
-        to return the same instance each time if the returned instance
-        will maintain internal state."""
-        return DumbAssociationManager()
 
     def verify_return_to(self, return_to):
         """This method is called before the consumer makes a
