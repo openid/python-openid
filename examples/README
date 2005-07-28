@@ -54,3 +54,12 @@ it stores what trust roots each user has authorized in a small table
 in memory.  The main id server page (http://localhost:8082/) has links
 to let you see and change who you are logged in as.  To reset the list
 of authorized trust_roots, restart the sample server.
+
+------
+In addition to the above examples, simple.cgi is a consumer-only example that
+simply verifies an identity.  It is a cgi application and will run under any
+cgi enabled web server.  Just copy simple.cgi to your cgi-bin, make sure the
+Python-OpenID package is in your PythonPath, change the file's permissions's
+to execubtable, and thats it.  Load simple.cgi in your browser to test
+a simple consumer in dumb mode.  The source code for simple.cgi is well
+documented and a great intro to using the Python-OpenID library.
