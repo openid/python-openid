@@ -27,6 +27,24 @@ class ConsumerResponse(object):
     def doAction(self, handler):
         raise NotImplementedError
 
+class ActionHandler(object):
+
+    def doValidLogin(self, login):
+        raise NotImplementedError
+
+    def doInvalidLogin(self):
+        raise NotImplementedError
+
+    def doUserCancelled(self):
+        raise NotImplementedError
+
+    def doCheckAuthRequired(self, server_url, return_to, post_data):
+        raise NotImplementedError
+
+    def doErrorFromServer(self, message):
+        raise NotImplementedError
+
+
 class ValidLogin(ConsumerResponse):
     """This subclass is used when the login succeeded.  The identity
     parameter is the value that the id server has confirmed.
