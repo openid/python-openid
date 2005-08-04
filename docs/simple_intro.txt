@@ -1,0 +1,176 @@
+Implementing a consmuer using the Python OpenID library.
+
+==Introduction==
+
+OpenID is a decentralized identity system, and simply provides a way of
+proving that someone owns a URL.  The URL is the user's identity.  An
+OpenID consumer will need to confirm the identity of users by talking
+to an OpenID server.  The Python OpenID library does the heavy-lifting of
+this interaction, leaving you to spend more time on your application.
+It is highly recommended that you have a look at the OpenID homepage
+and specification.  http://www.openid.net
+
+
+==What does Python OpenID do?==
+
+The Python OpenID library fully implements the OpenID specification.
+It makes absolutly no assumptions about your system, and may be used
+from any framework(or lack thereof), with any webserver.  The library
+takes care of all consumer to server interactions and identity
+verfication intricacies.  Operating in "dumb mode" by default, Python
+OpenID can easily be extended to use the faster "smart mode", but
+requires your consumer to store server association information.  Our
+simple example operates in dumb mode.
+
+
+==Getting Started==
+
+Using the library requires a little work on your part, tailoring the
+OpenID interaction to your application.  There are three steps
+to get your OpenID consumer up and running: 1) Provide your own
+OpenIDConsumer subclass. 2) Provide an object that implements the
+ActionHandler interface 3) Control flow and dispatching.  I'll cover
+each one of these in a section below.  You will also need to provide a
+way for your application to send redirects to the user's browser.
+
+
+==simple.cgi example==
+
+The simple.cgi example program verifies an identity URL and nothing
+more. You may run this script by setting its permissions to
+executable, and putting it in your webserver's cgi-bin directory.
+Open the script location in your browser, and you'll be presented with
+a form asking you for your Identity URL.  If you don't have an
+identity url, you may get one from livejournal.com or schtuff.com. The
+identity server will ask you if you trust your consumer server
+(simple.cgi).  Click yes and you will return to simple.cgi with a
+verification message.  If something did not work correctly, you will
+see an error message.
+
+simple.cgi is about 200 lines of code inclduing comments, and CGI and
+HTML code.  Jump in!  The code is well-commented and readable.  Also,
+don't be afraid to look at the library source code, as it is also well
+documented.  Many questions are answered by looking at the source!
+Go ahead and open up simple.cgi, as you find it useful in the
+following sections.
+
+
+==Subclassing OpenIDConsumer==
+
+The core of the library's consumer logic exists in the
+consumer.OpenIDConsumer class, and to get our example working we'll
+make a subclass extending it's behavior.  OpenIDConsumer handles all
+the server interaction, logic, and HTTP calls.  The only thing it
+needs from us is an implemntation of the verify_return_to method.
+
+Our subclass is called SimpleOpenIDConsumer, and contains only the
+verify_return_to method.  This purpose of this method is to look at
+the elemenets of the return_to url and make sure they have not been
+altered in any way.  First, we use the standard urlparse library to
+parse the url, and compare the host information to our conusmer's
+host. This is essential for preventing an attach where one consumer
+can be used to log into other conusmers.  If they match, we consider
+the return_to url verified, and return True.  Otherwise we return False.
+
+
+==The ActionHandler Interface==
+
+In the course of an OpenID transaction, the consumer object may find
+itself in several different states.  The interface.ActionManager class
+provides a callback interface for each of these states, and you must
+supply an object that implements these methods.
+
+SimpleActionHandler is the ActionHandler implemetation for our
+example.  For each state it either sets an alert message, or does a
+check and transitions to another state which sets the message.
+
+The doCheckAuthRequired callback uses the conusmer object's check_auth
+call, and returns response state object, which is then used for a
+state transition.  This is necessary since our example is operating
+in dumb mode.  See http://www.openid.net/specs.bml#mode-check_authentication
+
+Also required in the ActionHandler object are implemtations of the
+createReturnTo and getOpenID methods. The consumer supplies the server
+with a return_to url to which it will redirect once the server
+interaction is complete.  Obviously, the return_to url is application
+specific, and building this url is left up the user of the library.
+The ActionHandler contains a createReturnTo method which accepts an
+base_url, identity url, and a dict of additional arguments.  From
+these parameters your implemetation will consutruct and return a
+return_to url for your application.  One thing that every OpenID
+conusmer need to do is keep track of the initial "identity_url"
+entered by the user.  Since we are a stateless consumer, we choose to
+pass this information through the return_to url.  This could also be
+done with a cookie/session solution.
+
+The last method required is getOpenID, which return the identity_url
+initally entered by the user.  In simple.cgi we passed this though the
+return_to url, so we can simple extract it from the query arguments.
+
+==Dispatching==
+
+Dispatching is the process of looking for arguments, and then running
+code based on their values.  In our case we're looking for the
+existence of an "identity_url" arguement, or an "openid.mode"
+argument.
+
+In the case of "identity_url" existing, we are at the very beginning
+of our OpenID transaction, and need to find out more information from
+the user's identity page.  We call consumer.find_identity_info to
+learn more about the identity and and the server we are to contact.
+
+Once we have the identity server's url, we build a trust_root for our
+application, a return_to (see above), and let our consumer object do
+the rest by calling consumer.handle_request.  handle_request return a
+server url which we are to redirect to.
+
+The server will then respod via redirect to us with an "openid.mode"
+argument.  We then create an interface.Request object with the input
+paramters, and call the consumer object's handle_response method.  We
+are returned a response object, which is executed by calling it's
+doAction method.
+
+
+==Preventing Replay Attacks==
+
+In the interest of keeping the example short, I've not added code to
+prevent relay attacks.  A relay attack invloves someone sniffing your
+internet traffic, and stealing your OpenID server responses.  If no
+safeguards are taken, and you are not connecting from the conusmer to
+the OpenID server over SSL, it is very easy for someone to execute a
+replay attack, and masquerade as someone else in your consumer
+application.
+
+The simplest way to prevent replay attacks is to add a nonce parameter
+into the return_to url.  A nonce is a value that is only used once
+then discarded.  When building your return_to url, stick a random
+number in, and also stick that random number in a consumer-side
+database or file.  When verifying the reuturn to url, you should
+extract the nonce from the query argumnets, and make sure it
+exists in the nonce database, also discarding it from the database.
+If the nonce does not exist in the database, then someone is attepting
+a replay attack, and you should return False from verify_return_to.
+
+
+==Smart Mode==
+
+Operating in smart mode is a wise choice for any consumer, however it
+does require a little more work from you.  Smart mode involves
+creating an association with an OpenID server, and then reusing that
+association for other users of that server.  This prevents extra trips
+to the server and speeds up the validation process tremendously.
+
+Implemeting smart mode with Python OpenID requires you implement an
+ConsumerAssociationManager class which stores association keys in a
+persistent database.  An example consumer association implementation
+is available in the examples directory in the associations module.  It
+uses SQLite for association storage.
+
+
+==Conclusion==
+
+Using this example as a base for your application is a great way to
+get started.  There are many topics this article does not cover,
+including "smart mode", preventing relay attacks, and preserving
+application data across OpenID requests.  
+

@@ -78,6 +78,9 @@ class SimpleActionHandler(interface.ActionHandler):
 
     # callbacks
     def doValidLogin(self, login):
+        # here is where you would do what is necessary to log an openid "user"
+        # user into your system.  We just print a message confirming the
+        # valid login.
         setAlert('<b>Identity verified!</b> Thanks, ' +
                  '<a href="%(open_id)s">' +
                  '%(open_id)s</a>' % self.query)
