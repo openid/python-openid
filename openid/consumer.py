@@ -42,11 +42,15 @@ def normalize_url(url):
 
 class SimpleHTTPClient(object):
     def get(self, url):
-        f = urllib2.urlopen(url)
         try:
-            data = f.read()
-        finally:
-            f.close()
+            f = urllib2.urlopen(url)
+            try:
+                data = f.read()
+            finally:
+                f.close()
+        except urllib2.HTTPError, why:
+            why.close()
+            return None
 
         return (f.geturl(), data)
 
@@ -59,21 +63,14 @@ class SimpleHTTPClient(object):
             finally:
                 f.close()
         except urllib2.HTTPError, why:
-            if why.code == 400:
-                try:
+            try:
+                if why.code == 400:
                     data = why.read()
-                finally:
-                    why.close()
-                args = parsekv(data)
-                error = args.get('error')
-                if error is None:
-                    raise ProtocolError("Unspecified Server Error: %r" %
-                                        (args,))
                 else:
-                    raise ProtocolError("Server Response: %r" % (error,))
-            else:
-                raise 
-            
+                    return None
+            finally:
+                why.close()
+
         return (f.geturl(), data)
 
 
@@ -185,7 +182,11 @@ class OpenIDConsumer(object):
             identity = cgi.parse_qs(post_data)['openid.identity'][0]
             return ValidLogin(self, identity)
         else:
-            return InvalidLogin()
+            error = results.get('error')
+            if error is None:
+                return InvalidLogin()
+            else:
+                return ErrorFromServer("Server Response: %r" % (error,))
 
     def do_id_res(self, req):
         if not self.verify_return_to(req.return_to):
