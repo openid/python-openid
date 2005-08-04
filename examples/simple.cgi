@@ -55,19 +55,9 @@ def setAlert(m):
     global _message
     _message += m
 
-# Choose a nonce secret below.  This should be a secret, static string.
-# It is used to generate the self-signed nonce used in preventing replay
-# attacks. See return_to section of
-# http://www.openid.net/specs.bml#mode-checkid_immediate
-NONCE_SECRET = 'you must change this string!'
-
-def genNonce(identity, time):
-    "returns a nonce string based on the identity and time, using SECRET"
-    return util.to_b64(util.hmacsha1(NONCE_SECRET, identity + time))
-
 # Our OpenIDConsumer subclass.  See openid.conumser.OpenIDConsumer
 # for more more documentation.
-class SampleConsumer(consumer.OpenIDConsumer):
+class SimpleConsumer(consumer.OpenIDConsumer):
     
     def verify_return_to(self, return_to):        
         proto, host, selector, params, qs, frag = \
@@ -77,26 +67,7 @@ class SampleConsumer(consumer.OpenIDConsumer):
         if host != HOST:
             return False
 
-        # build nonce from identity and time
-        query = parseQuery(qs)
-        nonce = genNonce(query['identity'], query['time'])
-
-        # check nonce against the nonce passed through the openid server
-        if nonce != query['nonce']:
-            return False
-
         return True
-
-def create_return_to(base_url, identity_url):
-    "Create the return_to url for this application, appending the nonce args"
-    args = {
-        'identity': identity_url,
-        'time': str(time.time()),
-        }
-    
-    args['nonce'] = genNonce(identity_url, args['time'])
-    return util.append_args(base_url, args)
-    
 
 # A handler with application specific callback logic.
 class SimpleActionHandler(interface.ActionHandler):
@@ -104,50 +75,46 @@ class SimpleActionHandler(interface.ActionHandler):
     def __init__(self, query, consumer):
         self.query = query
         self.consumer = consumer
-    
+
+    # callbacks
     def doValidLogin(self, login):
-        identity_url = self.query['identity']
-        if login.verifyIdentity(identity_url):
-            setAlert('<b>Identity verified!</b> Thanks, ' +
-                     '<a href="%(identity)s">%(identity)s</a>' % self.query)
-        else:
-            self.doInvalidLogin()
+        setAlert('<b>Identity verified!</b> Thanks, ' +
+                 '<a href="%(open_id)s">' +
+                 '%(open_id)s</a>' % self.query)
 
     def doInvalidLogin(self):
-        setAlert('Identity NOT verified!  Try again.')
+        setAlert('Identity NOT verified!')
 
     def doUserCancelled(self):
         setAlert('Cancelled by user.')
 
     def doCheckAuthRequired(self, server_url, return_to, post_data):
-        response = self.consumer.check_auth(server_url, return_to, post_data)
+        # do openid.mode=check_authentication call, and then change state
+        response = self.consumer.check_auth(server_url, return_to, post_data,
+                                            self.getOpenID())
         response.doAction(self)
 
     def doErrorFromServer(self, message):
         setAlert('Error from server: '+message)
 
+    # helpers
+    def createReturnTo(self, base_url, identity_url, args=None):
+        if not isinstance(args, dict):
+            args = {}
+        args['open_id'] = identity_url
+        return util.append_args(base_url, args)
+
+    def getOpenID(self):
+        "return the openid from the original form"
+        return self.query['open_id']
+
+
 def dispatch():
-    """Entry point into the script.  Here we create our OpenID objects
-    and call into the library based one the input argumets.  We check for
-    two specific arguments:
-
-    1) identity_url: this is the url from the form
-    on the webpage.  If this is present, our first step is to get more info
-    about the identity from the content of it's webpage by calling
-    Consumer.find_identity_info
-
-    2) openid.mode: Redirect from the server will have an openid.mode.  In
-    this case we create a Request object, and let the Conumer class handle
-    the rest.
-
-    If neither of these args are present, we simply render the page w/ the
-    input form.
-    """
     # generate a dictionary of arguments
     query = formArgstoDict()
     
     # create conusmer and handler objects
-    consumer = SampleConsumer()
+    consumer = SimpleConsumer()
     handler = SimpleActionHandler(query, consumer)
 
     # extract identity url from arguments.  Will be None if absent from query.
@@ -171,9 +138,11 @@ def dispatch():
             else:
                 trust_root = 'http://' + HOST
 
-            # build return_to url
-            base_url = trust_root + os.environ['SCRIPT_NAME']
-            return_to = create_return_to(base_url, identity_url)
+            # build url to application for use in creating return_to
+            app_url = trust_root + os.environ['SCRIPT_NAME']
+
+            # create return_to url from app_url
+            return_to = handler.createReturnTo(app_url, identity_url)
 
             # handle the request
             redirect_url = consumer.handle_request(
@@ -186,13 +155,13 @@ def dispatch():
         # got a request from the server.  build a Request object and pass
         # it off to the consumer object.  OpendIDActionHandler handles
         # the various end cases (see above).
-        req = interface.Request(query, 'GET')
+        openid = handler.getOpenID()
+        req = interface.ConsumerRequest(openid, query, 'GET')
         response = consumer.handle_response(req)
 
         # let our SimpleActionHandler do the work
         response.doAction(handler)
         
-
 dispatch()
 
 print "Content-Type: text/html\n\n"

@@ -44,6 +44,11 @@ class ActionHandler(object):
     def doErrorFromServer(self, message):
         raise NotImplementedError
 
+    def createReturnTo(self, base_url, identity_url, args):
+        raise NotImplementedError
+
+    def getOpenID(self):
+        raise NotImplementedError
 
 class ValidLogin(ConsumerResponse):
     """This subclass is used when the login succeeded.  The identity
@@ -164,3 +169,9 @@ class Request(object):
 
     def get_by_full_key(self, key, default=None):
         return self.args.get(key, default)
+
+class ConsumerRequest(Request):
+
+    def __init__(self, openid, args, http_method, authentication=None):
+        Request.__init__(self, args, http_method, authentication)
+        self.openid = openid

@@ -182,11 +182,7 @@ class OpenIDConsumer(object):
             identity = cgi.parse_qs(post_data)['openid.identity'][0]
             return ValidLogin(self, identity)
         else:
-            error = results.get('error')
-            if error is None:
-                return InvalidLogin()
-            else:
-                return ErrorFromServer("Server Response: %r" % (error,))
+            return InvalidLogin()
 
     def do_id_res(self, req):
         if not self.verify_return_to(req.return_to):
@@ -220,7 +216,11 @@ class OpenIDConsumer(object):
         if v_sig != sig:
             return InvalidLogin()
 
-        return ValidLogin(self, req.identity)
+        vl = ValidLogin(self, req.identity)
+        if vl.verifyIdentity(req.user_identity):
+            return vl
+
+        return InvalidLogin()
 
     def do_error(self, req):
         error = req.get('error')
