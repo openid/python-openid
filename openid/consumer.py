@@ -180,9 +180,15 @@ class OpenIDConsumer(object):
                 self.assoc_mngr.invalidate(server_url, invalidate_handle)
 
             identity = cgi.parse_qs(post_data)['openid.identity'][0]
-            return ValidLogin(self, identity)
+            vl = ValidLogin(self, identity)
+            if vl.verifyIdentity(openid):
+                return vl
         else:
-            return InvalidLogin()
+            error = results.get('error')
+            if error is not None:
+                return ErrorFromServer("Server Response: %r" % (error,))
+            
+        return InvalidLogin()
 
     def do_id_res(self, req):
         if not self.verify_return_to(req.return_to):
