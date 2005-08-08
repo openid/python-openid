@@ -132,7 +132,11 @@ class OpenIDConsumer(object):
         url actually sent to the server to verify, and may be the
         result of finding a delegate link."""
         url = normalize_url(identity_url)
-        consumer_id, data = self.http_client.get(url)
+        ret = self.http_client.get(url)
+        if ret is None:
+            return None
+
+        consumer_id, data = ret
 
         server = None
         delegate = None
@@ -170,7 +174,11 @@ class OpenIDConsumer(object):
         if not self.verify_return_to(return_to):
             return InvalidLogin()
 
-        _, data = self.http_client.post(server_url, post_data)
+        ret = self.http_client.post(server_url, post_data)
+        if ret is None:
+            return InvalidLogin()
+
+        data = ret[1]
 
         results = parsekv(data)
         is_valid = results.get('is_valid', 'false')
