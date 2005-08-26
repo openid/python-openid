@@ -7,16 +7,17 @@ import hmac, sha
 
 from urlparse import urlparse
 
-from openid.consumer import OpenIDConsumer, SimpleHTTPClient
-from openid.interface import Request
+from openid.consumer import OpenIDConsumer
+from openid.interface import ConsumerRequest
 from openid.association import (AbstractConsumerAssociationManager,
                                 DiffieHelmanAssociator,
                                 DumbAssociationManager)
 from openid.util import random_string, append_args, hmacsha1, to_b64
+from openid import httpclient
 
 import exutil
 
-http_client = SimpleHTTPClient()
+http_client = httpclient.SimpleHTTPClient()
 
 # flags used to control consumer behavior.
 dumb = False
@@ -147,10 +148,7 @@ class ConsumerHandler(exutil.HTTPHandler):
         """ % (server_url, return_to, post_data))
 
     def doValidLogin(self, login):
-        if login.verifyIdentity(self.query['id']):
-            self._simplePage('Logged in as ' + self.query['id'])
-        else:
-            self.doInvalidLogin()
+        self._simplePage('Logged in as ' + self.query['id'])
 
     def doInvalidLogin(self):
         self._simplePage('Not logged in. Invalid.')
@@ -162,7 +160,8 @@ class ConsumerHandler(exutil.HTTPHandler):
         if split:
             self._splitpage(server_url, return_to, post_data)
         else:
-            response = consumer.check_auth(server_url, return_to, post_data)
+            response = consumer.check_auth(server_url, return_to, post_data,
+                                           self.query['id'])
             response.doAction(self)
 
     def doErrorFromServer(self, message):
@@ -204,7 +203,9 @@ class ConsumerHandler(exutil.HTTPHandler):
                     self._redirect(redirect_url)
 
             elif 'openid.mode' in query:
-                response = consumer.handle_response(Request(query, 'GET'))
+                open_id = query['id']
+                req = ConsumerRequest(open_id, query, 'GET')
+                response = consumer.handle_response(req)
                 response.doAction(self) # using visitor pattern approach
             elif 'post_data' in query:
                 # extract necessary information from current query

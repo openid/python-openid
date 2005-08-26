@@ -25,6 +25,7 @@ import urlparse
 # If so, uncomment the line below, and change the path where you have
 # Python-OpenID.
 # sys.path.insert(0, '/home/foo/Python-OpenID-0.0.6/')
+sys.path.insert(0, '/home/brian/production/')
 from openid import consumer, interface, util
 
 HOST = os.environ['HTTP_HOST']
@@ -194,7 +195,7 @@ print """
   </div>
 
   <div style="font-size:.8em; margin-top:5em;">
-  Note that this example will not work with Python's built in CGIHTTPServer.  Use Apache or an HTTP server that allows redirects.
+  Note that this example will not work with Python's built in CGIHTTPServer.  Use Apache or an HTTP server that supports redirects.
   </div>
 </body>
 </html>

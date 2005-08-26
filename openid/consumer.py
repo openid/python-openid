@@ -5,6 +5,7 @@ import cgi
 
 from openid.util import parsekv, append_args, sign_reply
 from openid.errors import ProtocolError, ValueMismatchError
+from openid.httpclient import getHTTPClient
 from openid.association import DumbAssociationManager
 from openid.parse import parseLinkAttrs
 from openid.interface import (ValidLogin, InvalidLogin, ErrorFromServer,
@@ -40,43 +41,9 @@ def normalize_url(url):
     return url
 
 
-class SimpleHTTPClient(object):
-    def get(self, url):
-        try:
-            f = urllib2.urlopen(url)
-            try:
-                data = f.read()
-            finally:
-                f.close()
-        except urllib2.HTTPError, why:
-            why.close()
-            return None
-
-        return (f.geturl(), data)
-
-    def post(self, url, body):
-        req = urllib2.Request(url, body)
-        try:
-            f = urllib2.urlopen(req)
-            try:
-                data = f.read()
-            finally:
-                f.close()
-        except urllib2.HTTPError, why:
-            try:
-                if why.code == 400:
-                    data = why.read()
-                else:
-                    return None
-            finally:
-                why.close()
-
-        return (f.geturl(), data)
-
-
 class OpenIDConsumer(object):
     def __init__(self, http_client=None, assoc_mngr=None):
-        self.http_client = http_client or SimpleHTTPClient()
+        self.http_client = http_client or getHTTPClient()
         self.assoc_mngr = assoc_mngr or DumbAssociationManager()
 
     def handle_request(self, server_id, server_url, return_to,
@@ -163,7 +130,14 @@ class OpenIDConsumer(object):
 
         return tuple(map(normalize_url, (consumer_id, server_id, server)))
 
-    def check_auth(self, server_url, return_to, post_data):
+    def create_return_to(self, url, identity_url, **kwargs):
+        """Returns an return_to url, with required identity_url, and
+        optional args"""
+        args = {'identity': identity_url}
+        args.update(kwargs)
+        return append_args(url, args)
+
+    def check_auth(self, server_url, return_to, post_data, openid):
         """This method is called to perform the openid.mode =
         check_authentication call.  The identity argument should be
         the identity url you are confirming (from the consumer's
@@ -231,7 +205,7 @@ class OpenIDConsumer(object):
             return InvalidLogin()
 
         vl = ValidLogin(self, req.identity)
-        if vl.verifyIdentity(req.user_identity):
+        if vl.verifyIdentity(req.openid):
             return vl
 
         return InvalidLogin()

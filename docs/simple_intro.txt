@@ -20,7 +20,7 @@ takes care of all consumer to server interactions and identity
 verfication intricacies.  Operating in "dumb mode" by default, Python
 OpenID can easily be extended to use the faster "smart mode", but
 requires your consumer to store server association information.  Our
-simple example operates in dumb mode.
+simple example will operate in dumb mode.
 
 
 ==Getting Started==
