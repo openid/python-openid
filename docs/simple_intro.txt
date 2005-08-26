@@ -47,7 +47,7 @@ identity server will ask you if you trust your consumer server
 verification message.  If something did not work correctly, you will
 see an error message.
 
-simple.cgi is about 200 lines of code inclduing comments, and CGI and
+simple.cgi is about 200 lines of code inclduing comments, CGI, and
 HTML code.  Jump in!  The code is well-commented and readable.  Also,
 don't be afraid to look at the library source code, as it is also well
 documented.  Many questions are answered by looking at the source!

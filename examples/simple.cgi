@@ -25,7 +25,6 @@ import urlparse
 # If so, uncomment the line below, and change the path where you have
 # Python-OpenID.
 # sys.path.insert(0, '/home/foo/Python-OpenID-0.0.6/')
-sys.path.insert(0, '/home/brian/production/')
 from openid import consumer, interface, util
 
 HOST = os.environ['HTTP_HOST']
