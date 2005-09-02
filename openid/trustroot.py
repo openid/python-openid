@@ -14,7 +14,7 @@ _top_level_domains = (
     'nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|ru|rw|sa|'
     'sb|sc|sd|se|sg|sh|si|sj|sk|sl|sm|sn|so|sr|st|sv|sy|sz|tc|td|tf|tg|th|'
     'tj|tk|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|um|us|uy|uz|va|vc|ve|vg|vi|'
-    'vn|vu|wf|ws|ye|yt|yu|za|zm|zw|localhost'
+    'vn|vu|wf|ws|ye|yt|yu|za|zm|zw'
     ).split('|')
 
 
@@ -48,18 +48,23 @@ class TrustRoot(object):
         self.port = port
         self.path = path
 
-        self._is_sane = None
-
     def isSane(self):
         """Checks the sanity of this trust root.
         http://*.com/ for example is not sane.  Returns a bool."""        
-        if self._is_sane is not None:
-            return self._is_sane
 
         if self.host == 'localhost':
             return True
 
         host_parts = self.host.split('.')
+
+        ends_in_tld = False
+        for tld in _top_level_domains:
+            if host_parts[-1].endswith(tld):
+                ends_in_tld = True
+                break
+
+        if not ends_in_tld:
+            return False
 
         # extract sane "top-level-domain"
         host = []
@@ -69,14 +74,10 @@ class TrustRoot(object):
         elif len(host_parts[-1]) == 3:
             host = host_parts[:-1]
 
-        self._is_sane = bool(len(host))
-        return self._is_sane
+        return bool(len(host))
 
     def validateURL(self, url):
         """Validates a URL against this trust root.  Returns a bool"""
-
-        if not self.isSane():
-            return False
 
         url_parts = parseURL(url)
         if url_parts is None:
@@ -116,33 +117,17 @@ class TrustRoot(object):
         # extract wildcard if it is there
         if '*' in host:
             # wildcard must be at start of domain:  *.foo.com, not foo.*.com
-            if not host.startswith('*'):
+            if not host.startswith('*.'):
                 return None
 
-            # there should also be a '.' ala *.schtuff.com
-            if host[1] != '.':
-                return None
-            
             host = host[2:]
             wilcard = True
         else:
             wilcard = False
         
-        # at least needs to end in a top-level-domain
-        ends_in_tld = False
-        for tld in _top_level_domains:
-            if host.endswith(tld):
-                ends_in_tld = True
-                break
-
-        if not ends_in_tld:
-            return None
 
         # we have a valid trust root
         tr = cls(trust_root, proto, wilcard, host, port, path)
-        if check_sanity:
-            if not tr.isSane():
-                return None
 
         return tr
 
@@ -182,8 +167,10 @@ def _test():
     assertBad('*.foo.com')
     assertBad('ftp://foo.com')
     assertBad('ftp://*.foo.com')
-    assertBad('http://*.foo.notatld')
     assertBad('http://*.foo.com:80:90/')
+    assertBad('foo.*.com')
+    assertBad('http://foo.*.com')
+    assertBad('http://www.*')
     assertBad('')
     assertBad(' ')
     assertBad(' \t\n ')
@@ -218,6 +205,8 @@ def _test():
     assertSane('http://*.com.au/', False)
     assertSane('http://*.co.uk/', False)
     assertSane('http://localhost:8082/?action=openid', True)
+    assertSane('http://*.foo.notatld', False)
+    assertSane('http://*.museum/', False)
 
     # XXX: what exactly is a sane trust root?
     #assertSane('http://*.k12.va.us/', False)
