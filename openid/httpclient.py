@@ -33,37 +33,34 @@ def getHTTPClient():
     return ParanoidHTTPClient()
 
 class SimpleHTTPClient(HTTPClient):
+    def _fetch(self, req):
+        f = urllib2.urlopen(req)
+        try:
+            data = f.read()
+        finally:
+            f.close()
+        return (f.geturl(), data)
+
     def get(self, url):
         try:
-            f = urllib2.urlopen(url)
-            try:
-                data = f.read()
-            finally:
-                f.close()
+            return self._fetch(url)
         except urllib2.HTTPError, why:
             why.close()
             return None
 
-        return (f.geturl(), data)
-
     def post(self, url, body):
         req = urllib2.Request(url, body)
         try:
-            f = urllib2.urlopen(req)
-            try:
-                data = f.read()
-            finally:
-                f.close()
+            return self._fetch(req)
         except urllib2.HTTPError, why:
             try:
                 if why.code == 400:
                     data = why.read()
+                    return (why.geturl(), data)
                 else:
                     return None
             finally:
                 why.close()
-
-        return (f.geturl(), data)
 
 class ParanoidHTTPClient(HTTPClient):
     """A paranoid HTTPClient that uses pycurl for fecthing.
