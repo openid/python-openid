@@ -79,7 +79,7 @@ class ParanoidHTTPClient(HTTPClient):
         return None
 
     def _checkURL(self, url):
-        # TODO: make sure url is welformed and route-able
+        # TODO: make sure url is well-formed and routeable
         return True
 
     def get(self, url):
