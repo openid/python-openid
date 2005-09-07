@@ -57,8 +57,8 @@ def setAlert(m):
 # Our OpenIDConsumer subclass.  See openid.conumser.OpenIDConsumer
 # for more more documentation.
 class SimpleConsumer(consumer.OpenIDConsumer):
-    
-    def verify_return_to(self, return_to):        
+
+    def verify_return_to(self, return_to):
         proto, host, selector, params, qs, frag = \
                urlparse.urlparse(return_to)
 
@@ -114,7 +114,7 @@ class SimpleActionHandler(interface.ActionHandler):
 def dispatch():
     # generate a dictionary of arguments
     query = formArgstoDict()
-    
+
     # create conusmer and handler objects
     consumer = SimpleConsumer()
     handler = SimpleActionHandler(query, consumer)
@@ -152,7 +152,7 @@ def dispatch():
 
             # redirect the user-agent to the server
             redirect(redirect_url)
-            
+
     elif 'openid.mode' in query:
         # got a request from the server.  build a Request object and pass
         # it off to the consumer object.  OpendIDActionHandler handles
@@ -163,13 +163,13 @@ def dispatch():
 
         # let our SimpleActionHandler do the work
         response.doAction(handler)
-        
+
 dispatch()
 
 print "Content-Type: text/html\n\n"
 print """
 <html>
-<head>  
+<head>
   <title>CGI Python OpenID Consumer Example</title>
   <style type="text/css">
   * {font-family:verdana,sans-serif;}
@@ -187,7 +187,7 @@ print """
   <div id="login">
   Verify an Identity URL
   <hr/>
-    <form action="%s" method="get">     
+    <form action="%s" method="get">
     OpenID: <input type="text" name="identity_url" class="openid_identity" />
     <input type="submit" value="Verify" />
     </form>
@@ -199,8 +199,3 @@ print """
 </body>
 </html>
 """ % (drawAlert(_message), os.environ['SCRIPT_NAME'])
-       
-
-
-
-
