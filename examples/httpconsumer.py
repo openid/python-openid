@@ -216,8 +216,8 @@ class ConsumerHandler(exutil.HTTPHandler):
                 # replace query with the query from the return_to url
                 _, _, _, _, qs, _ = urlparse(rt)
                 self.query = query = exutil.parseQuery(qs)
-                
-                response = consumer.check_auth(su, rt, pd)
+
+                response = consumer.check_auth(su, rt, pd, query['id'])
                 response.doAction(self)
             else:
                 self._headers()
