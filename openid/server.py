@@ -37,14 +37,15 @@ class OpenIDServer(object):
             else:
                 return method(req)
         except ProtocolError, why:
-            edict = {
-                'openid.mode': 'error',
-                'openid.error': why[0],
-                }
             return_to = req.get('return_to')
             if req.http_method == 'GET' and return_to:
+                edict = {
+                    'openid.mode': 'error',
+                    'openid.error': why[0],
+                    }
                 return redirect(append_args(return_to, edict))
             else:
+                edict = dict(error=why[0])
                 return error_page(kvform(edict))
 
     def do_associate(self, req):
