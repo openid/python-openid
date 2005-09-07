@@ -169,7 +169,7 @@ class OpenIDConsumer(object):
             error = results.get('error')
             if error is not None:
                 return ErrorFromServer("Server Response: %r" % (error,))
-            
+
         return InvalidLogin()
 
     def do_id_res(self, req):
