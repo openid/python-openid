@@ -122,7 +122,7 @@ class ConsumerHandler(exutil.HTTPHandler):
         Your Identity URL: <input type="text" name="identity_url" size="60"/>
         <br /><input type="submit" value="Log in" />
         </form>
-        
+
         </body>
         </html>
         """
@@ -227,7 +227,7 @@ class ConsumerHandler(exutil.HTTPHandler):
             self._headers(500)
             self.wfile.write(cgitb.html(sys.exc_info(), context=10))
             raise
-        
+
 if __name__ == '__main__':
     if 'dumb' in sys.argv:
         dumb = True
