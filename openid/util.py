@@ -107,5 +107,5 @@ class DiffieHellman(object):
     def createKeyExchange(self):
         return pow(self.g, self.x, self.p)
 
-    def decryptKeyExchange(self, keyEx):
-        return pow(keyEx, self.x, self.p)
+    def decryptKeyExchange(self, composite):
+        return pow(composite, self.x, self.p)
