@@ -37,6 +37,9 @@ class Association(object):
         return self.__dict__ != other.__dict__
 
 class ConsumerAssociation(Association):
+    """This class is a subclass of Association that adds the
+    additional information the consumer needs to track which server
+    issued the association."""
     def __init__(self, server_url, *args, **kwargs):
         Association.__init__(self, *args, **kwargs)
         self.server_url = str(server_url)
