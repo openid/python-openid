@@ -45,9 +45,9 @@ def parsekv(d):
     args = {}
     for line in d.split('\n'):
         pair = line.split(':', 1)
-        if len(pair) != 2: continue
-        k, v = pair
-        args[k.strip()] = v.strip()
+        if len(pair) == 2:
+            k, v = pair
+            args[k.strip()] = v.strip()
     return args
 
 def strxor(aa, bb):
