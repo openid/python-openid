@@ -8,6 +8,11 @@ from openid.util import (DiffieHellman, long2a, to_b64, parsekv,
                          from_b64, a2long, sha1, strxor)
 
 class Association(object):
+    """This class represents an association between a consumer and a
+    server.  This class only contains the information necessary for
+    the server to keep track of.  The consumer needs additional
+    information, which is stored in the ConsumerAssociation class
+    listed below."""
     @classmethod
     def from_expires_in(cls, expires_in, *args, **kwargs):
         kwargs['issued'] = int(time.time())
