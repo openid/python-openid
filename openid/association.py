@@ -16,14 +16,14 @@ class Association(object):
     @classmethod
     def from_expires_in(cls, expires_in, *args, **kwargs):
         kwargs['issued'] = int(time.time())
-        kwargs['lifetime'] = int(expires_in)
+        kwargs['lifetime'] = expires_in
         return cls(*args, **kwargs)
 
     def __init__(self, handle, secret, issued, lifetime):
-        self.handle = str(handle)
-        self.secret = str(secret)
-        self.issued = int(issued)
-        self.lifetime = int(lifetime)
+        self.handle = handle
+        self.secret = secret
+        self.issued = issued
+        self.lifetime = lifetime
 
     def get_expires_in(self):
         return max(0, self.issued + self.lifetime - int(time.time()))
@@ -42,7 +42,7 @@ class ConsumerAssociation(Association):
     issued the association."""
     def __init__(self, server_url, *args, **kwargs):
         Association.__init__(self, *args, **kwargs)
-        self.server_url = str(server_url)
+        self.server_url = server_url
 
 
 class ConsumerAssociationManager(object):
