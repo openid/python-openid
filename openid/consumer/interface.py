@@ -9,8 +9,14 @@ class OpenIDConsumerFacade(object):
 
     def __init__(self, store=None, fetcher=None, immediate=False, split=False):
         """ """
-        from openid.cimpls import OpenIDConsumer
-        #blah if store or fetcher is none
+        if fetcher is None:
+            from openid.consumer.fetchers import getHTTPFetcher
+            fetcher = getHTTPFetcher()
+
+        if store is None:
+            store = None # XXX: Fix this
+
+        from openid.consumer.impl import OpenIDConsumer
         self.impl = OpenIDConsumer(store, fetcher, immediate, split)
 
     def constructRedirect(self, proxy):
