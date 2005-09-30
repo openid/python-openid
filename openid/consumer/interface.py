@@ -7,7 +7,8 @@
 class OpenIDConsumerFacade(object):
     """ """
 
-    def __init__(self, store=None, fetcher=None, immediate=False, split=False):
+    def __init__(self, store=None, trust_root=None, fetcher=None,
+                 immediate=False, split=False):
         """ """
         if fetcher is None:
             from openid.consumer.fetchers import getHTTPFetcher
@@ -17,7 +18,8 @@ class OpenIDConsumerFacade(object):
             store = None # XXX: Fix this
 
         from openid.consumer.impl import OpenIDConsumer
-        self.impl = OpenIDConsumer(store, fetcher, immediate, split)
+        self.impl = OpenIDConsumer(store, trust_root, fetcher,
+                                   immediate, split)
 
     def constructRedirect(self, proxy):
         """returns the redirect to send the user to proceed with the login."""
