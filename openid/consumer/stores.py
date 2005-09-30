@@ -62,5 +62,8 @@ class OpenIDStore(object):
         return False and remove them."""
         raise NotImplementedError
 
-
-
+    def getAuthKey(self):
+        """This method returns a 20-byte key used to sign the tokens,
+        to ensure that they haven't been tampered with in transit.  It
+        should return the same key every time it is called."""
+        raise NotImplementedError
