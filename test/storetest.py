@@ -10,16 +10,26 @@ for c in string.printable:
         allowed_handle.append(c)
 allowed_handle = ''.join(allowed_handle)
 
+allowed_secret = ''.join(map(chr, range(256)))
+
+allowed_nonce = string.letters + string.digits
+
 rand = random.SystemRandom()
 
-def generateHandle(n):
-    handle_chars = []
+def rnd(n, pop):
+    chars = []
     for _ in xrange(n):
-        handle_chars.append(rand.choice(allowed_handle))
-    return ''.join(handle_chars)
+        chars.append(rand.choice(pop))
+    return ''.join(chars)
+
+def generateHandle(n):
+    return rnd(n, allowed_handle)
 
 def generateSecret(n):
-    return util.random_string(n, rand)
+    return rnd(n, allowed_secret)
+
+def generateNonce():
+    return rnd(8, allowed_nonce)
 
 def testStore(store):
     server_url = 'http://www.myopenid.com/openid'
@@ -60,6 +70,31 @@ def testStore(store):
     assert present
 
     present = store.removeAssociation(server_url, handle)
+    assert not present
+
+    # Nonce functions
+
+    # Random nonce (not in store)
+    nonce1 = generateNonce()
+
+    # A nonce is not present by default
+    present = store.useNonce(nonce1)
+    assert not present
+
+    # Storing once causes useNonce to return True the first, and only
+    # the first, time it is called after the store.
+    store.storeNonce(nonce1)
+    present = store.useNonce(nonce1)
+    assert present
+    present = store.useNonce(nonce1)
+    assert not present
+
+    # Storing twice has the same effect as storing once.
+    store.storeNonce(nonce1)
+    store.storeNonce(nonce1)
+    present = store.useNonce(nonce1)
+    assert present
+    present = store.useNonce(nonce1)
     assert not present
 
 if __name__ == '__main__':
