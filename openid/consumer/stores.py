@@ -36,7 +36,7 @@ class OpenIDStore(object):
         raise NotImplementedError
     
 
-    def getAssociation(self, server_url, handle):
+    def getAssociation(self, server_url):
         """Returns a ConsumerAssocation object from storage.  Returns
         None if no such association is found.  (Is allowed to gc
         expired associations when found and return None instead of the
