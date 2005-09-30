@@ -306,7 +306,7 @@ class FilesystemOpenIDStore(object):
 
         return auth_key
 
-    def getAssociationFilename(self, server_url, handle):
+    def getAssociationFilename(self, server_url):
         """Create a unique filename for a given server url and
         handle. This implementation does not assume anything about the
         format of the handle. The filename that is returned will
@@ -331,8 +331,7 @@ class FilesystemOpenIDStore(object):
         ConsumerAssociation -> NoneType
         """
         association_s = serializeAssociation(association)
-        filename = self.getAssociationFilename(association.server_url,
-                                               association.handle)
+        filename = self.getAssociationFilename(association.server_url)
         tmp_file, tmp = self._mktemp()
 
         try:
@@ -368,12 +367,12 @@ class FilesystemOpenIDStore(object):
             removeIfPresent(tmp)
             raise
 
-    def getAssociation(self, server_url, handle):
+    def getAssociation(self, server_url):
         """Retrieve an association.
 
         (str, str) -> ConsumerAssociation or NoneType
         """
-        filename = self.getAssociationFilename(server_url, handle)
+        filename = self.getAssociationFilename(server_url)
         try:
             assoc_file = file(filename, 'rb')
         except IOError, why:
@@ -394,11 +393,6 @@ class FilesystemOpenIDStore(object):
                 removeIfPresent(filename)
                 return None
 
-        # If our current association for this server url is not for
-        # this handle, return None
-        if association.handle != handle:
-            return None
-
         # Clean up expired associations
         if association.getExpiresIn() == 0:
             removeIfPresent(filename)
@@ -411,11 +405,11 @@ class FilesystemOpenIDStore(object):
 
         (str, str) -> bool
         """
-        assoc = self.getAssociation(server_url, handle)
+        assoc = self.getAssociation(server_url)
         if assoc is None or assoc.handle != handle:
             return False
         else:
-            filename = self.getAssociationFilename(server_url, handle)
+            filename = self.getAssociationFilename(server_url)
             return removeIfPresent(filename)
 
     def storeNonce(self, nonce):

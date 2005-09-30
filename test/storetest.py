@@ -41,42 +41,31 @@ def testStore(store):
     assoc = ConsumerAssociation.fromExpiresIn(600, server_url, handle, secret)
 
     # Make sure that a missing association returns no result
-    missing_assoc = store.getAssociation(server_url, handle)
+    missing_assoc = store.getAssociation(server_url)
     assert missing_assoc is None
 
     # Check that after storage, getting returns the same result
     store.storeAssociation(assoc)
-    retrieved_assoc = store.getAssociation(server_url, handle)
+    retrieved_assoc = store.getAssociation(server_url)
     assert retrieved_assoc.secret == assoc.secret
     assert retrieved_assoc.handle == assoc.handle
     assert retrieved_assoc.server_url == assoc.server_url
 
     # more than once
-    retrieved_assoc = store.getAssociation(server_url, handle)
+    retrieved_assoc = store.getAssociation(server_url)
     assert retrieved_assoc.secret == assoc.secret
     assert retrieved_assoc.handle == assoc.handle
     assert retrieved_assoc.server_url == assoc.server_url
 
     # Storing more than once has no ill effect
     store.storeAssociation(assoc)
-    retrieved_assoc = store.getAssociation(server_url, handle)
-    assert retrieved_assoc.secret == assoc.secret
-    assert retrieved_assoc.handle == assoc.handle
-    assert retrieved_assoc.server_url == assoc.server_url
-
-    # Getting with the same url but a wrong handle returns no result
-    wrong_handle = generateHandle(128)
-    retrieved_assoc = store.getAssociation(server_url, wrong_handle)
-    assert retrieved_assoc is None
-
-    # and does not affect the existing data
-    retrieved_assoc = store.getAssociation(server_url, handle)
+    retrieved_assoc = store.getAssociation(server_url)
     assert retrieved_assoc.secret == assoc.secret
     assert retrieved_assoc.handle == assoc.handle
     assert retrieved_assoc.server_url == assoc.server_url
 
     # Removing an association that does not exist returns not present
-    present = store.removeAssociation(server_url, wrong_handle)
+    present = store.removeAssociation(server_url + 'x', handle)
     assert not present
 
     # Removing an association that is present returns present
@@ -89,16 +78,18 @@ def testStore(store):
 
     # One association with server_url
     store.storeAssociation(assoc)
+    handle2 = generateHandle(128)
     assoc2 = ConsumerAssociation.fromExpiresIn(
-        600, server_url, wrong_handle, secret)
+        600, server_url, handle2, secret)
     store.storeAssociation(assoc2)
 
     # After storing an association with a different handle, but the
     # same server_url, the most recent association is available. There
-    # is no guarantee either way about the first association.
-    retrieved_assoc = store.getAssociation(server_url, wrong_handle)
+    # is no guarantee either way about the first association. (and
+    # thus about the return value of removeAssociation)
+    retrieved_assoc = store.getAssociation(server_url)
     assert retrieved_assoc.server_url == server_url
-    assert retrieved_assoc.handle == wrong_handle
+    assert retrieved_assoc.handle == handle2
     assert retrieved_assoc.secret == secret
 
     ### Nonce functions
