@@ -54,7 +54,10 @@ class OpenIDProxy(object):
     def getCheckAuthParams(self):
         """This method returns the check_auth_params blob necessary
         for the checkAuth call to succeed.  See the checkAuthRequired
-        method below for more information."""
+        method below for more information.
+
+        ** Split mode only
+        """
         raise NotImplementedError
 
 
@@ -132,7 +135,10 @@ class OpenIDProxy(object):
         returned by this method is returned by the call to
         processServerRequest that led to this method being called.
         (This method is not called from checkAuth, and is only called
-        if the OpenIDConsumerFacade was created with split=True.)"""
+        if the OpenIDConsumerFacade was created with split=True.)
+
+        ** Split mode only
+        """
         raise NotImplementedError
 
 
