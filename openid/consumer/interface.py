@@ -14,9 +14,6 @@ class OpenIDConsumerFacade(object):
             from openid.consumer.fetchers import getHTTPFetcher
             fetcher = getHTTPFetcher()
 
-        if store is None:
-            store = None # XXX: Fix this
-
         from openid.consumer.impl import OpenIDConsumer
         self.impl = OpenIDConsumer(store, trust_root, fetcher,
                                    immediate, split)
