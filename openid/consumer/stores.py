@@ -37,10 +37,10 @@ class OpenIDStore(object):
     
 
     def getAssociation(self, server_url):
-        """Returns a ConsumerAssocation object from storage.  Returns
-        None if no such association is found.  (Is allowed to gc
-        expired associations when found and return None instead of the
-        invalid association.)"""
+        """Returns a ConsumerAssocation object from storage that
+        matches the server_url.  Returns None if no such association
+        is found.  (Is allowed to gc expired associations when found
+        and return None instead of the invalid association.)"""
         raise NotImplementedError
 
     def removeAssociation(self, server_url, handle):
