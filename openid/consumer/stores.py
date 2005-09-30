@@ -19,7 +19,7 @@ class ConsumerAssociation(object):
     def getExpiresIn(self):
         return max(0, self.issued + self.lifetime - int(time.time()))
 
-    expiresIn = property(get_expires_in)
+    expiresIn = property(getExpiresIn)
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
