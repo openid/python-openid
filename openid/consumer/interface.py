@@ -19,7 +19,9 @@ class OpenIDConsumerFacade(object):
                                    immediate, split)
 
     def constructRedirect(self, proxy):
-        """returns the redirect to send the user to proceed with the login."""
+        """returns the redirect to send the user to proceed with the
+        login.  Returns None if the user input didn't lead to a valid
+        openid."""
         return self.impl.constructRedirect(proxy)
 
     def processServerResponse(self, proxy):
@@ -92,11 +94,12 @@ class OpenIDProxy(object):
 
     def loginError(self):
         """Called when a login fails.  This usually indicates either a
-        malfunctioning server or an attempt to forge a login.  As it's
-        generally impossible to determine which, no additional
-        information can be provided.  Any value returned by this
-        method is returned by the call to processServerRequest or
-        checkAuth that led to this method being called."""
+        malfunctioning server, an attempt to forge a login, or an
+        association with a server getting lost or expiring during the
+        transaction.  As it's generally impossible to determine which,
+        no additional information can be provided.  Any value returned
+        by this method is returned by the call to processServerRequest
+        or checkAuth that led to this method being called."""
         raise NotImplementedError
 
     def loginCancelled(self):
