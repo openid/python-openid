@@ -294,13 +294,9 @@ class FilesystemOpenIDStore(object):
 
         () -> str
         """
-        try:
-            auth_key = self.readAuthKey()
-        except (IOError, OSError), why:
-            if why[0] == ENOENT:
-                auth_key = self.createAuthKey()
-            else:
-                raise
+        auth_key = self.readAuthKey()
+        if auth_key is None:
+            auth_key = self.createAuthKey()
 
         if len(auth_key) != self.AUTH_KEY_LEN:
             fmt = ('Got an invalid auth key from %s. Expected %d byte '
