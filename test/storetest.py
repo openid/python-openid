@@ -153,3 +153,11 @@ if __name__ == '__main__':
         testStore(store)
     finally:
         shutil.rmtree(temp_dir)
+
+    from openid.consumer import sqlitestore
+    from pysqlite2 import dbapi2 as sqlite
+
+    conn = sqlite.connect(':memory:')
+    store = sqlitestore.SQLiteStore(conn)
+    store.createTables()
+    testStore(store)
