@@ -370,7 +370,7 @@ class FilesystemOpenIDStore(object):
     def getAssociation(self, server_url):
         """Retrieve an association.
 
-        (str, str) -> ConsumerAssociation or NoneType
+        str -> ConsumerAssociation or NoneType
         """
         filename = self.getAssociationFilename(server_url)
         try:
