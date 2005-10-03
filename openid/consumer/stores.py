@@ -50,7 +50,7 @@ class OpenIDStore(object):
 
 
     def storeNonce(self, nonce):
-        """Stores a nonce (which is passed in as a string)."""
+        """Stores a nonce (which is passed in as a string).  No return."""
         raise NotImplementedError
 
     def useNonce(self, nonce):
