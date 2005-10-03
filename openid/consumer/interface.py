@@ -45,11 +45,13 @@ class OpenIDProxy(object):
         no such value, return None."""
         raise NotImplementedError
 
-    def getOpenIDQueryParameter(self, name):
-        """This method returns the unescaped value for the query
-        parameter openid.<name>.  If no such parameter exists, return
-        None.  If there are multiple parameters with that name, return
-        one of them.  This is called during processServerResponse."""
+    def getOpenIDParameters(self):
+        """This method returns all the openid parameters that the
+        server sent back to the consumer.  It returns them as a
+        dictionary from full parameter name (ie, including the
+        'openid.' prefix) to the parameter value, both unescaped from
+        whatever urlencoding was applied to them.  Used in
+        processServerRrsponse."""
         raise NotImplementedError
 
     def getCheckAuthParams(self):
@@ -60,7 +62,6 @@ class OpenIDProxy(object):
         ** Split mode only
         """
         raise NotImplementedError
-
 
 
     def getReturnTo(self, token):
@@ -103,9 +104,8 @@ class OpenIDProxy(object):
         raise NotImplementedError
 
     def loginCancelled(self):
-        """Called when a user cancels a login.  Since no additional
-        information can be extracted from the openid parameters, this
-        doesn't provide any additional information.  Any value
+        """Called when a user cancels a login.  No additional
+        information is included, so none is passed in.  Any value
         returned by this method is returned by the call to
         processServerRequest that led to this method being called.
         (This method is not called from checkAuth.)"""
