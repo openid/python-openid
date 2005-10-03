@@ -47,7 +47,7 @@ def testStore(store):
     # Check that after storage, getting returns the same result
     store.storeAssociation(assoc)
     retrieved_assoc = store.getAssociation(server_url)
-    assert retrieved_assoc.secret == assoc.secret
+    assert retrieved_assoc.secret == assoc.secret, (retrieved_assoc.secret, assoc.secret)
     assert retrieved_assoc.handle == assoc.handle
     assert retrieved_assoc.server_url == assoc.server_url
 
