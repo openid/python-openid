@@ -32,6 +32,8 @@ class ConsumerAssociation(object):
 class OpenIDStore(object):
     """This is the interface for the consumer's store."""
 
+    AUTH_KEY_LEN = 20
+
     def storeAssociation(self, association):
         """Puts a ConsumerAssociation object into storage. No return."""
         raise NotImplementedError
