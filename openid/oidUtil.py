@@ -8,8 +8,24 @@ import pickle
 import binascii
 import sha
 import hmac
+import random
 
 from urllib import urlencode
+
+try:
+    srand = random.SystemRandom()
+except AttributeError:
+    # WARNING: This is not a cryptographically safe source of
+    # randomness. If you are running on Python 2.2. If you need to use
+    # Python 2.1, you should look into using a different random number
+    # source, such as the random pool provided with the Python
+    # Cryptography Toolkit (pycrypto). pycrypto can be found with a
+    # search engine, but is currently found at:
+    #
+    # http://www.amk.ca/python/code/crypto
+
+    srand = random.Random()
+    srand.seed()
 
 def hmacSha1(key, text):
     return hmac.new(key, text, sha).digest()
@@ -70,7 +86,7 @@ def appendArgs(url, args):
 
 _default_chars = map(chr, range(256))
 
-def randomString(length, srand, chrs=_default_chars):
+def randomString(length, chrs=_default_chars):
     """Produce a string of length random bytes using srand as a source of
     random numbers."""
     return ''.join([srand.choice(chrs) for _ in xrange(length)])

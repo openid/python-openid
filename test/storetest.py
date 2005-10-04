@@ -1,8 +1,7 @@
 from openid.consumer.stores import ConsumerAssociation
-from openid import util
+from openid import oidUtil
 
 import string
-import random
 
 allowed_handle = []
 for c in string.printable:
@@ -10,26 +9,14 @@ for c in string.printable:
         allowed_handle.append(c)
 allowed_handle = ''.join(allowed_handle)
 
-allowed_secret = ''.join(map(chr, range(256)))
+def generateHandle(n):
+    return oidUtil.randomString(n, allowed_handle)
+
+generateSecret = oidUtil.randomString
 
 allowed_nonce = string.letters + string.digits
-
-rand = random.SystemRandom()
-
-def rnd(n, pop):
-    chars = []
-    for _ in xrange(n):
-        chars.append(rand.choice(pop))
-    return ''.join(chars)
-
-def generateHandle(n):
-    return rnd(n, allowed_handle)
-
-def generateSecret(n):
-    return rnd(n, allowed_secret)
-
 def generateNonce():
-    return rnd(8, allowed_nonce)
+    return oidUtil.randomString(8, allowed_nonce)
 
 def testStore(store):
     ### Association functions

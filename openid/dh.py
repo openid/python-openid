@@ -6,15 +6,15 @@ class DiffieHellman(object):
     DEFAULT_GEN = 2
 
     @classmethod
-    def fromBase64(cls, srand, p=None, g=None):
+    def fromBase64(cls, p=None, g=None):
         if p is not None:
             p = oidUtil.strToLong(oidUtil.fromBase64(p))
         if g is not None:
             g = oidUtil.strToLong(oidUtil.fromBase64(g))
 
-        return cls(p, g, srand)
+        return cls(p, g)
 
-    def __init__(self, srand, p=None, g=None):
+    def __init__(self, p=None, g=None):
         if p is None:
             p = self.DEFAULT_MOD
         self.p = long(p)
@@ -23,7 +23,7 @@ class DiffieHellman(object):
             g = self.DEFAULT_GEN
         self.g = long(g)
 
-        self.x = srand.randrange(1, p - 1)
+        self.x = oidUtil.srand.randrange(1, p - 1)
 
     def createKeyExchange(self):
         return pow(self.g, self.x, self.p)
