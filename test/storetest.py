@@ -114,22 +114,6 @@ def testStore(store):
     assert key == key2
     assert len(key) == store.AUTH_KEY_LEN
 
-    # The store rejects keys of the wrong length
-    bad_auth_key = ''
-    try:
-        store.setAuthKey(bad_auth_key)
-    except ValueError:
-        pass
-    else:
-        assert False, 'Bad auth key set successfully'
-
-    # The store allows you to set a specific key even if there is
-    # already a key present.
-    new_key = generateSecret(store.AUTH_KEY_LEN)
-    store.setAuthKey(new_key)
-    key = store.getAuthKey()
-    assert key == new_key
-
 if __name__ == '__main__':
     from openid.consumer import filestore
     import tempfile
@@ -141,10 +125,25 @@ if __name__ == '__main__':
     finally:
         shutil.rmtree(temp_dir)
 
-    from openid.consumer import sqlitestore
-    from pysqlite2 import dbapi2 as sqlite
+    from openid.consumer import sqlstore
+    try:
+        from pysqlite2 import dbapi2 as sqlite
+    except ImportError:
+        pass
+    else:
+        conn = sqlite.connect(':memory:')
+        store = sqlstore.SQLiteStore(conn)
+        store.createTables()
+        testStore(store)
 
-    conn = sqlite.connect(':memory:')
-    store = sqlitestore.SQLiteStore(conn)
-    store.createTables()
-    testStore(store)
+    try:
+        import MySQLdb
+    except ImportError:
+        pass
+    else:
+        conn = MySQLdb.connect(db='openidconsumer',
+                               user='josh',
+                               passwd='mypw')
+        store = sqlstore.MySQLStore(conn)
+        store.createTables()
+        testStore(store)
