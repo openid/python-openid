@@ -3,11 +3,12 @@ import time
 class ConsumerAssociation(object):
     """This class represents a consumer's view of an association."""
 
-    @classmethod
     def fromExpiresIn(cls, expires_in, *args, **kwargs):
         kwargs['issued'] = int(time.time())
         kwargs['lifetime'] = expires_in
         return cls(*args, **kwargs)
+
+    fromExpiresIn = classmethod(fromExpiresIn)
 
     def __init__(self, server_url, handle, secret, issued, lifetime):
         self.server_url = server_url
