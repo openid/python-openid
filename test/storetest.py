@@ -19,6 +19,14 @@ def generateNonce():
     return oidUtil.randomString(8, allowed_nonce)
 
 def testStore(store):
+    """Make sure a given store has a minimum of API compliance. Call
+    this function with an empty store.
+
+    Raises AssertionError if the store does not work as expected.
+
+    OpenIDStore -> NoneType
+    """
+
     ### Association functions
 
     server_url = 'http://www.myopenid.com/openid'
@@ -34,7 +42,8 @@ def testStore(store):
     # Check that after storage, getting returns the same result
     store.storeAssociation(assoc)
     retrieved_assoc = store.getAssociation(server_url)
-    assert retrieved_assoc.secret == assoc.secret, (retrieved_assoc.secret, assoc.secret)
+    assert retrieved_assoc.secret == assoc.secret, (retrieved_assoc.secret,
+                                                    assoc.secret)
     assert retrieved_assoc.handle == assoc.handle
     assert retrieved_assoc.server_url == assoc.server_url
 
@@ -114,17 +123,24 @@ def testStore(store):
     assert key == key2
     assert len(key) == store.AUTH_KEY_LEN
 
-if __name__ == '__main__':
+def test_filestore():
     from openid.consumer import filestore
     import tempfile
     import shutil
-    temp_dir = tempfile.mkdtemp()
+    try:
+        temp_dir = tempfile.mkdtemp()
+    except AttributeError:
+        import os
+        temp_dir = os.tmpnam()
+        os.mkdir(temp_dir)
+
     try:
         store = filestore.FilesystemOpenIDStore(temp_dir)
         testStore(store)
     finally:
         shutil.rmtree(temp_dir)
 
+def test_sqlite():
     from openid.consumer import sqlstore
     try:
         from pysqlite2 import dbapi2 as sqlite
@@ -136,14 +152,50 @@ if __name__ == '__main__':
         store.createTables()
         testStore(store)
 
+def test_mysql():
+    from openid.consumer import sqlstore
     try:
         import MySQLdb
     except ImportError:
         pass
     else:
-        conn = MySQLdb.connect(db='openidconsumer',
-                               user='josh',
-                               passwd='mypw')
-        store = sqlstore.MySQLStore(conn)
-        store.createTables()
-        testStore(store)
+        db_user = 'openid_test'
+        db_passwd = ''
+        db_name = 'openid_test'
+
+        from MySQLdb.constants import ER
+
+        # Change this connect line to use the right user and password
+        conn = MySQLdb.connect(user=db_user, passwd=db_passwd)
+
+        # Clean up from last time, if the final drop database did not work
+        try:
+            conn.query('DROP DATABASE %s;' % db_name)
+        except conn.OperationalError, why:
+            if why[0] == ER.DB_DROP_EXISTS:
+                pass # It's OK that the database did not exist. We're
+                     # just cleaning up from last time in case we
+                     # failed to clean up at the end.
+            else:
+                raise
+
+        conn.query('CREATE DATABASE %s;' % db_name)
+        try:
+            conn.query('USE %s;' % db_name)
+
+            # OK, we're in the right environment. Create store and
+            # create the tables.
+            store = sqlstore.MySQLStore(conn)
+            store.createTables()
+
+            # At last, we get to run the test.
+            testStore(store)
+        finally:
+            # Remove the database. If you want to do post-mortem on a
+            # failing test, comment out this line.
+            conn.query('DROP DATABASE %s;' % db_name)
+
+if __name__ == '__main__':
+    #test_filestore()
+    test_sqlite()
+    test_mysql()

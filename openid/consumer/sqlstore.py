@@ -1,15 +1,52 @@
+import time
+
 from openid import oidUtil
 from openid.consumer.stores import ConsumerAssociation, OpenIDStore
 
 def inTxn(func):
     def wrapped(self, *args, **kwargs):
-        return self._callInTransaction(func, *args, **kwargs)
+        return self._callInTransaction(func, self, *args, **kwargs)
     return wrapped
 
 class SQLStore(OpenIDStore):
+    settings_table = 'oidc_settings'
+    associations_table = 'oidc_associations'
+    nonces_table = 'oidc_nonces'
+
     def __init__(self, conn):
         self.conn = conn
         self.cur = None
+        self._statement_cache = {}
+        self._table_names = {
+            'settings':self.settings_table,
+            'associations':self.associations_table,
+            'nonces':self.nonces_table,
+            }
+        self.max_nonce_age = 6 * 60 * 60 # Six hours, in seconds
+
+    def blobDecode(self, blob):
+        """Convert a blob as returned by the SQL engine into a str object.
+
+        str -> str"""
+        return blob
+
+    def blobEncode(self, s):
+        """Convert a str object into the necessary object for storing
+        in the database as a blob."""
+        return s
+
+    def _getSQL(self, sql_name):
+        try:
+            return self._statement_cache[sql_name]
+        except KeyError:
+            sql = getattr(self, sql_name)
+            sql %= self._table_names
+            self._statement_cache[sql_name] = sql
+            return sql
+
+    def _execSQL(self, sql_name, *args):
+        sql = self._getSQL(sql_name)
+        self.cur.execute(sql, args)
 
     def __getattr__(self, attr):
         # if the attribute starts with db_, use a default
@@ -17,9 +54,8 @@ class SQLStore(OpenIDStore):
         # as an attribute of this object and executes it.
         if attr[:3] == 'db_':
             sql_name = attr[3:] + '_sql'
-            sql = getattr(self, sql_name)
             def func(*args):
-                self.cur.execute(sql, args)
+                return self._execSQL(sql_name, *args)
             setattr(self, attr, func)
             return func
         else:
@@ -35,7 +71,7 @@ class SQLStore(OpenIDStore):
         try:
             self.cur = self.conn.cursor()
             try:
-                ret = func(self, *args, **kwargs)
+                ret = func(*args, **kwargs)
             finally:
                 self.cur.close()
                 self.cur = None
@@ -47,7 +83,7 @@ class SQLStore(OpenIDStore):
 
         return ret
 
-    def _createTables(self):
+    def txn_createTables(self):
         """Create the database tables.
         This method should only be called once.
 
@@ -57,9 +93,9 @@ class SQLStore(OpenIDStore):
         self.db_create_assoc()
         self.db_create_settings()
 
-    createTables = inTxn(_createTables)
+    createTables = inTxn(txn_createTables)
 
-    def _getAuthKey(self):
+    def txn_getAuthKey(self):
         """Get the key for this consumer to use to sign its own
         communications. This function will create a new key if one
         does not yet exist.
@@ -70,9 +106,11 @@ class SQLStore(OpenIDStore):
         val = self.cur.fetchone()
         if val is None:
             auth_key = oidUtil.randomString(self.AUTH_KEY_LEN)
-            self.db_create_auth(auth_key)
+            auth_key_s = self.blobEncode(auth_key)
+            self.db_create_auth(auth_key_s)
         else:
-            (auth_key,) = val
+            (auth_key_s,) = val
+            auth_key = self.blobDecode(auth_key_s)
 
         if len(auth_key) != self.AUTH_KEY_LEN:
             fmt = 'Expected %d-byte string for auth key. Got %r'
@@ -80,9 +118,9 @@ class SQLStore(OpenIDStore):
 
         return auth_key
 
-    getAuthKey = inTxn(_getAuthKey)
+    getAuthKey = inTxn(txn_getAuthKey)
 
-    def _storeAssociation(self, association):
+    def txn_storeAssociation(self, association):
         """Set the association for the server URL.
 
         ConsumerAssociation -> NoneType
@@ -91,13 +129,13 @@ class SQLStore(OpenIDStore):
         self.db_set_assoc(
             a.server_url,
             a.handle,
-            a.secret,
+            self.blobEncode(a.secret),
             a.issued,
             a.lifetime)
 
-    storeAssociation = inTxn(_storeAssociation)
+    storeAssociation = inTxn(txn_storeAssociation)
 
-    def _getAssociation(self, server_url):
+    def txn_getAssociation(self, server_url):
         """Get the most recent association that has been set for this
         server URL.
 
@@ -109,11 +147,13 @@ class SQLStore(OpenIDStore):
             return None
         else:
             (values,) = rows
-            return ConsumerAssociation(*values)
+            assoc = ConsumerAssociation(*values)
+            assoc.secret = self.blobDecode(assoc.secret)
+            return assoc
 
-    getAssociation = inTxn(_getAssociation)
+    getAssociation = inTxn(txn_getAssociation)
 
-    def _removeAssociation(self, server_url, handle):
+    def txn_removeAssociation(self, server_url, handle):
         """Remove the association for the given server URL and handle,
         returning whether the association existed at all.
 
@@ -122,43 +162,55 @@ class SQLStore(OpenIDStore):
         self.db_remove_assoc(server_url, handle)
         return self.cur.rowcount > 0 # -1 is undefined
 
-    removeAssociation = inTxn(_removeAssociation)
+    removeAssociation = inTxn(txn_removeAssociation)
 
-    def _storeNonce(self, nonce):
+    def txn_storeNonce(self, nonce):
         """Add this nonce to the set of extant nonces, ignoring if it
         is already present.
 
         str -> NoneType
         """
-        self.db_add_nonce(nonce)
+        now = int(time.time())
+        self.db_add_nonce(nonce, now)
 
-    storeNonce = inTxn(_storeNonce)
+    storeNonce = inTxn(txn_storeNonce)
 
-    def _useNonce(self, nonce):
+    def txn_useNonce(self, nonce):
         """Return whether this nonce is present, and if it is, then
         remove it from the set.
 
         str -> bool"""
         self.db_get_nonce(nonce)
-        present = self.cur.fetchone() is not None
-        if present:
+        row = self.cur.fetchone()
+        if row is not None:
+            (nonce, timestamp) = row
+            nonce_age = int(time.time()) - timestamp
+            if nonce_age > self.max_nonce_age:
+                present = False
+            else:
+                present = True
+
             self.db_remove_nonce(nonce)
+        else:
+            present = False
+
         return present
 
-    useNonce = inTxn(_useNonce)
+    useNonce = inTxn(txn_useNonce)
 
 class SQLiteStore(SQLStore):
     """SQLite-specific specialization of SQLStore"""
     
     create_nonce_sql = """
-    CREATE TABLE nonces
+    CREATE TABLE %(nonces)s
     (
-        nonce CHAR(8) UNIQUE PRIMARY KEY
+        nonce CHAR(8) UNIQUE PRIMARY KEY,
+        expires INTEGER
     );
     """
 
     create_assoc_sql = """
-    CREATE TABLE associations
+    CREATE TABLE %(associations)s
     (
         server_url VARCHAR(2047) UNIQUE PRIMARY KEY,
         handle VARCHAR(255),
@@ -169,55 +221,32 @@ class SQLiteStore(SQLStore):
     """
 
     create_settings_sql = """
-    CREATE TABLE settings
+    CREATE TABLE %(settings)s
     (
-        key VARCHAR(128) UNIQUE PRIMARY KEY,
-        value CHAR(20)
+        setting VARCHAR(128) UNIQUE PRIMARY KEY,
+        value BLOB(20)
     );
     """
 
-    create_auth_sql = 'INSERT INTO settings VALUES ("auth_key", ?);'
-    get_auth_sql = 'SELECT value FROM settings WHERE key = "auth_key";'
+    create_auth_sql = 'INSERT INTO %(settings)s VALUES ("auth_key", ?);'
+    get_auth_sql = 'SELECT value FROM %(settings)s WHERE setting = "auth_key";'
 
-    set_assoc_sql = ('INSERT OR REPLACE INTO associations '
+    set_assoc_sql = ('INSERT OR REPLACE INTO %(associations)s '
                      'VALUES (?, ?, ?, ?, ?);')
-    get_assoc_sql = 'SELECT * FROM associations WHERE server_url = ?;'
-    remove_assoc_sql = ('DELETE FROM associations '
+    get_assoc_sql = 'SELECT * FROM %(associations)s WHERE server_url = ?;'
+    remove_assoc_sql = ('DELETE FROM %(associations)s '
                         'WHERE server_url = ? AND handle = ?;')
 
-    add_nonce_sql = 'INSERT OR IGNORE INTO nonces VALUES (?);'
-    get_nonce_sql = 'SELECT * FROM nonces WHERE nonce = ?;'
-    remove_nonce_sql = 'DELETE FROM nonces WHERE nonce = ?;'
+    add_nonce_sql = 'INSERT OR REPLACE INTO %(nonces)s VALUES (?, ?);'
+    get_nonce_sql = 'SELECT * FROM %(nonces)s WHERE nonce = ?;'
+    remove_nonce_sql = 'DELETE FROM %(nonces)s WHERE nonce = ?;'
 
-    # These methods needed to be overridden because SQLite will not
-    # store str objects as binary data. It needs a buffer type.
+    def blobDecode(self, buf):
+        return str(buf)
 
-    def db_create_auth(self, auth_key):
-        self.cur.execute(self.create_auth_sql, (buffer(auth_key),))
+    def blobEncode(self, s):
+        return buffer(s)
 
-    def db_set_assoc(self, server_url, handle, secret, issued, lifetime):
-        self.cur.execute(
-            self.set_assoc_sql,
-            (server_url, handle, buffer(secret), issued, lifetime))
-
-    def _getAuthKey(self):
-        auth_key = SQLStore._getAuthKey(self)
-        if type(auth_key) is buffer:
-            auth_key = str(auth_key)
-        return auth_key
-
-    getAuthKey = inTxn(_getAuthKey)
-
-    def _getAssociation(self, server_url):
-        assoc = SQLStore._getAssociation(self, server_url)
-        if assoc is not None:
-            # Convert from buffer() to str()
-            assoc.secret = str(assoc.secret)
-        return assoc
-
-    getAssociation = inTxn(_getAssociation)
-
-from array import array
 class MySQLStore(SQLStore):
     """MySQL-specific specialization of SQLStore
 
@@ -225,15 +254,16 @@ class MySQLStore(SQLStore):
     """
 
     create_nonce_sql = """
-    CREATE TABLE nonces
+    CREATE TABLE %(nonces)s
     (
-        nonce CHAR(8) UNIQUE PRIMARY KEY
+        nonce CHAR(8) UNIQUE PRIMARY KEY,
+        expires INTEGER
     )
     TYPE=InnoDB;
     """
 
     create_assoc_sql = """
-    CREATE TABLE associations
+    CREATE TABLE %(associations)s
     (
         server_url VARCHAR(1024) UNIQUE PRIMARY KEY,
         handle VARCHAR(255),
@@ -245,43 +275,26 @@ class MySQLStore(SQLStore):
     """
 
     create_settings_sql = """
-    CREATE TABLE settings
+    CREATE TABLE %(settings)s
     (
-        skey VARCHAR(128) UNIQUE PRIMARY KEY,
-        value VARCHAR(20)
+        setting VARCHAR(128) UNIQUE PRIMARY KEY,
+        value BLOB(20)
     )
     TYPE=InnoDB;
     """
 
-    create_auth_sql = 'INSERT INTO settings VALUES ("auth_key", %s);'
-    get_auth_sql = 'SELECT value FROM settings WHERE skey = "auth_key";'
+    create_auth_sql = 'INSERT INTO %(settings)s VALUES ("auth_key", %%s);'
+    get_auth_sql = 'SELECT value FROM %(settings)s WHERE setting = "auth_key";'
 
-    set_assoc_sql = 'REPLACE INTO associations VALUES (%s, %s, %s, %s, %s);'
-    get_assoc_sql = 'SELECT * FROM associations WHERE server_url = %s;'
-    remove_assoc_sql = ('DELETE FROM associations '
-                        'WHERE server_url = %s AND handle = %s;')
+    set_assoc_sql = ('REPLACE INTO %(associations)s '
+                     'VALUES (%%s, %%s, %%s, %%s, %%s);')
+    get_assoc_sql = 'SELECT * FROM %(associations)s WHERE server_url = %%s;'
+    remove_assoc_sql = ('DELETE FROM %(associations)s '
+                        'WHERE server_url = %%s AND handle = %%s;')
 
-    add_nonce_sql = 'REPLACE INTO nonces VALUES (%s);'
-    get_nonce_sql = 'SELECT * FROM nonces WHERE nonce = %s;'
-    remove_nonce_sql = 'DELETE FROM nonces WHERE nonce = %s;'
+    add_nonce_sql = 'REPLACE INTO %(nonces)s VALUES (%%s, %%s);'
+    get_nonce_sql = 'SELECT * FROM %(nonces)s WHERE nonce = %%s;'
+    remove_nonce_sql = 'DELETE FROM %(nonces)s WHERE nonce = %%s;'
 
-    # These methods needed to be overridden because MySQL returns
-    # array() instead of str for binary values.
-
-    def _getAuthKey(self):
-        auth_key = SQLStore._getAuthKey(self)
-        if type(auth_key) is array:
-            auth_key = auth_key.tostring()
-        return auth_key
-
-    getAuthKey = inTxn(_getAuthKey)
-
-    def _getAssociation(self, server_url):
-        assoc = SQLStore._getAssociation(self, server_url)
-        if assoc is not None:
-            # Convert from array() to str()
-            assoc.secret = assoc.secret.tostring()
-        return assoc
-
-    getAssociation = inTxn(_getAssociation)
-
+    def blobDecode(self, blob):
+        return blob.tostring()
