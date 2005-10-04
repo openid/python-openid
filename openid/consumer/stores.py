@@ -3,10 +3,10 @@ import time
 class ConsumerAssociation(object):
     """This class represents a consumer's view of an association."""
 
-    def fromExpiresIn(cls, expires_in, *args, **kwargs):
-        kwargs['issued'] = int(time.time())
-        kwargs['lifetime'] = expires_in
-        return cls(*args, **kwargs)
+    def fromExpiresIn(cls, expires_in, server_url, secret, handle):
+        issued = int(time.time())
+        lifetime = expires_in
+        return cls(server_url, handle, secret, issued, lifetime)
 
     fromExpiresIn = classmethod(fromExpiresIn)
 
@@ -70,3 +70,5 @@ class OpenIDStore(object):
         to ensure that they haven't been tampered with in transit.  It
         should return the same key every time it is called."""
         raise NotImplementedError
+
+
