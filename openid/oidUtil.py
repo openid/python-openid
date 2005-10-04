@@ -50,10 +50,10 @@ except AttributeError:
     srand = PyCryptoRandom(RandomPool())
 
 try:
-    _ = reversed([])
+    _ = reversed
 except NameError:
-    def reversed(lst):
-        return map(lst.__getitem__, range(len(lst) - 1, -1, -1))
+    def reversed(seq):
+        return map(seq.__getitem__, xrange(len(seq) - 1, -1, -1))
 else:
     del _
 
