@@ -29,7 +29,6 @@ except NameError:
 else:
     isFilenameSafe = set(filename_allowed).__contains__
 
-
 # The ordering and name of keys as stored by serializeAssociation
 assoc_keys = [
     'version',
