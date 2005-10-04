@@ -7,25 +7,28 @@ import tempfile
 from errno import EEXIST, ENOENT
 
 from openid.consumer.stores import OpenIDStore, ConsumerAssociation
-from openid import util
+from openid import oidUtil
 
 filename_allowed = string.letters + string.digits + '.-'
-# Convert this to something whose __contains__ is fast
 try:
     # 2.4
-    alphanum = set(filename_allowed)
+    set
 except NameError:
     try:
         # 2.3
         import sets
     except ImportError:
-        # pre-2.3
-        _d = {}
+        # 2.2
+        d = {}
         for c in filename_allowed:
-            _d[c] = None
-        filename_allowed = _d
+            d[c] = None
+        isFilenameSafe = d.has_key
+        del d
     else:
-        filename_allowed = sets.Set(filename_allowed)
+        isFilenameSafe = sets.Set(filename_allowed).__contains__
+else:
+    isFilenameSafe = set(filename_allowed).__contains__
+
 
 # The ordering and name of keys as stored by serializeAssociation
 assoc_keys = [
@@ -46,7 +49,7 @@ def serializeAssociation(assoc):
         '1',
         assoc.server_url,
         assoc.handle,
-        util.to_b64(assoc.secret),
+        oidUtil.toBase64(assoc.secret),
         str(int(assoc.issued)),
         str(int(assoc.lifetime)),
         ]
@@ -87,7 +90,7 @@ def deserializeAssociation(assoc_s):
         raise ValueError('Unknown version: %r' % version)
     issued = int(issued)
     lifetime = int(lifetime)
-    secret = util.from_b64(secret)
+    secret = oidUtil.fromBase64(secret)
     return ConsumerAssociation(server_url, handle, secret, issued, lifetime)
 
 def removeIfPresent(filename):
@@ -122,14 +125,12 @@ def ensureDir(dir_name):
         if why[0] != EEXIST or not os.path.isdir(dir_name):
             raise
 
-class FilesystemOpenIDStore(object):
+class FilesystemOpenIDStore(OpenIDStore):
     """Filesystem-based store for OpenID associations and nonces.
 
     Methods of this object can raise OSError if unexpected filesystem
     conditions, such as bad permissions or missing directories, occur.
     """
-
-    AUTH_KEY_LEN = 20
 
     def __init__(self, directory):
         """Initialize the nonce and association directories"""
@@ -259,10 +260,7 @@ class FilesystemOpenIDStore(object):
         # Do the import here because this should only get called at
         # most once from each process. Once the auth key file is
         # created, this should not get called at all.
-        import random
-        rand = random.SystemRandom()
-
-        auth_key = util.random_string(self.AUTH_KEY_LEN, rand)
+        auth_key = oidUtil.randomString(self.AUTH_KEY_LEN)
 
         file_obj, tmp = self._mktemp()
         try:
@@ -318,7 +316,7 @@ class FilesystemOpenIDStore(object):
         server_url = server_url.replace('://', '-', 1)
         filename_chunks = []
         for c in server_url:
-            if c in alphanum:
+            if isFilenameSafe(c):
                 filename_chunks.append(c)
             else:
                 filename_chunks.append('_%02X' % ord(c))
