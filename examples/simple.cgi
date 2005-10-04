@@ -132,7 +132,7 @@ class CGIOpenIDProxy(interface.OpenIDProxy):
     def doProcess(self):
         self.pageHeader()
         print "<div id='alert'>"
-        self.openid_consumer.doProcess(self)
+        print self.openid_consumer.doProcess(self)
         print "</div>"
         self.pageFooter()
 
