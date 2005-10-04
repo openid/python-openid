@@ -46,9 +46,6 @@ Redirecting to %s""" % (redirect_url, redirect_url)
 
 class CGIOpenIDProxy(interface.OpenIDProxy):
     def __init__(self):
-        # dumb-mode OpenID consumer
-        self.openid_consumer = interface.OpenIDConsumerFacade()
-
         self.host = os.environ['HTTP_HOST']
         self.port = int(os.environ['SERVER_PORT'])
         if os.environ.get('HTTPS', 'off') == 'on':
@@ -73,6 +70,10 @@ class CGIOpenIDProxy(interface.OpenIDProxy):
         self.query = parseQuery(self.parsed_uri[4])
 
         self.step = self.query.get('step', 'start')
+
+        # dumb-mode OpenID consumer
+        self.openid_consumer = interface.OpenIDConsumerFacade(
+            trust_root=self.base_url)
 
     def getUserInput(self):
         return self.query['identity_url']
