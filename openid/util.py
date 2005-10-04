@@ -81,7 +81,6 @@ class DiffieHellman(object):
 
     DEFAULT_GEN = 2
 
-    @classmethod
     def fromBase64(cls, p=None, g=None, srand=None):
         if p is not None:
             p = a2long(from_b64(p))
@@ -90,6 +89,8 @@ class DiffieHellman(object):
 
         return cls(p, g, srand)
     
+    fromBase64 = classmethod(fromBase64)
+
     def __init__(self, p=None, g=None, srand=None):
         if p is None:
             p = self.DEFAULT_MOD
