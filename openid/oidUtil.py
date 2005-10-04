@@ -27,6 +27,14 @@ except AttributeError:
     srand = random.Random()
     srand.seed()
 
+try:
+    _ = reversed([])
+except NameError:
+    def reversed(lst):
+        return map(lst.__getitem__, range(len(lst) - 1, -1, -1))
+else:
+    del _
+
 def hmacSha1(key, text):
     return hmac.new(key, text, sha).digest()
 

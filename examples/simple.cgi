@@ -31,7 +31,10 @@ from openid.consumer import interface
 def parseQuery(qs):
     query = {}
     for k, v in cgi.parse_qsl(qs):
-        query[k] = v[0]
+        if type(v) is list:
+            query[k] = v[0]
+        else:
+            query[k] = v
     return query
 
 def redirect(redirect_url):
@@ -56,9 +59,9 @@ class CGIOpenIDProxy(interface.OpenIDProxy):
 
         if ((self.port == 80 and self.proto == 'http') or
             (self.port == 443 and self.proto == 'https')):
-            self.base_url += '%s://%s/' % (self.proto, self.host)
+            self.base_url = '%s://%s/' % (self.proto, self.host)
         else:
-            self.base_url += '%s://%s:%s/' % (self.proto, self.host, self.port)
+            self.base_url = '%s://%s:%s/' % (self.proto, self.host, self.port)
 
         self.full_req_uri = urlparse.urljoin(self.base_url, self.req_uri)
         self.parsed_uri = urlparse.urlparse(self.full_req_uri)
@@ -74,7 +77,7 @@ class CGIOpenIDProxy(interface.OpenIDProxy):
     def getUserInput(self):
         return self.query['identity_url']
 
-    def getOpenIDParameters(self, k):
+    def getOpenIDParameters(self):
         params = {}
         for k, v in self.query.iteritems():
             if k.startswith('openid.'):
@@ -132,7 +135,7 @@ class CGIOpenIDProxy(interface.OpenIDProxy):
     def doProcess(self):
         self.pageHeader()
         print "<div id='alert'>"
-        print self.openid_consumer.doProcess(self)
+        print self.openid_consumer.processServerResponse(self)
         print "</div>"
         self.pageFooter()
 
@@ -179,7 +182,7 @@ Content-type: text/html
         print '''\
     <div id="login">
       <form method="get" action=%s>
-        <input type="hidden" name="step" value="process" />
+        <input type="hidden" name="step" value="redirect" />
         Identity&nbsp;URL:
         <input type="text" name="identity_url" />
         <input type="submit" value="Verify" />

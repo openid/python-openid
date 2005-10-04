@@ -5,14 +5,16 @@ class DiffieHellman(object):
 
     DEFAULT_GEN = 2
 
-    @classmethod
-    def fromBase64(cls, p=None, g=None):
+    def _fromBase64(cls, p=None, g=None):
         if p is not None:
             p = oidUtil.strToLong(oidUtil.fromBase64(p))
         if g is not None:
             g = oidUtil.strToLong(oidUtil.fromBase64(g))
 
         return cls(p, g)
+
+    fromBase64 = classmethod(_fromBase64)
+
 
     def __init__(self, p=None, g=None):
         if p is None:

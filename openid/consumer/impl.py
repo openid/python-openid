@@ -10,7 +10,6 @@ from openid.dh import DiffieHellman
 
 class OpenIDConsumer(object):
     CHRS = string.letters + string.digits
-    SR = random.SystemRandom()
     NONCE_LEN = 8
 
     def __init__(self, store, trust_root, fetcher, immediate, split):
@@ -31,12 +30,15 @@ class OpenIDConsumer(object):
 
 
     def constructRedirect(self, proxy):
+        import sys
+        sys.stderr.write('in constructRedirect')
         ret = self._findIdentityInfo(proxy.getUserInput())
         if ret is None:
             return None
 
+        sys.stderr.write('Identity info found')
         consumer_id, server_id, server = ret
-        nonce = oidUtil.randomString(self.NONCE_LEN, self.SR, self.CHRS)
+        nonce = oidUtil.randomString(self.NONCE_LEN, self.CHRS)
         self.store.storeNonce(nonce)
 
         token = self._genToken(nonce, consumer_id)
@@ -72,6 +74,9 @@ class OpenIDConsumer(object):
         if blob is None:
             return proxy.loginError()
 
+        return self._checkAuth(proxy, blob)
+
+    def _checkAuth(self, proxy, blob):
         ret = self._splitCheckAuthBlob(blob)
         if ret is None:
             return proxy.loginError()
@@ -97,7 +102,6 @@ class OpenIDConsumer(object):
             return proxy.serverError(error)
 
         return proxy.loginError()
-
 
     def _do_id_res(self, proxy):
         return_to = self._extract(proxy, 'return_to')
@@ -127,7 +131,8 @@ class OpenIDConsumer(object):
 
         assoc = self.store.getAssociation(server_url)
 
-        if assoc is None or assoc.handle != assoc_handle:
+        if (assoc is None or assoc.handle != assoc_handle or
+            assoc.expires_in <= 0):
             # It's not an association we know about.  Dumb mode is our
             # only possible path for recovery.
             check_args = dict(proxy.getOpenIDParameters())
@@ -140,7 +145,7 @@ class OpenIDConsumer(object):
             if self.split:
                 return proxy.checkAuthRequired(blob)
             else:
-                return self.checkAuth(blob)
+                return self._checkAuth(proxy, blob)
 
         # Check the signature
         sig = self._extract(proxy, 'sig')
@@ -184,7 +189,7 @@ class OpenIDConsumer(object):
 
     def _genCheckAuthBlob(self, nonce, consumer_id, post_data, server_url):
         joined = '\x00'.join([nonce, consumer_id, post_data, server_url])
-        sig = oidUtil.hmacsha1(self.store.getAuthKey(), joined)
+        sig = oidUtil.hmacSha1(self.store.getAuthKey(), joined)
 
         return '%s%s' % (sig, joined)
 
@@ -193,7 +198,7 @@ class OpenIDConsumer(object):
             return None
 
         sig, joined = blob[:20], blob[20:]
-        if oidUtil.hmacsha1(self.store.getAuthKey(), joined) != sig:
+        if oidUtil.hmacSha1(self.store.getAuthKey(), joined) != sig:
             return None
 
         split = joined.split('\x00')
@@ -204,7 +209,7 @@ class OpenIDConsumer(object):
 
     def _genToken(self, nonce, consumer_id):
         joined = '%s%s' % (nonce, consumer_id)
-        sig = oidUtil.hmacsha1(self.store.getAuthKey(), joined)
+        sig = oidUtil.hmacSha1(self.store.getAuthKey(), joined)
 
         return '%s%s' % (sig, joined)
 
@@ -213,7 +218,7 @@ class OpenIDConsumer(object):
             return None
 
         sig, res = token[:20], token[20:]
-        if oidUtil.hmacsha1(self.store.getAuthKey(), res) != sig:
+        if oidUtil.hmacSha1(self.store.getAuthKey(), res) != sig:
             return None
 
         return res[:self.NONCE_LEN], res[self.NONCE_LEN:]
@@ -237,13 +242,12 @@ class OpenIDConsumer(object):
         if not (url.startswith('http://') or url.startswith('https://')):
             url = 'http://' + url
 
-        if isinstance(url, unicode):
-            parsed = urlparse.urlparse(url)
-            authority = parsed[1].encode('idna')
-            tail = map(self._quoteMinimal, parsed[2:])
-            encoded = (str(parsed[0]), authority) + tuple(tail)
-            url = urlparse.urlunparse(encoded)
-            assert type(url) is str
+        parsed = urlparse.urlparse(url)
+        authority = parsed[1].encode('idna')
+        tail = map(self._quoteMinimal, parsed[2:])
+        encoded = (str(parsed[0]), authority) + tuple(tail)
+        url = urlparse.urlunparse(encoded)
+        assert type(url) is str
 
         return url
 
@@ -281,7 +285,7 @@ class OpenIDConsumer(object):
         return tuple(map(self._normalizeUrl, (consumer_id, server_id, server)))
 
     def _associate(self, server_url):
-        dh = DiffieHellman(self.SR)
+        dh = DiffieHellman()
         cpub = oidUtil.toBase64(oidUtil.longToStr(dh.createKeyExchange()))
 
         args = {

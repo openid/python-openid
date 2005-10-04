@@ -49,7 +49,7 @@ class CachingWrapper(OpenIDHTTPFetcher):
                 del self.cache[url]
 
         res = self.fetcher.get(url)
-        exp = time.time() + lifetime
+        exp = time.time() + self.lifetime
         self.cache[url] = (exp, res)
 
         return res
