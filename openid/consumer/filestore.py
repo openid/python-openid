@@ -197,63 +197,9 @@ class FilesystemOpenIDStore(OpenIDStore):
         finally:
             auth_key_file.close()
 
-    def setAuthKey(self, auth_key):
-        """Safely store the given auth key in the location specified
-        by self.auth_key_name.
-
-        It is possible that if there is a power loss or other fatal
-        condition, this store will be left without an auth key. In
-        that case, one will be generated unless this is called again.
-
-        If other processes are setting different auth keys (especially
-        if createAuthKey is being used), then it is possible that this
-        function will fail with an OSError. To ensure that this
-        function succeeds, it is necessary that there is no other
-        process attempting to set a different key. Multiple processes
-        attempting to set the same key should not cause any problems.
-
-        str -> NoneType
-        """
-        if len(auth_key) != self.AUTH_KEY_LEN:
-            fmt = ('Attempted to set invalid auth key. Expected %d byte '
-                   'string. Got: %r')
-            raise ValueError(fmt % (self.AUTH_KEY_LEN, auth_key))
-            
-        current_key = self.readAuthKey()
-        if current_key == auth_key:
-            # File exists and the contents match what we were trying
-            # to set, so we're done.
-            return
-
-        # The contents did not match, so unlink the file.
-        removeIfPresent(self.auth_key_name)
-
-        file_obj, tmp = self._mktemp()
-        try:
-            file_obj.write(auth_key)
-            # So that we know that the file will be consistent the
-            # next time around.
-            os.fsync(file_obj.fileno())
-
-            try:
-                os.rename(tmp, self.auth_key_name)
-            except OSError, why:
-                if why[0] == EEXIST:
-                    current_key = self.readAuthKey()
-                    if current_key != auth_key:
-                        raise
-                else:
-                    raise
-        finally:
-            removeIfPresent(tmp)
-        
     def createAuthKey(self):
         """Generate a new random auth key and safely store it in the
         location specified by self.auth_key_name.
-
-        This function can interfere with setAuthKey. A given store
-        should use only one or the other method for setting the auth
-        key.
 
         () -> str"""
 
