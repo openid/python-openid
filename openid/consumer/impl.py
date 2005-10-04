@@ -245,6 +245,8 @@ class OpenIDConsumer(object):
         parsed = urlparse.urlparse(url)
         authority = parsed[1].encode('idna')
         tail = map(self._quoteMinimal, parsed[2:])
+        if tail[0] == '':
+            tail[0] = '/'
         encoded = (str(parsed[0]), authority) + tuple(tail)
         url = urlparse.urlunparse(encoded)
         assert type(url) is str
