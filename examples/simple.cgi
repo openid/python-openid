@@ -74,8 +74,13 @@ class CGIOpenIDProxy(interface.OpenIDProxy):
     def getUserInput(self):
         return self.query['identity_url']
 
-    def getOpenIDQueryParameter(self, k):
-        return self.query['openid.' + k]
+    def getOpenIDParameters(self, k):
+        params = {}
+        for k, v in self.query.iteritems():
+            if k.startswith('openid.'):
+                params[k] = v
+
+        return params
 
     def getReturnTo(self, token):
         return_to_query = [('step', 'process'), ('token', token)]
