@@ -15,17 +15,39 @@ from urllib import urlencode
 try:
     srand = random.SystemRandom()
 except AttributeError:
-    # WARNING: This is not a cryptographically safe source of
-    # randomness. If you are running on Python 2.2. If you need to use
-    # Python 2.1, you should look into using a different random number
-    # source, such as the random pool provided with the Python
-    # Cryptography Toolkit (pycrypto). pycrypto can be found with a
-    # search engine, but is currently found at:
+    # If you are running on Python < 2.4, you can use the random
+    # number pool object provided with the Python Cryptography Toolkit
+    # (pycrypto). pycrypto can be found with a search engine, but is
+    # currently found at:
     #
     # http://www.amk.ca/python/code/crypto
+    try:
+        from Crypto.Util.randpool import RandomPool
+    except ImportError:
+        raise RuntimeError('No adequate source of randomness found!')
 
-    srand = random.Random()
-    srand.seed()
+    # Implementation is like random.SystemRandom in Python >= 2.3
+    from binascii import hexlify as _hexlify
+    BPF = 53        # Number of bits in a float
+    RECIP_BPF = 2**-BPF
+
+    class PyCryptoRandom(random.Random):
+        _bytes_per_call = 7
+
+        def __init__(self, pool):
+            self.pool = pool
+
+        def _notImplemented(self, *args): raise NotImplementedError
+
+        seed = getstate = setstate = jumpahead = _notImplemented
+
+        def random(self):
+            if self.pool.entropy < self._bytes_per_call:
+                self.pool.randomize()
+            s = self.pool.get_bytes(self._bytes_per_call)
+            return (long(_hexlify(s), 16) >> 3) * RECIP_BPF
+
+    srand = PyCryptoRandom(RandomPool())
 
 try:
     _ = reversed([])
