@@ -26,8 +26,8 @@ except AttributeError:
     except ImportError:
         raise RuntimeError('No adequate source of randomness found!')
 
-    # Implementation is like random.SystemRandom in Python >= 2.3
-    from binascii import hexlify as _hexlify
+    # Implementation mostly copied from random.SystemRandom in Python 2.4
+    _hexlify = binascii.hexlify
     BPF = 53        # Number of bits in a float
     RECIP_BPF = 2**-BPF
 
@@ -37,9 +37,16 @@ except AttributeError:
         def __init__(self, pool):
             self.pool = pool
 
-        def _notImplemented(self, *args): raise NotImplementedError
+        def _stub(self, *args, **kwds):
+            "Stub method.  Not used for a system random number generator."
+            return None
+        seed = jumpahead = _stub
 
-        seed = getstate = setstate = jumpahead = _notImplemented
+        def _notimplemented(self, *args, **kwds):
+            "Method should not be called for a system random number generator."
+            raise NotImplementedError(
+                'System entropy source does not have state.')
+        getstate = setstate = _notimplemented
 
         def random(self):
             if self.pool.entropy < self._bytes_per_call:
