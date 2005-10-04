@@ -239,10 +239,12 @@ class OpenIDConsumer(object):
         assert isinstance(url, basestring), type(url)
 
         url = url.strip()
-        if not (url.startswith('http://') or url.startswith('https://')):
-            url = 'http://' + url
-
         parsed = urlparse.urlparse(url)
+
+        if parsed[0] == '':
+            url = 'http://' + url
+            parsed = urlparse.urlparse(url)
+
         authority = parsed[1].encode('idna')
         tail = map(self._quoteMinimal, parsed[2:])
         if tail[0] == '':
