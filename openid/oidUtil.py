@@ -111,8 +111,7 @@ def signReply(reply, key, signed_fields):
         token.append((i, reply['openid.' + i]))
 
     text = ''.join(['%s:%s\n' % (k, v) for k, v in token])
-    return (','.join(signed_fields),
-            oidUtil.toBase64(oidUtil.hmacsha1(key, text)))
+    return (','.join(signed_fields), toBase64(hmacSha1(key, text)))
 
 def appendArgs(url, args):
     if len(args) == 0:
