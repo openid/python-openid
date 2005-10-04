@@ -107,7 +107,11 @@ class CGIOpenIDProxy(interface.OpenIDProxy):
         if query.get('step') != 'process':
             return None
 
-        return query.get('token', None)
+        token = self.query.get(token, None)
+        if query.get('token') != token:
+            return None
+
+        return token
 
     # ======================================================================
 
