@@ -67,7 +67,7 @@ class OpenIDConsumer(object):
         mode = self._extract(proxy, 'mode')
         func = getattr(self, '_do_' + mode, None)
         if func is None:
-            return proxy.loginError()
+            return proxy.loginError(None)
 
         return func(proxy)
 
@@ -75,20 +75,20 @@ class OpenIDConsumer(object):
     def checkAuth(self, proxy):
         blob = proxy.getCheckAuthParams()
         if blob is None:
-            return proxy.loginError()
+            return proxy.loginError(None)
 
         return self._checkAuth(proxy, blob)
 
     def _checkAuth(self, proxy, blob):
         ret = self._splitCheckAuthBlob(blob)
         if ret is None:
-            return proxy.loginError()
+            return proxy.loginError(None)
 
         nonce, consumer_id, post_data, server_url = ret
 
         ret = self.fetcher.post(server_url, post_data)
         if ret is None:
-            return proxy.loginError()
+            return proxy.loginError(consumer_id)
 
         results = oidUtil.parsekv(ret[1])
         is_valid = results.get('is_valid', 'false')
@@ -99,7 +99,7 @@ class OpenIDConsumer(object):
                 self.store.removeAssociation(server_url, invalidate_handle)
 
             if not self.store.useNonce(nonce):
-                return proxy.loginError()
+                return proxy.loginError(consumer_id)
 
             return proxy.loginGood(consumer_id)
 
@@ -107,25 +107,28 @@ class OpenIDConsumer(object):
         if error is not None:
             return proxy.serverError(error)
 
-        return proxy.loginError()
+        return proxy.loginError(consumer_id)
 
     def _do_id_res(self, proxy):
+        token is proxy.getToken()
+        if token is None:
+            return proxy.loginError(None)
+
+        ret = self._splitToken(token)
+        if ret is None:
+            return proxy.loginError(None)
+
+        nonce, consumer_id, server_url = ret
+
         return_to = self._extract(proxy, 'return_to')
         server_id = self._extract(proxy, 'identity')
         assoc_handle = self._extract(proxy, 'assoc_handle')
 
         if return_to is None or server_id is None or assoc_handle is None:
-            return proxy.loginError()
+            return proxy.loginError(consumer_id)
 
-        token = proxy.verifyReturnTo(return_to)
-        if token is None:
-            return proxy.loginError()
-
-        ret = self._splitToken(token)
-        if ret is None:
-            return proxy.loginError()
-
-        nonce, consumer_id, server_url = ret
+        if not proxy.verifyReturnTo(return_to):
+            return proxy.loginError(consumer_id)
 
         user_setup_url = self._extract(proxy, 'user_setup_url')
         if user_setup_url is not None:
@@ -155,17 +158,17 @@ class OpenIDConsumer(object):
         sig = self._extract(proxy, 'sig')
         signed = self._extract(proxy, 'signed')
         if sig is None or signed is None:
-            return proxy.loginError()
+            return proxy.loginError(consumer_id)
 
         args = proxy.getOpenIDParameters()
         signed_list = signed.split(',')
         _signed, v_sig = oidUtil.signReply(args, assoc.secret, signed_list)
 
         if v_sig != sig:
-            return proxy.loginError()
+            return proxy.loginError(consumer_id)
 
         if not self.store.useNonce(nonce):
-            return proxy.loginError()
+            return proxy.loginError(consumer_id)
 
         return proxy.loginGood(consumer_id)
 
