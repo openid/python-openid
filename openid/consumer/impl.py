@@ -1,6 +1,5 @@
 import urlparse
 import urllib
-import random
 import string
 
 from openid.consumer.stores import ConsumerAssociation, OpenIDStore
