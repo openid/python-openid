@@ -45,8 +45,8 @@ class OpenIDProxy(object):
         no such value, return None."""
         raise NotImplementedError
 
-    def getOpenIDParameters(self):
-        """This method returns all the openid parameters that the
+    def getParameters(self):
+        """This method returns all the query parameters that the
         server sent back to the consumer.  It returns them as a
         dictionary from full parameter name (ie, including the
         'openid.' prefix) to the parameter value, both unescaped from

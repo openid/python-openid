@@ -137,7 +137,10 @@ class OpenIDConsumer(object):
             assoc.expiresIn <= 0):
             # It's not an association we know about.  Dumb mode is our
             # only possible path for recovery.
-            check_args = dict(proxy.getOpenIDParameters())
+            check_args = {}
+            for k, v in proxy.getParameters():
+                if k.startswith('openid.'):
+                    check_args[k] = v
             check_args['openid.mode'] = 'check_authentication'
             import sys
             sys.stderr.write('handle from server: %r' % check_args['openid.assoc_handle'])

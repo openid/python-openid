@@ -31,18 +31,13 @@ class SimpleOpenIDProxy(object):
         """
         return self.query.get('identity_url')
 
-    def getOpenIDParameters(self):
+    def getParameters(self):
         """Return all parameters that are part of the OpenID protocol,
         as a dictionary.
 
         That is, return all parameters that have 'openid.' as a prefix
         """
-        params = {}
-        for k, v in self.query.iteritems():
-            if k.startswith('openid.'):
-                params[k] = v
-
-        return params
+        return self.query
 
     def getReturnTo(self, token):
         """Generate a return_to URL.
