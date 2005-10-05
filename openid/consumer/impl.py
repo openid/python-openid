@@ -15,10 +15,7 @@ class OpenIDConsumer(object):
     AUTH_BLOB_LIFETIME = 60 * 60 * 1 # one hour
 
     def __init__(self, store, trust_root, fetcher, immediate, split):
-        if store is None:
-            self.store = DumbStore()
-        else:
-            self.store = store
+        self.store = store
         self.trust_root = trust_root
         self.fetcher = fetcher
 

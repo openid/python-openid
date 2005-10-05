@@ -23,9 +23,9 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 # python path if you don't have it installed with your system python.
 # If so, uncomment the line below, and change the path where you have
 # Python-OpenID.
-import sys
-sys.path.insert(0, '/home/josh/py/')
-from openid.consumer import interface
+# import sys
+# sys.path.insert(0, '/path/to/openid/')
+from openid.consumer import interface, stores
 
 from simpleproxy import ExampleDispatcher, parseQuery, buildRedirect
 
@@ -59,7 +59,9 @@ class OpenIDHTTPServer(HTTPServer):
             self.base_url = 'http://%s/' % (self.server_name,)
 
         # dumb-mode OpenID consumer
+        store = stores.DumbStore('This is just a sample, use a better secret.')
         self.openid_consumer = interface.OpenIDConsumerFacade(
+            store=store,
             trust_root=self.base_url)
 
 class OpenIDRequestHandler(BaseHTTPRequestHandler):

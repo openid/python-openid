@@ -1,4 +1,5 @@
 import time
+from openid import oidUtil
 
 class ConsumerAssociation(object):
     """This class represents a consumer's view of an association."""
@@ -72,8 +73,8 @@ class OpenIDStore(object):
         raise NotImplementedError
 
 class DumbStore(OpenIDStore):
-    def __init__(self, auth_key='n08e7fgu4b981fhxifdu'):
-        self.auth_key = auth_key
+    def __init__(self, secret_phrase):
+        self.auth_key = oidUtil.sha1(secret_phrase)
 
     def storeAssociation(self, unused_association):
         pass
