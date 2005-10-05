@@ -8,7 +8,7 @@ from openid import oidUtil
 from openid.dh import DiffieHellman
 
 class OpenIDConsumer(object):
-    CHRS = string.letters + string.digits
+    NONCE_CHRS = string.letters + string.digits
     NONCE_LEN = 8
 
     def __init__(self, store, trust_root, fetcher, immediate, split):
@@ -34,7 +34,7 @@ class OpenIDConsumer(object):
             return None
 
         consumer_id, server_id, server = ret
-        nonce = oidUtil.randomString(self.NONCE_LEN, self.CHRS)
+        nonce = oidUtil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
         self.store.storeNonce(nonce)
 
         token = self._genToken(nonce, consumer_id)
