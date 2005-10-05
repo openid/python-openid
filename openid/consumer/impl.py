@@ -143,8 +143,6 @@ class OpenIDConsumer(object):
                 if k.startswith('openid.'):
                     check_args[k] = v
             check_args['openid.mode'] = 'check_authentication'
-            import sys
-            sys.stderr.write('handle from server: %r' % check_args['openid.assoc_handle'])
             post_data = urllib.urlencode(check_args)
 
             if self.split:
