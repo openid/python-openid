@@ -74,15 +74,16 @@ class OpenIDConsumer(object):
         if blob is None:
             return proxy.loginError(None)
 
-        return self._checkAuth(proxy, blob)
-
-    def _checkAuth(self, proxy, blob):
         ret = self._splitCheckAuthBlob(blob)
         if ret is None:
             return proxy.loginError(None)
 
         nonce, consumer_id, post_data, server_url = ret
 
+        return self._checkAuth(
+            proxy, nonce, consumer_id, post_data, server_url)
+
+    def _checkAuth(self, proxy, nonce, consumer_id, post_data, server_url):
         ret = self.fetcher.post(server_url, post_data)
         if ret is None:
             return proxy.loginError(consumer_id)
@@ -146,13 +147,15 @@ class OpenIDConsumer(object):
             sys.stderr.write('handle from server: %r' % check_args['openid.assoc_handle'])
             post_data = urllib.urlencode(check_args)
 
-            blob = self._genCheckAuthBlob(
-                nonce, consumer_id, post_data, server_url)
-
             if self.split:
+                blob = self._genCheckAuthBlob(
+                    nonce, consumer_id, post_data, server_url)
+
                 return proxy.checkAuthRequired(blob)
+
             else:
-                return self._checkAuth(proxy, blob)
+                return self._checkAuth(
+                    proxy, nonce, consumer_id, post_data, server_url)
 
         # Check the signature
         sig = self._extract(proxy, 'sig')
