@@ -69,12 +69,17 @@ class SimpleOpenIDProxy(object):
         if parsed_uri[:4] != self.parsed_uri[:4]:
             return False
 
+        # query is the query from the return_to url.
+        #
+        # self.query is the query this request received.
+        #
+        # Check that they match, on the parameters included in the
+        # return_to url.
         query = parseQuery(parsed_uri[4])
-        if query.get('step') != 'process':
+        if query.get('step') != self.query.get('step'):
             return False
 
-        token = self.query.get('token')
-        if query.get('token') != token:
+        if query.get('token') != self.query.get('token'):
             return False
 
         return True
