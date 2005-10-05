@@ -29,13 +29,10 @@ class OpenIDConsumer(object):
 
 
     def constructRedirect(self, proxy):
-        import sys
-        sys.stderr.write('in constructRedirect')
         ret = self._findIdentityInfo(proxy.getUserInput())
         if ret is None:
             return None
 
-        sys.stderr.write('Identity info found')
         consumer_id, server_id, server = ret
         nonce = oidUtil.randomString(self.NONCE_LEN, self.CHRS)
         self.store.storeNonce(nonce)
@@ -51,10 +48,10 @@ class OpenIDConsumer(object):
 
         redir_args['openid.mode'] = self.mode
 
-        assoc_handle = self._getAssociation(server)
+        assoc = self._getAssociation(server)
 
-        if assoc_handle is not None:
-            redir_args['openid.assoc_handle'] = assoc_handle
+        if assoc is not None:
+            redir_args['openid.assoc_handle'] = assoc.handle
 
         return str(oidUtil.appendArgs(server, redir_args))
 
@@ -94,6 +91,9 @@ class OpenIDConsumer(object):
             if invalidate_handle is not None:
                 self.store.removeAssociation(server_url, invalidate_handle)
 
+            if not self.store.useNonce(nonce):
+                return proxy.loginError()
+
             return proxy.loginGood(consumer_id)
 
         error = results.get('error')
@@ -131,7 +131,7 @@ class OpenIDConsumer(object):
         assoc = self.store.getAssociation(server_url)
 
         if (assoc is None or assoc.handle != assoc_handle or
-            assoc.expires_in <= 0):
+            assoc.expiresIn <= 0):
             # It's not an association we know about.  Dumb mode is our
             # only possible path for recovery.
             check_args = dict(proxy.getOpenIDParameters())
@@ -329,8 +329,12 @@ class OpenIDConsumer(object):
                     oidUtil.fromBase64(enc_mac_key),
                     oidUtil.sha1(oidUtil.longToStr(dh_shared)))
 
-            return ConsumerAssociation.fromExpiresIn(
+            assoc = ConsumerAssociation.fromExpiresIn(
                 expires_in, server_url, assoc_handle, secret)
+
+            self.store.storeAssociation(assoc)
+
+            return assoc
 
         except KeyError:
             return None
