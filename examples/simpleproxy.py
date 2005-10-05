@@ -80,17 +80,20 @@ class SimpleOpenIDProxy(object):
         """
         parsed_uri = urlparse.urlparse(return_to)
         if parsed_uri[:4] != self.parsed_uri[:4]:
-            return None
+            return False
 
         query = parseQuery(parsed_uri[4])
         if query.get('step') != 'process':
-            return None
+            return False
 
-        token = self.query.get('token', None)
+        token = self.query.get('token')
         if query.get('token') != token:
-            return None
+            return False
 
-        return token
+        return True
+
+    def getToken(self):
+        return self.query.get('token')
 
     # ======================================================================
     # Callbacks from processServerResult
