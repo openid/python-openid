@@ -2,7 +2,7 @@ import cgi
 import urlparse
 
 from xml.sax.saxutils import escape, quoteattr
-from urllib import quote_plus
+from openid import oidUtil
 
 def buildRedirect(redirect_url):
     return """\
@@ -51,15 +51,7 @@ class SimpleOpenIDProxy(object):
         such as setting a cookie, but adding it to the URL is easy.
         """
         return_to_query = [('step', 'process'), ('token', token)]
-
-        query_elements = []
-        for key, value in return_to_query:
-            element = '%s=%s' % (quote_plus(key), quote_plus(value))
-            query_elements.append(element)
-        
-        query_string = '&'.join(query_elements)
-
-        return self.this_uri + '?' + query_string
+        return oidUtil.appendArgs(self.this_uri, return_to_query)
 
     def verifyReturnTo(self, return_to):
         """Check that the return_to URL from the server is what we

@@ -16,6 +16,7 @@
 # Copyright 2005, Janrain, Inc.
 import urlparse
 import cgitb
+import sys
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
@@ -23,7 +24,6 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 # python path if you don't have it installed with your system python.
 # If so, uncomment the line below, and change the path where you have
 # Python-OpenID.
-# import sys
 # sys.path.insert(0, '/path/to/openid/')
 from openid.consumer import interface, stores
 

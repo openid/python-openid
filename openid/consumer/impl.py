@@ -138,7 +138,7 @@ class OpenIDConsumer(object):
             # It's not an association we know about.  Dumb mode is our
             # only possible path for recovery.
             check_args = {}
-            for k, v in proxy.getParameters():
+            for k, v in proxy.getParameters().iteritems():
                 if k.startswith('openid.'):
                     check_args[k] = v
             check_args['openid.mode'] = 'check_authentication'
@@ -184,7 +184,7 @@ class OpenIDConsumer(object):
             proxy.serverError('Server Error: %r' % error)
 
     def _extract(self, proxy, param):
-        return proxy.getOpenIDParameters().get('openid.' + param)
+        return proxy.getParameters().get('openid.' + param)
 
     def _getAssociation(self, server_url):
         if type(self.store) is DumbStore:
