@@ -70,12 +70,15 @@ class OpenIDProxy(object):
         raise NotImplementedError
 
     def verifyReturnTo(self, return_to):
-        """This method verifies that the given return_to url is valid
-        for this server.  Used by processServerResponse and checkAuth.
-        Returns the token given to the corresponding getReturnTo if
-        the return_to is valid, None if it's not."""
+        """Used by processServerResponse.  Returns true if the
+        return_to url matches the url this request came to, including
+        query args.  Otherwise returns false."""
         raise NotImplementedError
 
+    def getToken(self):
+        """Used by processServerResponse.  Returns the token set
+        during the call to getReturnTo, if available, None otherwise."""
+        raise NotImplementedError
 
 
     # The following methods are all callbacks used by
@@ -93,7 +96,7 @@ class OpenIDProxy(object):
         method being called."""
         raise NotImplementedError
 
-    def loginError(self):
+    def loginError(self, normalized_id):
         """Called when a login fails.  This usually indicates either a
         malfunctioning server, an attempt to forge a login, or an
         association with a server getting lost or expiring during the
