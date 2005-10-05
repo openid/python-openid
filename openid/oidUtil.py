@@ -8,53 +8,9 @@ import pickle
 import binascii
 import sha
 import hmac
-import random
 
 from urllib import urlencode
-
-try:
-    srand = random.SystemRandom()
-except AttributeError:
-    # If you are running on Python < 2.4, you can use the random
-    # number pool object provided with the Python Cryptography Toolkit
-    # (pycrypto). pycrypto can be found with a search engine, but is
-    # currently found at:
-    #
-    # http://www.amk.ca/python/code/crypto
-    try:
-        from Crypto.Util.randpool import RandomPool
-    except ImportError:
-        raise RuntimeError('No adequate source of randomness found!')
-
-    # Implementation mostly copied from random.SystemRandom in Python 2.4
-    _hexlify = binascii.hexlify
-    BPF = 53        # Number of bits in a float
-    RECIP_BPF = 2**-BPF
-
-    class PyCryptoRandom(random.Random):
-        _bytes_per_call = 7
-
-        def __init__(self, pool):
-            self.pool = pool
-
-        def _stub(self, *args, **kwds):
-            "Stub method.  Not used for a system random number generator."
-            return None
-        seed = jumpahead = _stub
-
-        def _notimplemented(self, *args, **kwds):
-            "Method should not be called for a system random number generator."
-            raise NotImplementedError(
-                'System entropy source does not have state.')
-        getstate = setstate = _notimplemented
-
-        def random(self):
-            if self.pool.entropy < self._bytes_per_call:
-                self.pool.randomize()
-            s = self.pool.get_bytes(self._bytes_per_call)
-            return (long(_hexlify(s), 16) >> 3) * RECIP_BPF
-
-    srand = PyCryptoRandom(RandomPool())
+from openid.cryptrand import srand, getBytes
 
 try:
     _ = reversed
@@ -119,11 +75,9 @@ def appendArgs(url, args):
 
     return '%s%s%s' % (url, ('?' in url) and '&' or '?', urlencode(args))
 
-
-_default_chars = map(chr, range(256))
-
-def randomString(length, chrs=_default_chars):
-    """Produce a string of length random bytes using srand as a source of
-    random numbers."""
-    return ''.join([srand.choice(chrs) for _ in xrange(length)])
-
+def randomString(length, chrs=None):
+    """Produce a string of length random bytes, chosen from chrs."""
+    if chrs is None:
+        return getBytes(length)
+    else:
+        return ''.join([srand.choice(chrs) for _ in xrange(length)])
