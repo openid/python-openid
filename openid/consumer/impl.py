@@ -1,15 +1,19 @@
 import urlparse
 import urllib
 import string
+import time
 
-from openid.consumer.stores import ConsumerAssociation, OpenIDStore
+from openid.consumer.stores import ConsumerAssociation, DumbStore
 from openid.consumer.parse import parseLinkAttrs
 from openid import oidUtil
 from openid.dh import DiffieHellman
 
 class OpenIDConsumer(object):
-    NONCE_CHRS = string.letters + string.digits
+    CHRS = string.letters + string.digits
     NONCE_LEN = 8
+    CHRS = string.letters + string.digits
+    TOKEN_LIFETIME = 60 * 2 # two minutes
+    AUTH_BLOB_LIFETIME = 60 * 60 * 1 # one hour
 
     def __init__(self, store, trust_root, fetcher, immediate, split):
         if store is None:
@@ -33,11 +37,11 @@ class OpenIDConsumer(object):
         if ret is None:
             return None
 
-        consumer_id, server_id, server = ret
+        consumer_id, server_id, server_url = ret
         nonce = oidUtil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
         self.store.storeNonce(nonce)
 
-        token = self._genToken(nonce, consumer_id)
+        token = self._genToken(nonce, consumer_id, server_url)
         return_to = proxy.getReturnTo(token)
 
         redir_args = {'openid.identity': server_id,
@@ -48,12 +52,12 @@ class OpenIDConsumer(object):
 
         redir_args['openid.mode'] = self.mode
 
-        assoc = self._getAssociation(server)
+        assoc = self._getAssociation(server_url)
 
         if assoc is not None:
             redir_args['openid.assoc_handle'] = assoc.handle
 
-        return str(oidUtil.appendArgs(server, redir_args))
+        return str(oidUtil.appendArgs(server_url, redir_args))
 
 
     def processServerResponse(self, proxy):
@@ -118,15 +122,11 @@ class OpenIDConsumer(object):
         if ret is None:
             return proxy.loginError()
 
-        nonce, consumer_id = ret
+        nonce, consumer_id, server_url = ret
 
         user_setup_url = self._extract(proxy, 'user_setup_url')
         if user_setup_url is not None:
             return proxy.setupNeeded(user_setup_url)
-
-        cid, sid, server_url = self._findIdentityInfo(consumer_id)
-        if cid != consumer_id or sid != server_id:
-            return proxy.loginError()
 
         assoc = self.store.getAssociation(server_url)
 
@@ -136,6 +136,8 @@ class OpenIDConsumer(object):
             # only possible path for recovery.
             check_args = dict(proxy.getOpenIDParameters())
             check_args['openid.mode'] = 'check_authentication'
+            import sys
+            sys.stderr.write('handle from server: %r' % check_args['openid.assoc_handle'])
             post_data = urllib.urlencode(check_args)
 
             blob = self._genCheckAuthBlob(
@@ -179,6 +181,9 @@ class OpenIDConsumer(object):
         return proxy.getOpenIDParameters().get('openid.' + param)
 
     def _getAssociation(self, server_url):
+        if type(self.store) is DumbStore:
+            return None
+        
         assoc = self.store.getAssociation(server_url)
 
         if assoc is not None:
@@ -187,12 +192,15 @@ class OpenIDConsumer(object):
         return self._associate(server_url)
 
     def _genCheckAuthBlob(self, nonce, consumer_id, post_data, server_url):
-        joined = '\x00'.join([nonce, consumer_id, post_data, server_url])
+        timestamp = str(int(time.time()))
+        joined = '\x00'.join(
+            [timestamp, nonce, consumer_id, post_data, server_url])
         sig = oidUtil.hmacSha1(self.store.getAuthKey(), joined)
 
-        return '%s%s' % (sig, joined)
+        return oidUtil.toBase64('%s%s' % (sig, joined))
 
     def _splitCheckAuthBlob(self, blob):
+        blob = oidUtil.fromBase64(blob)
         if len(blob) < 20:
             return None
 
@@ -201,26 +209,48 @@ class OpenIDConsumer(object):
             return None
 
         split = joined.split('\x00')
-        if len(split) != 4:
+        if len(split) != 5:
             return None
 
-        return split
+        try:
+            ts = int(split[0])
+        except ValueError:
+            return None
 
-    def _genToken(self, nonce, consumer_id):
-        joined = '%s%s' % (nonce, consumer_id)
+        if ts + self.AUTH_BLOB_LIFETIME < time.time():
+            return None
+
+        return tuple(split[1:])
+
+    def _genToken(self, nonce, consumer_id, server_url):
+        timestamp = str(int(time.time()))
+        joined = '\x00'.join([timestamp, nonce, consumer_id, server_url])
         sig = oidUtil.hmacSha1(self.store.getAuthKey(), joined)
 
-        return '%s%s' % (sig, joined)
+        return oidUtil.toBase64('%s%s' % (sig, joined))
 
     def _splitToken(self, token):
+        token = oidUtil.fromBase64(token)
         if len(token) < 20:
             return None
 
-        sig, res = token[:20], token[20:]
-        if oidUtil.hmacSha1(self.store.getAuthKey(), res) != sig:
+        sig, joined = token[:20], token[20:]
+        if oidUtil.hmacSha1(self.store.getAuthKey(), joined) != sig:
             return None
 
-        return res[:self.NONCE_LEN], res[self.NONCE_LEN:]
+        split = joined.split('\x00')
+        if len(split) != 4:
+            return None
+
+        try:
+            ts = int(split[0])
+        except ValueError:
+            return None
+
+        if ts + self.TOKEN_LIFETIME < time.time():
+            return None
+
+        return tuple(split[1:])
 
     def _quoteMinimal(self, s):
         # Do not escape anything that is already 7-bit safe, so we do the
@@ -339,27 +369,3 @@ class OpenIDConsumer(object):
         except KeyError:
             return None
 
-
-class DumbStore(OpenIDStore):
-    def __init__(self, auth_key='n08e7fgu4b981fhxifdu'):
-        self.auth_key = auth_key
-
-    def storeAssociation(self, unused_association):
-        pass
-
-    def getAssociation(self, unused_server_url):
-        return None
-
-    def removeAssociation(self, unused_server_url, unused_handle):
-        return False
-
-    def storeNonce(self, nonce):
-        pass
-
-    def useNonce(self, nonce):
-        """In a system truly limited to dumb mode, nonces must all be
-        accepted."""
-        return True
-
-    def getAuthKey(self):
-        return self.auth_key

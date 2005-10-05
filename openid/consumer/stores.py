@@ -71,4 +71,27 @@ class OpenIDStore(object):
         should return the same key every time it is called."""
         raise NotImplementedError
 
+class DumbStore(OpenIDStore):
+    def __init__(self, auth_key='n08e7fgu4b981fhxifdu'):
+        self.auth_key = auth_key
+
+    def storeAssociation(self, unused_association):
+        pass
+
+    def getAssociation(self, unused_server_url):
+        return None
+
+    def removeAssociation(self, unused_server_url, unused_handle):
+        return False
+
+    def storeNonce(self, nonce):
+        pass
+
+    def useNonce(self, nonce):
+        """In a system truly limited to dumb mode, nonces must all be
+        accepted."""
+        return True
+
+    def getAuthKey(self):
+        return self.auth_key
 
