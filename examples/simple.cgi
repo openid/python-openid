@@ -1,258 +1,66 @@
-#!/usr/bin/env python2.4
+#!/usr/bin/env python
 # Emacs, this is -*- python -*- code.
 
-# Dumb mode identity verification example.
-#
-# This example is completely stateless, and just requires a CGI enabled
-# webserver to run.  Make sure this file has executable permissions, stick
-# it in your cgi-bin directory and go nuts.  Once you understand this example
-# you'll know the basics of OpenID and using the Python OpenID library.  You
-# can then move on to more robust examples, and integrating OpenID into your.
-# app.
-#
 # Please note that this will not work with Python's built in CGIHTTPServer, as
 # the CGIHTTPServer does not support redirects.  Use apache or equivalent.
 #
 # Copyright 2005, Janrain, Inc.
-import cgi
+import cgitb ; cgitb.enable()
 import os
 import urlparse
 
-from urllib import quote_plus
-from xml.sax.saxutils import escape, quoteattr
+# Peer module
+from simpleproxy import ExampleDispatcher, parseQuery, buildRedirect
 
 # You may need to manually add the openid package into your
 # python path if you don't have it installed with your system python.
 # If so, uncomment the line below, and change the path where you have
 # Python-OpenID.
-# sys.path.insert(0, '/home/foo/Python-OpenID-0.0.6/')
+import sys
+sys.path.insert(0, '/home/josh/py/')
 from openid.consumer import interface
 
-def parseQuery(qs):
-    query = {}
-    for k, v in cgi.parse_qsl(qs):
-        if type(v) is list:
-            query[k] = v[0]
-        else:
-            query[k] = v
-    return query
+def getBaseURL():
+    host = os.environ['HTTP_HOST']
+    port = int(os.environ['SERVER_PORT'])
+    if os.environ.get('HTTPS', 'off') == 'on':
+        proto = 'https'
+    else:
+        proto = 'http'
 
-def redirect(redirect_url):
-    print """\
-Location: %s
-Content-type: text/plain
+    if ((port == 80 and proto == 'http') or
+        (port == 443 and proto == 'https')):
+        base_url = '%s://%s/' % (proto, host)
+    else:
+        base_url = '%s://%s:%s/' % (proto, host, port)
 
-Redirecting to %s""" % (redirect_url, redirect_url)
+    return base_url
 
-class CGIOpenIDProxy(interface.OpenIDProxy):
-    def __init__(self):
-        host = os.environ['HTTP_HOST']
-        port = int(os.environ['SERVER_PORT'])
-        if os.environ.get('HTTPS', 'off') == 'on':
-            proto = 'https'
-        else:
-            proto = 'http'
+class Dispatcher(ExampleDispatcher):
+    def write(self, data):
+        sys.stdout.write(data)
 
-        if ((port == 80 and proto == 'http') or
-            (port == 443 and proto == 'https')):
-            self.base_url = '%s://%s/' % (proto, host)
-        else:
-            self.base_url = '%s://%s:%s/' % (proto, host, port)
+    def sendResponse(self, code):
+        pass
 
-        script_name = os.environ['SCRIPT_NAME']
+    boilerplate = '''\
+<h2>CGI Consumer Example</h2>
+<p>
+  This example consumer uses the <a
+      href="http://openid.schtuff.com/">Python OpenID</a> library
+  on a CGI platform.  The example just verifies that the URL that
+  you enter is your identity URL.
+</p>'''
 
-        self.script_uri = urlparse.urljoin(self.base_url, script_name)
-        self.parsed_uri = urlparse.urlparse(self.script_uri)
-        self.query = parseQuery(os.environ.get('QUERY_STRING', ''))
-        self.step = self.query.get('step', 'start')
+def main():
+    base_url = getBaseURL()
 
-        # dumb-mode OpenID consumer
-        self.openid_consumer = interface.OpenIDConsumerFacade(
-            trust_root=self.base_url)
+    openid_consumer = interface.OpenIDConsumerFacade(trust_root=base_url)
+    query = parseQuery(os.environ.get('QUERY_STRING', ''))
+    this_uri = urlparse.urljoin(base_url, os.environ['SCRIPT_NAME'])
 
-    # ======================================================================
-    # methods needed by the consumer library to get at our state
-
-    def getUserInput(self):
-        """Return the URL that the user entered to be verified.
-
-        This just gets the URL from the form data. This step will fail
-        if there was no input.
-        """
-        return self.query['identity_url']
-
-    def getOpenIDParameters(self):
-        """Return all parameters that are part of the OpenID protocol,
-        as a dictionary.
-
-        That is, return all parameters that have 'openid.' as a prefix
-        """
-        params = {}
-        for k, v in self.query.iteritems():
-            if k.startswith('openid.'):
-                params[k] = v
-
-        return params
-
-    def getReturnTo(self, token):
-        """Generate a return_to URL.
-
-        The return_to URL should trigger the processServerResult
-        method of the openid_consumer object to be called.
-
-        Our return_to URL is this script with the parameter
-        step=process and the library's token attached. We could have
-        used some other mechanism to get the token to the next step,
-        such as setting a cookie, but adding it to the URL is easy.
-        """
-        return_to_query = [('step', 'process'), ('token', token)]
-
-        query_elements = []
-        for key, value in return_to_query:
-            element = '%s=%s' % (quote_plus(key), quote_plus(value))
-            query_elements.append(element)
-        
-        query_string = '&'.join(query_elements)
-
-        return self.script_uri + '?' + query_string
-
-    def verifyReturnTo(self, return_to):
-        """Check that the return_to URL from the server is what we
-        expect.
-
-        We make sure that it is something that could have been
-        generated by our getReturnTo method and that the token in it
-        matches the token that we got. The return_to URL should be a
-        prefix of the current URL.
-
-        We also extract the token from the URL to return back to the
-        library.
-        """
-        parsed_uri = urlparse.urlparse(return_to)
-        if parsed_uri[:4] != self.parsed_uri[:4]:
-            return None
-
-        query = parseQuery(parsed_uri[4])
-        if query.get('step') != 'process':
-            return None
-
-        token = self.query.get('token', None)
-        if query.get('token') != token:
-            return None
-
-        return token
-
-    # ======================================================================
-    # Callbacks from processServerResult
-
-    def loginGood(self, normalized_id):
-        fmt = "You have successfully verified %s as your identity."
-        message = fmt % (escape(normalized_id),)
-        self.render(message)
-
-    def loginCancelled(self):
-        self.render("Verification cancelled.")
-
-    ## Failure cases
-
-    def loginError(self):
-        fmt = "There was an error attempting to verify %s."
-        message = fmt % (escape(self.getUserInput()),)
-        self.render(message, css_class='error')
-
-    def serverError(self, server_message):
-        fmt = "Error from the server: %s"
-        message = fmt % escape(server_message)
-        self.render(message, css_class='error')
-
-
-    # ======================================================================
-    # Dispatching and rendering
-
-    def run(self):
-        if self.step == 'start':
-            self.doStart()
-        elif self.step == 'redirect':
-            self.doRedirect()
-        elif self.step == 'process':
-            self.doProcess()
-        else:
-            self.doUnknown()
-
-    def doUnknown(self):
-        # For unknown step, return to step 0
-        redirect(self.script_uri)
-
-    def doStart(self):
-        self.render()
-
-    def doRedirect(self):
-        redirect_url = self.openid_consumer.constructRedirect(self)
-        if redirect_url is not None:
-            redirect(redirect_url)
-        else:
-            fmt = 'Failed to fetch identity URL %s'
-            message = fmt % (escape(self.getUserInput()),)
-            self.render(message, css_class='error')
-
-    def doProcess(self):
-        # Calls one of
-        #  loginGood
-        #  loginCancelled
-        #  loginError
-        #  serverError
-        self.openid_consumer.processServerResponse(self)
-
-    def render(self, message=None, css_class='alert'):
-        self.pageHeader()
-        if message:
-            print "<div class='%s'>" % (css_class,)
-            print message
-            print "</div>"
-        self.pageFooter()
-
-    def pageHeader(self, title="Python OpenID Simple Example"):
-        print '''\
-Content-type: text/html
-
-<html>
-  <head><title>%s</title></head>
-  <style type="text/css">
-      * {font-family:verdana,sans-serif;}
-      body {width:50em; margin:1em;}
-      div {padding:.5em; }
-      table {margin:none;padding:none;}
-      .alert {border:1px solid #e7dc2b; background: #fff888;}
-      .error {border:1px solid #f00; background: #faa;}
-      #login {border:1px solid #777; background: #ddd; margin-top:1em;padding-bottom:0em;}
-  </style>
-  <body>
-    <h1>%s</h1>
-    <h2>CGI Consumer Example</h2>
-    <p>
-      This example consumer uses the <a
-          href="http://openid.schtuff.com/">Python OpenID</a> library
-      in <a href="http://www.openid.net/specs.bml#associate">dumb
-      mode</a> on a CGI platform.  The example asserts that the
-      URL that you enter is your identity URL.
-    </p>
-''' % (title, title)
-
-    def pageFooter(self):
-        print '''\
-    <div id="login">
-      <form method="get" action=%s>
-        <input type="hidden" name="step" value="redirect" />
-        Identity&nbsp;URL:
-        <input type="text" name="identity_url" />
-        <input type="submit" value="Verify" />
-      </form>
-    </div>
-  </body>
-</html>
-''' % (quoteattr(self.script_uri),)
+    dispatcher = Dispatcher(openid_consumer, query, this_uri)
+    dispatcher.run()
 
 if __name__ == '__main__':
-    import cgitb; cgitb.enable()
-    request = CGIOpenIDProxy()
-    request.run()
+    main()
