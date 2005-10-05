@@ -28,34 +28,9 @@ except ImportError:
 
 def getHTTPFetcher(lifetime=60):
     if pycurl is None:
-        res = UrllibFetcher()
+        return UrllibFetcher()
     else:
-        res = ParanoidHTTPFetcher()
-
-    return CachingWrapper(res, lifetime)
-
-class CachingWrapper(OpenIDHTTPFetcher):
-    def __init__(self, fetcher, lifetime):
-        self.fetcher = fetcher
-        self.lifetime = lifetime
-        self.cache = {}
-
-    def get(self, url):
-        if url in self.cache:
-            exp, res = self.cache[url]
-            if exp > time.time():
-                return res
-            else:
-                del self.cache[url]
-
-        res = self.fetcher.get(url)
-        exp = time.time() + self.lifetime
-        self.cache[url] = (exp, res)
-
-        return res
-
-    def post(self, url, body):
-        return self.fetcher.post(url, body)
+        return ParanoidHTTPFetcher()
 
 
 class UrllibFetcher(OpenIDHTTPFetcher):
