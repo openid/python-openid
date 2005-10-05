@@ -61,8 +61,7 @@ class OpenIDHTTPServer(HTTPServer):
         # dumb-mode OpenID consumer
         store = stores.DumbStore('This is just a sample, use a better secret.')
         self.openid_consumer = interface.OpenIDConsumerFacade(
-            store=store,
-            trust_root=self.base_url)
+            store=store, trust_root=self.base_url)
 
 class OpenIDRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):

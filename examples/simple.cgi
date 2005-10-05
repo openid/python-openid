@@ -16,9 +16,9 @@ from simpleproxy import ExampleDispatcher, parseQuery, buildRedirect
 # python path if you don't have it installed with your system python.
 # If so, uncomment the line below, and change the path where you have
 # Python-OpenID.
-import sys
-sys.path.insert(0, '/home/josh/py/')
-from openid.consumer import interface
+# import sys
+# sys.path.insert(0, '/path/to/openid/')
+from openid.consumer import interface, stores
 
 def getBaseURL():
     host = os.environ['HTTP_HOST']
@@ -55,7 +55,12 @@ class Dispatcher(ExampleDispatcher):
 def main():
     base_url = getBaseURL()
 
-    openid_consumer = interface.OpenIDConsumerFacade(trust_root=base_url)
+    store = stores.DumbStore(
+        'This would be a good secret phrase, if no one else knew it.')
+
+    openid_consumer = interface.OpenIDConsumerFacade(
+        store=store, trust_root=base_url)
+
     query = parseQuery(os.environ.get('QUERY_STRING', ''))
     this_uri = urlparse.urljoin(base_url, os.environ['SCRIPT_NAME'])
 
