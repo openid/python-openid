@@ -110,7 +110,7 @@ class OpenIDConsumer(object):
         return proxy.loginError(consumer_id)
 
     def _do_id_res(self, proxy):
-        token is proxy.getToken()
+        token = proxy.getToken()
         if token is None:
             return proxy.loginError(None)
 

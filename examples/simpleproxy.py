@@ -108,7 +108,7 @@ class SimpleOpenIDProxy(object):
 
     ## Failure cases
 
-    def loginError(self, normalized_id=None):
+    def loginError(self, normalized_id):
         if normalized_id is not None:
             fmt = "There was an error attempting to verify %s."
             message = fmt % (escape(normalized_id),)
