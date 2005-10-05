@@ -32,7 +32,11 @@ class OpenIDConsumer(object):
 
 
     def constructRedirect(self, proxy):
-        ret = self._findIdentityInfo(proxy.getUserInput())
+        user_url = proxy.getUserInput()
+        if user_url is None:
+            return None
+
+        ret = self._findIdentityInfo(user_url)
         if ret is None:
             return None
 
