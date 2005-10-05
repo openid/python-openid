@@ -9,9 +9,8 @@ from openid import oidUtil
 from openid.dh import DiffieHellman
 
 class OpenIDConsumer(object):
-    CHRS = string.letters + string.digits
     NONCE_LEN = 8
-    CHRS = string.letters + string.digits
+    NONCE_CHRS = string.letters + string.digits
     TOKEN_LIFETIME = 60 * 2 # two minutes
     AUTH_BLOB_LIFETIME = 60 * 60 * 1 # one hour
 
