@@ -51,7 +51,7 @@ class OpenIDProxy(object):
         dictionary from full parameter name (ie, including the
         'openid.' prefix) to the parameter value, both unescaped from
         whatever urlencoding was applied to them.  Used in
-        processServerRrsponse."""
+        processServerResponse."""
         raise NotImplementedError
 
     def getCheckAuthParams(self):
