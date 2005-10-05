@@ -24,7 +24,7 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 # python path if you don't have it installed with your system python.
 # If so, uncomment the line below, and change the path where you have
 # Python-OpenID.
-# sys.path.insert(0, '/path/to/openid/')
+# sys.path.append('/path/to/openid/')
 from openid.consumer import interface, stores
 
 from simpleproxy import ExampleDispatcher, parseQuery, buildRedirect
