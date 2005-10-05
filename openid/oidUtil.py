@@ -40,7 +40,10 @@ def toBase64(s):
     return binascii.b2a_base64(s)[:-1]
 
 def fromBase64(s):
-    return binascii.a2b_base64(s)
+    try:
+        return binascii.a2b_base64(s)
+    except binascii.Error:
+        return ''
 
 def kvForm(d):
     """Represent dict d as newline-terminated key:value pairs"""
