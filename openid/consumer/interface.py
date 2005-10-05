@@ -96,6 +96,14 @@ class OpenIDProxy(object):
         method being called."""
         raise NotImplementedError
 
+    def loginCancelled(self):
+        """Called when a user cancels a login.  No additional
+        information is included, so none is passed in.  Any value
+        returned by this method is returned by the call to
+        processServerRequest that led to this method being called.
+        (This method is not called from checkAuth.)"""
+        raise NotImplementedError
+
     def loginError(self, normalized_id):
         """Called when a login fails.  This usually indicates either a
         malfunctioning server, an attempt to forge a login, or an
@@ -106,12 +114,13 @@ class OpenIDProxy(object):
         or checkAuth that led to this method being called."""
         raise NotImplementedError
 
-    def loginCancelled(self):
-        """Called when a user cancels a login.  No additional
-        information is included, so none is passed in.  Any value
+    def serverError(self, message):
+        """Called when the server sends an error message to the
+        consumer.  This should be a rare occurance, but can happen.
+        message is the error message the server sent.  Any value
         returned by this method is returned by the call to
-        processServerRequest that led to this method being called.
-        (This method is not called from checkAuth.)"""
+        processServerRequest or checkAuth that led to this method
+        being called."""
         raise NotImplementedError
 
     def setupNeeded(self, user_setup_url):
@@ -120,15 +129,6 @@ class OpenIDProxy(object):
         method is returned by the call to processServerRequest that
         led to this method being called.  (This method is not called
         from checkAuth.)"""
-        raise NotImplementedError
-
-    def serverError(self, message):
-        """Called when the server sends an error message to the
-        consumer.  This should be a rare occurance, but can happen.
-        message is the error message the server sent.  Any value
-        returned by this method is returned by the call to
-        processServerRequest or checkAuth that led to this method
-        being called."""
         raise NotImplementedError
 
     def checkAuthRequired(self, check_auth_params):
