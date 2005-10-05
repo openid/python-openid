@@ -134,10 +134,13 @@ def test_filestore():
         temp_dir = os.tmpnam()
         os.mkdir(temp_dir)
 
+    store = filestore.FilesystemOpenIDStore(temp_dir)
     try:
-        store = filestore.FilesystemOpenIDStore(temp_dir)
         testStore(store)
-    finally:
+    except:
+        print 'Test was in', temp_dir
+        raise
+    else:
         shutil.rmtree(temp_dir)
 
 def test_sqlite():
@@ -195,7 +198,10 @@ def test_mysql():
             # failing test, comment out this line.
             conn.query('DROP DATABASE %s;' % db_name)
 
-if __name__ == '__main__':
-    #test_filestore()
+def test():
+    test_filestore()
     test_sqlite()
     test_mysql()
+
+if __name__ == '__main__':
+    test()
