@@ -14,7 +14,7 @@ class OpenIDConsumer(object):
     TOKEN_LIFETIME = 60 * 2 # two minutes
     AUTH_BLOB_LIFETIME = 60 * 60 * 1 # one hour
 
-    def __init__(self, store, fetcher, immediate, split):
+    def __init__(self, store, fetcher, immediate):
         self.store = store
         self.fetcher = fetcher
 
@@ -24,7 +24,6 @@ class OpenIDConsumer(object):
             self.mode = 'checkid_setup'
 
         self.immediate = immediate
-        self.split = split
 
 
     def constructRedirect(self, proxy):
@@ -58,15 +57,6 @@ class OpenIDConsumer(object):
             redir_args['openid.assoc_handle'] = assoc.handle
 
         return str(oidUtil.appendArgs(server_url, redir_args))
-
-
-    def processServerResponse(self, proxy):
-        mode = self._extract(proxy, 'mode')
-        func = getattr(self, '_do_' + mode, None)
-        if func is None:
-            return proxy.loginFailure(None)
-
-        return func(proxy)
 
 
     def checkAuth(self, proxy):
@@ -145,15 +135,8 @@ class OpenIDConsumer(object):
             check_args['openid.mode'] = 'check_authentication'
             post_data = urllib.urlencode(check_args)
 
-            if self.split:
-                blob = self._genCheckAuthBlob(
-                    nonce, consumer_id, post_data, server_url)
-
-                return proxy.checkAuthRequired(blob)
-
-            else:
-                return self._checkAuth(
-                    proxy, nonce, consumer_id, post_data, server_url)
+            return self._checkAuth(
+                proxy, nonce, consumer_id, post_data, server_url)
 
         # Check the signature
         sig = self._extract(proxy, 'sig')
@@ -197,37 +180,6 @@ class OpenIDConsumer(object):
             return assoc
 
         return self._associate(server_url)
-
-    def _genCheckAuthBlob(self, nonce, consumer_id, post_data, server_url):
-        timestamp = str(int(time.time()))
-        joined = '\x00'.join(
-            [timestamp, nonce, consumer_id, post_data, server_url])
-        sig = oidUtil.hmacSha1(self.store.getAuthKey(), joined)
-
-        return oidUtil.toBase64('%s%s' % (sig, joined))
-
-    def _splitCheckAuthBlob(self, blob):
-        blob = oidUtil.fromBase64(blob)
-        if len(blob) < 20:
-            return None
-
-        sig, joined = blob[:20], blob[20:]
-        if oidUtil.hmacSha1(self.store.getAuthKey(), joined) != sig:
-            return None
-
-        split = joined.split('\x00')
-        if len(split) != 5:
-            return None
-
-        try:
-            ts = int(split[0])
-        except ValueError:
-            return None
-
-        if ts + self.AUTH_BLOB_LIFETIME < time.time():
-            return None
-
-        return tuple(split[1:])
 
     def _genToken(self, nonce, consumer_id, server_url):
         timestamp = str(int(time.time()))

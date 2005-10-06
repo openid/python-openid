@@ -7,14 +7,14 @@
 class OpenIDConsumerFacade(object):
     """ """
 
-    def __init__(self, store=None, fetcher=None, immediate=False, split=False):
+    def __init__(self, store, fetcher=None, immediate=False):
         """ """
         if fetcher is None:
             from openid.consumer.fetchers import getHTTPFetcher
             fetcher = getHTTPFetcher()
 
         from openid.consumer.impl import OpenIDConsumer
-        self.impl = OpenIDConsumer(store, fetcher, immediate, split)
+        self.impl = OpenIDConsumer(store, fetcher, immediate)
 
     def constructRedirect(self, proxy):
         """returns the redirect to send the user to proceed with the
@@ -55,15 +55,6 @@ class OpenIDProxy(object):
         'openid.' prefix) to the parameter value, both unescaped from
         whatever urlencoding was applied to them.  Used in
         processServerResponse."""
-        raise NotImplementedError
-
-    def getCheckAuthParams(self):
-        """This method returns the check_auth_params blob necessary
-        for the checkAuth call to succeed.  See the checkAuthRequired
-        method below for more information.
-
-        ** Split mode only
-        """
         raise NotImplementedError
 
 
@@ -132,21 +123,6 @@ class OpenIDProxy(object):
         method is returned by the call to processServerRequest that
         led to this method being called.  (This method is not called
         from checkAuth.)"""
-        raise NotImplementedError
-
-    def checkAuthRequired(self, check_auth_params):
-        """Called when the OpenIDConsumerFacade was created with
-        split=True.  This returns an opaque blob (in the form of a
-        string) containing the information necessary to make a call to
-        checkAuth.  That blob must be available via the getAuthPArams
-        call when checkAuth is called to verify the login.  Any value
-        returned by this method is returned by the call to
-        processServerRequest that led to this method being called.
-        (This method is not called from checkAuth, and is only called
-        if the OpenIDConsumerFacade was created with split=True.)
-
-        ** Split mode only
-        """
         raise NotImplementedError
 
 
