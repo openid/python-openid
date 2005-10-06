@@ -75,8 +75,28 @@ the fallback cases are much more secure than pure dumb mode, as they
 still are making use the consumer's ability to store state.
 
 
-== SPECIAL CASES ==
+== IMMEDIATE MODE ==
 
+In the flow described above, there's a step which may occur if the
+user needs to confirm to the identity server that it's ok to authorize
+his or her identity.  The server may draw pages asking for information
+from the user before it redirects the browser back to the consumer's
+site.  This is generally transparent to the consumer site, so it is
+typically ignored as an implementation detail.
+
+There can be times, however, where the consumer site wants to get a
+response immediately.  When this is the case, the consumer can put the
+library in immediate mode.  In immediate mode, there is an extra
+response possible from the server, which is essentially the server
+reporting that it doesn't have enough information to answer the
+question yet.  In addition to saying that, the identity server
+provides a URL to which the user can be sent to provide the needed
+information and let the server finish handling the original request.
+
+
+== USING THIS LIBRARY ==
+
+*********  Waiting on resolution of structure
 """
 
 class OpenIDConsumerFacade(object):
