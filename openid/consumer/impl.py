@@ -188,7 +188,7 @@ class OpenIDConsumer(object):
         return proxy.getParameters().get('openid.' + param)
 
     def _getAssociation(self, server_url):
-        if type(self.store) is DumbStore:
+        if self.store.isDumb():
             return None
         
         assoc = self.store.getAssociation(server_url)
@@ -375,4 +375,3 @@ class OpenIDConsumer(object):
 
         except KeyError:
             return None
-

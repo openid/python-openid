@@ -72,6 +72,11 @@ class OpenIDStore(object):
         should return the same key every time it is called."""
         raise NotImplementedError
 
+    def isDumb(self):
+        """This method must return True if the store is a dumb mode
+        style store"""
+        return False
+
 class DumbStore(OpenIDStore):
     def __init__(self, secret_phrase):
         self.auth_key = oidUtil.sha1(secret_phrase)
@@ -95,4 +100,7 @@ class DumbStore(OpenIDStore):
 
     def getAuthKey(self):
         return self.auth_key
+
+    def isDumb(self):
+        return True
 
