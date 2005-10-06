@@ -213,7 +213,7 @@ Content-type: text/html
       <form method="get" action=%s>
         <input type="hidden" name="step" value="redirect" />
         Identity&nbsp;URL:
-        <input type="text" name="identity_url" value=%s />
+        <input type="text" name="openid_url" value=%s />
         <input type="submit" value="Verify" />
       </form>
     </div>
