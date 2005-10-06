@@ -107,7 +107,7 @@ class OpenIDProxy(object):
         (This method is not called from checkAuth.)"""
         raise NotImplementedError
 
-    def loginError(self, normalized_id):
+    def loginFailure(self, normalized_id):
         """Called when a login fails.  This usually indicates either a
         malfunctioning server, an attempt to forge a login, or an
         association with a server getting lost or expiring during the
