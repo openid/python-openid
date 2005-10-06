@@ -105,6 +105,56 @@ class OpenIDConsumer(object):
 
     def __init__(self, store, immediate=False, fetcher=None):
         """
+        This method initializes a new OpenIDConsumer instance.  Users
+        of this OpenID consumer library need to create on
+        OpenIDConsumer instance to act as their gateway to the
+        library.
+
+        OpenIDConsumer instances store no per-request state, so they
+        may be used repeatedly in cases where they can remain in
+        memory between requests to the server.
+
+
+        ARGUMENTS:
+
+        *store* - This must be an object that implements the interface
+        in openid.consumer.stores.OpenIDStore.  Several concrete
+        implementations are provided, to cover most common use cases.
+        For stores backed by MySQL or SQLite, see the
+        openid.consumer.sqlstore package.  For a filesystem-backed
+        store, see the openid.consumer.filestore package.
+
+        As a last resort, if it isn't possible for the server to store
+        state at all, an instance of openid.consumer.stores.DumbStore
+        can be used.  This should be an absolute last resort, though,
+        as it makes the consumer vulnerable to replay attacks over the
+        lifespan of the tokens the library creates.  See XXX for more
+        information on controlling the lifespan of tokens.
+
+
+        *immediate* - This is an optional boolean value.  It controls
+        whether the library uses immediate mode, as explained in the
+        module description.  The default value is False, which
+        disables immediate mode.
+
+
+        *fetcher* - This is an optional instance of
+        openid.consumer.fetchers.OpenIDHTTPFetcher.  If present, the
+        provided fetcher is used by the library to fetch user's
+        identity pages and make direct requests to the identity
+        server.  If it's not present, a default fetcher is used.  The
+        default fetcher uses curl if the pycurl bindings are
+        available, and uses urllib if not.
+
+
+        RETURNS:
+
+        As an initializer, this method has no return value.
+
+
+        EXCEPTIONS:
+
+        This method is not expected to raise any exceptions.
         """
         if fetcher is None:
             from openid.consumer.fetchers import getHTTPFetcher
