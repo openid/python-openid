@@ -60,8 +60,7 @@ class OpenIDHTTPServer(HTTPServer):
 
         # dumb-mode OpenID consumer
         store = stores.DumbStore('This is just a sample, use a better secret.')
-        self.openid_consumer = interface.OpenIDConsumerFacade(
-            store=store, trust_root=self.base_url)
+        self.openid_consumer = interface.OpenIDConsumerFacade(store=store)
 
 class OpenIDRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -70,7 +69,8 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             query = parseQuery(parsed_uri[4])
             this_uri = self.server.base_url
             consumer = self.server.openid_consumer
-            self.disp = Dispatcher(self, consumer, query, this_uri)
+            self.disp = Dispatcher(
+                self, consumer, query, this_uri, self.server.base_url)
             self.disp.run()
         except (KeyboardInterrupt, SystemExit):
             raise

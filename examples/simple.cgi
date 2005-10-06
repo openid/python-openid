@@ -56,15 +56,14 @@ def main():
     base_url = getBaseURL()
 
     store = stores.DumbStore(
-        'This would be a good secret phrase, if no one else knew it.')
+        'This would be a decent secret phrase, if no one else knew it.')
 
-    openid_consumer = interface.OpenIDConsumerFacade(
-        store=store, trust_root=base_url)
+    openid_consumer = interface.OpenIDConsumerFacade(store=store)
 
     query = parseQuery(os.environ.get('QUERY_STRING', ''))
     this_uri = urlparse.urljoin(base_url, os.environ['SCRIPT_NAME'])
 
-    dispatcher = Dispatcher(openid_consumer, query, this_uri)
+    dispatcher = Dispatcher(openid_consumer, query, this_uri, base_url)
     dispatcher.run()
 
 if __name__ == '__main__':

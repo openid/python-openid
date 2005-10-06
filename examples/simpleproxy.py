@@ -18,10 +18,14 @@ def parseQuery(qs):
     return query
 
 class SimpleOpenIDProxy(object):
-    def __init__(self, query, this_uri):
+    def __init__(self, query, this_uri, trust_root):
         self.this_uri = this_uri
         self.parsed_uri = urlparse.urlparse(this_uri)
         self.query = query
+        self.trust_root = trust_root
+
+    def getTrustRoot(self):
+        return self.trust_root
 
     def getUserInput(self):
         """Return the URL that the user entered to be verified.
@@ -113,12 +117,12 @@ class SimpleOpenIDProxy(object):
 class ExampleDispatcher(object):
     boilerplate = ''
 
-    def __init__(self, openid_consumer, query, this_uri):
+    def __init__(self, openid_consumer, query, this_uri, trust_root):
         self.query = query
         self.step = self.query.get('step', 'start')
         self.openid_consumer = openid_consumer
         self.this_uri = this_uri
-        self.proxy = SimpleOpenIDProxy(query, this_uri)
+        self.proxy = SimpleOpenIDProxy(query, this_uri, trust_root)
 
     def write(self, data):
         raise NotImplementedError

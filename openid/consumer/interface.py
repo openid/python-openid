@@ -7,16 +7,14 @@
 class OpenIDConsumerFacade(object):
     """ """
 
-    def __init__(self, store=None, trust_root=None, fetcher=None,
-                 immediate=False, split=False):
+    def __init__(self, store=None, fetcher=None, immediate=False, split=False):
         """ """
         if fetcher is None:
             from openid.consumer.fetchers import getHTTPFetcher
             fetcher = getHTTPFetcher()
 
         from openid.consumer.impl import OpenIDConsumer
-        self.impl = OpenIDConsumer(store, trust_root, fetcher,
-                                   immediate, split)
+        self.impl = OpenIDConsumer(store, fetcher, immediate, split)
 
     def constructRedirect(self, proxy):
         """returns the redirect to send the user to proceed with the
@@ -44,6 +42,11 @@ class OpenIDProxy(object):
         openid.  This is called during constructRedirect.  If there is
         no such value, return None."""
         raise NotImplementedError
+
+    def getTrustRoot(self):
+        """This method returns the server's trust root, or if the
+        server doesn't wish to specify a trust root, it returns None.
+        This is called during constructRedirect."""
 
     def getParameters(self):
         """This method returns all the query parameters that the

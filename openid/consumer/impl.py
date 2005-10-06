@@ -14,9 +14,8 @@ class OpenIDConsumer(object):
     TOKEN_LIFETIME = 60 * 2 # two minutes
     AUTH_BLOB_LIFETIME = 60 * 60 * 1 # one hour
 
-    def __init__(self, store, trust_root, fetcher, immediate, split):
+    def __init__(self, store, fetcher, immediate, split):
         self.store = store
-        self.trust_root = trust_root
         self.fetcher = fetcher
 
         if immediate:
@@ -47,8 +46,9 @@ class OpenIDConsumer(object):
         redir_args = {'openid.identity': server_id,
                       'openid.return_to': return_to,}
 
-        if self.trust_root is not None:
-            redir_args['openid.trust_root'] = self.trust_root
+        trust_root = proxy.getTrustRoot()
+        if trust_root is not None:
+            redir_args['openid.trust_root'] = trust_root
 
         redir_args['openid.mode'] = self.mode
 
