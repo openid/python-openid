@@ -81,7 +81,7 @@ class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
         return None
 
     def _checkURL(self, url):
-        # TODO: make sure url is well-formed and routeable
+        # XXX: make sure url is well-formed and routeable
         return True
 
     def get(self, url):
