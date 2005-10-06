@@ -59,7 +59,7 @@ def main():
     store = stores.DumbStore(
         'This would be a decent secret phrase, if no one else knew it.')
 
-    openid_consumer = interface.OpenIDConsumerFacade(store=store)
+    openid_consumer = interface.OpenIDConsumer(store)
 
     query = parseQuery(os.environ.get('QUERY_STRING', ''))
     this_uri = urlparse.urljoin(base_url, os.environ['SCRIPT_NAME'])

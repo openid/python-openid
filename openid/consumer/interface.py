@@ -2,9 +2,9 @@
 This module is intended to document the main interface with the OpenID
 consumer libary.  The only part of the library which has to be used
 and isn't documented in full here is the store required to create an
-OpenIDConsumerFacade instance.  More on the abstract store type and
+OpenIDConsumer instance.  More on the abstract store type and
 concrete implementations of it that are provided in the documentation
-for the __init__ method of the OpenIDConsumerFacade class.
+for the __init__ method of the OpenIDConsumer class.
 
 
 == OVERVIEW ==
@@ -54,7 +54,7 @@ order to operate efficiently and securely.
 
 Several store implementation are provided, and the interface is fully
 documented so that custom stores can be used as well.  See the
-documentation for the OpenIDConsumerFacade class for more information
+documentation for the OpenIDConsumer class for more information
 on the interface for stores.  The concrete implementations that are
 provided allow the consumer site to store the necessary data in
 several different ways: in the filesystem, in a MySQL database, or in
@@ -99,27 +99,33 @@ information and let the server finish handling the original request.
 *********  Waiting on resolution of structure
 """
 
-class OpenIDConsumerFacade(object):
-    """ """
+class OpenIDConsumer(object):
+    """
+    """
 
     def __init__(self, store, fetcher=None, immediate=False):
-        """ """
+        """
+        """
         if fetcher is None:
             from openid.consumer.fetchers import getHTTPFetcher
             fetcher = getHTTPFetcher()
 
-        from openid.consumer.impl import OpenIDConsumer
-        self.impl = OpenIDConsumer(store, fetcher, immediate)
+        from openid.consumer.impl import OpenIDConsumerImpl
+        self.impl = OpenIDConsumerImpl(store, fetcher, immediate)
 
     def constructRedirect(self, proxy):
-        """returns the redirect to send the user to proceed with the
+        """
+        returns the redirect to send the user to proceed with the
         login.  Returns None if the user input didn't lead to a valid
-        openid."""
+        openid.
+        """
         return self.impl.constructRedirect(proxy)
 
     def processServerResponse(self, proxy):
-        """returns the value returned by whichever of the proxy's
-        handler methods was invoked"""
+        """
+        returns the value returned by whichever of the proxy's
+        handler methods was invoked
+        """
         return self.impl.processServerResponse(proxy)
 
 

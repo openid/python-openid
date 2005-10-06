@@ -8,7 +8,7 @@ from openid.consumer.parse import parseLinkAttrs
 from openid import oidUtil
 from openid.dh import DiffieHellman
 
-class OpenIDConsumer(object):
+class OpenIDConsumerImpl(object):
     NONCE_LEN = 8
     NONCE_CHRS = string.letters + string.digits
     TOKEN_LIFETIME = 60 * 2 # two minutes
