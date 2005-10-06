@@ -1,8 +1,83 @@
-#
-# XXX: SKELETON ONLY!  DO NOT USE WITHOUT MASSIVE DOC EFFORT!  And
-#      what's in here now is far from the massive effort I was talking
-#      about.
-#
+"""
+This module is intended to document the main interface with the OpenID
+consumer libary.  The only part of the library which has to be used
+and isn't documented in full here is the store required to create an
+OpenIDConsumerFacade instance.  More on the abstract store type and
+concrete implementations of it that are provided in the documentation
+for the __init__ method of the OpenIDConsumerFacade class.
+
+
+== OVERVIEW ==
+
+The OpenID identity verification process most commonly uses the
+following steps, as visible to the user of this library:
+
+1. The user enters their OpenID into a field on the consumer's site,
+   and hits some sort of log in button.
+
+2. The consumer site sends the browser a redirect, sending the browser
+   to the identity server's site.
+
+3. The identity server's site sends the browser a redirect, sending
+   the browser back to the consumer's site with the information
+   necessary to confirm the user's identity.
+
+There are a lot of conditional extras in the process, but that is the
+basic flow of an OpenID login from the consumer's point of view.  The
+most important part of that flow is noting that the consumer's site
+must handle two separate HTTP requests in order to perform the full
+identity check.
+
+
+== LIBRARY DESIGN ==
+
+This consumer library is designed with that flow in mind.  Our goal is
+to make it as easy as possible to perform the above steps securely.
+
+*************  Stuff that may depend on what Josh is doing....
+
+
+== STORES AND DUMB MODE ==
+
+OpenID is a protocol that works best when the consumer site is able to
+store some state.  This is the normal mode of operation for the
+protocol, and is sometimes referred to as smart mode.  There is also a
+fallback mode, known as dumb mode, which is available when the
+consumer site is not able to store state.  This mode should be avoided
+when possible, as it leaves the implementation more vulnerable to
+replay attacks.
+
+The mode the library works in for normal operation* is determined by
+the store that it is given.  The store is an abstraction that handles
+the data that the consumer needs to manage between http requests in
+order to operate efficiently and securely.
+
+Several store implementation are provided, and the interface is fully
+documented so that custom stores can be used as well.  See the
+documentation for the OpenIDConsumerFacade class for more information
+on the interface for stores.  The concrete implementations that are
+provided allow the consumer site to store the necessary data in
+several different ways: in the filesystem, in a MySQL database, or in
+an SQLite database.
+
+There is an additional concrete store provided that puts the system in
+dumb mode.  This is not recommended, as it removes the library's
+ability to stop replay attacks reliably.  It still uses time-based
+checking to make replay attacks only possible within a small window,
+but they remain possible within that window.  This store should only
+be used if the consumer site has no way to store data between requests
+at all.
+
+*: There are fallback cases in the protocol, where even a consumer
+usually running in smart mode acts like it's in dumb mode for one
+request, but those cases are not the normal operation.  Additionally,
+the fallback cases are much more secure than pure dumb mode, as they
+still are making use the consumer's ability to store state.
+
+
+== SPECIAL CASES ==
+
+"""
 
 class OpenIDConsumerFacade(object):
     """ """
