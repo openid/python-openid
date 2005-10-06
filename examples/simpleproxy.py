@@ -33,7 +33,7 @@ class SimpleOpenIDProxy(object):
         This just gets the URL from the form data. This step will fail
         if there was no input.
         """
-        return self.query.get('identity_url')
+        return self.query.get('openid_url')
 
     def getParameters(self):
         """Return all parameters that are part of the OpenID protocol,

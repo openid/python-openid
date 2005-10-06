@@ -9,8 +9,6 @@ import cgitb ; cgitb.enable()
 import os
 import urlparse
 
-# Peer module
-from simpleproxy import ExampleDispatcher, parseQuery, buildRedirect
 
 # You may need to manually add the openid package into your
 # python path if you don't have it installed with your system python.
@@ -19,6 +17,9 @@ from simpleproxy import ExampleDispatcher, parseQuery, buildRedirect
 # import sys
 # sys.path.append('/path/to/openid/')
 from openid.consumer import interface, stores
+
+# Peer module
+from simpleproxy import ExampleDispatcher, parseQuery, buildRedirect
 
 def getBaseURL():
     host = os.environ['HTTP_HOST']
