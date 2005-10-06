@@ -13,7 +13,7 @@ class OpenIDConsumerImpl(object):
     NONCE_CHRS = string.letters + string.digits
     TOKEN_LIFETIME = 60 * 2 # two minutes
 
-    def __init__(self, store, fetcher, immediate):
+    def __init__(self, store, immediate, fetcher):
         self.store = store
         self.fetcher = fetcher
 

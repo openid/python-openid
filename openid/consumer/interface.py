@@ -103,7 +103,7 @@ class OpenIDConsumer(object):
     """
     """
 
-    def __init__(self, store, fetcher=None, immediate=False):
+    def __init__(self, store, immediate=False, fetcher=None):
         """
         """
         if fetcher is None:
@@ -111,7 +111,7 @@ class OpenIDConsumer(object):
             fetcher = getHTTPFetcher()
 
         from openid.consumer.impl import OpenIDConsumerImpl
-        self.impl = OpenIDConsumerImpl(store, fetcher, immediate)
+        self.impl = OpenIDConsumerImpl(store, immediate, fetcher)
 
     def constructRedirect(self, proxy):
         """
