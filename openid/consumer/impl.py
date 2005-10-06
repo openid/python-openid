@@ -12,7 +12,6 @@ class OpenIDConsumer(object):
     NONCE_LEN = 8
     NONCE_CHRS = string.letters + string.digits
     TOKEN_LIFETIME = 60 * 2 # two minutes
-    AUTH_BLOB_LIFETIME = 60 * 60 * 1 # one hour
 
     def __init__(self, store, fetcher, immediate):
         self.store = store
@@ -58,20 +57,6 @@ class OpenIDConsumer(object):
 
         return str(oidUtil.appendArgs(server_url, redir_args))
 
-
-    def checkAuth(self, proxy):
-        blob = proxy.getCheckAuthParams()
-        if blob is None:
-            return proxy.loginFailure(None)
-
-        ret = self._splitCheckAuthBlob(blob)
-        if ret is None:
-            return proxy.loginFailure(None)
-
-        nonce, consumer_id, post_data, server_url = ret
-
-        return self._checkAuth(
-            proxy, nonce, consumer_id, post_data, server_url)
 
     def _checkAuth(self, proxy, nonce, consumer_id, post_data, server_url):
         ret = self.fetcher.post(server_url, post_data)
