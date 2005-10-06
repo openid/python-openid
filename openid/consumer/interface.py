@@ -122,11 +122,6 @@ class OpenIDConsumerFacade(object):
         handler methods was invoked"""
         return self.impl.processServerResponse(proxy)
 
-    def checkAuth(self, proxy):
-        """returns the value returned by whichever of the proxy's
-        handler methods was invoked"""
-        return self.impl.checkAuth(proxy)
-
 
 class OpenIDProxy(object):
     """This is a proxy the openid library will use to get information
