@@ -24,7 +24,6 @@ class OpenIDConsumerImpl(object):
 
         self.immediate = immediate
 
-
     def constructRedirect(self, proxy):
         user_url = proxy.getUserInput()
         if user_url is None:
@@ -57,6 +56,13 @@ class OpenIDConsumerImpl(object):
 
         return str(oidUtil.appendArgs(server_url, redir_args))
 
+    def processServerResponse(self, proxy):
+        mode = self._extract(proxy, 'mode')
+        func = getattr(self, '_do_' + mode, None)
+        if func is None:
+            return proxy.loginFailure(None)
+
+        return func(proxy)
 
     def _checkAuth(self, proxy, nonce, consumer_id, post_data, server_url):
         ret = self.fetcher.post(server_url, post_data)
