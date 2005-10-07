@@ -172,9 +172,35 @@ class OpenIDConsumer(object):
 
     def constructRedirect(self, proxy):
         """
-        returns the redirect to send the user to proceed with the
-        login.  Returns None if the user input didn't lead to a valid
-        openid.
+        This method is called by the user of the consumer library to
+        construct the redirect URL used in step 2 of the flow
+        described above.  The user who is authenticating themselves
+        via OpenID should be sent a redirect to the generated URL.
+
+        This method first fetches the user's claimed identity page, to
+        determine their identity server.  Second, unless the library
+        is using a dumb store, it checks to see if it has an
+        association with that identity server, and creates and stores
+        one if it does not.
+
+        * token
+        * list of methods called indirectly
+
+        @param proxy: This is an object implementing the
+            C{OpenIDProxy} interface which can be used to help with
+            app-specific parts of constructing the redirect URL.
+
+        @type proxy: This is an instance of an object implementing the
+            C{OpenIDProxy} interface.
+
+        @return: This method returns a string containing the URL to
+            redirect to when such a URL is successfully constructed.
+
+            It returns C{None} when no such URL can be constructed.
+
+        @raise Exception: This method does not handle any exceptions
+            raised by the fetcher, the store, or any of the proxy's
+            methods that it calls.
         """
         return self.impl.constructRedirect(proxy)
 
