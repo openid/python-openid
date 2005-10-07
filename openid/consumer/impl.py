@@ -84,7 +84,7 @@ class OpenIDConsumerImpl(object):
 
         error = results.get('error')
         if error is not None:
-            return proxy.serverError(error)
+            return proxy.loginFailure(consumer_id)
 
         return proxy.loginFailure(consumer_id)
 
@@ -154,9 +154,9 @@ class OpenIDConsumerImpl(object):
     def _do_error(self, proxy):
         error = self._extract(proxy, 'error')
         if error is None:
-            proxy.serverError('Unspecified Server Error')
+            proxy.loginFailure(None)
         else:
-            proxy.serverError('Server Error: %r' % error)
+            proxy.loginFailure(None)
 
     def _extract(self, proxy, param):
         return proxy.getParameters().get('openid.' + param)

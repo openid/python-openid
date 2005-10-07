@@ -286,6 +286,8 @@ class OpenIDProxy(object):
         during the call to getReturnTo, if available, None otherwise."""
         raise NotImplementedError
 
+    def log(self, message):
+        pass
 
     # The following methods are all callbacks used by
     # processServerResponse and checkAuth.  For all of them, their
@@ -318,15 +320,6 @@ class OpenIDProxy(object):
         no additional information can be provided.  Any value returned
         by this method is returned by the call to processServerRequest
         or checkAuth that led to this method being called."""
-        raise NotImplementedError
-
-    def serverError(self, message):
-        """Called when the server sends an error message to the
-        consumer.  This should be a rare occurance, but can happen.
-        message is the error message the server sent.  Any value
-        returned by this method is returned by the call to
-        processServerRequest or checkAuth that led to this method
-        being called."""
         raise NotImplementedError
 
     def setupNeeded(self, user_setup_url):
