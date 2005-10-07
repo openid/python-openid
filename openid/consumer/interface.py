@@ -177,14 +177,23 @@ class OpenIDConsumer(object):
         described above.  The user who is authenticating themselves
         via OpenID should be sent a redirect to the generated URL.
 
-        This method first fetches the user's claimed identity page, to
+        First, the user's claimed identity page is fetched, to
         determine their identity server.  Second, unless the library
         is using a dumb store, it checks to see if it has an
         association with that identity server, and creates and stores
         one if it does not.
 
-        * token
-        * list of methods called indirectly
+        It then generates a signed token for this authentication
+        transaction, which contains a timestamp, a nonce, and the
+        information needed to finish the transaction.  This token
+        is passed in to the C{XXX} method, .
+
+        Finally, if all those steps completed successfully, the
+        generated URL is returned.  Otherwise C{None} is returned.
+
+        Calling this method can result in the following other methods
+        being called.
+        * XXX list of methods called indirectly
 
         @param proxy: This is an object implementing the
             C{OpenIDProxy} interface which can be used to help with
@@ -201,6 +210,8 @@ class OpenIDConsumer(object):
         @raise Exception: This method does not handle any exceptions
             raised by the fetcher, the store, or any of the proxy's
             methods that it calls.
+
+            It raises no exceptions itself.
         """
         return self.impl.constructRedirect(proxy)
 
@@ -208,6 +219,24 @@ class OpenIDConsumer(object):
         """
         returns the value returned by whichever of the proxy's
         handler methods was invoked
+
+        @param proxy: This is an object implementing the
+            C{OpenIDProxy} interface which can be used to help with
+            app-specific parts of constructing the redirect URL.
+
+        @type proxy: This is an instance of an object implementing the
+            C{OpenIDProxy} interface.
+
+        @return: During the course of the execution of this method, it
+            calls exactly one of the callback methods in the C{XXX}
+            object passed in to it.  The value returned by that
+            callback method is returned by this method.
+        
+        @raise Exception: This method does not handle any exceptions
+            raised by the fetcher, the store, or any of the proxy's
+            methods that it calls.
+
+            It raises no exceptions itself.
         """
         return self.impl.processServerResponse(proxy)
 
@@ -217,9 +246,13 @@ class OpenIDProxy(object):
     from its environment."""
 
     def getUserInput(self):
-        """This method returns the string the user entered as their
-        openid.  This is called during constructRedirect.  If there is
-        no such value, return None."""
+        """
+        This method is called by the OpenID consumer library 
+
+        @return: This method returns the value the user gave as their
+            identity url.  If there is no such value available, it
+            returns C{None}.
+        """
         raise NotImplementedError
 
     def getTrustRoot(self):
