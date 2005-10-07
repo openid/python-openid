@@ -1,0 +1,9 @@
+#!/usr/bin/env python
+
+import cryptrand
+import storetest
+import trustroot
+
+cryptrand.test()
+storetest.test()
+trustroot.test()
