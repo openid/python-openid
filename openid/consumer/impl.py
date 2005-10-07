@@ -119,10 +119,7 @@ class OpenIDConsumerImpl(object):
             assoc.expiresIn <= 0):
             # It's not an association we know about.  Dumb mode is our
             # only possible path for recovery.
-            check_args = {}
-            for k, v in proxy.getParameters().iteritems():
-                if k.startswith('openid.'):
-                    check_args[k] = v
+            check_args = self._getOpenIDParameters(proxy)
             check_args['openid.mode'] = 'check_authentication'
             post_data = urllib.urlencode(check_args)
 
@@ -135,7 +132,7 @@ class OpenIDConsumerImpl(object):
         if sig is None or signed is None:
             return proxy.loginFailure(consumer_id)
 
-        args = proxy.getOpenIDParameters()
+        args = self._getOpenIDParameters(proxy)
         signed_list = signed.split(',')
         _signed, v_sig = oidUtil.signReply(args, assoc.secret, signed_list)
 
@@ -147,6 +144,12 @@ class OpenIDConsumerImpl(object):
 
         return proxy.loginGood(consumer_id)
 
+    def _getOpenIDParameters(self, proxy):
+        params = {}
+        for k, v in proxy.getParameters().iteritems():
+            if k.startswith('openid.'):
+                params[k] = v
+        return params
 
     def _do_cancel(self, proxy):
         return proxy.loginCancelled()
