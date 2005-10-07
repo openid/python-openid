@@ -99,7 +99,6 @@ class TrustRoot(object):
         else:
             return host.endswith(self.host)
 
-    @classmethod
     def parse(cls, trust_root, check_sanity=False):
         if not isinstance(trust_root, basestring):
             return None
@@ -131,7 +130,8 @@ class TrustRoot(object):
 
         return tr
 
-    @classmethod
+    parse = classmethod(parse)
+
     def checkSanity(cls, trust_root_string):
         """str -> bool
 
@@ -139,12 +139,15 @@ class TrustRoot(object):
         """
         return cls.parse(trust_root_string).isSane()
 
-    @classmethod
+    checkSanity = classmethod(checkSanity)
+
     def checkURL(cls, trust_root, url):
         """quick func for validating a url against a trust root.  See the
         TrustRoot class if you need more control."""
         tr = cls.parse(trust_root, check_sanity=True)
         return tr is not None and tr.validateURL(url)
+
+    checkURL = classmethod(checkURL)
 
     def __repr__(self):
         return "TrustRoot('%s', '%s', '%s', '%s', '%s', '%s')" % (
