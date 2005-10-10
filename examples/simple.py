@@ -26,6 +26,9 @@ from openid.consumer import interface, filestore
 from openid.oidUtil import appendArgs
 
 class OpenIDHTTPServer(HTTPServer):
+    """http server that contains a reference to an OpenID consumer and
+    knows its base URL.
+    """
     def __init__(self, consumer, *args, **kwargs):
         HTTPServer.__init__(self, *args, **kwargs)
 
@@ -38,7 +41,22 @@ class OpenIDHTTPServer(HTTPServer):
         self.openid_consumer = consumer
 
 class OpenIDRequestHandler(BaseHTTPRequestHandler):
+    """Request handler that knows how to verify an OpenID identity."""
+
     def do_GET(self):
+        """Dispatching logic. There are three paths defined:
+
+          / - Display an empty form asking for an identity URL to
+              verify
+          /verify - Handle form submission, initiating OpenID verification
+          /process - Handle a redirect from an OpenID server
+
+        Any other path gets a 404 response. This function also parses
+        the query parameters.
+
+        If an exception occurs in this function, a traceback is
+        written to the requesting browser.
+        """
         try:
             self.parsed_uri = urlparse.urlparse(self.path)
             self.query = {}
@@ -46,15 +64,14 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                 self.query[k] = v
 
             path = self.parsed_uri[2]
-            if path in ['', '/', '/start']:
+            if path == '/':
                 self.render()
             elif path == '/verify':
                 self.doVerify()
             elif path == '/process':
                 self.doProcess()
             else:
-                # For unknown step, return to step 0
-                self.redirect(self.buildURL('/'))
+                self.notFound()
 
         except (KeyboardInterrupt, SystemExit):
             raise
@@ -65,6 +82,10 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(cgitb.html(sys.exc_info(), context=10))
 
     def doVerify(self):
+        """Process the form submission, initating OpenID verification.
+        """
+
+        # First, make sure that the user entered something
         openid_url = self.query.get('openid_url')
         if not openid_url:
             self.render('Enter an identity URL to verify.',
@@ -72,7 +93,14 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             return
 
         consumer = self.server.openid_consumer
+
+        # Then, ask the library to begin the authorization.
         auth_request = consumer.beginAuth(openid_url)
+
+        # If the URL was unusable (either because of network
+        # conditions, a server error, or that the response returned
+        # was not an OpenID identity page), the library will return
+        # None. Let the user know that that URL is unusable.
         if auth_request is None:
             fmt = 'Cannot use <q>%s</q> as an identity URL'
             message = fmt % (escape(openid_url),)
@@ -122,16 +150,23 @@ Content-type: text/plain
 Redirecting to %s""" % (redirect_url, redirect_url)
         self.wfile.write(response)
 
-    def render(self, message=None, css_class='alert', form_contents=None):
-        self.send_response(200)
-        self.pageHeader()
+    def notFound(self):
+        fmt = 'The path <q>%s</q> was not understood by this server.'
+        msg = fmt % (self.path,)
+        openid_url = self.query.get('openid_url')
+        self.render(msg, 'error', openid_url, status=404)
+
+    def render(self, message=None, css_class='alert', form_contents=None,
+               status=200, title="Python OpenID Simple Example"):
+        self.send_response(status)
+        self.pageHeader(title)
         if message:
             self.wfile.write("<div class='%s'>" % (css_class,))
             self.wfile.write(message)
             self.wfile.write("</div>")
         self.pageFooter(form_contents)
 
-    def pageHeader(self, title="Python OpenID Simple Example"):
+    def pageHeader(self, title):
         self.wfile.write('''\
 Content-type: text/html
 
@@ -171,9 +206,8 @@ Content-type: text/html
     <h1>%s</h1>
     <p>
       This example consumer uses the <a
-      href="http://openid.schtuff.com/">Python OpenID</a> library
-      on a CGI platform.  The example just verifies that the URL that
-      you enter is your identity URL.
+      href="http://openid.schtuff.com/">Python OpenID</a> library. It
+      just verifies that the URL that you enter is your identity URL.
     </p>
 ''' % (title, title))
 
@@ -210,7 +244,9 @@ def main():
     if args:
         parser.error('Expected no arguments. Got %r' % args)
 
-    # Store state data in the directory 'store' relative to here.
+    # Instantiate OpenID consumer store and OpenID consumer.  If you
+    # were connecting to a database, you would create the database
+    # connection and instantiate an appropriate store here.
     store = filestore.FilesystemOpenIDStore(options.data_path)
     consumer = interface.OpenIDConsumer(store)
 
