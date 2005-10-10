@@ -81,30 +81,6 @@ class OpenIDConsumerImpl(object):
         else:
             return FAILURE, None
 
-    def _checkAuth(self, nonce, consumer_id, post_data, server_url):
-        ret = self.fetcher.post(server_url, post_data)
-        if ret is None:
-            return FAILURE, consumer_id
-
-        results = oidUtil.parsekv(ret[1])
-        is_valid = results.get('is_valid', 'false')
-
-        if is_valid == 'true':
-            invalidate_handle = results.get('invalidate_handle')
-            if invalidate_handle is not None:
-                self.store.removeAssociation(server_url, invalidate_handle)
-
-            if not self.store.useNonce(nonce):
-                return FAILURE, consumer_id
-
-            return SUCCESS, consumer_id
-
-        error = results.get('error')
-        if error is not None:
-            return FAILURE, consumer_id
-
-        return FAILURE, consumer_id
-
     def _doIdRes(self, token, query):
         ret = self._splitToken(token)
         if ret is None:
@@ -153,6 +129,30 @@ class OpenIDConsumerImpl(object):
             return FAILURE, consumer_id
 
         return SUCCESS, consumer_id
+
+    def _checkAuth(self, nonce, consumer_id, post_data, server_url):
+        ret = self.fetcher.post(server_url, post_data)
+        if ret is None:
+            return FAILURE, consumer_id
+
+        results = oidUtil.parsekv(ret[1])
+        is_valid = results.get('is_valid', 'false')
+
+        if is_valid == 'true':
+            invalidate_handle = results.get('invalidate_handle')
+            if invalidate_handle is not None:
+                self.store.removeAssociation(server_url, invalidate_handle)
+
+            if not self.store.useNonce(nonce):
+                return FAILURE, consumer_id
+
+            return SUCCESS, consumer_id
+
+        error = results.get('error')
+        if error is not None:
+            return FAILURE, consumer_id
+
+        return FAILURE, consumer_id
 
     def _getAssociation(self, server_url):
         if self.store.isDumb():
