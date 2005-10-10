@@ -14,30 +14,49 @@ OVERVIEW
     following steps, as visible to the user of this library:
 
     1. The user enters their OpenID into a field on the consumer's
-       site, and hits some sort of log in button.
+       site, and hits a log in button.
 
-    2. The consumer site sends the browser a redirect, sending the
-       browser to the identity server's site.
+    2. The consumer site checks that the entered URL describes an
+       OpenID page by fetching it and looking for appropriate
+       link tags in the head section.
 
-    3. The identity server's site sends the browser a redirect,
-       sending the browser back to the consumer's site with the
-       information necessary to confirm the user's identity.
+    3. The consumer site sends the browser a redirect to the identity
+       server.  This is the authentication request as described in the
+       OpenID specification.
 
-    There are a lot of conditional extras in the process, but that is
-    the basic flow of an OpenID login from the consumer's point of
-    view.  The most important part of the flow to note is the
-    consumer's site must handle two separate HTTP requests in order to
-    perform the full identity check.
+    4. The identity server's site sends the browser a redirect back to
+       the consumer site.  This redirect contains the server's
+       response to the authentication request.
+
+    The most important part of the flow to note is the consumer's site
+    must handle two separate HTTP requests in order to perform the
+    full identity check.
 
 
 LIBRARY DESIGN
 ==============
 
-    This consumer library is designed with that flow in mind.  Our
+    This consumer library is designed with that flow in mind.  The
     goal is to make it as easy as possible to perform the above steps
     securely.
 
-    Waiting on resolution of structure.
+    At a high level, there are two important parts in the consumer
+    library.  The first important part is this module, which contains
+    the interface to actually use this library.  The second is the
+    C{openid.consumer.stores} module, which describes the interface to
+    use if you need to create a custom method for storing the state
+    this library needs to maintain between requests.
+
+    In general, the scond part is less important for users of the
+    library to know about, as several implementations are provided
+    which cover a wide variety of situations in which consumers may
+    use the library.
+
+    This module contains a class, C{OpenIDConsumer}, with methods
+    corresponding to the actions necessary in each of steps 2, 3, and
+    4 listed in the overview.  Use of this library should be as easy
+    as creating an C{OpenIDConsumer} instance and calling the methods
+    appropriate for the action the site wants to take.
 
 
 STORES AND DUMB MODE
@@ -51,7 +70,7 @@ STORES AND DUMB MODE
     mode should be avoided when possible, as it leaves the
     implementation more vulnerable to replay attacks.
 
-    The mode the library works in for normal operation* is determined
+    The mode the library works in for normal operation is determined
     by the store that it is given.  The store is an abstraction that
     handles the data that the consumer needs to manage between http
     requests in order to operate efficiently and securely.
@@ -71,13 +90,6 @@ STORES AND DUMB MODE
     small window, but they remain possible within that window.  This
     store should only be used if the consumer site has no way to store
     data between requests at all.
-
-    *: There are fallback cases in the protocol, where even a consumer
-    usually running in smart mode acts like it's in dumb mode for one
-    request, but those cases are not the normal operation.
-    Additionally, the fallback cases are much more secure than pure
-    dumb mode, as they still are making use the consumer's ability to
-    store state.
 
 
 IMMEDIATE MODE
@@ -105,7 +117,7 @@ IMMEDIATE MODE
 USING THIS LIBRARY
 ==================
 
-    Waiting on resolution of structure.
+    Use of this library is a straightforward process.
 """
 
 __all__ = ['SUCCESS', 'FAILURE', 'SETUP_NEEDED', 'OpenIDAuthRequest',
