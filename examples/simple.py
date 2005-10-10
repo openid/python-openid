@@ -25,15 +25,19 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from openid.consumer import interface, filestore
 from openid.oidUtil import appendArgs
 
-class OpenIDHTTPServer(HTTPServer): def __init__(self, *args,
-    **kwargs): HTTPServer.__init__(self, *args, **kwargs) if
-    self.server_port != 80: self.base_url = 'http://%s:%s/' % (
-    self.server_name, self.server_port) else: self.base_url =
-    'http://%s/' % (self.server_name,)
+class OpenIDHTTPServer(HTTPServer):
+    def __init__(self, *args, **kwargs):
+        HTTPServer.__init__(self, *args, **kwargs)
+
+        if self.server_port != 80:
+            self.base_url = ('http://%s:%s/' %
+                             (self.server_name, self.server_port))
+        else:
+            self.base_url = 'http://%s/' % (self.server_name,)
 
         # dumb-mode OpenID consumer
         store = filestore.FilesystemOpenIDStore('store')
-        self.openid_consumer = interface.OpenIDConsumer(store=store)
+        self.openid_consumer = interface.OpenIDConsumer(store)
 
 class OpenIDRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -53,6 +57,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             else:
                 # For unknown step, return to step 0
                 self.redirect(self.buildURL('/'))
+
         except (KeyboardInterrupt, SystemExit):
             raise
         except:
@@ -106,6 +111,19 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             
         self.render(message, css_class, openid_url)
 
+    def buildURL(self, action, **query):
+        base = urlparse.urljoin(self.server.base_url, action)
+        return appendArgs(base, query)
+
+    def redirect(self, redirect_url):
+        self.send_response(302)
+        response = """\
+Location: %s
+Content-type: text/plain
+
+Redirecting to %s""" % (redirect_url, redirect_url)
+        self.wfile.write(response)
+
     def render(self, message=None, css_class='alert', form_contents=None):
         self.send_response(200)
         self.pageHeader()
@@ -123,32 +141,32 @@ Content-type: text/html
   <head><title>%s</title></head>
   <style type="text/css">
       * {
-        font-family:verdana,sans-serif;
+        font-family: verdana,sans-serif;
       }
       body {
-        width:50em;
-        margin:1em;
+        width: 50em;
+        margin: 1em;
       }
       div {
-        padding:.5em;
+        padding: .5em;
       }
       table {
-        margin:none;
-        padding:none;
+        margin: none;
+        padding: none;
       }
       .alert {
-        border:1px solid #e7dc2b;
+        border: 1px solid #e7dc2b;
         background: #fff888;
       }
       .error {
-        border:1px solid #f00;
-        background: #faa;
+        border: 1px solid #ff0000;
+        background: #ffaaaa;
       }
       #verify-form {
-        border:1px solid #777;
-        background: #ddd;
-        margin-top:1em;
-        padding-bottom:0em;
+        border: 1px solid #777777;
+        background: #dddddd;
+        margin-top: 1em;
+        padding-bottom: 0em;
       }
   </style>
   <body>
@@ -176,19 +194,6 @@ Content-type: text/html
   </body>
 </html>
 ''' % (quoteattr(self.buildURL('verify')), quoteattr(form_contents)))
-
-    def buildURL(self, action, **query):
-        base = urlparse.urljoin(self.server.base_url, action)
-        return appendArgs(base, query)
-
-    def redirect(self, redirect_url):
-        self.send_response(302)
-        response = """\
-Location: %s
-Content-type: text/plain
-
-Redirecting to %s""" % (redirect_url, redirect_url)
-        self.wfile.write(response)
 
 if __name__ == '__main__':
     server = OpenIDHTTPServer(('localhost', 8000), OpenIDRequestHandler)
