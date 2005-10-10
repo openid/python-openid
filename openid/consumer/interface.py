@@ -115,7 +115,7 @@ from openid.consumer.impl import \
      SUCCESS, FAILURE, SETUP_NEEDED, OpenIDAuthRequest
 
 class OpenIDConsumer(object):
-    def __init__(self, fetcher=None, store=None, immediate=False):
+    def __init__(self, store, fetcher=None, immediate=False):
         if fetcher is None:
             from openid.consumer.fetchers import getHTTPFetcher
             fetcher = getHTTPFetcher()
