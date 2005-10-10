@@ -198,10 +198,29 @@ def test_mysql():
             # failing test, comment out this line.
             conn.query('DROP DATABASE %s;' % db_name)
 
+def test_memcache():
+    from openid.consumer import memcachestore
+    try:
+        import memcache
+    except ImportError:
+        pass
+    else:
+        import time
+        import memcache
+        cache = memcache.Client(['localhost:11211'], debug=1)
+        cache.flush_all()
+
+        # let the flush_all take effect
+        time.sleep(1)
+
+        store = memcachestore.MemCacheOpenIDStore(cache)
+        testStore(store)
+
 def test():
     test_filestore()
     test_sqlite()
     test_mysql()
+    test_memcache()
 
 if __name__ == '__main__':
     test()
