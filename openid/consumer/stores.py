@@ -1,37 +1,11 @@
 import time
 from openid import oidUtil
 
-class ConsumerAssociation(object):
-    """This class represents a consumer's view of an association."""
-
-    def fromExpiresIn(cls, expires_in, server_url, handle, secret):
-        issued = int(time.time())
-        lifetime = expires_in
-        return cls(server_url, handle, secret, issued, lifetime)
-
-    fromExpiresIn = classmethod(fromExpiresIn)
-
-    def __init__(self, server_url, handle, secret, issued, lifetime):
-        self.server_url = server_url
-        self.handle = handle
-        self.secret = secret
-        self.issued = issued
-        self.lifetime = lifetime
-
-    def getExpiresIn(self):
-        return max(0, self.issued + self.lifetime - int(time.time()))
-
-    expiresIn = property(getExpiresIn)
-
-    def __eq__(self, other):
-        return self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return self.__dict__ != other.__dict__
-
-
 class OpenIDStore(object):
-    """This is the interface for the consumer's store."""
+    """
+    This is the interface for the store objects the OpenID consumer
+    library uses.  It is 
+    """
 
     AUTH_KEY_LEN = 20
 
@@ -103,4 +77,33 @@ class DumbStore(OpenIDStore):
 
     def isDumb(self):
         return True
+
+
+class ConsumerAssociation(object):
+    """This class represents a consumer's view of an association."""
+
+    def fromExpiresIn(cls, expires_in, server_url, handle, secret):
+        issued = int(time.time())
+        lifetime = expires_in
+        return cls(server_url, handle, secret, issued, lifetime)
+
+    fromExpiresIn = classmethod(fromExpiresIn)
+
+    def __init__(self, server_url, handle, secret, issued, lifetime):
+        self.server_url = server_url
+        self.handle = handle
+        self.secret = secret
+        self.issued = issued
+        self.lifetime = lifetime
+
+    def getExpiresIn(self):
+        return max(0, self.issued + self.lifetime - int(time.time()))
+
+    expiresIn = property(getExpiresIn)
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return self.__dict__ != other.__dict__
 
