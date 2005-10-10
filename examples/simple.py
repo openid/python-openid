@@ -105,52 +105,95 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             fmt = 'Cannot use <q>%s</q> as an identity URL'
             message = fmt % (escape(openid_url),)
             self.render(message, css_class='error', form_contents=openid_url)
-            return
+        else:
+            # The URL was a valid identity URL. Now we construct a URL
+            # that will get us to process the server response. We will
+            # need the token from the auth request when processing the
+            # response, so we have to save it somewhere. The obvious
+            # options are including it in the URL, storing it in a
+            # cookie, and storing it in a session object if one is
+            # available. For this example, we have no session and we
+            # do not want to deal with cookies, so just add it as a
+            # query parameter to the URL.
+            return_to = self.buildURL('process', token=auth_request.token)
 
-        return_to = self.buildURL('process', token=auth_request.token)
-        redirect_url = consumer.constructRedirect(
-            auth_request, return_to, trust_root=self.server.base_url)
+            # Now ask the library for the URL to redirect the user to
+            # his OpenID server. The auth request is what the library
+            # returned before. We just constructed the return_to. The
+            # return_to URL must be under the specified trust_root. We
+            # just use the base_url for this server as a trust root.
+            redirect_url = consumer.constructRedirect(
+                auth_request, return_to, trust_root=self.server.base_url)
 
-        self.redirect(redirect_url)
+            # Send the redirect response 
+            self.redirect(redirect_url)
 
     def doProcess(self):
+        """Handle the redirect from the OpenID server.
+        """
         consumer = self.server.openid_consumer
+
+        # retrieve the token from the environment (in this case, the URL)
         token = self.query.get('token', '')
+
+        # Ask the library to check the response that the server sent
+        # us.  Status is a code indicating the response type. info is
+        # either None or a string containing more information about
+        # the return type.
         status, info = consumer.completeAuth(token, self.query)
+        
         css_class = 'error'
         openid_url = None
         if status == interface.FAILURE and info:
+            # In the case of failure, if info is non-None, it is the
+            # URL that we were verifying. We include it in the error
+            # message to help the user figure out what happened.
             openid_url = info
             fmt = "Verification of %s failed."
             message = fmt % (escape(openid_url),)
         elif status == interface.SUCCESS:
+            # Success means that the transaction completed without
+            # error. If info is None, it means that the user cancelled
+            # the verification.
             css_class = 'alert'
             if info:
+                # This is a successful verification attempt. If this
+                # was a real application, we would do our login,
+                # comment posting, etc. here.
                 openid_url = info
                 fmt = "You have successfully verified %s as your identity."
                 message = fmt % (escape(openid_url),)
             else:
+                # cancelled
                 message = 'Verification cancelled'
         else:
+            # Either we don't understand the code or there is no
+            # openid_url included with the error. Give a generic
+            # failure message. The library should supply debug
+            # information in a log.
             message = 'Verification failed.'
             css_class = 'error'
-            
+
         self.render(message, css_class, openid_url)
 
     def buildURL(self, action, **query):
+        """Build a URL relative to the server base_url, with the given
+        query parameters added."""
         base = urlparse.urljoin(self.server.base_url, action)
         return appendArgs(base, query)
 
     def redirect(self, redirect_url):
-        self.send_response(302)
+        """Send a redirect response to the given URL to the browser."""
         response = """\
 Location: %s
 Content-type: text/plain
 
 Redirecting to %s""" % (redirect_url, redirect_url)
+        self.send_response(302)
         self.wfile.write(response)
 
     def notFound(self):
+        """Render a page with a 404 return code and a message."""
         fmt = 'The path <q>%s</q> was not understood by this server.'
         msg = fmt % (self.path,)
         openid_url = self.query.get('openid_url')
@@ -158,6 +201,7 @@ Redirecting to %s""" % (redirect_url, redirect_url)
 
     def render(self, message=None, css_class='alert', form_contents=None,
                status=200, title="Python OpenID Simple Example"):
+        """Render a page."""
         self.send_response(status)
         self.pageHeader(title)
         if message:
@@ -167,6 +211,7 @@ Redirecting to %s""" % (redirect_url, redirect_url)
         self.pageFooter(form_contents)
 
     def pageHeader(self, title):
+        """Render the page header"""
         self.wfile.write('''\
 Content-type: text/html
 
@@ -212,6 +257,7 @@ Content-type: text/html
 ''' % (title, title))
 
     def pageFooter(self, form_contents):
+        """Render the page footer"""
         if not form_contents:
             form_contents = ''
 
