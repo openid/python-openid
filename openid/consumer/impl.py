@@ -22,7 +22,7 @@ def getOpenIDParameters(query):
     return params
 
 SUCCESS = 'success'
-FAILURE = 'not an option'
+FAILURE = 'failure'
 SETUP_NEEDED = 'setup needed'
 
 class OpenIDConsumerImpl(object):
