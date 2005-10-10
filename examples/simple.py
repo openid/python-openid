@@ -26,7 +26,7 @@ from openid.consumer import interface, filestore
 from openid.oidUtil import appendArgs
 
 class OpenIDHTTPServer(HTTPServer):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, consumer, *args, **kwargs):
         HTTPServer.__init__(self, *args, **kwargs)
 
         if self.server_port != 80:
@@ -35,9 +35,7 @@ class OpenIDHTTPServer(HTTPServer):
         else:
             self.base_url = 'http://%s/' % (self.server_name,)
 
-        # dumb-mode OpenID consumer
-        store = filestore.FilesystemOpenIDStore('store')
-        self.openid_consumer = interface.OpenIDConsumer(store)
+        self.openid_consumer = consumer
 
 class OpenIDRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -195,6 +193,33 @@ Content-type: text/html
 </html>
 ''' % (quoteattr(self.buildURL('verify')), quoteattr(form_contents)))
 
-if __name__ == '__main__':
-    server = OpenIDHTTPServer(('localhost', 8000), OpenIDRequestHandler)
+def main():
+    import optparse
+    parser = optparse.OptionParser('Usage:\n %prog [options]')
+    parser.add_option('-d', '--data-path', dest='data_path', default='store',
+                      help='Data directory for storing OpenID consumer state. '
+                      'Defaults to "%default" in the current directory.')
+    parser.add_option('-p', '--port', dest='port', type='int', default=8000,
+                      help='Port on which to listen for HTTP requests. '
+                      'Defaults to port %default.')
+    parser.add_option('-s', '--host', dest='host', default='localhost',
+                      help='Host on which to listen for HTTP requests. '
+                      'Also used for generating URLs. Defaults to %default.')
+
+    options, args = parser.parse_args()
+    if args:
+        parser.error('Expected no arguments. Got %r' % args)
+
+    # Store state data in the directory 'store' relative to here.
+    store = filestore.FilesystemOpenIDStore(options.data_path)
+    consumer = interface.OpenIDConsumer(store)
+
+    addr = (options.host, options.port)
+    server = OpenIDHTTPServer(consumer, addr, OpenIDRequestHandler)
+
+    print 'Server running at:'
+    print server.base_url
     server.serve_forever()
+
+if __name__ == '__main__':
+    main()
