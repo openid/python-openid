@@ -133,6 +133,9 @@ class FilesystemOpenIDStore(OpenIDStore):
 
     def __init__(self, directory):
         """Initialize the nonce and association directories"""
+        # Make absolute
+        directory = os.path.normpath(os.path.abspath(directory))
+
         self.nonce_dir = os.path.join(directory, 'nonces')
 
         self.association_dir = os.path.join(directory, 'associations')
