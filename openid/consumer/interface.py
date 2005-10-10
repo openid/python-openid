@@ -128,7 +128,57 @@ from openid.consumer.impl import \
      OpenIDAuthRequest
 
 class OpenIDConsumer(object):
+    """
+    @ivar impl: balh
+    """
+
     def __init__(self, store, fetcher=None, immediate=False):
+        """
+        This method initializes a new C{OpenIDConsumer} instance.
+        Users of the OpenID consumer library need to create an
+        C{OpenIDConsumer} instance to access the library.
+
+        OpenIDConsumer instances store no per-request state, so they
+        may be used repeatedly when it is desired.
+
+
+        @param store: This must be an object that implements the
+            interface in C{openid.consumer.stores.OpenIDStore}.
+            Several concrete implementations are provided, to cover
+            most common use cases.  For stores backed by MySQL or
+            SQLite, see the openid.consumer.sqlstore package.  For a
+            filesystem-backed store, see the
+            C{openid.consumer.filestore} package.
+
+            As a last resort, if it isn't possible for the server to
+            store state at all, an instance of
+            C{openid.consumer.stores.DumbStore} can be used.  This
+            should be an absolute last resort, though, as it makes the
+            consumer vulnerable to replay attacks over the lifespan of
+            the tokens the library creates.  See L{impl} for
+            information on controlling the lifespan of those tokens.
+
+        @type store: C{openid.consumer.stores.OpenIDStore}
+
+
+        @param fetcher: This is an optional instance of
+            C{openid.consumer.fetchers.OpenIDHTTPFetcher}.  If
+            present, the provided fetcher is used by the library to
+            fetch user's identity pages and make direct requests to
+            the identity server.  If it's not present, a default
+            fetcher is used.  The default fetcher uses curl if the
+            pycurl bindings are available, and uses urllib if not.
+
+        @type fetcher: C{openid.consumer.fetchers.OpenIDHTTPFetcher}
+
+
+        @param immediate: This is an optional boolean value.  It
+            controls whether the library uses immediate mode, as
+            explained in the module description.  The default value is
+            False, which disables immediate mode.
+
+        @type immediate: C{bool}
+        """
         if fetcher is None:
             from openid.consumer.fetchers import getHTTPFetcher
             fetcher = getHTTPFetcher()
@@ -137,9 +187,63 @@ class OpenIDConsumer(object):
         self.impl = OpenIDConsumerImpl(store, immediate, fetcher)
 
     def beginAuth(self, user_url):
+        """
+        First, the user's claimed identity page is fetched, to
+        determine their identity server.  Second, unless the library
+        is using a dumb store, it checks to see if it has an
+        association with that identity server, and creates and stores
+        one if it does not.
+
+        It then generates a signed token for this authentication
+        transaction, which contains a timestamp, a nonce, and the
+        information needed to finish the transaction.  This token
+        is passed in to the C{XXX} method, .
+
+        """
         return self.impl.beginAuth(user_url)
 
     def constructRedirect(self, auth_request, return_to, trust_root):
+        """
+        This method is called by the user of the consumer library to
+        construct the redirect URL used in step 3 of the flow
+        described in the overview.  The generated redirect should be
+        sent to the browser which initiated the authorization request.
+
+        @param auth_request: This must be an C{OpenIDAuthRequest}
+            instance which was returned from a previous call to
+            C{L{beginAuth}}.  It contains information found during the
+            beginAuth call which is needed to build the redirect URL.
+
+        @type auth_request: C{OpenIDAuthRequest}
+
+
+        @param return_to: This is the URL that will be included in the
+            generated redirect as the URL the OpenID server will send
+            its response to.  The URL passed in must handle OpenID
+            authentication responses.
+
+        @type return_to: C{str}
+
+
+        @param trust_root: This is a URL that will be sent to the
+            server to identify this site.  U{The OpenID
+            spec<http://www.openid.net/specs.bml#mode-checkid_immediate>}
+            has more information on what the trust_root value is for
+            and what its form can be.
+
+        @type trust_root: C{str}
+
+
+        @return: This method returns a string containing the URL to
+            redirect to when such a URL is successfully constructed.
+
+            It returns C{None} when no such URL can be constructed.
+
+        @raise Exception: This method does not handle any exceptions
+            raised by the store it is using.
+
+            It raises no exceptions itself.
+        """
         return self.impl.constructRedirect(auth_request, return_to, trust_root)
 
     def completeAuth(self, token, query):
@@ -152,56 +256,6 @@ class OpenIDConsumer(object):
 ##     """
 
 ##     def __init__(self, store, immediate=False, fetcher=None):
-##         """
-##         This method initializes a new OpenIDConsumer instance.  Users
-##         of this OpenID consumer library need to create on
-##         OpenIDConsumer instance to act as their gateway to the
-##         library.
-
-##         OpenIDConsumer instances store no per-request state, so they
-##         may be used repeatedly in cases where they can remain in
-##         memory between requests to the server.
-
-
-##         @param store: This must be an object that implements the
-##             interface in C{openid.consumer.stores.OpenIDStore}.
-##             Several concrete implementations are provided, to cover
-##             most common use cases.  For stores backed by MySQL or
-##             SQLite, see the openid.consumer.sqlstore package.  For a
-##             filesystem-backed store, see the
-##             C{openid.consumer.filestore} package.
-
-##             As a last resort, if it isn't possible for the server to
-##             store state at all, an instance of
-##             C{openid.consumer.stores.DumbStore} can be used.  This
-##             should be an absolute last resort, though, as it makes the
-##             consumer vulnerable to replay attacks over the lifespan of
-##             the tokens the library creates.  See XXX for more
-##             information on controlling the lifespan of tokens.
-
-##         @type store: C{openid.consumer.stores.OpenIDStore}
-
-
-##         @param immediate: This is an optional boolean value.  It
-##             controls whether the library uses immediate mode, as
-##             explained in the module description.  The default value is
-##             False, which disables immediate mode.
-
-##         @type immediate: C{bool}
-
-##         @param fetcher: This is an optional instance of
-##             C{openid.consumer.fetchers.OpenIDHTTPFetcher}.  If
-##             present, the provided fetcher is used by the library to
-##             fetch user's identity pages and make direct requests to
-##             the identity server.  If it's not present, a default
-##             fetcher is used.  The default fetcher uses curl if the
-##             pycurl bindings are available, and uses urllib if not.
-
-##         @type fetcher: C{openid.consumer.fetchers.OpenIDHTTPFetcher}
-
-
-##         @return: As an initializer, this method has no return value.
-##         """
 ##         if fetcher is None:
 ##             from openid.consumer.fetchers import getHTTPFetcher
 ##             fetcher = getHTTPFetcher()
@@ -210,48 +264,6 @@ class OpenIDConsumer(object):
 ##         self.impl = OpenIDConsumerImpl(store, immediate, fetcher)
 
 ##     def constructRedirect(self, proxy):
-##         """
-##         This method is called by the user of the consumer library to
-##         construct the redirect URL used in step 2 of the flow
-##         described above.  The user who is authenticating themselves
-##         via OpenID should be sent a redirect to the generated URL.
-
-##         First, the user's claimed identity page is fetched, to
-##         determine their identity server.  Second, unless the library
-##         is using a dumb store, it checks to see if it has an
-##         association with that identity server, and creates and stores
-##         one if it does not.
-
-##         It then generates a signed token for this authentication
-##         transaction, which contains a timestamp, a nonce, and the
-##         information needed to finish the transaction.  This token
-##         is passed in to the C{XXX} method, .
-
-##         Finally, if all those steps completed successfully, the
-##         generated URL is returned.  Otherwise C{None} is returned.
-
-##         Calling this method can result in the following other methods
-##         being called.
-##         * XXX list of methods called indirectly
-
-##         @param proxy: This is an object implementing the
-##             C{OpenIDProxy} interface which can be used to help with
-##             app-specific parts of constructing the redirect URL.
-
-##         @type proxy: This is an instance of an object implementing the
-##             C{OpenIDProxy} interface.
-
-##         @return: This method returns a string containing the URL to
-##             redirect to when such a URL is successfully constructed.
-
-##             It returns C{None} when no such URL can be constructed.
-
-##         @raise Exception: This method does not handle any exceptions
-##             raised by the fetcher, the store, or any of the proxy's
-##             methods that it calls.
-
-##             It raises no exceptions itself.
-##         """
 ##         return self.impl.constructRedirect(proxy)
 
 ##     def processServerResponse(self, proxy):
