@@ -8,6 +8,23 @@ from openid.consumer.parse import parseLinkAttrs
 from openid import oidUtil
 from openid.dh import DiffieHellman
 
+class OpenIDAuthRequest(object):
+    def __init__(self, token, server_id, server_url):
+        self.token = token
+        self.server_id = server_id
+        self.server_url = server_url
+
+def getOpenIDParameters(query):
+    params = {}
+    for k, v in query.iteritems():
+        if k.startswith('openid.'):
+            params[k] = v
+    return params
+
+SUCCESS = 'success'
+FAILURE = 'not an option'
+SETUP_NEEDED = 'setup needed'
+
 class OpenIDConsumerImpl(object):
     NONCE_LEN = 8
     NONCE_CHRS = string.letters + string.digits
@@ -24,11 +41,7 @@ class OpenIDConsumerImpl(object):
 
         self.immediate = immediate
 
-    def constructRedirect(self, proxy):
-        user_url = proxy.getUserInput()
-        if user_url is None:
-            return None
-
+    def beginAuth(self, user_url):
         ret = self._findIdentityInfo(user_url)
         if ret is None:
             return None
@@ -38,36 +51,40 @@ class OpenIDConsumerImpl(object):
         self.store.storeNonce(nonce)
 
         token = self._genToken(nonce, consumer_id, server_url)
-        return_to = proxy.getReturnTo(token)
+        return OpenIDAuthRequest(token, server_id, server_url)
 
-        redir_args = {'openid.identity': server_id,
-                      'openid.return_to': return_to,}
+    def constructRedirect(self, auth_req, return_to, trust_root):
+        redir_args = {
+            'openid.identity': auth_req.server_id,
+            'openid.return_to': return_to,
+            'openid.trust_root': trust_root,
+            'openid.mode': self.mode,
+            }
 
-        trust_root = proxy.getTrustRoot()
-        if trust_root is not None:
-            redir_args['openid.trust_root'] = trust_root
-
-        redir_args['openid.mode'] = self.mode
-
-        assoc = self._getAssociation(server_url)
-
+        assoc = self._getAssociation(auth_req.server_url)
         if assoc is not None:
             redir_args['openid.assoc_handle'] = assoc.handle
 
-        return str(oidUtil.appendArgs(server_url, redir_args))
+        return str(oidUtil.appendArgs(auth_req.server_url, redir_args))
 
-    def processServerResponse(self, proxy):
-        mode = self._extract(proxy, 'mode')
-        func = getattr(self, '_do_' + mode, None)
-        if func is None:
-            return proxy.loginFailure(None)
+    def processServerResponse(self, token, query):
+        mode = query.get('openid.mode', '')
+        if mode == 'cancel':
+            return SUCCESS, None
+        elif mode == 'error':
+            error = query.get('openid.error')
+            if error is not None:
+                pass # XXX: log this
+            return FAILURE, None
+        elif mode == 'id_res':
+            return self._doIdRes(token, query)
+        else:
+            return FAILURE, None
 
-        return func(proxy)
-
-    def _checkAuth(self, proxy, nonce, consumer_id, post_data, server_url):
+    def _checkAuth(self, nonce, consumer_id, post_data, server_url):
         ret = self.fetcher.post(server_url, post_data)
         if ret is None:
-            return proxy.loginFailure(consumer_id)
+            return FAILURE, consumer_id
 
         results = oidUtil.parsekv(ret[1])
         is_valid = results.get('is_valid', 'false')
@@ -78,40 +95,33 @@ class OpenIDConsumerImpl(object):
                 self.store.removeAssociation(server_url, invalidate_handle)
 
             if not self.store.useNonce(nonce):
-                return proxy.loginFailure(consumer_id)
+                return FAILURE, consumer_id
 
-            return proxy.loginGood(consumer_id)
+            return SUCCESS, consumer_id
 
         error = results.get('error')
         if error is not None:
-            return proxy.loginFailure(consumer_id)
+            return FAILURE, consumer_id
 
-        return proxy.loginFailure(consumer_id)
+        return FAILURE, consumer_id
 
-    def _do_id_res(self, proxy):
-        token = proxy.getToken()
-        if token is None:
-            return proxy.loginFailure(None)
-
+    def _doIdRes(self, token, query):
         ret = self._splitToken(token)
         if ret is None:
-            return proxy.loginFailure(None)
+            return FAILURE, None
 
         nonce, consumer_id, server_url = ret
 
-        return_to = self._extract(proxy, 'return_to')
-        server_id = self._extract(proxy, 'identity')
-        assoc_handle = self._extract(proxy, 'assoc_handle')
+        return_to = query.get('openid.return_to')
+        server_id = query.get('openid.identity')
+        assoc_handle = query.get('openid.assoc_handle')
 
         if return_to is None or server_id is None or assoc_handle is None:
-            return proxy.loginFailure(consumer_id)
+            return FAILURE, consumer_id
 
-        if not proxy.verifyReturnTo(return_to):
-            return proxy.loginFailure(consumer_id)
-
-        user_setup_url = self._extract(proxy, 'user_setup_url')
+        user_setup_url = query.get('openid.user_setup_url')
         if user_setup_url is not None:
-            return proxy.setupNeeded(user_setup_url)
+            return SETUP_NEEDED, user_setup_url
 
         assoc = self.store.getAssociation(server_url)
 
@@ -119,50 +129,30 @@ class OpenIDConsumerImpl(object):
             assoc.expiresIn <= 0):
             # It's not an association we know about.  Dumb mode is our
             # only possible path for recovery.
-            check_args = self._getOpenIDParameters(proxy)
+            check_args = getOpenIDParameters(query)
             check_args['openid.mode'] = 'check_authentication'
             post_data = urllib.urlencode(check_args)
 
             return self._checkAuth(
-                proxy, nonce, consumer_id, post_data, server_url)
+                nonce, consumer_id, post_data, server_url)
 
         # Check the signature
-        sig = self._extract(proxy, 'sig')
-        signed = self._extract(proxy, 'signed')
+        sig = query.get('openid.sig')
+        signed = query.get('openid.signed')
         if sig is None or signed is None:
-            return proxy.loginFailure(consumer_id)
+            return FAILURE, consumer_id
 
-        args = self._getOpenIDParameters(proxy)
+        args = getOpenIDParameters(query)
         signed_list = signed.split(',')
         _signed, v_sig = oidUtil.signReply(args, assoc.secret, signed_list)
 
         if v_sig != sig:
-            return proxy.loginFailure(consumer_id)
+            return FAILURE, consumer_id
 
         if not self.store.useNonce(nonce):
-            return proxy.loginFailure(consumer_id)
+            return FAILURE, consumer_id
 
-        return proxy.loginGood(consumer_id)
-
-    def _getOpenIDParameters(self, proxy):
-        params = {}
-        for k, v in proxy.getParameters().iteritems():
-            if k.startswith('openid.'):
-                params[k] = v
-        return params
-
-    def _do_cancel(self, proxy):
-        return proxy.loginCancelled()
-
-    def _do_error(self, proxy):
-        error = self._extract(proxy, 'error')
-        if error is None:
-            proxy.loginFailure(None)
-        else:
-            proxy.loginFailure(None)
-
-    def _extract(self, proxy, param):
-        return proxy.getParameters().get('openid.' + param)
+        return SUCCESS, consumer_id
 
     def _getAssociation(self, server_url):
         if self.store.isDumb():
