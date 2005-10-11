@@ -22,7 +22,8 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 # Python-OpenID.
 # sys.path.append('/path/to/openid/')
 
-from openid.consumer import interface, filestore
+from openid.consumer import filestore
+from openid.consumer import interface as openid
 from openid.oidUtil import appendArgs
 
 class OpenIDHTTPServer(HTTPServer):
@@ -95,17 +96,21 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         consumer = self.server.openid_consumer
 
         # Then, ask the library to begin the authorization.
-        auth_request = consumer.beginAuth(openid_url)
+        status, info = consumer.beginAuth(openid_url)
 
         # If the URL was unusable (either because of network
         # conditions, a server error, or that the response returned
         # was not an OpenID identity page), the library will return
         # None. Let the user know that that URL is unusable.
-        if auth_request is None:
-            fmt = 'Cannot use <q>%s</q> as an identity URL'
+        if status in [openid.HTTP_FAILURE, openid.PARSE_ERROR]:
+            if status == openid.HTTP_FAILURE:
+                fmt = 'Failed to retrieve <q>%s</q>'
+            else:
+                fmt = 'Could not find OpenID information in <q>%s</q>'
+
             message = fmt % (escape(openid_url),)
             self.render(message, css_class='error', form_contents=openid_url)
-        else:
+        elif status == openid.SUCCESS:
             # The URL was a valid identity URL. Now we construct a URL
             # that will get us to process the server response. We will
             # need the token from the auth request when processing the
@@ -115,7 +120,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # available. For this example, we have no session and we
             # do not want to deal with cookies, so just add it as a
             # query parameter to the URL.
-            return_to = self.buildURL('process', token=auth_request.token)
+            return_to = self.buildURL('process', token=info.token)
 
             # Now ask the library for the URL to redirect the user to
             # his OpenID server. The auth request is what the library
@@ -123,10 +128,12 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # return_to URL must be under the specified trust_root. We
             # just use the base_url for this server as a trust root.
             redirect_url = consumer.constructRedirect(
-                auth_request, return_to, trust_root=self.server.base_url)
+                info, return_to, trust_root=self.server.base_url)
 
             # Send the redirect response 
             self.redirect(redirect_url)
+        else:
+            assert False, 'Not reached'
 
     def doProcess(self):
         """Handle the redirect from the OpenID server.
@@ -144,14 +151,14 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         
         css_class = 'error'
         openid_url = None
-        if status == interface.FAILURE and info:
+        if status == openid.FAILURE and info:
             # In the case of failure, if info is non-None, it is the
             # URL that we were verifying. We include it in the error
             # message to help the user figure out what happened.
             openid_url = info
             fmt = "Verification of %s failed."
             message = fmt % (escape(openid_url),)
-        elif status == interface.SUCCESS:
+        elif status == openid.SUCCESS:
             # Success means that the transaction completed without
             # error. If info is None, it means that the user cancelled
             # the verification.
@@ -294,7 +301,7 @@ def main():
     # were connecting to a database, you would create the database
     # connection and instantiate an appropriate store here.
     store = filestore.FilesystemOpenIDStore(options.data_path)
-    consumer = interface.OpenIDConsumer(store)
+    consumer = openid.OpenIDConsumer(store)
 
     addr = (options.host, options.port)
     server = OpenIDHTTPServer(consumer, addr, OpenIDRequestHandler)

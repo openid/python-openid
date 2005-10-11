@@ -120,11 +120,12 @@ USING THIS LIBRARY
     Use of this library is a straightforward process.
 """
 
-__all__ = ['SUCCESS', 'FAILURE', 'SETUP_NEEDED', 'OpenIDAuthRequest',
-           'OpenIDConsumer']
+__all__ = ['SUCCESS', 'FAILURE', 'SETUP_NEEDED', 'HTTP_FAILURE', 'PARSE_ERROR',
+           'OpenIDAuthRequest', 'OpenIDConsumer']
 
 from openid.consumer.impl import \
-     SUCCESS, FAILURE, SETUP_NEEDED, OpenIDAuthRequest
+     SUCCESS, FAILURE, SETUP_NEEDED, PARSE_ERROR, HTTP_FAILURE, \
+     OpenIDAuthRequest
 
 class OpenIDConsumer(object):
     def __init__(self, store, fetcher=None, immediate=False):

@@ -21,9 +21,13 @@ def getOpenIDParameters(query):
             params[k] = v
     return params
 
+# The values of these constants are not important, as long as they are unique
 SUCCESS = 'success'
 FAILURE = 'failure'
 SETUP_NEEDED = 'setup needed'
+
+HTTP_FAILURE = 'http failure'
+PARSE_ERROR = 'parse error'
 
 class OpenIDConsumerImpl(object):
     NONCE_LEN = 8
@@ -42,16 +46,16 @@ class OpenIDConsumerImpl(object):
         self.immediate = immediate
 
     def beginAuth(self, user_url):
-        ret = self._findIdentityInfo(user_url)
-        if ret is None:
-            return None
+        status, info = self._findIdentityInfo(user_url)
+        if status != SUCCESS:
+            return status, info
 
-        consumer_id, server_id, server_url = ret
+        consumer_id, server_id, server_url = info
         nonce = oidUtil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
         self.store.storeNonce(nonce)
 
         token = self._genToken(nonce, consumer_id, server_url)
-        return OpenIDAuthRequest(token, server_id, server_url)
+        return SUCCESS, OpenIDAuthRequest(token, server_id, server_url)
 
     def constructRedirect(self, auth_req, return_to, trust_root):
         redir_args = {
@@ -231,7 +235,7 @@ class OpenIDConsumerImpl(object):
         url = self._normalizeUrl(identity_url)
         ret = self.fetcher.get(url)
         if ret is None:
-            return None
+            return HTTP_FAILURE, None
 
         consumer_id, data = ret
 
@@ -251,14 +255,15 @@ class OpenIDConsumerImpl(object):
                     delegate = href
 
         if server is None:
-            return None
+            return PARSE_ERROR, None
 
         if delegate is not None:
             server_id = delegate
         else:
             server_id = consumer_id
 
-        return tuple(map(self._normalizeUrl, (consumer_id, server_id, server)))
+        urls = (consumer_id, server_id, server)
+        return SUCCESS, tuple(map(self._normalizeUrl, urls))
 
     def _associate(self, server_url):
         dh = DiffieHellman()
