@@ -188,26 +188,61 @@ class OpenIDConsumer(object):
 
     def beginAuth(self, user_url):
         """
+        This method is called to start the OpenID login process.
+
         First, the user's claimed identity page is fetched, to
-        determine their identity server.  Second, unless the library
-        is using a dumb store, it checks to see if it has an
-        association with that identity server, and creates and stores
-        one if it does not.
+        determine their identity server.  If the page cannot be
+        fetched or if the page does not have the necessary link tags
+        in it, this method returns C{None}.
 
-        It then generates a signed token for this authentication
-        transaction, which contains a timestamp, a nonce, and the
-        information needed to finish the transaction.  This token
-        is passed in to the C{XXX} method, .
+        Second, unless the store provided is a dumb store, it checks
+        to see if it has an association with that identity server, and
+        creates and stores one if not.
 
+        Third, it then generates a signed token for this
+        authentication transaction, which contains a timestamp, a
+        nonce, and the information needed in step 5 in the overview
+        above.  The token is used by the library to make handling the
+        various pieces of information needed in step 5 easy and
+        secure.
+
+        The token generated must be preserved until step 5, which is
+        after the redirect to the OpenID server takes place.  This
+        means that the token must be preserved across http requests.
+        There are three basic approaches that might be used for
+        storing the token.  First, the token could be put in the
+        return_to URL passed into the C{constructRedirect} method.
+        Second, the token could be stored in a cookie.  Third, in an
+        environment that supports user sessions, the session is a good
+        spot to store the token.
+
+        @param user_url: This is the url the user entered as their
+            OpenID.  This call takes care of normalizing it and
+            resolving any redirects the server might issue.  If the
+            value passed in is a C{unicode} object, this performs a
+            minimal translation on it to make it a valid URL.
+
+        @type user_url: C{basestring}, the parent class of C{str} and
+            C{unicode}.
+
+        @return: If the URL given could not be fetched, or if the page
+            fetched didn't contain the necessary tags, this method
+            returns C{None}.
+
+            Otherwise, this method returns an C{OpenIDAuthRequest}
+            object.  C{OpenIDAuthRequest} objects have a C{token}
+            field, which contains the generated token.  The other
+            contents of the object are implementation details, used in
+            the subsequent call to C{constructRedirect}.
         """
         return self.impl.beginAuth(user_url)
 
     def constructRedirect(self, auth_request, return_to, trust_root):
         """
-        This method is called by the user of the consumer library to
-        construct the redirect URL used in step 3 of the flow
-        described in the overview.  The generated redirect should be
-        sent to the browser which initiated the authorization request.
+        This method is called to construct the redirect URL used in
+        step 3 of the flow described in the overview.  The generated
+        redirect should be sent to the browser which initiated the
+        authorization request.
 
         @param auth_request: This must be an C{OpenIDAuthRequest}
             instance which was returned from a previous call to
@@ -237,7 +272,8 @@ class OpenIDConsumer(object):
         @return: This method returns a string containing the URL to
             redirect to when such a URL is successfully constructed.
 
-            It returns C{None} when no such URL can be constructed.
+        @rtype: C{str}
+
 
         @raise Exception: This method does not handle any exceptions
             raised by the store it is using.
