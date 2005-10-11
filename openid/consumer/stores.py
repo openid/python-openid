@@ -83,6 +83,10 @@ class ConsumerAssociation(object):
     """This class represents a consumer's view of an association."""
 
     def fromExpiresIn(cls, expires_in, server_url, handle, secret):
+        """\
+        @param expires_in: how long to keep this association valid
+        @type expires_in: int
+        """
         issued = int(time.time())
         lifetime = expires_in
         return cls(server_url, handle, secret, issued, lifetime)

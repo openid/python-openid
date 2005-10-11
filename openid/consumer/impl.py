@@ -289,7 +289,7 @@ class OpenIDConsumerImpl(object):
                 return None
 
             assoc_handle = results['assoc_handle']
-            expires_in = results.get('expires_in', '0')
+            expires_in = int(results.get('expires_in', '0'))
 
             session_type = results.get('session_type')
             if session_type is None:
