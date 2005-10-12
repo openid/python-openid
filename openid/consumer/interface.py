@@ -2,9 +2,10 @@
 This module documents the main interface with the OpenID consumer
 libary.  The only part of the library which has to be used and isn't
 documented in full here is the store required to create an
-C{OpenIDConsumer} instance.  More on the abstract store type and
+C{L{OpenIDConsumer}} instance.  More on the abstract store type and
 concrete implementations of it that are provided in the documentation
-for the C{__init__} method of the C{OpenIDConsumer} class.
+for the C{L{__init__<OpenIDConsumer.__init__>}} method of the
+C{L{OpenIDConsumer}} class.
 
 
 OVERVIEW
@@ -43,7 +44,7 @@ LIBRARY DESIGN
     At a high level, there are two important parts in the consumer
     library.  The first important part is this module, which contains
     the interface to actually use this library.  The second is the
-    C{openid.consumer.stores} module, which describes the interface to
+    C{L{openid.consumer.stores}} module, which describes the interface to
     use if you need to create a custom method for storing the state
     this library needs to maintain between requests.
 
@@ -52,10 +53,10 @@ LIBRARY DESIGN
     which cover a wide variety of situations in which consumers may
     use the library.
 
-    This module contains a class, C{OpenIDConsumer}, with methods
+    This module contains a class, C{L{OpenIDConsumer}}, with methods
     corresponding to the actions necessary in each of steps 2, 3, and
     4 described in the overview.  Use of this library should be as easy
-    as creating an C{OpenIDConsumer} instance and calling the methods
+    as creating an C{L{OpenIDConsumer}} instance and calling the methods
     appropriate for the action the site wants to take.
 
 
@@ -77,7 +78,7 @@ STORES AND DUMB MODE
 
     Several store implementation are provided, and the interface is
     fully documented so that custom stores can be used as well.  See
-    the documentation for the C{OpenIDConsumer} class for more
+    the documentation for the C{L{OpenIDConsumer}} class for more
     information on the interface for stores.  The concrete
     implementations that are provided allow the consumer site to store
     the necessary data in several different ways: in the filesystem,
@@ -125,72 +126,111 @@ USING THIS LIBRARY
     a request to the your site which includes that OpenID URL.
 
     When your site receives that request, it should create an
-    C{openid.consumer.interface.OpenIDConsumer} instance, and call
-    C{beginAuth} on it.  If C{beginAuth} completes successfully, it
-    will return an C{openid.consumer.impl.OpenIDAuthRequest}.
-    Otherwise it will provide some useful information for giving your
-    user an error message.
+    C{L{openid.consumer.interface.OpenIDConsumer}} instance, and call
+    C{L{beginAuth<OpenIDConsumer.beginAuth>}} on it.  If
+    C{L{beginAuth<OpenIDConsumer.beginAuth>}} completes successfully,
+    it will return an C{L{OpenIDAuthRequest}}.  Otherwise it will
+    provide some useful information for giving the user an error
+    message.
 
-    Now that you have the C{OpenIDAuthRequest} object, you need to
-    preserve the value in its C{token} field for lookup on the user's
-    next request from your site.  There are several approaches for
-    doing this which will work.  If your environment has any kind of
-    session-tracking system, storing the token in the session is a
-    good approach.  If it doesn't you can store the token in either a
-    cookie or in the return_to url provided in the next step.
+    Now that you have the C{L{OpenIDAuthRequest}} object, you need to
+    preserve the value in its C{L{token<OpenIDAuthRequest.token>}}
+    field for lookup on the user's next request from your site.  There
+    are several approaches for doing this which will work.  If your
+    environment has any kind of session-tracking system, storing the
+    token in the session is a good approach.  If it doesn't you can
+    store the token in either a cookie or in the return_to url
+    provided in the next step.
 
-    The next step is to call the C{constructRedirect} method on the
-    C{OpenIDConsumer} object.  Pass it the C{OpenIDAuthRequest} object
-    returned by the previous call to C{beginAuth} along with the
-    return_to and trust_root URLs.  The return_to URL is the URL that
-    the OpenID server will send the user back to after attempting to
-    verify his or her identity.  The trust_root is the URL (or URL
-    pattern) that identifies your web site to the user when he or she
-    is authorizing it.
+    The next step is to call the
+    C{L{constructRedirect<OpenIDConsumer.constructRedirect>}} method
+    on the C{L{OpenIDConsumer}} object.  Pass it the
+    C{L{OpenIDAuthRequest}} object returned by the previous call to
+    C{L{beginAuth<OpenIDConsumer.beginAuth>}} along with the return_to
+    and trust_root URLs.  The return_to URL is the URL that the OpenID
+    server will send the user back to after attempting to verify his
+    or her identity.  The trust_root is the URL (or URL pattern) that
+    identifies your web site to the user when he or she is authorizing
+    it.
 
     Next, send the user a redirect to the URL generated by
-    C{constructRedirect}.
+    C{L{constructRedirect<OpenIDConsumer.constructRedirect>}}.
 
     That's the first half of the process.  The second half of the
-    process depends on the user's ID server sending the user a
+    process is done after the user's ID server sends the user a
     redirect back to your site to complete their login.
 
     When that happens, the user will contact your site at the URL
-    given as the return_to URL to the C{constructRedirect} call made
-    above.  The request will have several query parameters added to
-    the URL by the identity server as the information necessary to
+    given as the return_to URL to the
+    C{L{constructRedirect<OpenIDConsumer.constructRedirect>}} call
+    made above.  The request will have several query parameters added
+    to the URL by the identity server as the information necessary to
     finish the request.
 
     When handling this request, the first thing to do is check the
-    openid.return_to parameter.  If it doesn't match the URL that the
-    request was actually sent to (the URL the request was actually
+    C{openid.return_to} parameter.  If it doesn't match the URL that
+    the request was actually sent to (the URL the request was actually
     sent to will contain the openid parameters in addition to any in
-    the return_to URL, but they should match other than that), that is
-    clearly suspicious, and the request shouldn't be allowed to
-    proceed.
+    the return_to URL, but they should be identical other than that),
+    that is clearly suspicious, and the request shouldn't be allowed
+    to proceed.
 
     Otherwise, the next step is to extract the token value set in the
-    first half of the OpenID login.  Create a C{OpenIDConsumer}
-    object, and call its C{completeAuth} method with that token and a
-    dictionary of all the query arguments.  This call will return a
-    status code and some additional information describing the result
-    of interpreting the server's response.  See the documentation for
-    C{completeAuth} below for a full explanation of the possible
-    responses.
+    first half of the OpenID login.  Create a C{L{OpenIDConsumer}}
+    object, and call its
+    C{L{completeAuth<OpenIDConsumer.completeAuth>}} method with that
+    token and a dictionary of all the query arguments.  This call will
+    return a status code and some additional information describing
+    the the server's response.  See the documentation for
+    C{L{completeAuth<OpenIDConsumer.completeAuth>}} for a full
+    explanation of the possible responses.
 
     At this point, you have an identity URL that you know belongs to
     the user who made that request.  Some sites will use that URL
     directly as the user name.  Other sites will want to map that URL
     to a username in the site's traditional namespace.  At this point,
     you can take whichever action makes the most sense.
+
+
+@var SUCCESS: This is the status code returned when either the of the
+    C{L{beginAuth<openid.consumer.interface.OpenIDConsumer.beginAuth>}}
+    or
+    C{L{completeAuth<openid.consumer.interface.OpenIDConsumer.completeAuth>}}
+    methods return successfully.
+
+@var HTTP_FAILURE: This is the status code
+    C{L{beginAuth<openid.consumer.interface.OpenIDConsumer.beginAuth>}}
+    returns when it is unable to fetch the OpenID URL the user
+    entered.
+
+@var PARSE_ERROR: This is the status code
+    C{L{beginAuth<openid.consumer.interface.OpenIDConsumer.beginAuth>}}
+    returns when the page fetched from the entered OpenID URL doesn't
+    contain the necessary link tags to function as an identity page.
+
+@var FAILURE: This is the status code
+    C{L{completeAuth<openid.consumer.interface.OpenIDConsumer.completeAuth>}}
+    returns when the value it received indicated an invalid login.
+
+@var SETUP_NEEDED: This is the status code
+    C{L{completeAuth<openid.consumer.interface.OpenIDConsumer.completeAuth>}}
+    returns when the C{L{OpenIDConsumer}} instance is in immediate
+    mode, and the identity server sends back a URL to send the user to
+    to complete his or her login.
+
+@sort: OpenIDConsumer, OpenIDAuthRequest, SUCCESS, HTTP_FAILURE,
+    PARSE_ERROR, FAILURE, SETUP_NEEDED
 """
 
 __all__ = ['SUCCESS', 'FAILURE', 'SETUP_NEEDED', 'HTTP_FAILURE', 'PARSE_ERROR',
            'OpenIDAuthRequest', 'OpenIDConsumer']
 
-from openid.consumer.impl import \
-     SUCCESS, FAILURE, SETUP_NEEDED, PARSE_ERROR, HTTP_FAILURE, \
-     OpenIDAuthRequest
+SUCCESS = 'success'
+FAILURE = 'failure'
+SETUP_NEEDED = 'setup needed'
+
+HTTP_FAILURE = 'http failure'
+PARSE_ERROR = 'parse error'
 
 class OpenIDConsumer(object):
     """
@@ -214,39 +254,41 @@ class OpenIDConsumer(object):
 
     def __init__(self, store, fetcher=None, immediate=False):
         """
-        This method initializes a new C{OpenIDConsumer} instance.
-        Users of the OpenID consumer library need to create an
-        C{OpenIDConsumer} instance to access the library.
+        This method initializes a new C{L{OpenIDConsumer}} instance to
+        access the library.
+
+        The store passed in determines where the cross-request state
+        is stored.
 
 
         @param store: This must be an object that implements the
-            interface in C{openid.consumer.stores.OpenIDStore}.
+            interface in C{L{openid.consumer.stores.OpenIDStore}}.
             Several concrete implementations are provided, to cover
             most common use cases.  For stores backed by MySQL or
-            SQLite, see the openid.consumer.sqlstore package.  For a
-            filesystem-backed store, see the
-            C{openid.consumer.filestore} package.
+            SQLite, see the C{L{openid.consumer.sqlstore}} module.
+            For a filesystem-backed store, see the
+            C{L{openid.consumer.filestore}} module.
 
             As a last resort, if it isn't possible for the server to
             store state at all, an instance of
-            C{openid.consumer.stores.DumbStore} can be used.  This
+            C{L{openid.consumer.stores.DumbStore}} can be used.  This
             should be an absolute last resort, though, as it makes the
             consumer vulnerable to replay attacks over the lifespan of
-            the tokens the library creates.  See L{impl} for
+            the tokens the library creates.  See C{L{impl}} for
             information on controlling the lifespan of those tokens.
 
-        @type store: C{openid.consumer.stores.OpenIDStore}
+        @type store: C{L{openid.consumer.stores.OpenIDStore}}
 
 
         @param fetcher: This is an optional instance of
-            C{openid.consumer.fetchers.OpenIDHTTPFetcher}.  If
+            C{L{openid.consumer.fetchers.OpenIDHTTPFetcher}}.  If
             present, the provided fetcher is used by the library to
             fetch user's identity pages and make direct requests to
-            the identity server.  If it's not present, a default
+            the identity server.  If it is not present, a default
             fetcher is used.  The default fetcher uses curl if the
             pycurl bindings are available, and uses urllib if not.
 
-        @type fetcher: C{openid.consumer.fetchers.OpenIDHTTPFetcher}
+        @type fetcher: C{L{openid.consumer.fetchers.OpenIDHTTPFetcher}}
 
 
         @param immediate: This is an optional boolean value.  It
@@ -270,21 +312,18 @@ class OpenIDConsumer(object):
         First, the user's claimed identity page is fetched, to
         determine their identity server.  If the page cannot be
         fetched or if the page does not have the necessary link tags
-        in it, this method returns one of
-        C{openid.consumer.interface.HTTP_FAILURE} or
-        C{openid.consumer.interface.PARSE_ERROR}, depending on where
-        the process failed.
+        in it, this method returns one of C{L{HTTP_FAILURE}} or
+        C{L{PARSE_ERROR}}, depending on where the process failed.
 
         Second, unless the store provided is a dumb store, it checks
         to see if it has an association with that identity server, and
         creates and stores one if not.
 
-        Third, it then generates a signed token for this
-        authentication transaction, which contains a timestamp, a
-        nonce, and the information needed in L{step
-        4<openid.consumer.interface>} in the module overview.  The
-        token is used by the library to make handling the various
-        pieces of information needed in L{step
+        Third, it generates a signed token for this authentication
+        transaction, which contains a timestamp, a nonce, and the
+        information needed in L{step 4<openid.consumer.interface>} in
+        the module overview.  The token is used by the library to make
+        handling the various pieces of information needed in L{step
         4<openid.consumer.interface>} easy and secure.
 
         The token generated must be preserved until L{step
@@ -293,7 +332,7 @@ class OpenIDConsumer(object):
         be preserved across http requests.  There are three basic
         approaches that might be used for storing the token.  First,
         the token could be put in the return_to URL passed into the
-        C{constructRedirect} method.  Second, the token could be
+        C{L{constructRedirect}} method.  Second, the token could be
         stored in a cookie.  Third, in an environment that supports
         user sessions, the session is a good spot to store the token.
 
@@ -311,29 +350,26 @@ class OpenIDConsumer(object):
             information about the code.
 
             If there was a problem fetching the identity page the user
-            gave, the status code is set to
-            C{openid.consumer.interface.HTTP_ERROR}, and the
-            additional information value is currently set to C{None}.
-            The additional information value may change in a future
-            release.
+            gave, the status code is set to C{L{HTTP_FAILURE}}, and
+            the additional information value is currently set to
+            C{None}.  The additional information value may change in a
+            future release.
 
             If the identity page fetched successfully, but didn't
             include the correct link tags, the status code is set to
-            C{openid.consumer.interface.PARSE_ERROR}, and the
-            additional information value is currently set to C{None}.
-            The additional information value may change in a future
-            release.
+            C{L{PARSE_ERROR}}, and the additional information value is
+            currently set to C{None}.  The additional information
+            value may change in a future release.
 
-            Otherwise, the status code is set to
-            C{openid.consumer.interface.SUCCESS}, and the additional
-            information is an instance of
-            C{openid.consumer.impl.OpenIDAuthRequest}.  The complete
-            contents of the instance are relatively unimportant.  The
-            most import is the C{token} attribute, which contains the
-            token which must be preserved.  The C{server_url} might
-            also be of interest, if you wish to blacklist or whitelist
-            OpenID servers.  The other contents of the object are
-            information needed in the C{constructRedirect} call.
+            Otherwise, the status code is set to C{L{SUCCESS}}, and
+            the additional information is an instance of
+            C{L{OpenIDAuthRequest}}.  The
+            C{L{token<OpenIDAuthRequest.token>}} attribute contains
+            the token to be preserved for the next HTTP request.  The
+            C{L{server_url<OpenIDAuthRequest.server_url>}} might also be
+            of interest, if you wish to blacklist or whitelist OpenID
+            servers.  The other contents of the object are information
+            needed in the C{L{constructRedirect}} call.
 
         @rtype: A pair, where the first element is a C{str} object,
             and the second depends on the value of the first.
@@ -354,12 +390,12 @@ class OpenIDConsumer(object):
         described in the overview.  The generated redirect should be
         sent to the browser which initiated the authorization request.
 
-        @param auth_request: This must be an C{OpenIDAuthRequest}
+        @param auth_request: This must be an C{L{OpenIDAuthRequest}}
             instance which was returned from a previous call to
             C{L{beginAuth}}.  It contains information found during the
             beginAuth call which is needed to build the redirect URL.
 
-        @type auth_request: C{OpenIDAuthRequest}
+        @type auth_request: C{L{OpenIDAuthRequest}}
 
 
         @param return_to: This is the URL that will be included in the
@@ -406,26 +442,24 @@ class OpenIDConsumer(object):
 
         The return value is a pair, consisting of a status and
         additional information.  The status values are strings, but
-        should be referred to by their symbolic values:
-        C{openid.consumer.interface.SUCCESS},
-        C{openid.consumer.interface.FAILURE}, and
-        C{openid.consumer.interface.SETUP_NEEDED}.
+        should be referred to by their symbolic values: C{L{SUCCESS}},
+        C{L{FAILURE}}, and C{L{SETUP_NEEDED}}.
 
-        When C{SUCCESS} is returned, the additional information
+        When C{L{SUCCESS}} is returned, the additional information
         returned is either C{None} or a C{str}.  If it is C{None}, it
         means the user cancelled the login, and no further information
         can be determined.  If the additional information is a C{str},
         it is the identity that has been verified as belonging to the
         user making this request.
 
-        When C{FAILURE} is returned, the additional information is
+        When C{L{FAILURE}} is returned, the additional information is
         either C{None} or a C{str}.  In either case, this code means
         that the identity verification failed.  If it can be
         determined, the identity that failed to verify is returned.
         Otherwise C{None} is returned.
 
         @param token: This is the token for this authentication
-            transaction, generated by the call to C{beginAuth}.  
+            transaction, generated by the call to C{L{beginAuth}}.
 
         @type token: C{str}
 
@@ -445,9 +479,50 @@ class OpenIDConsumer(object):
             C{str} and C{None}.
 
 
-        @Raise Exception: This method does not handle any exceptions
+        @raise Exception: This method does not handle any exceptions
             raised by the fetcher or the store.
 
             It raises no exceptions itself.
         """
         return self.impl.processServerResponse(token, query)
+
+
+class OpenIDAuthRequest(object):
+    """
+    This class represents an in-progress OpenID authentication
+    request.  It exists to make transferring information between the
+    C{L{beginAuth<OpenIDConsumer.beginAuth>}} and
+    C{L{constructRedirect<OpenIDConsumer.constructRedirect>}} methods
+    easier.  Users of the OpenID consumer library will need to be
+    aware of the C{L{token}} value, and may care about the
+    C{L{server_url}} value.  All other fields are internal information
+    for the library which the user of the library shouldn't touch at
+    all.
+
+    
+    @ivar token: This is the token generated by the library.  It must
+        be saved until the user's return request, via whatever
+        mechanism works best for this consumer application.
+    
+
+    @ivar server_url: This is the URL of the identity server that will
+        be used.  It isn't necessary to do anything with this value,
+        but it is available for consumers that wish to either
+        blacklist or whitelist OpenID servers.
+
+
+    @sort: token, server_url
+    """
+    def __init__(self, token, server_id, server_url, nonce):
+        """
+        Creates a new OpenIDAuthRequest object.  This just stores each
+        argument in an appropriately named field.
+
+        Users of this library should not create instances of this
+        class.  Instances of this class are created by the library
+        whenever needed.
+        """
+        self.token = token
+        self.server_id = server_id
+        self.server_url = server_url
+        self.nonce = nonce

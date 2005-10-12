@@ -8,12 +8,9 @@ from openid.consumer.parse import parseLinkAttrs
 from openid import oidUtil
 from openid.dh import DiffieHellman
 
-class OpenIDAuthRequest(object):
-    def __init__(self, token, server_id, server_url, nonce):
-        self.token = token
-        self.server_id = server_id
-        self.server_url = server_url
-        self.nonce = nonce
+from openid.consumer.interface import \
+     SUCCESS, FAILURE, SETUP_NEEDED, PARSE_ERROR, HTTP_FAILURE, \
+     OpenIDAuthRequest
 
 def getOpenIDParameters(query):
     params = {}
@@ -21,14 +18,6 @@ def getOpenIDParameters(query):
         if k.startswith('openid.'):
             params[k] = v
     return params
-
-# The values of these constants are not important, as long as they are unique
-SUCCESS = 'success'
-FAILURE = 'failure'
-SETUP_NEEDED = 'setup needed'
-
-HTTP_FAILURE = 'http failure'
-PARSE_ERROR = 'parse error'
 
 class OpenIDConsumerImpl(object):
     NONCE_LEN = 8
