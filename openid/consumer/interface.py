@@ -195,7 +195,7 @@ from openid.consumer.impl import \
 
 class OpenIDConsumer(object):
     """
-    This class is the interface to most of the OpenID consumer logic.
+    This class is the interface to the OpenID consumer logic.
     
     @ivar impl: This is the backing instance which actually implements
         the logic behind the methods in this class.  The primary
