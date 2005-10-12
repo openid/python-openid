@@ -1,8 +1,8 @@
 """
-This module is intended to document the main interface with the OpenID
-consumer libary.  The only part of the library which has to be used
-and isn't documented in full here is the store required to create an
-C{OpenIDConsumer instance}.  More on the abstract store type and
+This module documents the main interface with the OpenID consumer
+libary.  The only part of the library which has to be used and isn't
+documented in full here is the store required to create an
+C{OpenIDConsumer} instance.  More on the abstract store type and
 concrete implementations of it that are provided in the documentation
 for the C{__init__} method of the C{OpenIDConsumer} class.
 
@@ -13,20 +13,20 @@ OVERVIEW
     The OpenID identity verification process most commonly uses the
     following steps, as visible to the user of this library:
 
-    1. The user enters their OpenID into a field on the consumer's
-       site, and hits a log in button.
+        1. The user enters their OpenID into a field on the consumer's
+           site, and hits a login button.
 
-    2. The consumer site checks that the entered URL describes an
-       OpenID page by fetching it and looking for appropriate
-       link tags in the head section.
+        2. The consumer site checks that the entered URL describes an
+           OpenID page by fetching it and looking for appropriate link
+           tags in the head section.
 
-    3. The consumer site sends the browser a redirect to the identity
-       server.  This is the authentication request as described in the
-       OpenID specification.
+        3. The consumer site sends the browser a redirect to the
+           identity server.  This is the authentication request as
+           described in the OpenID specification.
 
-    4. The identity server's site sends the browser a redirect back to
-       the consumer site.  This redirect contains the server's
-       response to the authentication request.
+        4. The identity server's site sends the browser a redirect
+           back to the consumer site.  This redirect contains the
+           server's response to the authentication request.
 
     The most important part of the flow to note is the consumer's site
     must handle two separate HTTP requests in order to perform the
@@ -54,7 +54,7 @@ LIBRARY DESIGN
 
     This module contains a class, C{OpenIDConsumer}, with methods
     corresponding to the actions necessary in each of steps 2, 3, and
-    4 listed in the overview.  Use of this library should be as easy
+    4 described in the overview.  Use of this library should be as easy
     as creating an C{OpenIDConsumer} instance and calling the methods
     appropriate for the action the site wants to take.
 
@@ -95,13 +95,12 @@ STORES AND DUMB MODE
 IMMEDIATE MODE
 ==============
 
-    In the flow described above, there's a step which may occur if the
-    user needs to confirm to the identity server that it's ok to
-    authorize his or her identity.  The server may draw pages asking
-    for information from the user before it redirects the browser back
-    to the consumer's site.  This is generally transparent to the
-    consumer site, so it is typically ignored as an implementation
-    detail.
+    In the flow described above, the user may need to confirm to the
+    identity server that it's ok to authorize his or her identity.
+    The server may draw pages asking for information from the user
+    before it redirects the browser back to the consumer's site.  This
+    is generally transparent to the consumer site, so it is typically
+    ignored as an implementation detail.
 
     There can be times, however, where the consumer site wants to get
     a response immediately.  When this is the case, the consumer can
@@ -196,7 +195,10 @@ from openid.consumer.impl import \
 class OpenIDConsumer(object):
     """
     This class is the interface to the OpenID consumer logic.
+    Instances of it maintain no per-request state, so they can be
+    reused (or even used by multiple threads concurrently) as needed.
     
+
     @ivar impl: This is the backing instance which actually implements
         the logic behind the methods in this class.  The primary
         reason you might ever care about this is if you have a problem
@@ -206,6 +208,8 @@ class OpenIDConsumer(object):
         tokens are no longer considered valid.  The default value of
         two minutes is probably fine in most cases, but if it's not,
         it can be altered easily.
+
+    @sort: __init__, beginAuth, constructRedirect, completeAuth
     """
 
     def __init__(self, store, fetcher=None, immediate=False):
@@ -213,9 +217,6 @@ class OpenIDConsumer(object):
         This method initializes a new C{OpenIDConsumer} instance.
         Users of the OpenID consumer library need to create an
         C{OpenIDConsumer} instance to access the library.
-
-        OpenIDConsumer instances store no per-request state, so they
-        may be used repeatedly when it is desired.
 
 
         @param store: This must be an object that implements the
@@ -280,20 +281,21 @@ class OpenIDConsumer(object):
 
         Third, it then generates a signed token for this
         authentication transaction, which contains a timestamp, a
-        nonce, and the information needed in step 5 in the overview
-        above.  The token is used by the library to make handling the
-        various pieces of information needed in step 5 easy and
-        secure.
+        nonce, and the information needed in L{step
+        4<openid.consumer.interface>} in the module overview.  The
+        token is used by the library to make handling the various
+        pieces of information needed in L{step
+        4<openid.consumer.interface>} easy and secure.
 
-        The token generated must be preserved until step 5, which is
-        after the redirect to the OpenID server takes place.  This
-        means that the token must be preserved across http requests.
-        There are three basic approaches that might be used for
-        storing the token.  First, the token could be put in the
-        return_to URL passed into the C{constructRedirect} method.
-        Second, the token could be stored in a cookie.  Third, in an
-        environment that supports user sessions, the session is a good
-        spot to store the token.
+        The token generated must be preserved until L{step
+        4<openid.consumer.interface>}, which is after the redirect to
+        the OpenID server takes place.  This means that the token must
+        be preserved across http requests.  There are three basic
+        approaches that might be used for storing the token.  First,
+        the token could be put in the return_to URL passed into the
+        C{constructRedirect} method.  Second, the token could be
+        stored in a cookie.  Third, in an environment that supports
+        user sessions, the session is a good spot to store the token.
 
         @param user_url: This is the url the user entered as their
             OpenID.  This call takes care of normalizing it and
@@ -346,10 +348,11 @@ class OpenIDConsumer(object):
 
     def constructRedirect(self, auth_request, return_to, trust_root):
         """
-        This method is called to construct the redirect URL used in
-        step 3 of the flow described in the overview.  The generated
-        redirect should be sent to the browser which initiated the
-        authorization request.
+        This method is called to construct the redirect URL sent to
+        the browser to ask the server to verify its identity.  This is
+        called in L{step 3<openid.consumer.interface>} of the flow
+        described in the overview.  The generated redirect should be
+        sent to the browser which initiated the authorization request.
 
         @param auth_request: This must be an C{OpenIDAuthRequest}
             instance which was returned from a previous call to
@@ -396,9 +399,10 @@ class OpenIDConsumer(object):
 
     def completeAuth(self, token, query):
         """
-        This method is called in step 5 of the flow listed in the
-        overview.  It is responsible for interpreting the server's
-        response and returning that information in a useful form.
+        This method is called to interpret the server's response to an
+        OpenID request.  It is called in L{step
+        4<openid.consumer.interface>} of the flow described in the
+        overview.
 
         The return value is a pair, consisting of a status and
         additional information.  The status values are strings, but
