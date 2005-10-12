@@ -520,7 +520,7 @@ class OpenIDAuthRequest(object):
 
         Users of this library should not create instances of this
         class.  Instances of this class are created by the library
-        whenever needed.
+        when needed.
         """
         self.token = token
         self.server_id = server_id
