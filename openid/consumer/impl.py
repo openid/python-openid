@@ -9,10 +9,11 @@ from openid import oidUtil
 from openid.dh import DiffieHellman
 
 class OpenIDAuthRequest(object):
-    def __init__(self, token, server_id, server_url):
+    def __init__(self, token, server_id, server_url, nonce):
         self.token = token
         self.server_id = server_id
         self.server_url = server_url
+        self.nonce = nonce
 
 def getOpenIDParameters(query):
     params = {}
@@ -52,10 +53,9 @@ class OpenIDConsumerImpl(object):
 
         consumer_id, server_id, server_url = info
         nonce = oidUtil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
-        self.store.storeNonce(nonce)
 
         token = self._genToken(nonce, consumer_id, server_url)
-        return SUCCESS, OpenIDAuthRequest(token, server_id, server_url)
+        return SUCCESS, OpenIDAuthRequest(token, server_id, server_url, nonce)
 
     def constructRedirect(self, auth_req, return_to, trust_root):
         redir_args = {
@@ -69,6 +69,7 @@ class OpenIDConsumerImpl(object):
         if assoc is not None:
             redir_args['openid.assoc_handle'] = assoc.handle
 
+        self.store.storeNonce(auth_req.nonce)
         return str(oidUtil.appendArgs(auth_req.server_url, redir_args))
 
     def processServerResponse(self, token, query):
