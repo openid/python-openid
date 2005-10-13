@@ -6,21 +6,95 @@ from openid.consumer.stores import ConsumerAssociation, OpenIDStore
 def inTxn(func):
     def wrapped(self, *args, **kwargs):
         return self._callInTransaction(func, self, *args, **kwargs)
+
+    if hasattr(func, '__name__'):
+        wrapped.__name__ = func.__name__[4:]
+
+    if hasattr(func, '__doc__'):
+        wrapped.__doc__ = func.__doc__
+
     return wrapped
 
 class SQLStore(OpenIDStore):
+    """
+    This is the parent class for the SQL stores, which contains the
+    logic common to all of the SQL stores.
+
+    The table names used are determined by the class variables
+    C{L{settings_table}}, C{L{associations_table}}, and
+    C{L{nonces_table}}.  To change the name of the tables used, pass
+    new table names into the constructor.
+
+    To create the tables with the proper schema, see the
+    C{L{createTables}} method.
+
+    This class shouldn't be used directly.  Use one of its subclasses
+    instead, as those contain the code necessary to use a specific
+    database.
+
+
+    @cvar settings_table: This is the default name of the table to
+        keep this store's settings in.
+    
+    @cvar associations_table: This is the default name of the table to
+        keep associations in
+    
+    @cvar nonces_table: This is the default name of the table to keep
+        nonces in.
+
+
+    @sort: __init__, createTables
+    """
+
     settings_table = 'oidc_settings'
     associations_table = 'oidc_associations'
     nonces_table = 'oidc_nonces'
 
-    def __init__(self, conn):
+    def __init__(self, conn, settings_table=None, associations_table=None,
+                 nonces_table=None):
+        """
+        This creates a new SQLStore instance.  It requires an
+        established database connection be given to it, and it allows
+        overriding the default table names.
+
+
+        @param conn: This must be an established connection to a
+            database of the correct type for the SQLStore subclass
+            you're using.
+
+        @type conn: A python database API compatible connection
+            object.
+
+
+        @param settings_table: This is an optional parameter to
+            specify the name of the table used for this store's
+            settings.  The default value is specified in
+            C{L{SQLStore.settings_table}}.
+
+        @type settings_table: C{str}
+
+
+        @param associations_table: This is an optional parameter to
+            specify the name of the table used for storing
+            associations.  The default value is specified in
+            C{L{SQLStore.associations_table}}.
+
+        @type associations_table: C{str}
+
+
+        @param nonces_table: This is an optional parameter to specify
+            the name of the table used for storing nonces.  The
+            default value is specified in C{L{SQLStore.nonces_table}}.
+
+        @type nonces_table: C{str}
+        """
         self.conn = conn
         self.cur = None
         self._statement_cache = {}
         self._table_names = {
-            'settings':self.settings_table,
-            'associations':self.associations_table,
-            'nonces':self.nonces_table,
+            'settings': settings_table or self.settings_table,
+            'associations': associations_table or self.associations_table,
+            'nonces': nonces_table or self.nonces_table,
             }
         self.max_nonce_age = 6 * 60 * 60 # Six hours, in seconds
 
@@ -84,10 +158,10 @@ class SQLStore(OpenIDStore):
         return ret
 
     def txn_createTables(self):
-        """Create the database tables.
-        This method should only be called once.
-
-        () -> NoneType
+        """
+        This method creates the database tables necessary for this
+        store to work.  It should not be called if the tables already
+        exist.
         """
         self.db_create_nonce()
         self.db_create_assoc()
@@ -199,7 +273,14 @@ class SQLStore(OpenIDStore):
     useNonce = inTxn(txn_useNonce)
 
 class SQLiteStore(SQLStore):
-    """SQLite-specific specialization of SQLStore"""
+    """
+    This is an SQLite-based specialization of C{L{SQLStore}}.
+
+    To create an instance, see C{L{SQLStore.__init__}}.  To create the
+    tables it will use, see C{L{SQLStore.createTables}}.
+
+    All other methods are implementation details.
+    """
     
     create_nonce_sql = """
     CREATE TABLE %(nonces)s
@@ -248,9 +329,14 @@ class SQLiteStore(SQLStore):
         return buffer(s)
 
 class MySQLStore(SQLStore):
-    """MySQL-specific specialization of SQLStore
+    """This is a MySQL-based specialization of SQLStore
 
     Uses InnoDB tables for transaction support.
+
+    To create an instance, see C{L{SQLStore.__init__}}.  To create the
+    tables it will use, see C{L{SQLStore.createTables}}.
+
+    All other methods are implementation details.
     """
 
     create_nonce_sql = """

@@ -265,9 +265,9 @@ class OpenIDConsumer(object):
             interface in C{L{openid.consumer.stores.OpenIDStore}}.
             Several concrete implementations are provided, to cover
             most common use cases.  For stores backed by MySQL or
-            SQLite, see the C{L{openid.consumer.sqlstore}} module.
-            For a filesystem-backed store, see the
-            C{L{openid.consumer.filestore}} module.
+            SQLite, see the C{L{openid.consumer.sqlstore.SQLStore}}
+            class and its sublcasses.  For a filesystem-backed store,
+            see the C{L{openid.consumer.filestore}} module.
 
             As a last resort, if it isn't possible for the server to
             store state at all, an instance of

@@ -257,6 +257,7 @@ class ConsumerAssociation(object):
     of the C{server_url}, C{handle}, C{secret}, C{issued}, and
     C{lifetime} instance variables.
 
+
     @ivar server_url: This is the URL of the server this association
         came from.
 

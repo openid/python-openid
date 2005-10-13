@@ -125,14 +125,33 @@ def ensureDir(dir_name):
             raise
 
 class FilesystemOpenIDStore(OpenIDStore):
-    """Filesystem-based store for OpenID associations and nonces.
+    """
+    This is a filesystem-based store for OpenID associations and
+    nonces.  This store should be safe for use in concurrent systems
+    on both windows and unix (excluding NFS filesystems).  There are a
+    couple race conditions in the system, but those failure cases have
+    been set up in such a way that the worst-case behavior is someone
+    having to try to log in a second time.
+
+    Most of the methods of this class are implementation details.
+    People wishing to just use this store need only pay attention to
+    the C{L{__init__}} method.
 
     Methods of this object can raise OSError if unexpected filesystem
     conditions, such as bad permissions or missing directories, occur.
     """
 
     def __init__(self, directory):
-        """Initialize the nonce and association directories"""
+        """
+        Creates a new FilesystemOpenIDStore.  This initializes the
+        nonce and association directories, which are subdirectories of
+        the directory passed in.
+
+        @param directory: This is the directory to put the store
+            directories in.
+
+        @type directory: C{str}
+        """
         # Make absolute
         directory = os.path.normpath(os.path.abspath(directory))
 
