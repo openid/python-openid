@@ -3,20 +3,53 @@ import time
 import cStringIO
 
 class OpenIDHTTPFetcher(object):
-    """Object used by Consumer to send http messages"""
+    """
+    This class is the interface for HTTP fetchers the OpenID consumer
+    library uses.  This interface is only important if you need to
+    write a new fetcher for some reason.
+    """
 
     def get(self, url):
-        """-->(final_url, data)
-        Fetch the content of url, following redirects, and return the
-        final url and page data as a tuple.  Return None on failure.
+        """
+        This performs an HTTP get, following redirects along the way.
+
+
+        @return: This returns a pair on success.  The first value is
+            the final url that was fetched, after following any
+            redirects.  The second value is the data that was
+            retrieved from the site.  If the fetch didn't succeed,
+            return None.
+
+        @rtype: C{None} or a pair of C{str} objects
+
+
+        @raise Exception: There are also failure conditions where this
+            may raise an exception, rather than returning None.  When
+            this occurs, the OpenID consumer library doesn't attempt
+            to handle the exception at all, leaving it for the user of
+            the library to handle.
         """
         raise NotImplementedError
 
     def post(self, url, body):
-        """-->(final_url, data)
-        Post the body string argument to url.
-        Reutrn the resulting final url and page data as a
-        tuple. Return None on failure.
+        """
+        This performs an HTTP post.  If it makes sense, it will follow
+        redirects along the way.
+
+
+        @return: This returns a pair on success.  The first value is
+            the final url that was posted, after following any
+            redirects.  The second value is the data that the site
+            returned.  If the fetch didn't succeed, return None.
+
+        @rtype: C{None} or a pair of C{str} objects
+
+
+        @raise Exception: There are also failure conditions where this
+            may raise an exception, rather than returning None.  When
+            this occurs, the OpenID consumer library doesn't attempt
+            to handle the exception at all, leaving it for the user of
+            the library to handle.
         """
         raise NotImplementedError
 
