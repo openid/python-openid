@@ -32,6 +32,8 @@ class SQLStore(OpenIDStore):
     instead, as those contain the code necessary to use a specific
     database.
 
+    All methods other than C{L{__init__}} and C{L{createTables}}
+    should be considered implementation details.
 
     @cvar settings_table: This is the default name of the table to
         keep this store's settings in.
