@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>openid.consumer.stores.OpenIDStore</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css"></link>
+</head>
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+
+<!-- =========== START OF NAVBAR =========== -->
+<table class="navbar" border="0" width="100%" cellpadding="0" bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="center">
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="trees.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="indices.html">Index</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <font size="-1"><b class="breadcrumbs">
+        Package&nbsp;openid ::
+        Package&nbsp;consumer ::
+        <a href="openid.consumer.stores-module.html">Module&nbsp;stores</a> ::
+        Class&nbsp;OpenIDStore
+      </b></font></br>
+    </td>
+    <td><table cellpadding="0" cellspacing="0">
+      <tr><td align="right"><font size="-2">[show&nbsp;private&nbsp;|&nbsp;<a href="../public/openid.consumer.stores.OpenIDStore-class.html">hide&nbsp;private</a>]</font></td></tr>
+      <tr><td align="right"><font size="-2">[<a href="frames.html"target="_top">frames</a>&nbsp;|&nbsp;<a href="openid.consumer.stores.OpenIDStore-class.html" target="_top">no&nbsp;frames</a>]</font></td></tr>
+    </table></td>
+</tr></table>
+
+<!-- =========== START OF CLASS DESCRIPTION =========== -->
+<h2 class="class">Type OpenIDStore</h2>
+
+<pre class="base-tree">
+<a href="__builtin__.object-class.html"><code>object</code></a> --+
+         |
+        <b>OpenIDStore</b>
+</pre><br />
+
+<dl><dt><b>Known Subclasses:</b></dt>
+<dd>
+    <a href="openid.consumer.stores.DumbStore-class.html"><code>DumbStore</code></a>,
+    <a href="openid.consumer.filestore.FilesystemOpenIDStore-class.html"><code>FilesystemOpenIDStore</code></a>,
+    <a href="openid.consumer.sqlstore.SQLStore-class.html"><code>SQLStore</code></a></dd></dl>
+
+<hr/>
+
+This is the interface for the store objects the OpenID consumer 
+library uses. It is a single class that provides all of the persistence 
+mechanisms that the OpenID consumer library needs.
+<hr/>
+
+
+<!-- =========== START OF METHOD SUMMARY =========== -->
+<table class="summary" border="1" cellpadding="3" cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="summary">
+  <th colspan="2">Method Summary</th></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">        <code><a 
+        href="openid.consumer.stores.ConsumerAssociation-class.html" 
+        class="link"><code>ConsumerAssociation</code></a></code> or 
+        <code>None</code>
+</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.stores.OpenIDStore-class.html#getAssociation" class="summary-sig-name"><code>getAssociation</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>server_url</span>)</span></code>
+<br />
+This method returns a <code><a 
+href="openid.consumer.stores.ConsumerAssociation-class.html" 
+class="link"><code>ConsumerAssociation</code></a></code> object from 
+storage that matches the server_url.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">        <code>str</code>
+</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.stores.OpenIDStore-class.html#getAuthKey" class="summary-sig-name"><code>getAuthKey</code></a>(<span class=summary-sig-arg>self</span>)</span></code>
+<br />
+This method returns a key used to sign the tokens, to ensure that they 
+haven't been tampered with in transit.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">        <code>bool</code>
+</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.stores.OpenIDStore-class.html#isDumb" class="summary-sig-name"><code>isDumb</code></a>(<span class=summary-sig-arg>self</span>)</span></code>
+<br />
+This method must return <code>True</code> if the store is a 
+dumb-mode-style store.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">        <code>bool</code>
+</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.stores.OpenIDStore-class.html#removeAssociation" class="summary-sig-name"><code>removeAssociation</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>server_url</span>,
+          <span class=summary-sig-arg>handle</span>)</span></code>
+<br />
+This method removes the matching association if it's found, and 
+returns whether the association was removed or not.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.stores.OpenIDStore-class.html#storeAssociation" class="summary-sig-name"><code>storeAssociation</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>association</span>)</span></code>
+<br />
+This method puts a <code><a 
+href="openid.consumer.stores.ConsumerAssociation-class.html" 
+class="link"><code>ConsumerAssociation</code></a></code> object into 
+storage.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.stores.OpenIDStore-class.html#storeNonce" class="summary-sig-name"><code>storeNonce</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>nonce</span>)</span></code>
+<br />
+Stores a nonce.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">        <code>bool</code>
+</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.stores.OpenIDStore-class.html#useNonce" class="summary-sig-name"><code>useNonce</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>nonce</span>)</span></code>
+<br />
+This method is called when the library is attempting to use a 
+nonce.</td></tr>
+  <tr><td colspan="2">
+    <b>Inherited from <a href="__builtin__.object-class.html"><code>object</code></a>:</b>
+      <a href="__builtin__.object-class.html#__init__"><code>__init__</code></a>, 
+      <a href="__builtin__.object-class.html#__delattr__"><code>__delattr__</code></a>, 
+      <a href="__builtin__.object-class.html#__getattribute__"><code>__getattribute__</code></a>, 
+      <a href="__builtin__.object-class.html#__hash__"><code>__hash__</code></a>, 
+      <a href="__builtin__.object-class.html#__new__"><code>__new__</code></a>, 
+      <a href="__builtin__.object-class.html#__reduce__"><code>__reduce__</code></a>, 
+      <a href="__builtin__.object-class.html#__reduce_ex__"><code>__reduce_ex__</code></a>, 
+      <a href="__builtin__.object-class.html#__repr__"><code>__repr__</code></a>, 
+      <a href="__builtin__.object-class.html#__setattr__"><code>__setattr__</code></a>, 
+      <a href="__builtin__.object-class.html#__str__"><code>__str__</code></a>
+    </td></tr>
+</table><br />
+
+
+<!-- =========== START OF CLASS VARIABLE SUMMARY =========== -->
+<table class="summary" border="1" cellpadding="3" cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="summary">
+  <th colspan="2">Class Variable Summary</th></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1"><code>int</code></font></td>
+<td><b><a href="openid.consumer.stores.OpenIDStore-class.html#AUTH_KEY_LEN"><code>AUTH_KEY_LEN</code></a></b>: The length of the auth key that should be returned by the <code><a 
+href="openid.consumer.stores.OpenIDStore-class.html#getAuthKey" 
+class="link"><code>getAuthKey</code></a></code> method.</td></tr>
+</table><br />
+
+
+<!-- =========== START OF METHOD DETAILS =========== -->
+<table class="details" border="1" cellpadding="3" cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="details">
+  <th colspan="2">Method Details</th></tr>
+</table>
+
+<a name="getAssociation"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">getAssociation</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>server_url</span>)</span>
+  </h3>
+  <p>This method returns a <code><a 
+  href="openid.consumer.stores.ConsumerAssociation-class.html" 
+  class="link"><code>ConsumerAssociation</code></a></code> object from 
+  storage that matches the server_url. It returns <code>None</code> if no 
+  such association is found or if the matching association is 
+  expired.</p>
+  This method is allowed (and encouraged) to garbage collect expired 
+  associations when found.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>server_url</b></code> -
+         The URL of the identity server to get the association for.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Returns:</b></dt>
+      <dd>
+        The <code><a 
+        href="openid.consumer.stores.ConsumerAssociation-class.html" 
+        class="link"><code>ConsumerAssociation</code></a></code> for the 
+        given identity server.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code><a 
+        href="openid.consumer.stores.ConsumerAssociation-class.html" 
+        class="link"><code>ConsumerAssociation</code></a></code> or 
+        <code>None</code>)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="getAuthKey"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">getAuthKey</span>(<span class=sig-arg>self</span>)</span>
+  </h3>
+  This method returns a key used to sign the tokens, to ensure that 
+  they haven't been tampered with in transit. It should return the same 
+  key every time it is called. The key returned should be <code><a 
+  href="openid.consumer.stores.OpenIDStore-class.html#AUTH_KEY_LEN" 
+  class="link"><code>AUTH_KEY_LEN</code></a></code> bytes long.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Returns:</b></dt>
+      <dd>
+        The key. It should be <code><a 
+        href="openid.consumer.stores.OpenIDStore-class.html#AUTH_KEY_LEN" 
+        class="link"><code>AUTH_KEY_LEN</code></a></code> bytes in 
+        length, and use the full range of byte values. That is, it should 
+        be treated as a lump of binary data stored in a 
+        <code>str</code>.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="isDumb"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">isDumb</span>(<span class=sig-arg>self</span>)</span>
+  </h3>
+  <p>This method must return <code>True</code> if the store is a 
+  dumb-mode-style store. Unlike all other methods in this class, this one 
+  provides a default implementation, which returns 
+  <code>False</code>.</p>
+  In general, any custom subclass of <code><a 
+  href="openid.consumer.stores.OpenIDStore-class.html" 
+  class="link"><code>OpenIDStore</code></a></code> won't override this 
+  method, as custom subclasses are only likely to be created when the 
+  store is fully functional.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Returns:</b></dt>
+      <dd>
+        <code>True</code> if the store works fully, <code>False</code> 
+        if the consumer will have to use dumb mode to use this store.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>bool</code>)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="removeAssociation"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">removeAssociation</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>server_url</span>,
+          <span class=sig-arg>handle</span>)</span>
+  </h3>
+  This method removes the matching association if it's found, and 
+  returns whether the association was removed or not.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>server_url</b></code> -
+         The URL of the identity server the association to remove 
+        belongs to.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      <dd><code><b>handle</b></code> -
+         This is the handle of the association to remove. If there 
+        isn't an association found that matches both the given URL and 
+        handle, then there was no matching handle found.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Returns:</b></dt>
+      <dd>
+        Returns whether or not the given association existed.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>bool</code>)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="storeAssociation"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">storeAssociation</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>association</span>)</span>
+  </h3>
+  This method puts a <code><a 
+  href="openid.consumer.stores.ConsumerAssociation-class.html" 
+  class="link"><code>ConsumerAssociation</code></a></code> object into 
+  storage.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>association</b></code> -
+         The <code><a 
+        href="openid.consumer.stores.ConsumerAssociation-class.html" 
+        class="link"><code>ConsumerAssociation</code></a></code> to 
+        store.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code><a 
+              href="openid.consumer.stores.ConsumerAssociation-class.html" 
+              class="link"><code>ConsumerAssociation</code></a></code>)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="storeNonce"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">storeNonce</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>nonce</span>)</span>
+  </h3>
+  Stores a nonce. This is used to prevent replay attacks.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>nonce</b></code> -
+         The nonce to store.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="useNonce"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">useNonce</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>nonce</span>)</span>
+  </h3>
+  <p>This method is called when the library is attempting to use a nonce. 
+  If the nonce is in the store, this method removes it and returns True. 
+  Otherwise it returns False.</p>
+  This method is allowed and encouraged to treat nonces older than 
+  some period (like 6 hours) as no longer existing, and return False and 
+  remove them.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>nonce</b></code> -
+         The nonce to use.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Returns:</b></dt>
+      <dd>
+        <code>True</code> if the nonce existed, <code>False</code> if 
+        it didn't.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>bool</code>)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+<br />
+
+
+<!-- =========== START OF CLASS VARIABLE DETAILS =========== -->
+<table class="details" border="1" cellpadding="3" cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="details">
+  <th colspan="2">Class Variable Details</th></tr>
+</table>
+<table width="100%" class="var-details" bgcolor="#e0e0e0"><tr><td>
+<a name="AUTH_KEY_LEN"></a>
+<h3>AUTH_KEY_LEN</h3>
+The length of the auth key that should be returned by the <code><a 
+href="openid.consumer.stores.OpenIDStore-class.html#getAuthKey" 
+class="link"><code>getAuthKey</code></a></code> method.
+<dl>
+  <dt></dt>
+  <dd>
+    <dl>
+      <dt><b>Type:</b></dt>
+      <dd>
+          <code>int</code>
+
+      </dd>
+<span title="20">      <dt><b>Value:</b></dt>
+      <dd><table><tr><td>
+<pre class="variable">
+20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</pre>
+        </td></tr></table></dd>
+</span>    </dl>
+  </dd>
+</dl></td></tr></table>
+<br />
+
+
+<!-- =========== START OF NAVBAR =========== -->
+<table class="navbar" border="0" width="100%" cellpadding="0" bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="center">
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="trees.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="indices.html">Index</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+  <tr>
+    <td align="left"><font size="-2">Generated by Epydoc 2.1 on Thu Oct 13 16:20:17 2005</font></td>
+    <td align="right"><a href="http://epydoc.sourceforge.net"
+                      ><font size="-2">http://epydoc.sf.net</font></a></td>
+  </tr>
+</table>
+</body>
+</html>
