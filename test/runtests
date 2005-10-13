@@ -3,7 +3,9 @@
 import cryptrand
 import storetest
 import trustroot
+import linkparse
 
 cryptrand.test()
 storetest.test()
 trustroot.test()
+linkparse.test()
