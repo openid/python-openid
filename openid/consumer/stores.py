@@ -4,88 +4,324 @@ from openid import oidUtil
 class OpenIDStore(object):
     """
     This is the interface for the store objects the OpenID consumer
-    library uses.  It is 
+    library uses.  It is a single class that provides all of the
+    persistence mechanisms that the OpenID consumer library needs.
+
+
+    @cvar AUTH_KEY_LEN: The length of the auth key that should be
+        returned by the C{L{getAuthKey}} method.
     """
 
     AUTH_KEY_LEN = 20
 
     def storeAssociation(self, association):
-        """Puts a ConsumerAssociation object into storage. No return."""
+        """
+        This method puts a C{L{ConsumerAssociation}} object into
+        storage.
+
+
+        @param association: The C{L{ConsumerAssociation}} to store.
+
+        @type association: C{L{ConsumerAssociation}}
+        """
         raise NotImplementedError
     
 
     def getAssociation(self, server_url):
-        """Returns a ConsumerAssocation object from storage that
-        matches the server_url.  Returns None if no such association
-        is found or if the matching association is expired.  (Is
-        allowed to gc expired associations when found.)"""
+        """
+        This method returns a C{L{ConsumerAssociation}} object from storage
+        that matches the server_url.  It returns C{None} if no such
+        association is found or if the matching association is
+        expired.
+
+        This method is allowed (and encouraged) to garbage collect
+        expired associations when found.
+
+
+        @param server_url: The URL of the identity server to get the
+            association for.
+
+        @type server_url: C{str}
+
+
+        @return: The C{L{ConsumerAssociation}} for the given identity
+            server.
+
+        @rtype: C{L{ConsumerAssociation}} or C{None}
+        """
         raise NotImplementedError
 
     def removeAssociation(self, server_url, handle):
-        """If there is a matching association, remove it from the
-        store and return True.  Otherwise return False."""
+        """
+        This method removes the matching association if it's found,
+        and returns whether the association was removed or not.
+
+
+        @param server_url: The URL of the identity server the
+            association to remove belongs to.
+
+        @type server_url: C{str}
+
+
+        @param handle: This is the handle of the association to
+            remove.  If there isn't an association found that matches
+            both the given URL and handle, then there was no matching
+            handle found.
+
+        @type handle: C{str}
+
+
+        @return: Returns whether or not the given association existed.
+
+        @rtype: C{bool}
+        """
         raise NotImplementedError
 
 
     def storeNonce(self, nonce):
-        """Stores a nonce (which is passed in as a string).  No return."""
+        """
+        Stores a nonce.  This is used to prevent replay attacks.
+
+
+        @param nonce: The nonce to store.
+
+        @type nonce: C{str}
+        """
         raise NotImplementedError
 
     def useNonce(self, nonce):
-        """If the nonce is in the store, removes it and returns True.
-        Otherwise returns False.
+        """
+        This method is called when the library is attempting to use a
+        nonce.  If the nonce is in the store, this method removes it
+        and returns True.  Otherwise it returns False.
 
         This method is allowed and encouraged to treat nonces older
         than some period (like 6 hours) as no longer existing, and
-        return False and remove them."""
+        return False and remove them.
+
+
+        @param nonce: The nonce to use.
+
+        @type nonce: C{str}
+
+
+        @return: C{True} if the nonce existed, C{False} if it didn't.
+
+        @rtype: C{bool}
+        """
         raise NotImplementedError
 
     def getAuthKey(self):
-        """This method returns a 20-byte key used to sign the tokens,
-        to ensure that they haven't been tampered with in transit.  It
-        should return the same key every time it is called."""
+        """
+        This method returns a key used to sign the tokens, to
+        ensure that they haven't been tampered with in transit.  It
+        should return the same key every time it is called.  The key
+        returned should be C{L{AUTH_KEY_LEN}} bytes long.
+
+        @return: The key.  It should be C{L{AUTH_KEY_LEN}} bytes in
+            length, and use the full range of byte values.  That is,
+            it should be treated as a lump of binary data stored in a
+            C{str}.
+
+        @rtype: C{str}
+        """
         raise NotImplementedError
 
     def isDumb(self):
-        """This method must return True if the store is a dumb mode
-        style store"""
+        """
+        This method must return C{True} if the store is a
+        dumb-mode-style store.  Unlike all other methods in this
+        class, this one provides a default implementation, which
+        returns C{False}.
+
+        In general, any custom subclass of C{L{OpenIDStore}} won't
+        override this method, as custom subclasses are only likely to
+        be created when the store is fully functional.
+
+        @return: C{True} if the store works fully, C{False} if the
+           consumer will have to use dumb mode to use this store.
+
+        @rtype: C{bool}
+        """
         return False
 
 class DumbStore(OpenIDStore):
+    """
+    This is a store for use in the worst case, when you have no way of
+    saving state on the consumer server.  Using this store makes the
+    consumer vulnerable to replay attacks (though only within the
+    lifespan of the tokens), as it's unable to use nonces.  Avoid
+    using this store if it is at all possible.
+    """
     def __init__(self, secret_phrase):
+        """
+        Creates a new DumbStore instance.  For the security of the
+        tokens generated by the library, this class attempts to at
+        least have a secure implementation of C{L{getAuthKey}}.
+
+        When you create an instance of this class, pass in a secret
+        phrase.  The phrase is hashed with sha1 to make it the correct
+        length and form for an auth key.  That allows you to use a
+        long string as the secret phrase, which means you can make it
+        very difficult to guess.
+
+        Each C{L{DumbStore}} instance that is created for use by your
+        consumer site needs to use the same C{secret_phrase}.
+
+        @param secret_phrase: The phrase used to create the auth key
+            returned by C{L{getAuthKey}}
+
+        @type secret_phrase: C{str}
+        """
         self.auth_key = oidUtil.sha1(secret_phrase)
 
     def storeAssociation(self, unused_association):
+        """
+        This implementation does nothing.
+        """
         pass
 
     def getAssociation(self, unused_server_url):
+        """
+        This implementation always returns C{None}.
+
+
+        @return: C{None}
+
+        @rtype: C{None}
+        """
         return None
 
     def removeAssociation(self, unused_server_url, unused_handle):
+        """
+        This implementation always returns C{False}.
+
+
+        @return: C{False}
+
+        @rtype: C{bool}
+        """
         return False
 
     def storeNonce(self, nonce):
+        """
+        This implementation does nothing.
+        """
         pass
 
     def useNonce(self, nonce):
-        """In a system truly limited to dumb mode, nonces must all be
-        accepted."""
+        """
+        In a system truly limited to dumb mode, nonces must all be
+        accepted.  This therefore always returns C{True}, which makes
+        replay attacks feasible during the lifespan of the token.
+
+
+        @return: C{True}
+
+        @rtype: C{bool}
+        """
         return True
 
     def getAuthKey(self):
+        """
+        This method returns the auth key generated by the constructor.
+
+
+        @return: The auth key generated by the constructor.
+
+        @rtype: C{str}
+        """
         return self.auth_key
 
     def isDumb(self):
+        """
+        This store is a dumb mode store, so this method is overridden
+        to return C{True}.
+
+
+        @return: C{True}
+
+        @rtype: C{bool}
+        """
         return True
 
 
 class ConsumerAssociation(object):
-    """This class represents a consumer's view of an association."""
+    """
+    This class represents a consumer's view of an association.  In
+    general, users of this library will never see instances of this
+    object.  The only exception is if you implement a custom
+    C{L{OpenIDStore}}.
+
+    If you do implement such a store, it will need to store the values
+    of the C{server_url}, C{handle}, C{secret}, C{issued}, and
+    C{lifetime} instance variables.
+
+    @ivar server_url: This is the URL of the server this association
+        came from.
+
+    @type server_url: C{str}
+
+
+    @ivar handle: This is the handle the server gave this association.
+
+    @type handle: C{str}
+
+
+    @ivar secret: This is the shared secret the server generated for
+        this association.
+
+    @type secret: C{str}
+
+
+    @ivar issued: This is the time this association was issued, in
+        seconds since 00:00 GMT, January 1, 1970.  (ie, a unix
+        timestamp)
+
+    @type issued: C{int}
+
+
+    @ivar lifetime: This is the amount of time this association is
+        good for, measured in seconds since the association was
+        issued.
+
+    @type lifetime: C{int}
+
+
+    @sort: __init__, fromExpiresIn, getExpiresIn, __eq__, __ne__,
+        server_url, handle, secret, issued, lifetime
+    """
 
     def fromExpiresIn(cls, expires_in, server_url, handle, secret):
-        """\
-        @param expires_in: how long to keep this association valid
-        @type expires_in: int
+        """
+        This is an alternate constructor used by the OpenID consumer
+        library to create associations.  C{L{OpenIDStore}}
+        implementations shouldn't use this constructor.
+
+
+        @param expires_in: This is the amount of time this association
+            is good for, measured in seconds since the association was
+            issued.
+        
+        @type expires_in: C{int}
+
+
+        @param server_url: This is the URL of the server this
+            association came from.
+
+        @type server_url: C{str}
+
+
+        @param handle: This is the handle the server gave this
+            association.
+
+        @type handle: C{str}
+
+
+        @param secret: This is the shared secret the server generated
+            for this association.
+
+        @type secret: C{str}
         """
         issued = int(time.time())
         lifetime = expires_in
@@ -94,6 +330,41 @@ class ConsumerAssociation(object):
     fromExpiresIn = classmethod(fromExpiresIn)
 
     def __init__(self, server_url, handle, secret, issued, lifetime):
+        """
+        This is the standard constructor for creating an association.
+
+        
+        @param server_url: This is the URL of the server this
+            association came from.
+
+        @type server_url: C{str}
+
+
+        @param handle: This is the handle the server gave this
+            association.
+
+        @type handle: C{str}
+
+
+        @param secret: This is the shared secret the server generated
+            for this association.
+
+        @type secret: C{str}
+
+
+        @param issued: This is the time this association was issued,
+            in seconds since 00:00 GMT, January 1, 1970.  (ie, a unix
+            timestamp)
+
+        @type issued: C{int}
+
+
+        @param lifetime: This is the amount of time this association
+            is good for, measured in seconds since the association was
+            issued.
+
+        @type lifetime: C{int}
+        """
         self.server_url = server_url
         self.handle = handle
         self.secret = secret
@@ -101,13 +372,43 @@ class ConsumerAssociation(object):
         self.lifetime = lifetime
 
     def getExpiresIn(self):
+        """
+        This returns the number of seconds this association is still
+        valid for, or C{0} if the association is no longer valid.
+
+
+        @return: The number of seconds this association is still valid
+            for, or C{0} if the association is no longer valid.
+
+        @rtype: C{int}
+        """
         return max(0, self.issued + self.lifetime - int(time.time()))
 
     expiresIn = property(getExpiresIn)
 
     def __eq__(self, other):
+        """
+        This checks to see if two C{L{ConsumerAssociation}} instances
+        represent the same association.
+
+
+        @return: C{True} if the two instances represent the same
+            association, C{False} otherwise.
+
+        @rtype: C{bool}
+        """
         return self.__dict__ == other.__dict__
 
     def __ne__(self, other):
+        """
+        This checks to see if two C{L{ConsumerAssociation}} instances
+        represent different associations.
+
+
+        @return: C{True} if the two instances represent different
+            associations, C{False} otherwise.
+
+        @rtype: C{bool}
+        """
         return self.__dict__ != other.__dict__
 
