@@ -4,8 +4,10 @@ import cryptrand
 import storetest
 import trustroot
 import linkparse
+import oidutil
 
 cryptrand.test()
 storetest.test()
 trustroot.test()
 linkparse.test()
+oidutil.test()
