@@ -25,6 +25,11 @@ def hmacSha1(key, text):
 def sha1(s):
     return sha.new(s).digest()
 
+# Check Python compatiblity by raising an exception on import if the
+# needed functionality is not present.
+pickle.encode_long
+pickle.decode_long
+
 def longToStr(l):
     if l == 0:
         return '\x00'
