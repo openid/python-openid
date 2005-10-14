@@ -2,9 +2,26 @@ import string
 import os
 import os.path
 import time
-import tempfile
 
 from errno import EEXIST, ENOENT
+
+try:
+    from tempfile import mkstemp
+except ImportError:
+    # Python < 2.3
+    import tempfile
+    def mkstemp(dir):
+        for _ in range(5):
+            name = os.tempnam(dir)
+            try:
+                fd = os.open(name, os.O_CREAT | os.O_EXCL | os.O_RDWR, 0600)
+            except OSError, why:
+                if why[0] != EEXIST:
+                    raise
+            else:
+                return fd, name
+
+        raise RuntimeError('Failed to get temp file after 5 attempts')
 
 from openid.consumer.stores import OpenIDStore, ConsumerAssociation
 from openid import oidUtil
@@ -18,7 +35,7 @@ except NameError:
         # 2.3
         import sets
     except ImportError:
-        # 2.2
+        # Python < 2.2
         d = {}
         for c in filename_allowed:
             d[c] = None
@@ -191,7 +208,7 @@ class FilesystemOpenIDStore(OpenIDStore):
 
         () -> (file, str)
         """
-        fd, name = tempfile.mkstemp(dir=self.temp_dir)
+        fd, name = mkstemp(dir=self.temp_dir)
         try:
             file_obj = os.fdopen(fd, 'wb')
             return file_obj, name
