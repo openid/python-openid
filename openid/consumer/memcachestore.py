@@ -1,36 +1,3 @@
-"""\
-This module implements a memcached-based OpenID consumer
-store. MemCached[1] is the cache implementation used by
-LiveJournal.com. It is expected that if you are using this store
-implementation, you are already using or are transitioning to using
-memcached for your application.
-
-There are a few things to note about this store implementation and how
-it interacts with OpenID. This store uses only memcached as a
-backend. That means that if the memcached process restarts or is
-flushed, then the data is lost. The data that is stored in this store
-is generally ephemeral, so the impact is relatively low. In the worst
-case, many currently in-progress authentications will fail where they
-may have succeeded if they could have completed. This means that if
-your memcached processes are relatively stable and/or you do not
-generally handle a high rate of logins, the user-visible consequences
-of this data loss will be minimal.
-
-Resources
-=========
-
-For more information about memcached, see:
-http://danga.com/memcached/
-
-The protocol can be found at:
-http://cvs.danga.com/browse.cgi/wcmtools/memcached/doc/protocol.txt?rev=HEAD
-
-The Python memcached client that this implementation requires can be
-found at:
-
-ftp://ftp.tummy.com/pub/python-memcached/
-
-"""
 from binascii import hexlify
 from openid import oidUtil
 from openid.consumer.stores import OpenIDStore
@@ -40,15 +7,58 @@ NONCE_CODE = 'N'
 ASSOCATION_CODE = 'A'
 
 class MemCacheOpenIDStore(OpenIDStore):
+    """
+    This class implements a memcached-based OpenID consumer
+    store. MemCached is the cache implementation used by
+    LiveJournal.com. It is expected that if you are using this store
+    implementation, you are already using or are transitioning to
+    using memcached for your application.
+
+    There are a few things to note about this store implementation and
+    how it interacts with OpenID. This store uses only memcached as a
+    backend. That means that if the memcached process restarts or is
+    flushed, then the data is lost. The data that is stored in this
+    store is generally ephemeral, so the impact is relatively low. In
+    the worst case, many currently in-progress authentications will
+    fail where they may have succeeded if they could have
+    completed. This means that if your memcached processes are
+    relatively stable and/or you do not generally handle a high rate
+    of logins, the user-visible consequences of this data loss will be
+    minimal.
+
+    Most of the methods of this class should be considered
+    implementation details.  People wishing to just use this class
+    need only pay attention to the C{L{__init__}} method.
+
+    Resources
+    =========
+
+    For more information about memcached, see:
+    U{http://danga.com/memcached/}
+
+    The protocol can be found at:
+    U{http://cvs.danga.com/browse.cgi/wcmtools/memcached/doc/protocol.txt?rev=HEAD}
+
+    The Python memcached client that this implementation requires can be
+    found at:
+    U{ftp://ftp.tummy.com/pub/python-memcached/}
+
+
+    @sort: __init__
+    """
     def __init__(self, memcache, key_prefix='', secret_phrase=None):
-        """Initialize the state of the memcached store.
+        """Initialize the memcached store.
 
         @param memcache: a handle to a memcached client
-        @type memcache: memcache.Client
+
+        @type memcache: C{memcache.Client}
+
 
         @param key_prefix: prefix to prepend to all generated keys to
             keep them unique
-        @type key_prefix: str
+
+        @type key_prefix: C{str}
+
 
         @param secret_phrase: Optional secret for use when you want to
             make sure that you are always using the same secret to
@@ -58,9 +68,8 @@ class MemCacheOpenIDStore(OpenIDStore):
             will be affected when that cache is flushed. Choose this
             value carefully. A truly random number is best if you do
             not let the library choose.
-        @type secret_phrase: str
 
-        @return: None
+        @type secret_phrase: C{str}
         """
         self.memcache = memcache
         self.setKeyPrefix(key_prefix)
@@ -162,13 +171,14 @@ class MemCacheOpenIDStore(OpenIDStore):
         self.memcache.set(key, '', self.nonce_timeout)
 
     def useNonce(self, nonce):
-        """check whether this nonce has already been used, and also
+        """
+        check whether this nonce has already been used, and also
         mark it as used if it has not.
         
         Ideally the implementation of this function would be
 
-         key = self._nonceKey(nonce)
-         return self.memcache.delete(key)
+        C{key = self._nonceKey(nonce)
+        return self.memcache.delete(key)}
 
         but the Python memcached library returns success even when
         the return response is not what it is expecting. This

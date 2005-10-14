@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>openid.consumer.memcachestore.MemCacheOpenIDStore</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css"></link>
+</head>
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+
+<!-- =========== START OF NAVBAR =========== -->
+<table class="navbar" border="0" width="100%" cellpadding="0" bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="center">
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="trees.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="indices.html">Index</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <font size="-1"><b class="breadcrumbs">
+        Package&nbsp;openid ::
+        Package&nbsp;consumer ::
+        <a href="openid.consumer.memcachestore-module.html">Module&nbsp;memcachestore</a> ::
+        Class&nbsp;MemCacheOpenIDStore
+      </b></font></br>
+    </td>
+    <td><table cellpadding="0" cellspacing="0">
+      <tr><td align="right"><font size="-2">[<a href="../private/openid.consumer.memcachestore.MemCacheOpenIDStore-class.html">show&nbsp;private</a>&nbsp;|&nbsp;hide&nbsp;private]</font></td></tr>
+      <tr><td align="right"><font size="-2">[<a href="frames.html"target="_top">frames</a>&nbsp;|&nbsp;<a href="openid.consumer.memcachestore.MemCacheOpenIDStore-class.html" target="_top">no&nbsp;frames</a>]</font></td></tr>
+    </table></td>
+</tr></table>
+
+<!-- =========== START OF CLASS DESCRIPTION =========== -->
+<h2 class="class">Type MemCacheOpenIDStore</h2>
+
+<pre class="base-tree">
+ <a href="__builtin__.object-class.html"><code>object</code></a> --+    
+          |    
+<a href="openid.consumer.stores.OpenIDStore-class.html"><code>OpenIDStore</code></a> --+
+              |
+             <b>MemCacheOpenIDStore</b>
+</pre><br />
+
+<hr/>
+
+<p>This class implements a memcached-based OpenID consumer store. 
+MemCached is the cache implementation used by LiveJournal.com. It is 
+expected that if you are using this store implementation, you are already 
+using or are transitioning to using memcached for your application.</p>
+<p>There are a few things to note about this store implementation and how 
+it interacts with OpenID. This store uses only memcached as a backend. 
+That means that if the memcached process restarts or is flushed, then the 
+data is lost. The data that is stored in this store is generally 
+ephemeral, so the impact is relatively low. In the worst case, many 
+currently in-progress authentications will fail where they may have 
+succeeded if they could have completed. This means that if your memcached 
+processes are relatively stable and/or you do not generally handle a high 
+rate of logins, the user-visible consequences of this data loss will be 
+minimal.</p>
+Most of the methods of this class should be considered implementation 
+details. People wishing to just use this class need only pay attention to 
+the <code><a 
+href="openid.consumer.memcachestore.MemCacheOpenIDStore-class.html#__init__" 
+class="link"><code>__init__</code></a></code> method.
+<h1 class="heading">Resources</h1>
+  <p>For more information about memcached, see: <a 
+  href="http://danga.com/memcached/">http://danga.com/memcached/</a></p>
+  <p>The protocol can be found at: <a 
+  href="http://cvs.danga.com/browse.cgi/wcmtools/memcached/doc/protocol.txt?rev=HEAD">http://cvs.danga.com/browse.cgi/wcmtools/memcached/doc/protocol.txt?rev=HEAD</a></p>
+  The Python memcached client that this implementation requires can be 
+  found at: <a 
+  href="ftp://ftp.tummy.com/pub/python-memcached/">ftp://ftp.tummy.com/pub/python-memcached/</a>
+<hr/>
+
+
+<!-- =========== START OF METHOD SUMMARY =========== -->
+<table class="summary" border="1" cellpadding="3" cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="summary">
+  <th colspan="2">Method Summary</th></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.memcachestore.MemCacheOpenIDStore-class.html#__init__" class="summary-sig-name"><code>__init__</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>memcache</span>,
+          <span class=summary-sig-arg>key_prefix</span>,
+          <span class=summary-sig-arg>secret_phrase</span>)</span></code>
+<br />
+Initialize the memcached store.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">        openid.consumer.interface.ConsumerAssociation or NoneType
+</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.memcachestore.MemCacheOpenIDStore-class.html#getAssociation" class="summary-sig-name"><code>getAssociation</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>server_url</span>)</span></code>
+<br />
+Get the association for the given server URL.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">        str
+</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.memcachestore.MemCacheOpenIDStore-class.html#getAuthKey" class="summary-sig-name"><code>getAuthKey</code></a>(<span class=summary-sig-arg>self</span>)</span></code>
+<br />
+Return the secret key used for signing authentication tokens.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">        <code>bool</code>
+</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.memcachestore.MemCacheOpenIDStore-class.html#removeAssociation" class="summary-sig-name"><code>removeAssociation</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>server_url</span>,
+          <span class=summary-sig-arg>handle</span>)</span></code>
+<br />
+This method removes the matching association if it's found, and 
+returns whether the association was removed or not.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">        NoneType
+</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.memcachestore.MemCacheOpenIDStore-class.html#setKeyPrefix" class="summary-sig-name"><code>setKeyPrefix</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>prefix</span>)</span></code>
+<br />
+Add a prefix to all keys that are generated by this code in order to 
+make sure that they do not conflict with the keys that are generated by 
+other parts of the application.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><a name="storeAssociation"></a><span class="summary-sig"><span class="summary-sig-name">storeAssociation</span>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>assoc</span>)</span></code>
+</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">&nbsp;</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.memcachestore.MemCacheOpenIDStore-class.html#storeNonce" class="summary-sig-name"><code>storeNonce</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>nonce</span>)</span></code>
+<br />
+Mark a nonce as present in the cache.</td></tr>
+<tr><td align="right" valign="top" width="15%"><font size="-1">        bool
+</font></td>
+  <td><code><span class="summary-sig"><a href="openid.consumer.memcachestore.MemCacheOpenIDStore-class.html#useNonce" class="summary-sig-name"><code>useNonce</code></a>(<span class=summary-sig-arg>self</span>,
+          <span class=summary-sig-arg>nonce</span>)</span></code>
+<br />
+check whether this nonce has already been used, and also mark it as 
+used if it has not.</td></tr>
+  <tr><td colspan="2">
+    <b>Inherited from <a href="openid.consumer.stores.OpenIDStore-class.html"><code>OpenIDStore</code></a>:</b>
+      <a href="openid.consumer.stores.OpenIDStore-class.html#isDumb"><code>isDumb</code></a>
+      <br />
+    <b>Inherited from <a href="__builtin__.object-class.html"><code>object</code></a>:</b>
+      <a href="__builtin__.object-class.html#__delattr__"><code>__delattr__</code></a>, 
+      <a href="__builtin__.object-class.html#__getattribute__"><code>__getattribute__</code></a>, 
+      <a href="__builtin__.object-class.html#__hash__"><code>__hash__</code></a>, 
+      <a href="__builtin__.object-class.html#__new__"><code>__new__</code></a>, 
+      <a href="__builtin__.object-class.html#__reduce__"><code>__reduce__</code></a>, 
+      <a href="__builtin__.object-class.html#__reduce_ex__"><code>__reduce_ex__</code></a>, 
+      <a href="__builtin__.object-class.html#__repr__"><code>__repr__</code></a>, 
+      <a href="__builtin__.object-class.html#__setattr__"><code>__setattr__</code></a>, 
+      <a href="__builtin__.object-class.html#__str__"><code>__str__</code></a>
+    </td></tr>
+</table><br />
+
+
+<!-- =========== START OF CLASS VARIABLE SUMMARY =========== -->
+<table class="summary" border="1" cellpadding="3" cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="summary">
+  <th colspan="2">Class Variable Summary</th></tr>
+  <tr><td colspan="2">
+    <b>Inherited from <a href="openid.consumer.stores.OpenIDStore-class.html"><code>OpenIDStore</code></a>:</b>
+      <a href="openid.consumer.stores.OpenIDStore-class.html#AUTH_KEY_LEN"><code>AUTH_KEY_LEN</code></a>
+    </td></tr>
+</table><br />
+
+
+<!-- =========== START OF METHOD DETAILS =========== -->
+<table class="details" border="1" cellpadding="3" cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="details">
+  <th colspan="2">Method Details</th></tr>
+</table>
+
+<a name="__init__"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">__init__</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>memcache</span>,
+          <span class=sig-arg>key_prefix</span>=<span class=sig-default>''</span>,
+          <span class=sig-arg>secret_phrase</span>=<span class=sig-default>None</span>)</span>
+    <br /><i>(Constructor)</i>
+  </h3>
+  Initialize the memcached store.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>memcache</b></code> -
+         a handle to a memcached client
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>memcache.Client</code>)</i>
+      <dd><code><b>key_prefix</b></code> -
+         prefix to prepend to all generated keys to keep them 
+        unique
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      <dd><code><b>secret_phrase</b></code> -
+         Optional secret for use when you want to make sure that you 
+        are always using the same secret to sign authentication tokens. 
+        If you have many memcache servers, this will ensure that only the 
+        users whose OpenID transaction information is stored in a 
+        particular cache will be affected when that cache is flushed. 
+        Choose this value carefully. A truly random number is best if you 
+        do not let the library choose.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Overrides:</b></dt>
+      <dd><a href="__builtin__.object-class.html#__init__"><code>__builtin__.object.__init__</code></a></dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="getAssociation"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">getAssociation</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>server_url</span>)</span>
+  </h3>
+  Get the association for the given server URL.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>server_url</b></code> -
+         the server's url
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=str)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Returns:</b></dt>
+      <dd>
+        the association for this server or None
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=openid.consumer.interface.ConsumerAssociation or NoneType)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Overrides:</b></dt>
+      <dd><a href="openid.consumer.stores.OpenIDStore-class.html#getAssociation"><code>openid.consumer.stores.OpenIDStore.getAssociation</code></a></dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="getAuthKey"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">getAuthKey</span>(<span class=sig-arg>self</span>)</span>
+  </h3>
+  <p>Return the secret key used for signing authentication tokens.</p>
+  Will create a new key if the key does not yet exist. If the cache 
+  where this token is stored is flushed, then all in-process 
+  authentications will break. Use the secret_phrase argument to the 
+  constructor to protect yourself against this.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Returns:</b></dt>
+      <dd>
+        the secret auth key
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=str)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Overrides:</b></dt>
+      <dd><a href="openid.consumer.stores.OpenIDStore-class.html#getAuthKey"><code>openid.consumer.stores.OpenIDStore.getAuthKey</code></a></dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="removeAssociation"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">removeAssociation</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>server_url</span>,
+          <span class=sig-arg>handle</span>)</span>
+  </h3>
+  This method removes the matching association if it's found, and 
+  returns whether the association was removed or not.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>server_url</b></code> -
+         The URL of the identity server the association to remove 
+        belongs to.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      <dd><code><b>handle</b></code> -
+         This is the handle of the association to remove. If there 
+        isn't an association found that matches both the given URL and 
+        handle, then there was no matching handle found.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>str</code>)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Returns:</b></dt>
+      <dd>
+        Returns whether or not the given association existed.
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=<code>bool</code>)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Overrides:</b></dt>
+      <dd><a href="openid.consumer.stores.OpenIDStore-class.html#removeAssociation"><code>openid.consumer.stores.OpenIDStore.removeAssociation</code></a> <i>(inherited documentation)</i>
+</dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="setKeyPrefix"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">setKeyPrefix</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>prefix</span>)</span>
+  </h3>
+  <p>Add a prefix to all keys that are generated by this code in order to 
+  make sure that they do not conflict with the keys that are generated by 
+  other parts of the application. By default, there is no prefix 
+  added.</p>
+  <p>From 
+  http://cvs.danga.com/browse.cgi/wcmtools/memcached/doc/protocol.txt?rev=HEAD</p>
+  <p>Currently the length limit of a key is set at 250 characters (of 
+  course, normally clients wouldn't need to use such long keys); the key 
+  must not include control characters or whitespace.</p>
+  This implementation will add up to 21 bytes to the end of the prefix 
+  that you supply.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>prefix</b></code>
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=str)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Returns:</b></dt>
+      <dd>
+        None
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=NoneType)</i>
+      </dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="storeNonce"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">storeNonce</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>nonce</span>)</span>
+  </h3>
+  Mark a nonce as present in the cache. The nonce is used to prevent 
+  replay attacks.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>nonce</b></code> -
+         the nonce value
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=str)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Returns:</b></dt>
+      <dd>
+        None
+      </dd>
+    </dl>
+    <dl><dt><b>Overrides:</b></dt>
+      <dd><a href="openid.consumer.stores.OpenIDStore-class.html#storeNonce"><code>openid.consumer.stores.OpenIDStore.storeNonce</code></a></dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+
+<a name="useNonce"></a>
+<table width="100%" class="func-details" bgcolor="#e0e0e0"><tr><td>
+  <h3><span class="sig"><span class="sig-name">useNonce</span>(<span class=sig-arg>self</span>,
+          <span class=sig-arg>nonce</span>)</span>
+  </h3>
+  <p>check whether this nonce has already been used, and also mark it as 
+  used if it has not.</p>
+  <p>Ideally the implementation of this function would be</p>
+  <p><code>key = self._nonceKey(nonce) return 
+  self.memcache.delete(key)</code></p>
+  but the Python memcached library returns success even when the 
+  return response is not what it is expecting. This introduces a 
+  race-condition, since more than one get() can return successfully 
+  before the delete() happens. In the long run, we hope that the Python 
+  memcached library will return whether the delete succeeded. In the 
+  short run, the window for exploitation is very short. It opens the 
+  client to replay attacks within the time between the get() and the 
+  delete(). If you are paranoid, do not use this store.
+  <dl><dt></dt><dd>
+    <dl><dt><b>Parameters:</b></dt>
+      <dd><code><b>nonce</b></code> -
+         the nonce value
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=str)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Returns:</b></dt>
+      <dd>
+        whether this nonce is present in the cache
+        <br /><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        (type=bool)</i>
+      </dd>
+    </dl>
+    <dl><dt><b>Overrides:</b></dt>
+      <dd><a href="openid.consumer.stores.OpenIDStore-class.html#useNonce"><code>openid.consumer.stores.OpenIDStore.useNonce</code></a></dd>
+    </dl>
+  </dd></dl>
+</td></tr></table>
+<br />
+
+
+<!-- =========== START OF NAVBAR =========== -->
+<table class="navbar" border="0" width="100%" cellpadding="0" bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="center">
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="trees.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="indices.html">Index</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar">&nbsp;&nbsp;&nbsp;<a class="navbar" href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+    <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+  <tr>
+    <td align="left"><font size="-2">Generated by Epydoc 2.1 on Fri Oct 14 10:28:28 2005</font></td>
+    <td align="right"><a href="http://epydoc.sourceforge.net"
+                      ><font size="-2">http://epydoc.sf.net</font></a></td>
+  </tr>
+</table>
+</body>
+</html>
