@@ -2,6 +2,7 @@ import pickle
 import binascii
 import sha
 import hmac
+import sys
 
 from urllib import urlencode
 from openid.cryptrand import srand, getBytes
@@ -13,6 +14,10 @@ except NameError:
         return map(seq.__getitem__, xrange(len(seq) - 1, -1, -1))
 else:
     del _
+
+def log(message, level=0):
+    sys.stderr.write(message)
+    sys.stderr.write('\n')
 
 def hmacSha1(key, text):
     return hmac.new(key, text, sha).digest()
