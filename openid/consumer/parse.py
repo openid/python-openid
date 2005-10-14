@@ -104,7 +104,13 @@ attr_find = re.compile(r'''
 ''', flags)
 
 # Entity replacement:
-replacements = dict(amp='&', lt='<', gt='>', quot='"')
+replacements = {
+    'amp':'&',
+    'lt':'<',
+    'gt':'>',
+    'quot':'"',
+    }
+
 ent_replace = re.compile(r'&(%s);' % '|'.join(replacements.keys()))
 def replaceEnt(mo):
     "Replace the entities that are specified by OpenID"
