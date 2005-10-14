@@ -100,7 +100,7 @@ class TrustRoot(object):
             return host.endswith(self.host)
 
     def parse(cls, trust_root, check_sanity=False):
-        if not isinstance(trust_root, basestring):
+        if not isinstance(trust_root, (str, unicode)):
             return None
 
         url_parts = parseURL(trust_root)
