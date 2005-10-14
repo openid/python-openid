@@ -49,13 +49,47 @@ def kvForm(d):
     return ''.join(['%s:%s\n' % (k, v) for k, v in d.iteritems()])
 
 def parsekv(d):
-    d = d.strip()
+    """
+    Invariant:
+        d = parsekv(s)
+        parsekv(kvForm(d)) == d
+    """
+    err_fmt = 'malformed Key-Value string: %s: %r'
+    lines = d.split('\n')
+    if not lines:
+        return {}
+
+    if lines[-1]:
+        log(err_fmt % ('Does not end in a newline', d))
+    else:
+        del lines[-1]
+
     args = {}
-    for line in d.split('\n'):
+    line_num = 0
+    for line in lines:
+        line_num += 1
         pair = line.split(':', 1)
         if len(pair) == 2:
             k, v = pair
-            args[k.strip()] = v.strip()
+            k_s = k.strip()
+            if k_s != k:
+                msg_fmt = ('In line %d, ignoring leading or trailing '
+                           'whitespace in key %r')
+                log(err_fmt % (msg_fmt % (line_num, k), d))
+
+            if not k_s:
+                log(err_fmt % ('In line %d, got empty key' % (line_num,), d))
+
+            v_s = v.strip()
+            if v_s != v:
+                msg_fmt = ('In line %d, ignoring leading or trailing '
+                           'whitespace in value %r')
+                log(err_fmt % (msg_fmt % (line_num, v), d))
+
+            args[k_s] = v_s
+        else:
+            log(err_fmt % ('Line %d does not contain a colon' % line_num, d))
+
     return args
 
 def strxor(aa, bb):
