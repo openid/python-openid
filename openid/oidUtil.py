@@ -1,9 +1,3 @@
-"""
-the strxor functions is written by Paul Crowley and
-distributed with this package under separate MIT
-license. paul@ciphergoth.org
-"""
-
 import pickle
 import binascii
 import sha
@@ -60,7 +54,11 @@ def parsekv(d):
     return args
 
 def strxor(aa, bb):
-    return "".join([chr(ord(a) ^ ord(b)) for a, b in zip(aa, bb)])
+    if len(aa) != len(bb):
+        raise ValueError('Inputs to strxor must have the same length')
+
+    xor = lambda (a, b): chr(ord(a) ^ ord(b))
+    return "".join(map(xor, zip(aa, bb)))
 
 def signReply(reply, key, signed_fields):
     """Sign the given fields from the reply with the specified key.
