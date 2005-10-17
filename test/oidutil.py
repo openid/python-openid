@@ -58,8 +58,6 @@ def test_strLongConvert():
         assert n == n_prime, (s, n, n_prime)
         assert s == s_prime, (n, s, s_prime)
 
-    assert oidUtil.longToStr(0L) == '\x00'
-
 def test_base64():
     allowed_s = string.letters + string.digits + '+/='
     allowed_d = {}
@@ -142,6 +140,29 @@ def test_kvform():
             d2 = oidUtil.parsekv(kv)
             assert d == d2
 
+        cases = [
+            ([('openid', 'useful'),
+              ('a', 'b')], 'openid:useful\na:b\n'),
+            ([(' openid', 'useful'),
+              ('a', 'b')], ' openid:useful\na:b\n'),
+            ([(' openid ', ' useful '),
+              (' a ', ' b ')], ' openid : useful \n a : b \n'),
+            ({'af':'b', 'e':'f', 'c':'d'},
+              'af:b\nc:d\ne:f\n'),
+            ]
+
+        for case, expected in cases:
+            actual = oidUtil.kvForm(case)
+            assert actual == expected, (case, expected, actual)
+
+            # After passing through parsekv, kvForm(parsekv(x)) == x
+            d = oidUtil.parsekv(actual)
+            kv1 = oidUtil.kvForm(d)
+            d_prime = oidUtil.parsekv(kv1)
+            assert d == d_prime
+            kv2 = oidUtil.kvForm(d_prime)
+            assert kv1 == kv2
+
     finally:
         oidUtil.log = old_log
 
@@ -179,6 +200,10 @@ def test_strxor():
             pass
         else:
             assert False, 'Expected ValueError, got %r' % (unexpected,)
+
+# XXX: there are more functions that could benefit from being better
+# specified and tested in oidUtil.py These include, but are not
+# limited to appendArgs and signReply
 
 def test():
     test_reversed()
