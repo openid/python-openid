@@ -1,8 +1,10 @@
+import operator
 import pickle
 import binascii
 import sha
 import hmac
 import sys
+import types
 
 from urllib import urlencode
 from openid.cryptrand import srand, getBytes
@@ -49,9 +51,20 @@ def fromBase64(s):
     except binascii.Error:
         return ''
 
-def kvForm(d):
-    """Represent dict d as newline-terminated key:value pairs"""
-    return ''.join(['%s:%s\n' % (k, v) for k, v in d.iteritems()])
+def kvForm(seq):
+    """Represent dict or sequence of pairs of strings as newline-terminated
+    key:value pairs.
+
+    If a sequence is given, the pairs are generated in the order
+    given. If a dictionary is given, the pairs are generated in
+    key-sorted order.
+    """
+    if isinstance(seq, types.DictType):
+        seq = seq.items()
+        seq.sort()
+
+    formatPair = lambda t: operator.mod('%s:%s\n', t)
+    return ''.join(map(formatPair, seq))
 
 def parsekv(d):
     """
@@ -111,7 +124,7 @@ def signReply(reply, key, signed_fields):
     for i in signed_fields:
         token.append((i, reply['openid.' + i]))
 
-    text = ''.join(['%s:%s\n' % (k, v) for k, v in token])
+    text = kvForm(token)
     return (','.join(signed_fields), toBase64(hmacSha1(key, text)))
 
 def appendArgs(url, args):
