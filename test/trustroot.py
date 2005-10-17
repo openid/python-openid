@@ -10,6 +10,7 @@ def test():
 
     assertBad('baz.org')
     assertBad('*.foo.com')
+    assertBad('http://*.schtuff.*/')
     assertBad('ftp://foo.com')
     assertBad('ftp://*.foo.com')
     assertBad('http://*.foo.com:80:90/')
@@ -27,6 +28,7 @@ def test():
         tr = TrustRoot.parse(s)
         assert tr is not None
 
+    assertGood('http://*/')
     assertGood('http://*.schtuff.com/')
     assertGood('http://*.schtuff.com')
     assertGood('http://www.schtuff.com/')

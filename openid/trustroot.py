@@ -114,9 +114,14 @@ class TrustRoot(object):
             return None        
 
         # extract wildcard if it is there
-        if '*' in host:
+        if host.find('*', 1) != -1:
             # wildcard must be at start of domain:  *.foo.com, not foo.*.com
-            if not host.startswith('*.'):
+            return None
+
+        if host.startswith('*'):
+            # Starts with star, so must have a dot after it (if a
+            # domain is specified)
+            if len(host) > 1 and host[1] != '.':
                 return None
 
             host = host[2:]
