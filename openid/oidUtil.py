@@ -50,7 +50,7 @@ def fromBase64(s):
     except binascii.Error:
         return ''
 
-def seqToKV(seq):
+def seqToKV(seq, strict=False):
     """Represent a sequence of pairs of strings as newline-terminated
     key:value pairs. The pairs are generated in the order given.
 
@@ -61,7 +61,11 @@ def seqToKV(seq):
     @rtype: str
     """
     def err(msg):
-        log('seqToKV warning: %s: %r' % (msg, seq))
+        formatted = 'seqToKV warning: %s: %r' % (msg, seq)
+        if strict:
+            raise ValueError(formatted)
+        else:
+            log(formatted)
 
     lines = []
     for k, v in seq:
@@ -91,7 +95,7 @@ def seqToKV(seq):
 
     return ''.join(lines)
 
-def kvToSeq(data):
+def kvToSeq(data, strict=False):
     """
 
     After one parse, seqToKV and kvToSeq are inverses, with no warnings:
@@ -100,8 +104,12 @@ def kvToSeq(data):
         seqToKV(kvToSeq(seq)) == seq
     """
     def err(msg):
-        log('kvToSeq warning: %s: %r' % (msg, data))
-    
+        formatted = 'kvToSeq warning: %s: %r' % (msg, data)
+        if strict:
+            raise ValueError(formatted)
+        else:
+            log(formatted)
+
     lines = data.split('\n')
     if lines[-1]:
         err('Does not end in a newline')
