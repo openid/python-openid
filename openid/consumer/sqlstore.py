@@ -8,7 +8,10 @@ def inTxn(func):
         return self._callInTransaction(func, self, *args, **kwargs)
 
     if hasattr(func, '__name__'):
-        wrapped.__name__ = func.__name__[4:]
+        try:
+            wrapped.__name__ = func.__name__[4:]
+        except TypeError:
+            pass
 
     if hasattr(func, '__doc__'):
         wrapped.__doc__ = func.__doc__
