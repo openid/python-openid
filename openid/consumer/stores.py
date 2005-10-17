@@ -293,6 +293,16 @@ class ConsumerAssociation(object):
         server_url, handle, secret, issued, lifetime
     """
 
+    # The ordering and name of keys as stored by serializeAssociation
+    assoc_keys = [
+        'version',
+        'server_url',
+        'handle',
+        'secret',
+        'issued',
+        'lifetime',
+        ]
+
     def fromExpiresIn(cls, expires_in, server_url, handle, secret):
         """
         This is an alternate constructor used by the OpenID consumer
@@ -413,3 +423,55 @@ class ConsumerAssociation(object):
         """
         return self.__dict__ != other.__dict__
 
+    def serialize(self):
+        """Convert an association to KV form.
+
+        @return: String in KV form suitable for deserialization by deserialize
+        @rtype: str
+        """
+        data = {
+            'version':'1',
+            'server_url':self.server_url,
+            'handle':self.handle,
+            'secret':oidUtil.toBase64(self.secret),
+            'issued':str(int(self.issued)),
+            'lifetime':str(int(self.lifetime)),
+            }
+
+        assert len(data) == len(self.assoc_keys)
+        pairs = []
+        for field_name in self.assoc_keys:
+            pairs.append((field_name, data[field_name]))
+
+        return oidUtil.seqToKV(pairs, strict=True)
+
+    def deserialize(cls, assoc_s):
+        """Parse an association as stored by serialize().
+
+        inverse of serialize
+
+        @param assoc_s: Association as serialized by serialize()
+        @type assoc_s: str
+
+        @return: instance of this class
+        """
+        pairs = oidUtil.kvToSeq(assoc_s, strict=True)
+        keys = []
+        values = []
+        for k, v in pairs:
+            keys.append(k)
+            values.append(v)
+
+        if keys != cls.assoc_keys:
+            raise ValueError('Unexpected key values: %r', keys)
+
+        version, server_url, handle, secret, issued, lifetime = values
+        if version != '1':
+            raise ValueError('Unknown version: %r' % version)
+        issued = int(issued)
+        lifetime = int(lifetime)
+        secret = oidUtil.fromBase64(secret)
+        return ConsumerAssociation(
+            server_url, handle, secret, issued, lifetime)
+
+    deserialize = classmethod(deserialize)

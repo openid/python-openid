@@ -5,6 +5,7 @@ import time
 
 from errno import EEXIST, ENOENT
 
+
 try:
     from tempfile import mkstemp
 except ImportError:
@@ -45,69 +46,6 @@ except NameError:
         isFilenameSafe = sets.Set(filename_allowed).__contains__
 else:
     isFilenameSafe = set(filename_allowed).__contains__
-
-# The ordering and name of keys as stored by serializeAssociation
-assoc_keys = [
-    'version',
-    'server_url',
-    'handle',
-    'secret',
-    'issued',
-    'lifetime',
-    ]
-
-def serializeAssociation(assoc):
-    """Convert an association to kvform
-
-    Inverse of deserializeAssociation
-    """
-    data = [
-        '1',
-        assoc.server_url,
-        assoc.handle,
-        oidUtil.toBase64(assoc.secret),
-        str(int(assoc.issued)),
-        str(int(assoc.lifetime)),
-        ]
-
-    assert len(data) == len(assoc_keys)
-
-    lines = []
-    for k, v in zip(assoc_keys, data):
-        assert ':' not in k
-        if '\n' in v:
-            fmt = 'Invalid value serializing association: field %r, value %r'
-            raise ValueError(fmt % (k, v))
-
-        lines.append('%s: %s\n' % (k, v))
-
-    return ''.join(lines)
-
-def deserializeAssociation(assoc_s):
-    """Parse an association as stored by serializeAssociation.
-
-    inverse of serializeAssociation
-    """
-    lines = assoc_s.split('\n')
-    if lines.pop() != '':
-        raise ValueError('Missing trailing newline!')
-    keys = []
-    values = []
-    for line in lines:
-        k, v = line.split(': ')
-        keys.append(k)
-        values.append(v)
-
-    if keys != assoc_keys:
-        raise ValueError('Unexpected key values: %r', keys)
-
-    version, server_url, handle, secret, issued, lifetime = values
-    if version != '1':
-        raise ValueError('Unknown version: %r' % version)
-    issued = int(issued)
-    lifetime = int(lifetime)
-    secret = oidUtil.fromBase64(secret)
-    return ConsumerAssociation(server_url, handle, secret, issued, lifetime)
 
 def removeIfPresent(filename):
     """Attempt to remove a file, returning whether the file existed at
@@ -312,7 +250,7 @@ class FilesystemOpenIDStore(OpenIDStore):
 
         ConsumerAssociation -> NoneType
         """
-        association_s = serializeAssociation(association)
+        association_s = association.serialize()
         filename = self.getAssociationFilename(association.server_url)
         tmp_file, tmp = self._mktemp()
 
@@ -370,7 +308,7 @@ class FilesystemOpenIDStore(OpenIDStore):
                 assoc_file.close()
 
             try:
-                association = deserializeAssociation(assoc_s)
+                association = ConsumerAssociation.deserialize(assoc_s)
             except ValueError:
                 removeIfPresent(filename)
                 return None
@@ -483,7 +421,7 @@ class FilesystemOpenIDStore(OpenIDStore):
 
                 # Remove expired or corrupted associations
                 try:
-                    association = deserializeAssociation(assoc_s)
+                    association = ConsumerAssociation.deserialize(assoc_s)
                 except ValueError:
                     removeIfPresent(association_filename)
                 else:
