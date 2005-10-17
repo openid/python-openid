@@ -132,36 +132,58 @@ def test_kvform():
 
         for case_kv, case_d, expected_warnings in cases:
             log.num_warnings = 0
-            d = oidUtil.parsekv(case_kv)
+            d = oidUtil.kvToDict(case_kv)
             assert case_d == d
             assert log.num_warnings == expected_warnings, (
                 case_kv, log.num_warnings, expected_warnings)
-            kv = oidUtil.kvForm(d)
-            d2 = oidUtil.parsekv(kv)
+            kv = oidUtil.dictToKV(d)
+            d2 = oidUtil.kvToDict(kv)
             assert d == d2
 
         cases = [
+            ([], ''),
             ([('openid', 'useful'),
               ('a', 'b')], 'openid:useful\na:b\n'),
             ([(' openid', 'useful'),
               ('a', 'b')], ' openid:useful\na:b\n'),
             ([(' openid ', ' useful '),
               (' a ', ' b ')], ' openid : useful \n a : b \n'),
-            ({'af':'b', 'e':'f', 'c':'d'},
-              'af:b\nc:d\ne:f\n'),
+            ([(' open id ', ' use ful '),
+              (' a ', ' b ')], ' open id : use ful \n a : b \n'),
             ]
 
         for case, expected in cases:
-            actual = oidUtil.kvForm(case)
+            actual = oidUtil.seqToKV(case)
             assert actual == expected, (case, expected, actual)
 
-            # After passing through parsekv, kvForm(parsekv(x)) == x
-            d = oidUtil.parsekv(actual)
-            kv1 = oidUtil.kvForm(d)
-            d_prime = oidUtil.parsekv(kv1)
-            assert d == d_prime
-            kv2 = oidUtil.kvForm(d_prime)
-            assert kv1 == kv2
+            seq = oidUtil.kvToSeq(actual)
+
+            # Expected to be unchanged, except stripping whitespace
+            # from start and end of values (i. e. ordering, case, and
+            # internal whitespace is preserved)
+            expected_seq = []
+            for k, v in case:
+                expected_seq.append((k.strip(), v.strip()))
+
+            assert seq == expected_seq, (case, expected_seq, seq)
+
+        log.num_warnings = 0
+        result = oidUtil.seqToKV([(1,1)])
+        assert result == '1:1\n'
+        assert log.num_warnings == 2
+
+        exceptional_cases = [
+            [('openid', 'use\nful')],
+            [('open\nid', 'useful')],
+            [('open\nid', 'use\nful')],
+            ]
+        for case in exceptional_cases:
+            try:
+                unexpected = oidUtil.seqToKV(case)
+            except ValueError:
+                pass
+            else:
+                assert False, 'Expected ValueError, got %r' % (unexpected,)
 
     finally:
         oidUtil.log = old_log

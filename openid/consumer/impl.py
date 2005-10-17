@@ -129,7 +129,7 @@ class OpenIDConsumerImpl(object):
         if ret is None:
             return FAILURE, consumer_id
 
-        results = oidUtil.parsekv(ret[1])
+        results = oidUtil.kvToDict(ret[1])
         is_valid = results.get('is_valid', 'false')
 
         if is_valid == 'true':
@@ -271,7 +271,7 @@ class OpenIDConsumerImpl(object):
         body = urllib.urlencode(args)
 
         url, data = self.fetcher.post(server_url, body)
-        results = oidUtil.parsekv(data)
+        results = oidUtil.kvToDict(data)
 
         try:
             assoc_type = results['assoc_type']

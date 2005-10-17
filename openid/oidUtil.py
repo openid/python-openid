@@ -1,5 +1,9 @@
-import operator
 import pickle
+# Check Python compatiblity by raising an exception on import if the
+# needed functionality is not present.
+pickle.encode_long
+pickle.decode_long
+
 import binascii
 import sha
 import hmac
@@ -27,11 +31,6 @@ def hmacSha1(key, text):
 def sha1(s):
     return sha.new(s).digest()
 
-# Check Python compatiblity by raising an exception on import if the
-# needed functionality is not present.
-pickle.encode_long
-pickle.decode_long
-
 def longToStr(l):
     if l == 0:
         return '\x00'
@@ -51,38 +50,65 @@ def fromBase64(s):
     except binascii.Error:
         return ''
 
-def kvForm(seq):
-    """Represent dict or sequence of pairs of strings as newline-terminated
-    key:value pairs.
+def seqToKV(seq):
+    """Represent a sequence of pairs of strings as newline-terminated
+    key:value pairs. The pairs are generated in the order given.
 
-    If a sequence is given, the pairs are generated in the order
-    given. If a dictionary is given, the pairs are generated in
-    key-sorted order.
+    @param seq: The pairs
+    @type seq: [(str, str)]
+
+    @return: A string representation of the sequence
+    @rtype: str
     """
-    if isinstance(seq, types.DictType):
-        seq = seq.items()
-        seq.sort()
+    def err(msg):
+        log('seqToKV warning: %s: %r' % (msg, seq))
 
-    formatPair = lambda t: operator.mod('%s:%s\n', t)
-    return ''.join(map(formatPair, seq))
+    lines = []
+    for k, v in seq:
+        if not isinstance(k, types.StringType):
+            err('Converting key to string: %r' % k)
+            k = str(k)
 
-def parsekv(d):
+        if '\n' in k:
+            raise ValueError(
+                'Invalid input for seqToKV: key contains newline: %r' % (k,))
+
+        if k.strip() != k:
+            err('Key has whitespace at beginning or end: %r' % k)
+
+        if not isinstance(v, types.StringType):
+            err('Converting value to string: %r' % v)
+            v = str(v)
+
+        if '\n' in v:
+            raise ValueError(
+                'Invalid input for seqToKV: value contains newline: %r' % (v,))
+
+        if v.strip() != v:
+            err('Value has whitespace at beginning or end: %r' % v)
+
+        lines.append(k + ':' + v + '\n')
+
+    return ''.join(lines)
+
+def kvToSeq(data):
     """
-    Invariant:
-        d = parsekv(s)
-        parsekv(kvForm(d)) == d
-    """
-    err_fmt = 'malformed Key-Value string: %s: %r'
-    lines = d.split('\n')
-    if not lines:
-        return {}
 
+    After one parse, seqToKV and kvToSeq are inverses, with no warnings:
+        seq = kvToSeq(s)
+
+        seqToKV(kvToSeq(seq)) == seq
+    """
+    def err(msg):
+        log('kvToSeq warning: %s: %r' % (msg, data))
+    
+    lines = data.split('\n')
     if lines[-1]:
-        log(err_fmt % ('Does not end in a newline', d))
+        err('Does not end in a newline')
     else:
         del lines[-1]
 
-    args = {}
+    pairs = []
     line_num = 0
     for line in lines:
         line_num += 1
@@ -91,24 +117,32 @@ def parsekv(d):
             k, v = pair
             k_s = k.strip()
             if k_s != k:
-                msg_fmt = ('In line %d, ignoring leading or trailing '
-                           'whitespace in key %r')
-                log(err_fmt % (msg_fmt % (line_num, k), d))
+                fmt = ('In line %d, ignoring leading or trailing '
+                       'whitespace in key %r')
+                err(fmt % (line_num, k))
 
             if not k_s:
-                log(err_fmt % ('In line %d, got empty key' % (line_num,), d))
+                err('In line %d, got empty key' % (line_num,))
 
             v_s = v.strip()
             if v_s != v:
-                msg_fmt = ('In line %d, ignoring leading or trailing '
-                           'whitespace in value %r')
-                log(err_fmt % (msg_fmt % (line_num, v), d))
+                fmt = ('In line %d, ignoring leading or trailing '
+                       'whitespace in value %r')
+                err(fmt % (line_num, v))
 
-            args[k_s] = v_s
+            pairs.append((k_s, v_s))
         else:
-            log(err_fmt % ('Line %d does not contain a colon' % line_num, d))
+            err('Line %d does not contain a colon' % line_num)
 
-    return args
+    return pairs
+
+def dictToKV(d):
+    seq = d.items()
+    seq.sort()
+    return seqToKV(seq)
+
+def kvToDict(s):
+    return dict(kvToSeq(s))
 
 def strxor(aa, bb):
     if len(aa) != len(bb):
@@ -124,7 +158,7 @@ def signReply(reply, key, signed_fields):
     for i in signed_fields:
         token.append((i, reply['openid.' + i]))
 
-    text = kvForm(token)
+    text = seqToKV(token)
     return (','.join(signed_fields), toBase64(hmacSha1(key, text)))
 
 def appendArgs(url, args):
