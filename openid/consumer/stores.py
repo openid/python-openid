@@ -1,5 +1,5 @@
 import time
-from openid import oidUtil
+from openid import oidUtil, cryptutil
 
 class OpenIDStore(object):
     """
@@ -173,7 +173,7 @@ class DumbStore(OpenIDStore):
 
         @type secret_phrase: C{str}
         """
-        self.auth_key = oidUtil.sha1(secret_phrase)
+        self.auth_key = cryptutil.sha1(secret_phrase)
 
     def storeAssociation(self, unused_association):
         """

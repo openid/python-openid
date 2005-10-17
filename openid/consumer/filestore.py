@@ -5,7 +5,6 @@ import time
 
 from errno import EEXIST, ENOENT
 
-
 try:
     from tempfile import mkstemp
 except ImportError:
@@ -25,7 +24,7 @@ except ImportError:
         raise RuntimeError('Failed to get temp file after 5 attempts')
 
 from openid.consumer.stores import OpenIDStore, ConsumerAssociation
-from openid import oidUtil
+from openid import cryptutil
 
 filename_allowed = string.letters + string.digits + '.-'
 try:
@@ -182,7 +181,7 @@ class FilesystemOpenIDStore(OpenIDStore):
         # Do the import here because this should only get called at
         # most once from each process. Once the auth key file is
         # created, this should not get called at all.
-        auth_key = oidUtil.randomString(self.AUTH_KEY_LEN)
+        auth_key = cryptutil.randomString(self.AUTH_KEY_LEN)
 
         file_obj, tmp = self._mktemp()
         try:

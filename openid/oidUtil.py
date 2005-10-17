@@ -1,44 +1,23 @@
-import pickle
-# Check Python compatiblity by raising an exception on import if the
-# needed functionality is not present.
-pickle.encode_long
-pickle.decode_long
-
 import binascii
-import sha
-import hmac
 import sys
 import types
 
 from urllib import urlencode
-from openid.cryptrand import srand, getBytes
-
-try:
-    _ = reversed
-except NameError:
-    def reversed(seq):
-        return map(seq.__getitem__, xrange(len(seq) - 1, -1, -1))
-else:
-    del _
 
 def log(message, level=0):
     sys.stderr.write(message)
     sys.stderr.write('\n')
 
-def hmacSha1(key, text):
-    return hmac.new(key, text, sha).digest()
+def appendArgs(url, args):
+    if len(args) == 0:
+        return url
 
-def sha1(s):
-    return sha.new(s).digest()
+    if '?' in url:
+        sep = '&'
+    else:
+        sep = '?'
 
-def longToStr(l):
-    if l == 0:
-        return '\x00'
-
-    return ''.join(reversed(pickle.encode_long(l)))
-
-def strToLong(s):
-    return pickle.decode_long(''.join(reversed(s)))
+    return '%s%s%s' % (url, sep, urlencode(args))
 
 def toBase64(s):
     """Represent string s as base64, omitting newlines"""
@@ -151,33 +130,3 @@ def dictToKV(d):
 
 def kvToDict(s):
     return dict(kvToSeq(s))
-
-def strxor(aa, bb):
-    if len(aa) != len(bb):
-        raise ValueError('Inputs to strxor must have the same length')
-
-    xor = lambda (a, b): chr(ord(a) ^ ord(b))
-    return "".join(map(xor, zip(aa, bb)))
-
-def signReply(reply, key, signed_fields):
-    """Sign the given fields from the reply with the specified key.
-    Return signed and sig"""
-    token = []
-    for i in signed_fields:
-        token.append((i, reply['openid.' + i]))
-
-    text = seqToKV(token)
-    return (','.join(signed_fields), toBase64(hmacSha1(key, text)))
-
-def appendArgs(url, args):
-    if len(args) == 0:
-        return url
-
-    return '%s%s%s' % (url, ('?' in url) and '&' or '?', urlencode(args))
-
-def randomString(length, chrs=None):
-    """Produce a string of length random bytes, chosen from chrs."""
-    if chrs is None:
-        return getBytes(length)
-    else:
-        return ''.join([srand.choice(chrs) for _ in xrange(length)])

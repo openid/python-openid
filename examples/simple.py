@@ -12,7 +12,10 @@ import cgi
 import urlparse
 import cgitb
 import sys
-from xml.sax.saxutils import escape, quoteattr
+
+def quoteattr(s):
+    qs = cgi.escape(s, 1)
+    return '"%s"' % (qs,)
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
@@ -108,7 +111,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             else:
                 fmt = 'Could not find OpenID information in <q>%s</q>'
 
-            message = fmt % (escape(openid_url),)
+            message = fmt % (cgi.escape(openid_url),)
             self.render(message, css_class='error', form_contents=openid_url)
         elif status == openid.SUCCESS:
             # The URL was a valid identity URL. Now we construct a URL
@@ -157,7 +160,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # message to help the user figure out what happened.
             openid_url = info
             fmt = "Verification of %s failed."
-            message = fmt % (escape(openid_url),)
+            message = fmt % (cgi.escape(openid_url),)
         elif status == openid.SUCCESS:
             # Success means that the transaction completed without
             # error. If info is None, it means that the user cancelled
@@ -169,7 +172,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                 # comment posting, etc. here.
                 openid_url = info
                 fmt = "You have successfully verified %s as your identity."
-                message = fmt % (escape(openid_url),)
+                message = fmt % (cgi.escape(openid_url),)
             else:
                 # cancelled
                 message = 'Verification cancelled'
@@ -280,30 +283,14 @@ Content-type: text/html
 </html>
 ''' % (quoteattr(self.buildURL('verify')), quoteattr(form_contents)))
 
-def main():
-    import optparse
-    parser = optparse.OptionParser('Usage:\n %prog [options]')
-    parser.add_option('-d', '--data-path', dest='data_path', default='store',
-                      help='Data directory for storing OpenID consumer state. '
-                      'Defaults to "%default" in the current directory.')
-    parser.add_option('-p', '--port', dest='port', type='int', default=8000,
-                      help='Port on which to listen for HTTP requests. '
-                      'Defaults to port %default.')
-    parser.add_option('-s', '--host', dest='host', default='localhost',
-                      help='Host on which to listen for HTTP requests. '
-                      'Also used for generating URLs. Defaults to %default.')
-
-    options, args = parser.parse_args()
-    if args:
-        parser.error('Expected no arguments. Got %r' % args)
-
+def main(host, port, data_path):
     # Instantiate OpenID consumer store and OpenID consumer.  If you
     # were connecting to a database, you would create the database
     # connection and instantiate an appropriate store here.
-    store = filestore.FilesystemOpenIDStore(options.data_path)
+    store = filestore.FilesystemOpenIDStore(data_path)
     consumer = openid.OpenIDConsumer(store)
 
-    addr = (options.host, options.port)
+    addr = (host, port)
     server = OpenIDHTTPServer(consumer, addr, OpenIDRequestHandler)
 
     print 'Server running at:'
@@ -311,4 +298,35 @@ def main():
     server.serve_forever()
 
 if __name__ == '__main__':
-    main()
+    host = 'localhost'
+    data_path = 'store'
+    port = 8000
+
+    try:
+        import optparse
+    except ImportError:
+        pass # Use defaults (for Python 2.2)
+    else:
+        parser = optparse.OptionParser('Usage:\n %prog [options]')
+        parser.add_option(
+            '-d', '--data-path', dest='data_path', default=data_path,
+            help='Data directory for storing OpenID consumer state. '
+            'Defaults to "%default" in the current directory.')
+        parser.add_option(
+            '-p', '--port', dest='port', type='int', default=port,
+            help='Port on which to listen for HTTP requests. '
+            'Defaults to port %default.')
+        parser.add_option(
+            '-s', '--host', dest='host', default=host,
+            help='Host on which to listen for HTTP requests. '
+            'Also used for generating URLs. Defaults to %default.')
+
+        options, args = parser.parse_args()
+        if args:
+            parser.error('Expected no arguments. Got %r' % args)
+
+        host = options.host
+        port = options.port
+        data_path = options.data_path
+
+    main(host, port, data_path)

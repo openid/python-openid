@@ -1,5 +1,5 @@
 from openid.consumer.stores import ConsumerAssociation
-from openid import oidUtil
+from openid.cryptutil import randomString
 
 import string
 
@@ -10,13 +10,13 @@ for c in string.printable:
 allowed_handle = ''.join(allowed_handle)
 
 def generateHandle(n):
-    return oidUtil.randomString(n, allowed_handle)
+    return randomString(n, allowed_handle)
 
-generateSecret = oidUtil.randomString
+generateSecret = randomString
 
 allowed_nonce = string.letters + string.digits
 def generateNonce():
-    return oidUtil.randomString(8, allowed_nonce)
+    return randomString(8, allowed_nonce)
 
 def testStore(store):
     """Make sure a given store has a minimum of API compliance. Call

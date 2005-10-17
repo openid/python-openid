@@ -5,7 +5,7 @@ import time
 
 from openid.consumer.stores import ConsumerAssociation, DumbStore
 from openid.consumer.parse import parseLinkAttrs
-from openid import oidUtil
+from openid import oidUtil, cryptutil
 from openid.dh import DiffieHellman
 
 from openid.consumer.interface import \
@@ -41,7 +41,7 @@ class OpenIDConsumerImpl(object):
             return status, info
 
         consumer_id, server_id, server_url = info
-        nonce = oidUtil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
+        nonce = cryptutil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
 
         token = self._genToken(nonce, consumer_id, server_url)
         return SUCCESS, OpenIDAuthRequest(token, server_id, server_url, nonce)
@@ -114,7 +114,7 @@ class OpenIDConsumerImpl(object):
 
         args = getOpenIDParameters(query)
         signed_list = signed.split(',')
-        _signed, v_sig = oidUtil.signReply(args, assoc.secret, signed_list)
+        _signed, v_sig = cryptutil.signReply(args, assoc.secret, signed_list)
 
         if v_sig != sig:
             return FAILURE, consumer_id
@@ -162,7 +162,7 @@ class OpenIDConsumerImpl(object):
     def _genToken(self, nonce, consumer_id, server_url):
         timestamp = str(int(time.time()))
         joined = '\x00'.join([timestamp, nonce, consumer_id, server_url])
-        sig = oidUtil.hmacSha1(self.store.getAuthKey(), joined)
+        sig = cryptutil.hmacSha1(self.store.getAuthKey(), joined)
 
         return oidUtil.toBase64('%s%s' % (sig, joined))
 
@@ -172,7 +172,7 @@ class OpenIDConsumerImpl(object):
             return None
 
         sig, joined = token[:20], token[20:]
-        if oidUtil.hmacSha1(self.store.getAuthKey(), joined) != sig:
+        if cryptutil.hmacSha1(self.store.getAuthKey(), joined) != sig:
             return None
 
         split = joined.split('\x00')
@@ -202,7 +202,7 @@ class OpenIDConsumerImpl(object):
         return str(''.join(res))
 
     def _normalizeUrl(self, url):
-        assert isinstance(url, basestring), type(url)
+        assert isinstance(url, (str, unicode)), type(url)
 
         url = url.strip()
         parsed = urlparse.urlparse(url)
@@ -211,7 +211,11 @@ class OpenIDConsumerImpl(object):
             url = 'http://' + url
             parsed = urlparse.urlparse(url)
 
-        authority = parsed[1].encode('idna')
+        if isinstance(url, unicode):
+            authority = parsed[1].encode('idna')
+        else:
+            authority = str(parsed[1])
+
         tail = map(self._quoteMinimal, parsed[2:])
         if tail[0] == '':
             tail[0] = '/'
@@ -257,14 +261,14 @@ class OpenIDConsumerImpl(object):
 
     def _associate(self, server_url):
         dh = DiffieHellman()
-        cpub = oidUtil.toBase64(oidUtil.longToStr(dh.createKeyExchange()))
+        cpub = cryptutil.longToBase64(dh.createKeyExchange())
 
         args = {
             'openid.mode': 'associate',
             'openid.assoc_type':'HMAC-SHA1',
             'openid.session_type':'DH-SHA1',
-            'openid.dh_modulus': oidUtil.toBase64(oidUtil.longToStr(dh.p)),
-            'openid.dh_gen': oidUtil.toBase64(oidUtil.longToStr(dh.g)),
+            'openid.dh_modulus': cryptutil.longToBase64(dh.p),
+            'openid.dh_gen': cryptutil.longToBase64(dh.g),
             'openid.dh_consumer_public': cpub,
             }
 
@@ -288,14 +292,13 @@ class OpenIDConsumerImpl(object):
                 if session_type != 'DH-SHA1':
                     return None
 
-                spub = oidUtil.strToLong(
-                    oidUtil.fromBase64(results['dh_server_public']))
+                spub = cryptutil.base64ToLong(results['dh_server_public'])
 
                 dh_shared = dh.decryptKeyExchange(spub)
                 enc_mac_key = results['enc_mac_key']
-                secret = oidUtil.strxor(
+                secret = cryptutil.strxor(
                     oidUtil.fromBase64(enc_mac_key),
-                    oidUtil.sha1(oidUtil.longToStr(dh_shared)))
+                    cryptutil.sha1(cryptutil.longToBinary(dh_shared)))
 
             assoc = ConsumerAssociation.fromExpiresIn(
                 expires_in, server_url, assoc_handle, secret)

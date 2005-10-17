@@ -3,61 +3,6 @@ import string
 import random
 from openid import oidUtil
 
-def test_reversed():
-    if not hasattr(oidUtil, 'reversed'):
-        # Make sure that if reversed is not defined in oidUtil, it's
-        # provided in builtins.
-        _ = reversed
-        del _
-    else:
-        cases = [
-            ('', ''),
-            ('a', 'a'),
-            ('ab', 'ba'),
-            ('abc', 'cba'),
-            ('abcdefg', 'gfedcba'),
-            ([], []),
-            ([1], [1]),
-            ([1,2], [2,1]),
-            ([1,2,3], [3,2,1]),
-            (range(1000), range(999, -1, -1)),
-            ]
-
-        for case, expected in cases:
-            expected = list(expected)
-            actual = list(oidUtil.reversed(case))
-            assert actual == expected, (case, expected, actual)
-            twice = list(oidUtil.reversed(actual))
-            assert twice == list(case), (actual, case, twice)
-
-def test_strLongConvert():
-    MAX = sys.maxint
-    for iteration in xrange(500):
-        n = 0L
-        for i in range(10):
-            n += long(random.randrange(MAX))
-
-        s = oidUtil.longToStr(n)
-        assert type(s) is str
-        n_prime = oidUtil.strToLong(s)
-        assert n == n_prime
-
-    cases = [
-        ('\x00', 0L),
-        ('\x01', 1L),
-        ('\xFF', -1L),
-        ('\x80', -128L),
-        ('\x81', -127L),
-        ('\x80\x00', -32768L),
-        ('OpenID is cool', 1611215304203901150134421257416556L)
-        ]
-
-    for s, n in cases:
-        n_prime = oidUtil.strToLong(s)
-        s_prime = oidUtil.longToStr(n)
-        assert n == n_prime, (s, n, n_prime)
-        assert s == s_prime, (n, s, s_prime)
-
 def test_base64():
     allowed_s = string.letters + string.digits + '+/='
     allowed_d = {}
@@ -188,51 +133,13 @@ def test_kvform():
     finally:
         oidUtil.log = old_log
 
-def test_strxor():
-    NUL = '\x00'
-
-    cases = [
-        (NUL, NUL, NUL),
-        ('\x01', NUL, '\x01'),
-        ('a', 'a', NUL),
-        ('a', NUL, 'a'),
-        ('abc', NUL * 3, 'abc'),
-        ('x' * 10, NUL * 10, 'x' * 10),
-        ('\x01', '\x02', '\x03'),
-        ('\xf0', '\x0f', '\xff'),
-        ('\xff', '\x0f', '\xf0'),
-        ]
-
-    for aa, bb, expected in cases:
-        actual = oidUtil.strxor(aa, bb)
-        assert actual == expected, (aa, bb, expected, actual)
-
-    exc_cases = [
-        ('', 'a'),
-        ('foo', 'ba'),
-        (NUL * 3, NUL * 4),
-        (''.join(map(chr, xrange(256))),
-         ''.join(map(chr, xrange(128)))),
-        ]
-
-    for aa, bb in exc_cases:
-        try:
-            unexpected = oidUtil.strxor(aa, bb)
-        except ValueError:
-            pass
-        else:
-            assert False, 'Expected ValueError, got %r' % (unexpected,)
-
 # XXX: there are more functions that could benefit from being better
 # specified and tested in oidUtil.py These include, but are not
 # limited to appendArgs and signReply
 
 def test():
-    test_reversed()
-    test_strLongConvert()
     test_base64()
     test_kvform()
-    test_strxor()
 
 if __name__ == '__main__':
     test()

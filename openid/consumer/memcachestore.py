@@ -1,5 +1,5 @@
 from binascii import hexlify
-from openid import oidUtil
+from openid import cryptutil
 from openid.consumer.stores import OpenIDStore, ConsumerAssociation
 
 NONCE_CODE = 'N'
@@ -75,7 +75,7 @@ class MemCacheOpenIDStore(OpenIDStore):
         if secret_phrase is None:
             self.auth_key = None
         else:
-            self.auth_key = oidUtil.sha1(secret_phrase)
+            self.auth_key = cryptutil.sha1(secret_phrase)
         self.nonce_timeout = 6 * 60 * 60
 
     def _nonceKey(self, nonce):
@@ -99,7 +99,7 @@ class MemCacheOpenIDStore(OpenIDStore):
         @return: the memcached key for the server url
         @rtype: str
         """
-        hashed_url = hexlify(oidUtil.sha1(server_url))
+        hashed_url = hexlify(cryptutil.sha1(server_url))
         return self.key_prefix + ASSOCATION_CODE + hashed_url
 
     def setKeyPrefix(self, prefix):
@@ -146,7 +146,7 @@ class MemCacheOpenIDStore(OpenIDStore):
                 return auth_key
 
             # On failure to get, attempt to set a new key.
-            new_key = oidUtil.randomString(self.AUTH_KEY_LEN)
+            new_key = cryptutil.randomString(self.AUTH_KEY_LEN)
             was_set = self.memcache.set(self.auth_key_key, new_key)
             if was_set:
                 return new_key

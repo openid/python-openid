@@ -1,6 +1,6 @@
 import time
 
-from openid import oidUtil
+from openid import cryptutil
 from openid.consumer.stores import ConsumerAssociation, OpenIDStore
 
 def inTxn(func):
@@ -185,7 +185,7 @@ class SQLStore(OpenIDStore):
         self.db_get_auth()
         val = self.cur.fetchone()
         if val is None:
-            auth_key = oidUtil.randomString(self.AUTH_KEY_LEN)
+            auth_key = cryptutil.randomString(self.AUTH_KEY_LEN)
             auth_key_s = self.blobEncode(auth_key)
             self.db_create_auth(auth_key_s)
         else:
