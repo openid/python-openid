@@ -48,6 +48,7 @@ def test():
 
     assertSane('http://*.schtuff.com/', True)
     assertSane('http://*.foo.schtuff.com/', True)
+    assertSane('http://*/', False)
     assertSane('http://*.com/', False)
     assertSane('http://*.com.au/', False)
     assertSane('http://*.co.uk/', False)
