@@ -13,16 +13,14 @@ engine, but is currently found at:
 http://www.amk.ca/python/code/crypto
 """
 
-__all__ = ['randrange', 'getBytes', 'hmacSha1', 'sha1', 'strToLong',
-           'longToStr', 'strxor', 'signReply', 'randomString']
+__all__ = ['randrange', 'hmacSha1', 'sha1', 'strToLong', 'longToStr',
+           'strxor', 'signReply', 'randomString']
 
 import sys
 import hmac
 import os
 import random
 import sha
-
-from binascii import hexlify
 
 from openid.oidUtil import toBase64, fromBase64, seqToKV
 
@@ -42,12 +40,10 @@ except ImportError:
 
     # Present in Python >= 2.4
     try:
-        _ = reversed
+        reversed
     except NameError:
         def reversed(seq):
             return map(seq.__getitem__, xrange(len(seq) - 1, -1, -1))
-    else:
-        del _
 
     def longToBinary(l):
         if l == 0:
@@ -70,14 +66,14 @@ else:
         else:
             return bytes
 
-    def binaryToLong(s):
-        if not s:
+    def binaryToLong(bytes):
+        if not bytes:
             raise ValueError('Empty string passed to strToLong')
 
-        if ord(s[0]) > 127:
+        if ord(bytes[0]) > 127:
             raise ValueError('This function only supports positive integers')
 
-        return bytes_to_long(s)
+        return bytes_to_long(bytes)
 
 # A cryptographically safe source of random bytes
 try:
@@ -95,7 +91,6 @@ except AttributeError:
             raise ImportError('No adequate source of randomness found!')
         else:
             def getBytes(n):
-                global _urandom
                 bytes = []
                 while n:
                     chunk = _urandom.read(n)
@@ -112,7 +107,7 @@ except AttributeError:
 
 # A randrange function that works for longs
 try:
-    _srand = random.SystemRandom()
+    randrange = random.SystemRandom().randrange
 except AttributeError:
     # In Python 2.2's random.Random, randrange does not support
     # numbers larger than sys.maxint for randrange. For simplicity,
@@ -127,7 +122,7 @@ except AttributeError:
 
         r = (stop - start) // step
 
-        nbytes = int(ceil(log(r) / log(0xff)))
+        nbytes = int(ceil(log(r) / log(256)))
 
         while 1:
             bytes = getBytes(nbytes)
@@ -143,8 +138,7 @@ except AttributeError:
                 break
 
         return start + val * step
-else:
-    randrange = _srand.randrange
+
 
 def hmacSha1(key, text):
     return hmac.new(key, text, sha).digest()
@@ -158,12 +152,12 @@ def longToBase64(l):
 def base64ToLong(s):
     return binaryToLong(fromBase64(s))
 
-def strxor(aa, bb):
-    if len(aa) != len(bb):
+def strxor(x, y):
+    if len(x) != len(y):
         raise ValueError('Inputs to strxor must have the same length')
 
     xor = lambda (a, b): chr(ord(a) ^ ord(b))
-    return "".join(map(xor, zip(aa, bb)))
+    return "".join(map(xor, zip(x, y)))
 
 def signReply(reply, key, signed_fields):
     """Sign the given fields from the reply with the specified key.
