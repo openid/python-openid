@@ -1,18 +1,22 @@
-"""Module containing a cryptographic-quality source of randomness.
+"""Module containing a cryptographic-quality source of randomness and
+other cryptographically useful functionality
 
-On Python >= 2.4, just use random.SystemRandom.
+Python 2.4 needs no external support for this module, nor does Python
+2.3 on a system with /dev/urandom.
 
-Members:
+Other configurations will need a quality source of random bytes and
+access to a function that will convert binary strings to long
+integers. This module will work with the Python Cryptography Toolkit
+(pycrypto) if it is present. pycrypto can be found with a search
+engine, but is currently found at:
 
-srand - random.Random instance that uses a high-quality source of
-        randomness
-
-getBytes - a function that returns a given number of random bytes
+http://www.amk.ca/python/code/crypto
 """
 
-__all__ = ['srand', 'getBytes', 'hmacSha1', 'sha1', 'strToLong', 'longToStr',
-           'strxor', 'signReply', 'randomString']
+__all__ = ['randrange', 'getBytes', 'hmacSha1', 'sha1', 'strToLong',
+           'longToStr', 'strxor', 'signReply', 'randomString']
 
+import sys
 import hmac
 import os
 import random
@@ -23,126 +27,7 @@ from binascii import hexlify
 from openid.oidUtil import toBase64, fromBase64, seqToKV
 
 try:
-    SystemRandom = random.SystemRandom
-except AttributeError:
-    from math import log, ceil
-
-    # ByteStreamRandom exists for ease of implementing a good source
-    # of randomness for Python versions < 2.4
-
-    # Implementation mostly copied from random.SystemRandom in Python 2.4
-    BPF = 53        # Number of bits in a float
-    RECIP_BPF = 2**-BPF
-
-    class ByteStreamRandom(random.Random):
-        """Generate random numbers based on a random byte stream."""
-        def __init__(self, getBytes):
-            """Set the source of random bytes.
-
-            Should be a function that takes a number of bytes and returns
-            a random string of that length.
-            """
-            self.getBytes = getBytes
-
-        def _stub(self, *args, **kwds):
-            """Stub method.  Not used for a byte stream random number
-            generator."""
-            return None
-        seed = jumpahead = _stub
-
-        def _notimplemented(self, *args, **kwds):
-            """Method should not be called for a byte stream random number
-            generator."""
-            raise NotImplementedError(
-                'System entropy source does not have state.')
-        getstate = setstate = _notimplemented
-
-        def random(self):
-            return (long(hexlify(self.getBytes(7)), 16) >> 3) * RECIP_BPF
-
-        def randrange(self, start, stop, step=None):
-            if step is not None:
-                self._notimplemented()
-
-            r = stop - start
-
-            nbytes = int(ceil(log(r) / log(256)))
-
-            while 1:
-                bytes = self.getBytes(nbytes)
-                n = binaryToLong(bytes)
-                val = n % r
-                if n - (val + r - 1) >= 0:
-                    break
-
-            return start + val
-
-    # If you are running on Python < 2.4, you can use the random
-    # number pool object provided with the Python Cryptography Toolkit
-    # (pycrypto). pycrypto can be found with a search engine, but is
-    # currently found at:
-    #
-    # http://www.amk.ca/python/code/crypto
-    try:
-        from Crypto.Util.randpool import RandomPool
-    except ImportError:
-        # Fall back on /dev/urandom, if present. It would be nice to
-        # have Windows equivalent here, but for now, require pycrypto
-        # on Windows.
-        try:
-            _urandom = file('/dev/urandom', 'rb')
-        except OSError:
-            raise RuntimeError('No adequate source of randomness found!')
-        else:
-            def getBytes(n):
-                global _urandom
-                bytes = []
-                while n:
-                    chunk = _urandom.read(n)
-                    n -= len(chunk)
-                    bytes.append(chunk)
-                    assert n >= 0
-                return ''.join(bytes)
-    else:
-        _pool = RandomPool()
-        def getBytes(n, pool=_pool):
-            if pool.entropy < n:
-                pool.randomize()
-            return pool.get_bytes(n)
-
-    srand = ByteStreamRandom(getBytes)
-else:
-    srand = SystemRandom()
-    getBytes = os.urandom
-
-def hmacSha1(key, text):
-    return hmac.new(key, text, sha).digest()
-
-def sha1(s):
-    return sha.new(s).digest()
-
-try:
     from Crypto.Util.number import long_to_bytes, bytes_to_long
-
-    def longToBinary(l):
-        if l < 0:
-            raise ValueError('This function only supports positive integers')
-
-        bytes = long_to_bytes(l)
-        if ord(bytes[0]) > 127:
-            return '\x00' + bytes
-        else:
-            return bytes
-
-    def binaryToLong(s):
-        if not s:
-            raise ValueError('Empty string passed to strToLong')
-
-        if ord(s[0]) > 127:
-            raise ValueError('This function only supports positive integers')
-
-        return bytes_to_long(s)
-
 except ImportError:
     import pickle
     try:
@@ -172,6 +57,100 @@ except ImportError:
 
     def binaryToLong(s):
         return pickle.decode_long(''.join(reversed(s)))
+else:
+    # We have pycrypto
+
+    def longToBinary(l):
+        if l < 0:
+            raise ValueError('This function only supports positive integers')
+
+        bytes = long_to_bytes(l)
+        if ord(bytes[0]) > 127:
+            return '\x00' + bytes
+        else:
+            return bytes
+
+    def binaryToLong(s):
+        if not s:
+            raise ValueError('Empty string passed to strToLong')
+
+        if ord(s[0]) > 127:
+            raise ValueError('This function only supports positive integers')
+
+        return bytes_to_long(s)
+
+# A cryptographically safe source of random bytes
+try:
+    getBytes = os.urandom
+except AttributeError:
+    try:
+        from Crypto.Util.randpool import RandomPool
+    except ImportError:
+        # Fall back on /dev/urandom, if present. It would be nice to
+        # have Windows equivalent here, but for now, require pycrypto
+        # on Windows.
+        try:
+            _urandom = file('/dev/urandom', 'rb')
+        except OSError:
+            raise ImportError('No adequate source of randomness found!')
+        else:
+            def getBytes(n):
+                global _urandom
+                bytes = []
+                while n:
+                    chunk = _urandom.read(n)
+                    n -= len(chunk)
+                    bytes.append(chunk)
+                    assert n >= 0
+                return ''.join(bytes)
+    else:
+        _pool = RandomPool()
+        def getBytes(n, pool=_pool):
+            if pool.entropy < n:
+                pool.randomize()
+            return pool.get_bytes(n)
+
+# A randrange function that works for longs
+try:
+    _srand = random.SystemRandom()
+except AttributeError:
+    # In Python 2.2's random.Random, randrange does not support
+    # numbers larger than sys.maxint for randrange. For simplicity,
+    # use this implementation for any Python that does not have
+    # random.SystemRandom
+    from math import log, ceil
+
+    def randrange(start, stop=None, step=1):
+        if stop is None:
+            stop = start
+            start = 0
+
+        r = (stop - start) // step
+
+        nbytes = int(ceil(log(r) / log(0xff)))
+
+        while 1:
+            bytes = getBytes(nbytes)
+            # make it a positive two's complement number
+            if ord(bytes[0]) > 127:
+                bytes = '\x00' + bytes
+
+            n = binaryToLong(bytes)
+            val = n % r
+
+            # Keep looping if this value is in the low duplicated range
+            if n - (val + r - 1) >= 0:
+                break
+
+        return start + val * step
+else:
+    randrange = _srand.randrange
+
+def hmacSha1(key, text):
+    return hmac.new(key, text, sha).digest()
+
+def sha1(s):
+    return sha.new(s).digest()
 
 def longToBase64(l):
     return toBase64(longToBinary(l))
@@ -201,4 +180,5 @@ def randomString(length, chrs=None):
     if chrs is None:
         return getBytes(length)
     else:
-        return ''.join([srand.choice(chrs) for _ in xrange(length)])
+        n = len(chrs)
+        return ''.join([chrs[randrange(n)] for _ in xrange(length)])

@@ -8,18 +8,23 @@ from openid import cryptutil
 
 def test_cryptrand():
     # It's possible, but HIGHLY unlikely that a correct implementation
-    # will fail by returning the same number twice (probability 2 **
-    # -53 for the random() test, 2 ** -256 for getBytes)
-
-    x = cryptutil.srand.random()
-    y = cryptutil.srand.random()
-    assert x != y
+    # will fail by returning the same number twice
 
     s = cryptutil.getBytes(32)
     t = cryptutil.getBytes(32)
     assert len(s) == 32
     assert len(t) == 32
     assert s != t
+
+    a = cryptutil.randrange(2L ** 128)
+    b = cryptutil.randrange(2L ** 128)
+    assert type(a) is long
+    assert type(b) is long
+    assert b != a
+
+    # Make sure that we can generate random numbers that are larger
+    # than platform int size
+    cryptutil.randrange(long(sys.maxint) + 1L)
 
 def test_strxor():
     NUL = '\x00'

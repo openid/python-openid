@@ -24,7 +24,7 @@ class DiffieHellman(object):
             g = self.DEFAULT_GEN
         self.g = long(g)
 
-        self.x = cryptutil.srand.randrange(1, p - 1)
+        self.x = cryptutil.randrange(1, p - 1)
 
     def createKeyExchange(self):
         return pow(self.g, self.x, self.p)
