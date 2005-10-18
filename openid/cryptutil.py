@@ -161,7 +161,10 @@ def strxor(x, y):
 
 def signReply(reply, key, signed_fields):
     """Sign the given fields from the reply with the specified key.
-    Return signed and sig"""
+
+    @return: openid.signed and openid.sig parameters
+    @rtype: (str, str)
+    """
     token = []
     for i in signed_fields:
         token.append((i, reply['openid.' + i]))
