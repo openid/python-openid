@@ -64,13 +64,18 @@ except AttributeError:
             if step is not None:
                 self._notimplemented()
 
-            if start != 1:
-                self._notimplemented()
+            r = stop - start
 
-            nbytes = int(ceil(log(stop) / log(256)))
-            bytes = self.getBytes(nbytes)
-            n = binaryToLong(bytes)
-            return n - (n % stop)
+            nbytes = int(ceil(log(r) / log(256)))
+
+            while 1:
+                bytes = self.getBytes(nbytes)
+                n = binaryToLong(bytes)
+                val = n % r
+                if n - (val + r - 1) >= 0:
+                    break
+
+            return start + val
 
     # If you are running on Python < 2.4, you can use the random
     # number pool object provided with the Python Cryptography Toolkit
