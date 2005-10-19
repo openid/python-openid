@@ -99,7 +99,7 @@ class TrustRoot(object):
         else:
             return host.endswith(self.host)
 
-    def parse(cls, trust_root, check_sanity=False):
+    def parse(cls, trust_root):
         if not isinstance(trust_root, (str, unicode)):
             return None
 
