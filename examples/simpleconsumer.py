@@ -27,7 +27,7 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
 from openid.consumer import filestore
 from openid.consumer import interface as openid
-from openid.oidUtil import appendArgs
+from openid.oidutil import appendArgs
 
 class OpenIDHTTPServer(HTTPServer):
     """http server that contains a reference to an OpenID consumer and
@@ -299,7 +299,7 @@ def main(host, port, data_path):
 
 if __name__ == '__main__':
     host = 'localhost'
-    data_path = 'store'
+    data_path = 'cstore'
     port = 8000
 
     try:

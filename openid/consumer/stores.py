@@ -1,5 +1,5 @@
 import time
-from openid import oidUtil, cryptutil
+from openid import oidutil, cryptutil
 
 class OpenIDStore(object):
     """
@@ -433,7 +433,7 @@ class ConsumerAssociation(object):
             'version':'1',
             'server_url':self.server_url,
             'handle':self.handle,
-            'secret':oidUtil.toBase64(self.secret),
+            'secret':oidutil.toBase64(self.secret),
             'issued':str(int(self.issued)),
             'lifetime':str(int(self.lifetime)),
             }
@@ -443,7 +443,7 @@ class ConsumerAssociation(object):
         for field_name in self.assoc_keys:
             pairs.append((field_name, data[field_name]))
 
-        return oidUtil.seqToKV(pairs, strict=True)
+        return oidutil.seqToKV(pairs, strict=True)
 
     def deserialize(cls, assoc_s):
         """Parse an association as stored by serialize().
@@ -455,7 +455,7 @@ class ConsumerAssociation(object):
 
         @return: instance of this class
         """
-        pairs = oidUtil.kvToSeq(assoc_s, strict=True)
+        pairs = oidutil.kvToSeq(assoc_s, strict=True)
         keys = []
         values = []
         for k, v in pairs:
@@ -470,7 +470,7 @@ class ConsumerAssociation(object):
             raise ValueError('Unknown version: %r' % version)
         issued = int(issued)
         lifetime = int(lifetime)
-        secret = oidUtil.fromBase64(secret)
+        secret = oidutil.fromBase64(secret)
         return ConsumerAssociation(
             server_url, handle, secret, issued, lifetime)
 

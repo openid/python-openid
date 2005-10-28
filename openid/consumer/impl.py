@@ -5,7 +5,7 @@ import time
 
 from openid.consumer.stores import ConsumerAssociation, DumbStore
 from openid.consumer.parse import parseLinkAttrs
-from openid import oidUtil, cryptutil
+from openid import oidutil, cryptutil
 from openid.dh import DiffieHellman
 
 from openid.consumer.interface import \
@@ -54,14 +54,14 @@ class OpenIDConsumerImpl(object):
             'openid.mode': self.mode,
             }
 
-        assoc = self._getAssociation(auth_req.server_url)
+        assoc = self._getAssociation(auth_req.server_url, replace=1)
         if assoc is not None:
             redir_args['openid.assoc_handle'] = assoc.handle
 
         self.store.storeNonce(auth_req.nonce)
-        return str(oidUtil.appendArgs(auth_req.server_url, redir_args))
+        return str(oidutil.appendArgs(auth_req.server_url, redir_args))
 
-    def processServerResponse(self, token, query):
+    def completeAuth(self, token, query):
         mode = query.get('openid.mode', '')
         if mode == 'cancel':
             return SUCCESS, None
@@ -129,7 +129,7 @@ class OpenIDConsumerImpl(object):
         if ret is None:
             return FAILURE, consumer_id
 
-        results = oidUtil.kvToDict(ret[1])
+        results = oidutil.kvToDict(ret[1])
         is_valid = results.get('is_valid', 'false')
 
         if is_valid == 'true':
@@ -148,26 +148,27 @@ class OpenIDConsumerImpl(object):
 
         return FAILURE, consumer_id
 
-    def _getAssociation(self, server_url):
+    def _getAssociation(self, server_url, replace=0):
         if self.store.isDumb():
             return None
         
         assoc = self.store.getAssociation(server_url)
 
-        if assoc is not None:
-            return assoc
+        if assoc is None or \
+               (replace and assoc.expiresIn < self.TOKEN_LIFETIME):
+            assoc = self._associate(server_url)
 
-        return self._associate(server_url)
+        return assoc
 
     def _genToken(self, nonce, consumer_id, server_url):
         timestamp = str(int(time.time()))
         joined = '\x00'.join([timestamp, nonce, consumer_id, server_url])
         sig = cryptutil.hmacSha1(self.store.getAuthKey(), joined)
 
-        return oidUtil.toBase64('%s%s' % (sig, joined))
+        return oidutil.toBase64('%s%s' % (sig, joined))
 
     def _splitToken(self, token):
-        token = oidUtil.fromBase64(token)
+        token = oidutil.fromBase64(token)
         if len(token) < 20:
             return None
 
@@ -207,7 +208,7 @@ class OpenIDConsumerImpl(object):
         url = url.strip()
         parsed = urlparse.urlparse(url)
 
-        if parsed[0] == '':
+        if parsed[0] == '' or parsed[1] == '':
             url = 'http://' + url
             parsed = urlparse.urlparse(url)
 
@@ -275,7 +276,7 @@ class OpenIDConsumerImpl(object):
         body = urllib.urlencode(args)
 
         url, data = self.fetcher.post(server_url, body)
-        results = oidUtil.kvToDict(data)
+        results = oidutil.kvToDict(data)
 
         try:
             assoc_type = results['assoc_type']
@@ -287,7 +288,7 @@ class OpenIDConsumerImpl(object):
 
             session_type = results.get('session_type')
             if session_type is None:
-                secret = oidUtil.fromBase64(results['mac_key'])
+                secret = oidutil.fromBase64(results['mac_key'])
             else:
                 if session_type != 'DH-SHA1':
                     return None
@@ -297,7 +298,7 @@ class OpenIDConsumerImpl(object):
                 dh_shared = dh.decryptKeyExchange(spub)
                 enc_mac_key = results['enc_mac_key']
                 secret = cryptutil.strxor(
-                    oidUtil.fromBase64(enc_mac_key),
+                    oidutil.fromBase64(enc_mac_key),
                     cryptutil.sha1(cryptutil.longToBinary(dh_shared)))
 
             assoc = ConsumerAssociation.fromExpiresIn(

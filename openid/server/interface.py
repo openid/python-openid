@@ -25,7 +25,7 @@ class OpenIDServer(object):
         authorized is a boolean, True if the user making this request
         can authorize the identity in question, and has chosen to do
         so for the trust_root in question.  False otherwise.
-        
+
         returns status, info
 
         status is one of:
@@ -34,7 +34,7 @@ class OpenIDServer(object):
         3. Do 'About' page - info is None
         4. Error - info is the error message.
         """
-        return self.impl.processGet(args, authorized_id)
+        return self.impl.processGet(authorized, args)
 
     def processPost(self, args):
         """

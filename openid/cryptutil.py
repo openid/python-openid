@@ -22,7 +22,7 @@ import os
 import random
 import sha
 
-from openid.oidUtil import toBase64, fromBase64, seqToKV
+from openid.oidutil import toBase64, fromBase64, seqToKV
 
 try:
     from Crypto.Util.number import long_to_bytes, bytes_to_long

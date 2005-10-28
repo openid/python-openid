@@ -484,7 +484,7 @@ class OpenIDConsumer(object):
 
             It raises no exceptions itself.
         """
-        return self.impl.processServerResponse(token, query)
+        return self.impl.completeAuth(token, query)
 
 
 class OpenIDAuthRequest(object):
