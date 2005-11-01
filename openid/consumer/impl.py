@@ -275,7 +275,11 @@ class OpenIDConsumerImpl(object):
 
         body = urllib.urlencode(args)
 
-        url, data = self.fetcher.post(server_url, body)
+        ret = self.fetcher.post(server_url, body)
+        if ret is None:
+            return None
+
+        url, data = resp
         results = oidutil.kvToDict(data)
 
         try:
