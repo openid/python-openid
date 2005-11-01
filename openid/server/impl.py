@@ -141,8 +141,6 @@ class OpenIDServerImpl(object):
         else:
             reply['mac_key'] = oidutil.toBase64(assoc.secret)
 
-        print (reply, mac_key)
-
         return interface.OK, oidutil.dictToKV(reply)
 
     def _checkAuth(self, args):
