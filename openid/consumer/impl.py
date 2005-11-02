@@ -279,7 +279,7 @@ class OpenIDConsumerImpl(object):
         if ret is None:
             return None
 
-        url, data = resp
+        url, data = ret
         results = oidutil.kvToDict(data)
 
         try:
