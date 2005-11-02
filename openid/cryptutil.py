@@ -131,19 +131,22 @@ except AttributeError:
             else:
                 nbytes = len(rbytes)
 
-        nbytes = int(ceil(log(r) / log(256)))
+            mxrand = (256 ** nbytes)
+
+            # If we get a number less than this, then it is in the
+            # duplicated range.
+            duplicate = mxrand % r
+
+            if len(_duplicate_cache) > 10:
+                _duplicate_cache.clear()
+
+            _duplicate_cache[r] = (duplicate, nbytes)
 
         while 1:
-            bytes = getBytes(nbytes)
-            # make it a positive two's complement number
-            if ord(bytes[0]) > 127:
-                bytes = '\x00' + bytes
-
+            bytes = '\x00' + getBytes(nbytes)
             n = binaryToLong(bytes)
-            val = n % r
-
             # Keep looping if this value is in the low duplicated range
-            if n - (val + r - 1) >= 0:
+            if n >= duplicate:
                 break
 
         return start + (n % r) * step
