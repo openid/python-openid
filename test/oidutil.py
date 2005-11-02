@@ -1,7 +1,7 @@
 import sys
 import string
 import random
-from openid import oidUtil
+from openid import oidutil
 
 def test_base64():
     allowed_s = string.letters + string.digits + '+/='
@@ -24,27 +24,27 @@ def test_base64():
         ]
 
     for s in cases:
-        b64 = oidUtil.toBase64(s)
+        b64 = oidutil.toBase64(s)
         checkEncoded(b64)
-        s_prime = oidUtil.fromBase64(b64)
+        s_prime = oidutil.fromBase64(b64)
         assert s_prime == s, (s, b64, s_prime)
 
     # Randomized test
     for iteration in xrange(50):
         n = random.randrange(2048)
         s = ''.join(map(chr, map(lambda _: random.randrange(256), range(n))))
-        b64 = oidUtil.toBase64(s)
+        b64 = oidutil.toBase64(s)
         checkEncoded(b64)
-        s_prime = oidUtil.fromBase64(b64)
+        s_prime = oidutil.fromBase64(b64)
         assert s_prime == s, (s, b64, s_prime)
 
 def test_kvform():
-    old_log = oidUtil.log
+    old_log = oidutil.log
     try:
         def log(w_s):
             log.num_warnings += 1
 
-        oidUtil.log = log
+        oidutil.log = log
 
         cases = [
             # (kvform, parsed dictionary, expected warnings)
@@ -77,12 +77,12 @@ def test_kvform():
 
         for case_kv, case_d, expected_warnings in cases:
             log.num_warnings = 0
-            d = oidUtil.kvToDict(case_kv)
+            d = oidutil.kvToDict(case_kv)
             assert case_d == d
             assert log.num_warnings == expected_warnings, (
                 case_kv, log.num_warnings, expected_warnings)
-            kv = oidUtil.dictToKV(d)
-            d2 = oidUtil.kvToDict(kv)
+            kv = oidutil.dictToKV(d)
+            d2 = oidutil.kvToDict(kv)
             assert d == d2
 
         cases = [
@@ -98,10 +98,10 @@ def test_kvform():
             ]
 
         for case, expected in cases:
-            actual = oidUtil.seqToKV(case)
+            actual = oidutil.seqToKV(case)
             assert actual == expected, (case, expected, actual)
 
-            seq = oidUtil.kvToSeq(actual)
+            seq = oidutil.kvToSeq(actual)
 
             # Expected to be unchanged, except stripping whitespace
             # from start and end of values (i. e. ordering, case, and
@@ -113,7 +113,7 @@ def test_kvform():
             assert seq == expected_seq, (case, expected_seq, seq)
 
         log.num_warnings = 0
-        result = oidUtil.seqToKV([(1,1)])
+        result = oidutil.seqToKV([(1,1)])
         assert result == '1:1\n'
         assert log.num_warnings == 2
 
@@ -124,17 +124,17 @@ def test_kvform():
             ]
         for case in exceptional_cases:
             try:
-                unexpected = oidUtil.seqToKV(case)
+                unexpected = oidutil.seqToKV(case)
             except ValueError:
                 pass
             else:
                 assert False, 'Expected ValueError, got %r' % (unexpected,)
 
     finally:
-        oidUtil.log = old_log
+        oidutil.log = old_log
 
 # XXX: there are more functions that could benefit from being better
-# specified and tested in oidUtil.py These include, but are not
+# specified and tested in oidutil.py These include, but are not
 # limited to appendArgs and signReply
 
 def test():

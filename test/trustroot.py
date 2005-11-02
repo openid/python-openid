@@ -1,4 +1,4 @@
-from openid.trustroot import TrustRoot
+from openid.server.trustroot import TrustRoot
 
 def test():
     print 'Testing...'
