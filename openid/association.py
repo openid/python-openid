@@ -237,4 +237,4 @@ class Association(object):
         for field in fields:
             pairs.append((field, data[prefix + field]))
 
-        return cryptutil.toBase64(self.sign(pairs))
+        return oidUtil.toBase64(self.sign(pairs))
