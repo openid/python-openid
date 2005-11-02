@@ -1,4 +1,4 @@
-from openid.consumer.stores import ConsumerAssociation
+from openid.association import Association
 from openid.cryptutil import randomString
 
 import string
@@ -33,7 +33,7 @@ def testStore(store):
     secret = generateSecret(20)
     handle = generateHandle(128)
 
-    assoc = ConsumerAssociation.fromExpiresIn(600, handle, secret)
+    assoc = Association.fromExpiresIn(600, handle, secret)
 
     # Make sure that a missing association returns no result
     missing_assoc = store.getAssociation(server_url)
@@ -72,7 +72,7 @@ def testStore(store):
     # One association with server_url
     store.storeAssociation(server_url, assoc)
     handle2 = generateHandle(128)
-    assoc2 = ConsumerAssociation.fromExpiresIn(600, handle2, secret)
+    assoc2 = Association.fromExpiresIn(600, handle2, secret)
     store.storeAssociation(server_url, assoc2)
 
     # After storing an association with a different handle, but the

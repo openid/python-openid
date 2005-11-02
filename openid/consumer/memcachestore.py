@@ -1,6 +1,7 @@
 from binascii import hexlify
 from openid import cryptutil
-from openid.consumer.stores import OpenIDStore, ConsumerAssociation
+from openid.association import Association
+from openid.consumer.stores import OpenIDStore
 
 NONCE_CODE = 'N'
 ASSOCATION_CODE = 'A'
@@ -210,7 +211,7 @@ class MemCacheOpenIDStore(OpenIDStore):
         @type server_url: str
 
         @return: the association for this server or None
-        @rtype: openid.consumer.interface.ConsumerAssociation or NoneType
+        @rtype: openid.association.Association or NoneType
         """
         key = self._assocKey(server_url)
         assoc_s = self.memcache.get(key)
@@ -218,7 +219,7 @@ class MemCacheOpenIDStore(OpenIDStore):
             return None
 
         try:
-            assoc = ConsumerAssociation.deserialize(assoc_s)
+            assoc = Association.deserialize(assoc_s)
         except ValueError:
             self.memcache.delete(key)
             return None
@@ -244,7 +245,7 @@ class MemCacheOpenIDStore(OpenIDStore):
             return False
 
         try:
-            assoc = ConsumerAssociation.deserialize(assoc_s)
+            assoc = Association.deserialize(assoc_s)
         except ValueError:
             self.memcache.delete(key)
             return False

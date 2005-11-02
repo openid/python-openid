@@ -1,7 +1,8 @@
 import time
 
 from openid import cryptutil
-from openid.consumer.stores import ConsumerAssociation, OpenIDStore
+from openid.association import Association
+from openid.consumer.stores import OpenIDStore
 
 def inTxn(func):
     def wrapped(self, *args, **kwargs):
@@ -203,7 +204,7 @@ class SQLStore(OpenIDStore):
     def txn_storeAssociation(self, server_url, association):
         """Set the association for the server URL.
 
-        ConsumerAssociation -> NoneType
+        Association -> NoneType
         """
         a = association
         self.db_set_assoc(
@@ -219,7 +220,7 @@ class SQLStore(OpenIDStore):
         """Get the most recent association that has been set for this
         server URL.
 
-        str -> NoneType or ConsumerAssociation
+        str -> NoneType or Association
         """
         self.db_get_assoc(server_url)
         rows = self.cur.fetchall()
@@ -227,7 +228,7 @@ class SQLStore(OpenIDStore):
             return None
         else:
             (values,) = rows
-            assoc = ConsumerAssociation(*values[1:])
+            assoc = Association(*values[1:])
             assoc.secret = self.blobDecode(assoc.secret)
             return assoc
 

@@ -23,7 +23,8 @@ except ImportError:
 
         raise RuntimeError('Failed to get temp file after 5 attempts')
 
-from openid.consumer.stores import OpenIDStore, ConsumerAssociation
+from openid.association import Association
+from openid.consumer.stores import OpenIDStore
 from openid import cryptutil
 
 filename_allowed = string.letters + string.digits + '.-'
@@ -247,7 +248,7 @@ class FilesystemOpenIDStore(OpenIDStore):
     def storeAssociation(self, server_url, association):
         """Store an association in the association directory.
 
-        ConsumerAssociation -> NoneType
+        Association -> NoneType
         """
         association_s = association.serialize()
         filename = self.getAssociationFilename(server_url)
@@ -289,7 +290,7 @@ class FilesystemOpenIDStore(OpenIDStore):
     def getAssociation(self, server_url):
         """Retrieve an association.
 
-        str -> ConsumerAssociation or NoneType
+        str -> Association or NoneType
         """
         filename = self.getAssociationFilename(server_url)
         try:
@@ -307,7 +308,7 @@ class FilesystemOpenIDStore(OpenIDStore):
                 assoc_file.close()
 
             try:
-                association = ConsumerAssociation.deserialize(assoc_s)
+                association = Association.deserialize(assoc_s)
             except ValueError:
                 removeIfPresent(filename)
                 return None
@@ -420,7 +421,7 @@ class FilesystemOpenIDStore(OpenIDStore):
 
                 # Remove expired or corrupted associations
                 try:
-                    association = ConsumerAssociation.deserialize(assoc_s)
+                    association = Association.deserialize(assoc_s)
                 except ValueError:
                     removeIfPresent(association_filename)
                 else:
