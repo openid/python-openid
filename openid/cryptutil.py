@@ -115,40 +115,38 @@ except AttributeError:
     # random.SystemRandom
     from math import log, ceil
 
+    _duplicate_cache = {}
     def randrange(start, stop=None, step=1):
         if stop is None:
             stop = start
             start = 0
 
         r = (stop - start) // step
+        try:
+            (duplicate, nbytes) = _duplicate_cache[r]
+        except KeyError:
+            rbytes = longToBinary(r)
+            if rbytes[0] == '\x00':
+                nbytes = len(rbytes) - 1
+            else:
+                nbytes = len(rbytes)
 
-        rbytes = longToBinary(r)
-        if rbytes[0] == '\x00':
-            rbytes = rbytes[1:]
+        nbytes = int(ceil(log(r) / log(256)))
 
         while 1:
-            vbytes = []
+            bytes = getBytes(nbytes)
+            # make it a positive two's complement number
+            if ord(bytes[0]) > 127:
+                bytes = '\x00' + bytes
 
-            for byte in rbytes:
-                b = getBytes(1)
-                
-                if b < byte:
-                    vbytes.append(b)
-                    vbytes.append(getBytes(len(rbytes) - len(vbytes)))
-                    break
-                elif b == byte:
-                    vbytes.append(b)
-                else:
-                    break
+            n = binaryToLong(bytes)
+            val = n % r
 
-            vbytes = ''.join(vbytes)
-            if len(vbytes) == len(rbytes):
-                val = binaryToLong('\x00' + vbytes)
-                if val < r:
-                    break
+            # Keep looping if this value is in the low duplicated range
+            if n - (val + r - 1) >= 0:
+                break
 
-        return start + val * step
-
+        return start + (n % r) * step
 
 def hmacSha1(key, text):
     return hmac.new(key, text, sha).digest()
