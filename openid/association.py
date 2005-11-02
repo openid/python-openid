@@ -1,5 +1,6 @@
 import time
 from openid import oidutil
+from openid import cryptutil
 
 class Association(object):
     """
@@ -207,3 +208,33 @@ class Association(object):
         return cls(handle, secret, issued, lifetime)
 
     deserialize = classmethod(deserialize)
+
+    def sign(self, pairs):
+        """Generate a signature for a sequence of (key, value) pairs
+
+        @param pairs: The pairs to sign, in order
+        @type pairs: sequence of (str, str)
+
+        @return: The binary signature of this sequence of pairs
+        @rtype: str
+        """
+        kv = oidutil.seqToKV(pairs)
+        return cryptutil.hmacSha1(self.secret, kv)
+
+    def signDict(self, fields, data, prefix='openid.'):
+        """Generate a signature for some fields in a dictionary
+
+        @param fields: The fields to sign, in order
+        @type fields: sequence of str
+
+        @param data: Dictionary of values to sign
+        @type data: {str:str}
+
+        @return: the signature, base64 encoded
+        @rtype: str
+        """
+        pairs = []
+        for field in fields:
+            pairs.append((field, data[prefix + field]))
+
+        return cryptutil.toBase64(self.sign(pairs))

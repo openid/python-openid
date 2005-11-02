@@ -135,7 +135,7 @@ def test_kvform():
 
 # XXX: there are more functions that could benefit from being better
 # specified and tested in oidutil.py These include, but are not
-# limited to appendArgs and signReply
+# limited to appendArgs
 
 def test():
     test_base64()

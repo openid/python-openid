@@ -14,7 +14,7 @@ http://www.amk.ca/python/code/crypto
 """
 
 __all__ = ['randrange', 'hmacSha1', 'sha1', 'strToLong', 'longToStr',
-           'strxor', 'signReply', 'randomString']
+           'strxor', 'randomString']
 
 import sys
 import hmac
@@ -169,19 +169,6 @@ def strxor(x, y):
 
     xor = lambda (a, b): chr(ord(a) ^ ord(b))
     return "".join(map(xor, zip(x, y)))
-
-def signReply(reply, key, signed_fields):
-    """Sign the given fields from the reply with the specified key.
-
-    @return: openid.signed and openid.sig parameters
-    @rtype: (str, str)
-    """
-    token = []
-    for i in signed_fields:
-        token.append((i, reply['openid.' + i]))
-
-    text = seqToKV(token)
-    return (','.join(signed_fields), toBase64(hmacSha1(key, text)))
 
 def randomString(length, chrs=None):
     """Produce a string of length random bytes, chosen from chrs."""

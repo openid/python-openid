@@ -78,7 +78,8 @@ class OpenIDServerImpl(object):
             'openid.assoc_handle': assoc.handle,
             })
 
-        signed, sig = cryptutil.signReply(reply, assoc.secret, _signed_fields)
+        sig = assoc.signDict(_signed_fields, reply)
+        signed = ','.join(_signed_fields)
 
         reply.update({
             'openid.signed': signed,
@@ -156,7 +157,7 @@ class OpenIDServerImpl(object):
             dat['openid.mode'] = 'id_res'
 
             signed_fields = args['openid.signed'].strip().split(',')
-            _, v_sig = cryptutil.signReply(dat, assoc.secret, signed_fields)
+            v_sig = assoc.signDict(signed_fields, dat)
 
             if v_sig == args['openid.sig']:
                 self.estore.remove(args['openid.assoc_handle'])

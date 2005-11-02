@@ -115,7 +115,7 @@ class OpenIDConsumerImpl(object):
 
         args = getOpenIDParameters(query)
         signed_list = signed.split(',')
-        _signed, v_sig = cryptutil.signReply(args, assoc.secret, signed_list)
+        v_sig = assoc.signDict(signed_list, args)
 
         if v_sig != sig:
             return FAILURE, consumer_id
