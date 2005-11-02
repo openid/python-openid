@@ -16,8 +16,9 @@ from xml.sax.saxutils import quoteattr, escape
 
 from openid import cryptutil
 from openid import oidutil
+from openid.association import Association
 from openid.server import interface
-from openid.server.stores import ServerAssociation, ServerAssociationStore
+from openid.server.stores import ServerAssociationStore
 
 class Store(ServerAssociationStore):
     """
@@ -35,7 +36,7 @@ class Store(ServerAssociationStore):
         handle = '{%s}%d/%d' % (assoc_type, time.time(), self.count)
         self.count += 1
         secret = cryptutil.randomString(20)
-        assoc = ServerAssociation.fromExpiresIn(self.lifespan, handle, secret)
+        assoc = Association.fromExpiresIn(self.lifespan, handle, secret)
         self.assocs[handle] = assoc
         return assoc
 
