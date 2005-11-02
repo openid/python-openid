@@ -122,20 +122,30 @@ except AttributeError:
 
         r = (stop - start) // step
 
-        nbytes = int(ceil(log(r) / log(256)))
+        rbytes = longToBinary(r)
+        if rbytes[0] == '\x00':
+            rbytes = rbytes[1:]
 
         while 1:
-            bytes = getBytes(nbytes)
-            # make it a positive two's complement number
-            if ord(bytes[0]) > 127:
-                bytes = '\x00' + bytes
+            vbytes = []
 
-            n = binaryToLong(bytes)
-            val = n % r
+            for byte in rbytes:
+                b = getBytes(1)
+                
+                if b < byte:
+                    vbytes.append(b)
+                    vbytes.append(getBytes(len(rbytes) - len(vbytes)))
+                    break
+                elif b == byte:
+                    vbytes.append(b)
+                else:
+                    break
 
-            # Keep looping if this value is in the low duplicated range
-            if n - (val + r - 1) >= 0:
-                break
+            vbytes = ''.join(vbytes)
+            if len(vbytes) == len(rbytes):
+                val = binaryToLong('\x00' + vbytes)
+                if val < r:
+                    break
 
         return start + val * step
 
