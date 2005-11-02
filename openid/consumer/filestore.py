@@ -244,13 +244,13 @@ class FilesystemOpenIDStore(OpenIDStore):
         filename = ''.join(filename_chunks)
         return os.path.join(self.association_dir, filename)
 
-    def storeAssociation(self, association):
+    def storeAssociation(self, server_url, association):
         """Store an association in the association directory.
 
         ConsumerAssociation -> NoneType
         """
         association_s = association.serialize()
-        filename = self.getAssociationFilename(association.server_url)
+        filename = self.getAssociationFilename(server_url)
         tmp_file, tmp = self._mktemp()
 
         try:

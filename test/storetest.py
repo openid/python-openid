@@ -33,32 +33,29 @@ def testStore(store):
     secret = generateSecret(20)
     handle = generateHandle(128)
 
-    assoc = ConsumerAssociation.fromExpiresIn(600, server_url, handle, secret)
+    assoc = ConsumerAssociation.fromExpiresIn(600, handle, secret)
 
     # Make sure that a missing association returns no result
     missing_assoc = store.getAssociation(server_url)
     assert missing_assoc is None
 
     # Check that after storage, getting returns the same result
-    store.storeAssociation(assoc)
+    store.storeAssociation(server_url, assoc)
     retrieved_assoc = store.getAssociation(server_url)
     assert retrieved_assoc.secret == assoc.secret, (retrieved_assoc.secret,
                                                     assoc.secret)
     assert retrieved_assoc.handle == assoc.handle
-    assert retrieved_assoc.server_url == assoc.server_url
 
     # more than once
     retrieved_assoc = store.getAssociation(server_url)
     assert retrieved_assoc.secret == assoc.secret
     assert retrieved_assoc.handle == assoc.handle
-    assert retrieved_assoc.server_url == assoc.server_url
 
     # Storing more than once has no ill effect
-    store.storeAssociation(assoc)
+    store.storeAssociation(server_url, assoc)
     retrieved_assoc = store.getAssociation(server_url)
     assert retrieved_assoc.secret == assoc.secret
     assert retrieved_assoc.handle == assoc.handle
-    assert retrieved_assoc.server_url == assoc.server_url
 
     # Removing an association that does not exist returns not present
     present = store.removeAssociation(server_url + 'x', handle)
@@ -73,18 +70,16 @@ def testStore(store):
     assert not present
 
     # One association with server_url
-    store.storeAssociation(assoc)
+    store.storeAssociation(server_url, assoc)
     handle2 = generateHandle(128)
-    assoc2 = ConsumerAssociation.fromExpiresIn(
-        600, server_url, handle2, secret)
-    store.storeAssociation(assoc2)
+    assoc2 = ConsumerAssociation.fromExpiresIn(600, handle2, secret)
+    store.storeAssociation(server_url, assoc2)
 
     # After storing an association with a different handle, but the
     # same server_url, the most recent association is available. There
     # is no guarantee either way about the first association. (and
     # thus about the return value of removeAssociation)
     retrieved_assoc = store.getAssociation(server_url)
-    assert retrieved_assoc.server_url == server_url
     assert retrieved_assoc.handle == handle2
     assert retrieved_assoc.secret == secret
 
@@ -124,6 +119,7 @@ def testStore(store):
     assert len(key) == store.AUTH_KEY_LEN
 
 def test_filestore():
+    print 'Testing fs'
     from openid.consumer import filestore
     import tempfile
     import shutil
@@ -150,6 +146,7 @@ def test_sqlite():
     except ImportError:
         pass
     else:
+        print 'Testing sqlite'
         conn = sqlite.connect(':memory:')
         store = sqlstore.SQLiteStore(conn)
         store.createTables()
@@ -162,6 +159,7 @@ def test_mysql():
     except ImportError:
         pass
     else:
+        print 'Testing mysql'
         db_user = 'openid_test'
         db_passwd = ''
         db_name = 'openid_test'
@@ -205,6 +203,7 @@ def test_memcache():
     except ImportError:
         pass
     else:
+        print 'Testing memcache'
         import time
         import memcache
         cache = memcache.Client(['localhost:11211'], debug=1)

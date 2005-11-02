@@ -230,9 +230,9 @@ class MemCacheOpenIDStore(OpenIDStore):
         else:
             return assoc
 
-    def storeAssociation(self, assoc):
+    def storeAssociation(self, server_url, assoc):
         assoc_s = assoc.serialize()
-        key = self._assocKey(assoc.server_url)
+        key = self._assocKey(server_url)
         ret = self.memcache.set(key, assoc_s, assoc.issued + assoc.lifetime)
         if not ret:
             raise RuntimeError('Error setting memcache key %r' % key)

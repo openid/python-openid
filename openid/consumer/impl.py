@@ -308,7 +308,7 @@ class OpenIDConsumerImpl(object):
             assoc = ConsumerAssociation.fromExpiresIn(
                 expires_in, server_url, assoc_handle, secret)
 
-            self.store.storeAssociation(assoc)
+            self.store.storeAssociation(server_url, assoc)
 
             return assoc
 

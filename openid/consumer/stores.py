@@ -254,15 +254,8 @@ class ConsumerAssociation(object):
     C{L{OpenIDStore}}.
 
     If you do implement such a store, it will need to store the values
-    of the C{server_url}, C{handle}, C{secret}, C{issued}, and
-    C{lifetime} instance variables.
-
-
-    @ivar server_url: This is the URL of the server this association
-        came from.
-
-    @type server_url: C{str}
-
+    of the C{handle}, C{secret}, C{issued}, and C{lifetime} instance
+    variables.
 
     @ivar handle: This is the handle the server gave this association.
 
@@ -290,20 +283,19 @@ class ConsumerAssociation(object):
 
 
     @sort: __init__, fromExpiresIn, getExpiresIn, __eq__, __ne__,
-        server_url, handle, secret, issued, lifetime
+        handle, secret, issued, lifetime
     """
 
     # The ordering and name of keys as stored by serializeAssociation
     assoc_keys = [
         'version',
-        'server_url',
         'handle',
         'secret',
         'issued',
         'lifetime',
         ]
 
-    def fromExpiresIn(cls, expires_in, server_url, handle, secret):
+    def fromExpiresIn(cls, expires_in, handle, secret):
         """
         This is an alternate constructor used by the OpenID consumer
         library to create associations.  C{L{OpenIDStore}}
@@ -315,12 +307,6 @@ class ConsumerAssociation(object):
             issued.
         
         @type expires_in: C{int}
-
-
-        @param server_url: This is the URL of the server this
-            association came from.
-
-        @type server_url: C{str}
 
 
         @param handle: This is the handle the server gave this
@@ -336,21 +322,15 @@ class ConsumerAssociation(object):
         """
         issued = int(time.time())
         lifetime = expires_in
-        return cls(server_url, handle, secret, issued, lifetime)
+        return cls(handle, secret, issued, lifetime)
 
     fromExpiresIn = classmethod(fromExpiresIn)
 
-    def __init__(self, server_url, handle, secret, issued, lifetime):
+    def __init__(self, handle, secret, issued, lifetime):
         """
         This is the standard constructor for creating an association.
 
         
-        @param server_url: This is the URL of the server this
-            association came from.
-
-        @type server_url: C{str}
-
-
         @param handle: This is the handle the server gave this
             association.
 
@@ -376,7 +356,6 @@ class ConsumerAssociation(object):
 
         @type lifetime: C{int}
         """
-        self.server_url = server_url
         self.handle = handle
         self.secret = secret
         self.issued = issued
@@ -431,7 +410,6 @@ class ConsumerAssociation(object):
         """
         data = {
             'version':'1',
-            'server_url':self.server_url,
             'handle':self.handle,
             'secret':oidutil.toBase64(self.secret),
             'issued':str(int(self.issued)),
@@ -465,13 +443,12 @@ class ConsumerAssociation(object):
         if keys != cls.assoc_keys:
             raise ValueError('Unexpected key values: %r', keys)
 
-        version, server_url, handle, secret, issued, lifetime = values
+        version, handle, secret, issued, lifetime = values
         if version != '1':
             raise ValueError('Unknown version: %r' % version)
         issued = int(issued)
         lifetime = int(lifetime)
         secret = oidutil.fromBase64(secret)
-        return ConsumerAssociation(
-            server_url, handle, secret, issued, lifetime)
+        return ConsumerAssociation(handle, secret, issued, lifetime)
 
     deserialize = classmethod(deserialize)

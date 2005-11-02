@@ -200,14 +200,14 @@ class SQLStore(OpenIDStore):
 
     getAuthKey = inTxn(txn_getAuthKey)
 
-    def txn_storeAssociation(self, association):
+    def txn_storeAssociation(self, server_url, association):
         """Set the association for the server URL.
 
         ConsumerAssociation -> NoneType
         """
         a = association
         self.db_set_assoc(
-            a.server_url,
+            server_url,
             a.handle,
             self.blobEncode(a.secret),
             a.issued,
@@ -227,7 +227,7 @@ class SQLStore(OpenIDStore):
             return None
         else:
             (values,) = rows
-            assoc = ConsumerAssociation(*values)
+            assoc = ConsumerAssociation(*values[1:])
             assoc.secret = self.blobDecode(assoc.secret)
             return assoc
 

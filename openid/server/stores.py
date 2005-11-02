@@ -1,3 +1,5 @@
+from openid import cryptutil, oidutil
+
 import time
 
 class ServerAssociation(object):
@@ -25,6 +27,15 @@ class ServerAssociation(object):
     def __ne__(self, other):
         return self.__dict__ != other.__dict__
 
+    def sign(self, query, signed_fields, prefix='openid.'):
+        pairs = []
+        for i in signed_fields:
+            pairs.append((i, query[prefix + i]))
+
+        text = oidutil.seqToKV(pairs)
+        sig = cryptutil.hmacSha1(self.secret, text)
+        return (','.join(signed_fields), cryptutil.toBase64(sig))
+        
 class ServerAssociationStore(object):
     """
     """
