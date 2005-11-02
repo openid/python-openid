@@ -3,7 +3,8 @@ import urllib
 import string
 import time
 
-from openid.consumer.stores import ConsumerAssociation, DumbStore
+from openid.association import Association
+from openid.consumer.stores import DumbStore
 from openid.consumer.parse import parseLinkAttrs
 from openid import oidutil, cryptutil
 from openid.dh import DiffieHellman
@@ -305,9 +306,7 @@ class OpenIDConsumerImpl(object):
                     oidutil.fromBase64(enc_mac_key),
                     cryptutil.sha1(cryptutil.longToBinary(dh_shared)))
 
-            assoc = ConsumerAssociation.fromExpiresIn(
-                expires_in, server_url, assoc_handle, secret)
-
+            assoc = Association.fromExpiresIn(expires_in, assoc_handle, secret)
             self.store.storeAssociation(server_url, assoc)
 
             return assoc
