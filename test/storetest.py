@@ -2,6 +2,7 @@ from openid.association import Association
 from openid.cryptutil import randomString
 
 import string
+import time
 
 allowed_handle = []
 for c in string.printable:
@@ -28,59 +29,117 @@ def testStore(store):
     """
 
     ### Association functions
+    now = int(time.time())
 
     server_url = 'http://www.myopenid.com/openid'
-    secret = generateSecret(20)
-    handle = generateHandle(128)
+    def genAssoc(issued=0, lifetime=600):
+        sec = generateSecret(20)
+        hdl = generateHandle(128)
+        return Association(hdl, sec, now + issued, lifetime, 'HMAC-SHA1')
 
-    assoc = Association.fromExpiresIn(600, handle, secret, 'HMAC-SHA1')
+    def checkRetrieve(url, handle=None, expected=None):
+        retrieved_assoc = store.getAssociation(url, handle)
+        if expected is None:
+            assert retrieved_assoc is None
+        else:
+            assert retrieved_assoc == expected, (retrieved_assoc, expected)
+            if retrieved_assoc is expected:
+                print ('Unexpected: retrieved a reference to the expected '
+                       'value instead of a new object')
+            assert retrieved_assoc.handle == expected.handle
+            assert retrieved_assoc.secret == expected.secret
+
+    assoc = genAssoc()
 
     # Make sure that a missing association returns no result
-    missing_assoc = store.getAssociation(server_url)
-    assert missing_assoc is None
+    checkRetrieve(server_url)
 
     # Check that after storage, getting returns the same result
     store.storeAssociation(server_url, assoc)
-    retrieved_assoc = store.getAssociation(server_url)
-    assert retrieved_assoc.secret == assoc.secret, (retrieved_assoc.secret,
-                                                    assoc.secret)
-    assert retrieved_assoc.handle == assoc.handle
+    checkRetrieve(server_url, None, assoc)
 
     # more than once
-    retrieved_assoc = store.getAssociation(server_url)
-    assert retrieved_assoc.secret == assoc.secret
-    assert retrieved_assoc.handle == assoc.handle
+    checkRetrieve(server_url, None, assoc)
 
     # Storing more than once has no ill effect
     store.storeAssociation(server_url, assoc)
-    retrieved_assoc = store.getAssociation(server_url)
-    assert retrieved_assoc.secret == assoc.secret
-    assert retrieved_assoc.handle == assoc.handle
+    checkRetrieve(server_url, None, assoc)
 
     # Removing an association that does not exist returns not present
-    present = store.removeAssociation(server_url + 'x', handle)
+    present = store.removeAssociation(server_url + 'x', assoc.handle)
+    assert not present
+
+    # Removing an association that does not exist returns not present
+    present = store.removeAssociation(server_url, assoc.handle + 'x')
     assert not present
 
     # Removing an association that is present returns present
-    present = store.removeAssociation(server_url, handle)
+    present = store.removeAssociation(server_url, assoc.handle)
     assert present
 
     # but not present on subsequent calls
-    present = store.removeAssociation(server_url, handle)
+    present = store.removeAssociation(server_url, assoc.handle)
     assert not present
 
+    # Put assoc back in the store
     store.storeAssociation(server_url, assoc)
-    handle2 = generateHandle(128)
-    assoc2 = Association.fromExpiresIn(601, handle2, secret, 'HMAC-SHA1')
+
+    # More recent and expires after assoc
+    assoc2 = genAssoc(issued=1)
     store.storeAssociation(server_url, assoc2)
 
     # After storing an association with a different handle, but the
-    # same server_url, the most recent association is available. There
-    # is no guarantee either way about the first association. (and
-    # thus about the return value of removeAssociation)
-    retrieved_assoc = store.getAssociation(server_url)
-    assert retrieved_assoc.handle == handle2
-    assert retrieved_assoc.secret == secret
+    # same server_url, the handle with the later expiration is returned.
+    checkRetrieve(server_url, None, assoc2)
+
+    # We can still retrieve the older association
+    checkRetrieve(server_url, assoc.handle, assoc)
+
+    # Plus we can retrieve the association with the later expiration
+    # explicitly
+    checkRetrieve(server_url, assoc2.handle, assoc2)
+
+    # More recent, but expires earlier than assoc2 or assoc
+    assoc3 = genAssoc(issued=2, lifetime=100)
+    store.storeAssociation(server_url, assoc3)
+
+    checkRetrieve(server_url, None, assoc2)
+    checkRetrieve(server_url, assoc.handle, assoc)
+    checkRetrieve(server_url, assoc2.handle, assoc2)
+    checkRetrieve(server_url, assoc3.handle, assoc3)
+
+    present = store.removeAssociation(server_url, assoc2.handle)
+    assert present
+
+    checkRetrieve(server_url, None, assoc)
+    checkRetrieve(server_url, assoc.handle, assoc)
+    checkRetrieve(server_url, assoc2.handle, None)
+    checkRetrieve(server_url, assoc3.handle, assoc3)
+
+    present = store.removeAssociation(server_url, assoc2.handle)
+    assert not present
+
+    present = store.removeAssociation(server_url, assoc.handle)
+    assert present
+
+    checkRetrieve(server_url, None, assoc3)
+    checkRetrieve(server_url, assoc.handle, None)
+    checkRetrieve(server_url, assoc2.handle, None)
+    checkRetrieve(server_url, assoc3.handle, assoc3)
+
+    present = store.removeAssociation(server_url, assoc2.handle)
+    assert not present
+
+    present = store.removeAssociation(server_url, assoc.handle)
+    assert not present
+
+    present = store.removeAssociation(server_url, assoc3.handle)
+    assert present
+
+    checkRetrieve(server_url, None, None)
+    checkRetrieve(server_url, assoc.handle, None)
+    checkRetrieve(server_url, assoc2.handle, None)
+    checkRetrieve(server_url, assoc3.handle, None)
 
     ### Nonce functions
 
