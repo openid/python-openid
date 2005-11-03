@@ -299,12 +299,8 @@ class OpenIDConsumerImpl(object):
                     return None
 
                 spub = cryptutil.base64ToLong(results['dh_server_public'])
-
-                dh_shared = dh.decryptKeyExchange(spub)
-                enc_mac_key = results['enc_mac_key']
-                secret = cryptutil.strxor(
-                    oidutil.fromBase64(enc_mac_key),
-                    cryptutil.sha1(cryptutil.longToBinary(dh_shared)))
+                enc_mac_key = oidutil.fromBase64(results['enc_mac_key'])
+                secret = dh.xorSecret(spub, enc_mac_key)
 
             assoc = Association.fromExpiresIn(expires_in, assoc_handle, secret)
             self.store.storeAssociation(server_url, assoc)

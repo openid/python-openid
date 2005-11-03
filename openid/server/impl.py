@@ -126,10 +126,7 @@ class OpenIDServerImpl(object):
                 dh = DiffieHellman.fromBase64(p, g)
 
                 cpub = cryptutil.base64ToLong(consumer_public)
-                dh_shared = dh.decryptKeyExchange(cpub)
-                mac_key = cryptutil.strxor(
-                    assoc.secret, cryptutil.sha1(
-                    cryptutil.longToBinary(dh_shared)))
+                mac_key = dh.xorSecret(cpub, assoc.secret)
                 spub = dh.createKeyExchange()
 
                 reply.update({

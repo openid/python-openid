@@ -29,6 +29,7 @@ class DiffieHellman(object):
     def createKeyExchange(self):
         return pow(self.g, self.x, self.p)
 
-    def decryptKeyExchange(self, composite):
-        return pow(composite, self.x, self.p)
-
+    def xorSecret(self, composite, secret):
+        dh_shared = pow(composite, self.x, self.p)
+        sha1_dh_shared = cryptutil.sha1(cryptutil.longToBinary(dh_shared))
+        return cryptutil.strxor(secret, sha1_dh_shared)
