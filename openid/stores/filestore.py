@@ -25,9 +25,9 @@ except ImportError:
 
 from openid.association import Association
 from openid.stores import OpenIDStore
-from openid import cryptutil
+from openid import cryptutil, oidutil
 
-filename_allowed = string.letters + string.digits + '.-'
+filename_allowed = string.letters + string.digits + '.'
 try:
     # 2.4
     set
@@ -46,6 +46,22 @@ except NameError:
         isFilenameSafe = sets.Set(filename_allowed).__contains__
 else:
     isFilenameSafe = set(filename_allowed).__contains__
+
+def safe64(s):
+    h64 = oidutil.toBase64(cryptutil.sha1(s))
+    h64 = h64.replace('+', '_')
+    h64 = h64.replace('/', '.')
+    h64 = h64.replace('=', '')
+    return h64
+
+def filenameEscape(s):
+    filename_chunks = []
+    for c in s:
+        if isFilenameSafe(c):
+            filename_chunks.append(c)
+        else:
+            filename_chunks.append('_%02X' % ord(c))
+    return ''.join(filename_chunks)
 
 def removeIfPresent(filename):
     """Attempt to remove a file, returning whether the file existed at
@@ -226,7 +242,7 @@ class FileOpenIDStore(OpenIDStore):
 
         return auth_key
 
-    def getAssociationFilename(self, server_url):
+    def getAssociationFilename(self, server_url, handle):
         """Create a unique filename for a given server url and
         handle. This implementation does not assume anything about the
         format of the handle. The filename that is returned will
@@ -235,14 +251,19 @@ class FileOpenIDStore(OpenIDStore):
 
         (str, str) -> str
         """
-        server_url = server_url.replace('://', '-', 1)
-        filename_chunks = []
-        for c in server_url:
-            if isFilenameSafe(c):
-                filename_chunks.append(c)
-            else:
-                filename_chunks.append('_%02X' % ord(c))
-        filename = ''.join(filename_chunks)
+        if '://' not in server_url:
+            raise ValueError('Bad server URL: %r' % server_url)
+
+        proto, rest = server_url.split('://', 1)
+        domain = filenameEscape(rest.split('/', 1)[0])
+        url_hash = safe64(server_url)
+        if handle:
+            handle_hash = safe64(handle)
+        else:
+            handle_hash = ''
+        
+        filename = '%s-%s-%s-%s' % (proto, domain, url_hash, handle_hash)
+
         return os.path.join(self.association_dir, filename)
 
     def storeAssociation(self, server_url, association):
@@ -251,7 +272,7 @@ class FileOpenIDStore(OpenIDStore):
         Association -> NoneType
         """
         association_s = association.serialize()
-        filename = self.getAssociationFilename(server_url)
+        filename = self.getAssociationFilename(server_url, association.handle)
         tmp_file, tmp = self._mktemp()
 
         try:
@@ -287,12 +308,44 @@ class FileOpenIDStore(OpenIDStore):
             removeIfPresent(tmp)
             raise
 
-    def getAssociation(self, server_url):
+    def getAssociation(self, server_url, handle=None):
         """Retrieve an association.
 
-        str -> Association or NoneType
+        (str, str or NoneType) -> Association or NoneType
         """
-        filename = self.getAssociationFilename(server_url)
+        if handle is None:
+            handle = ''
+
+        # The filename with the empty handle is a prefix of all other
+        # associations for the given server URL.
+        filename = self.getAssociationFilename(server_url, handle)
+
+        if handle:
+            return self._getAssociation(filename)
+        else:
+            association_files = os.listdir(self.association_dir)
+            matching_files = []
+            name = os.path.basename(filename)
+            for association_file in association_files:
+                if association_file.startswith(name):
+                    matching_files.append(association_file)
+
+            matching_associations = []
+            for name in matching_files:
+                full_name = os.path.join(self.association_dir, name)
+                association = self._getAssociation(full_name)
+                if association is not None:
+                    expiration = association.issued + association.lifetime
+                    matching_associations.append((expiration, association))
+
+            matching_associations.sort()
+            if matching_associations:
+                (_, assoc) = matching_associations[-1]
+                return assoc
+            else:
+                return None
+                    
+    def _getAssociation(self, filename):
         try:
             assoc_file = file(filename, 'rb')
         except IOError, why:
@@ -310,6 +363,7 @@ class FileOpenIDStore(OpenIDStore):
             try:
                 association = Association.deserialize(assoc_s)
             except ValueError:
+                print 'Failed to deserialize:', filename
                 removeIfPresent(filename)
                 return None
 
@@ -329,7 +383,7 @@ class FileOpenIDStore(OpenIDStore):
         if assoc is None or assoc.handle != handle:
             return False
         else:
-            filename = self.getAssociationFilename(server_url)
+            filename = self.getAssociationFilename(server_url, handle)
             return removeIfPresent(filename)
 
     def storeNonce(self, nonce):

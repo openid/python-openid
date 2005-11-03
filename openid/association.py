@@ -42,16 +42,17 @@ class Association(object):
         handle, secret, issued, lifetime
     """
 
-    # The ordering and name of keys as stored by serializeAssociation
+    # The ordering and name of keys as stored by serialize
     assoc_keys = [
         'version',
         'handle',
         'secret',
         'issued',
         'lifetime',
+        'assoc_type',
         ]
 
-    def fromExpiresIn(cls, expires_in, handle, secret):
+    def fromExpiresIn(cls, expires_in, handle, secret, assoc_type):
         """
         This is an alternate constructor used by the OpenID consumer
         library to create associations.  C{L{OpenIDStore}}
@@ -78,11 +79,11 @@ class Association(object):
         """
         issued = int(time.time())
         lifetime = expires_in
-        return cls(handle, secret, issued, lifetime)
+        return cls(handle, secret, issued, lifetime, assoc_type)
 
     fromExpiresIn = classmethod(fromExpiresIn)
 
-    def __init__(self, handle, secret, issued, lifetime):
+    def __init__(self, handle, secret, issued, lifetime, assoc_type):
         """
         This is the standard constructor for creating an association.
 
@@ -112,10 +113,15 @@ class Association(object):
 
         @type lifetime: C{int}
         """
+        if assoc_type != 'HMAC-SHA1':
+            raise ValueError(
+                'HMAC-SHA1 is the only currently supported association type')
+
         self.handle = handle
         self.secret = secret
         self.issued = issued
         self.lifetime = lifetime
+        self.assoc_type = assoc_type
 
     def getExpiresIn(self):
         """
@@ -165,11 +171,12 @@ class Association(object):
         @rtype: str
         """
         data = {
-            'version':'1',
+            'version':'2',
             'handle':self.handle,
             'secret':oidutil.toBase64(self.secret),
             'issued':str(int(self.issued)),
             'lifetime':str(int(self.lifetime)),
+            'assoc_type':self.assoc_type
             }
 
         assert len(data) == len(self.assoc_keys)
@@ -199,13 +206,13 @@ class Association(object):
         if keys != cls.assoc_keys:
             raise ValueError('Unexpected key values: %r', keys)
 
-        version, handle, secret, issued, lifetime = values
-        if version != '1':
+        version, handle, secret, issued, lifetime, assoc_type = values
+        if version != '2':
             raise ValueError('Unknown version: %r' % version)
         issued = int(issued)
         lifetime = int(lifetime)
         secret = oidutil.fromBase64(secret)
-        return cls(handle, secret, issued, lifetime)
+        return cls(handle, secret, issued, lifetime, assoc_type)
 
     deserialize = classmethod(deserialize)
 

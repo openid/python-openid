@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import cryptutil
+import association
 import storetest
 import trustroot
 import linkparse
@@ -11,3 +12,4 @@ storetest.test()
 trustroot.test()
 linkparse.test()
 oidutil.test()
+association.test()
