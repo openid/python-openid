@@ -123,7 +123,7 @@ class Association(object):
         self.lifetime = lifetime
         self.assoc_type = assoc_type
 
-    def getExpiresIn(self):
+    def getExpiresIn(self, now=None):
         """
         This returns the number of seconds this association is still
         valid for, or C{0} if the association is no longer valid.
@@ -134,7 +134,10 @@ class Association(object):
 
         @rtype: C{int}
         """
-        return max(0, self.issued + self.lifetime - int(time.time()))
+        if now is None:
+            now = int(time.time())
+
+        return max(0, self.issued + self.lifetime - now)
 
     expiresIn = property(getExpiresIn)
 
