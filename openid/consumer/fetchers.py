@@ -90,7 +90,7 @@ class UrllibFetcher(OpenIDHTTPFetcher):
             try:
                 if why.code == 400:
                     data = why.read()
-                    return (why.geturl(), data)
+                    return (why.code, why.geturl(), data)
                 else:
                     return None
             finally:
@@ -144,7 +144,7 @@ class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
                 if code in (301, 302):
                     url = self._findRedirect(headers)
                 else:
-                    return url, data.getvalue()
+                    return code, url, data.getvalue()
 
                 off = stop - int(time.time())
 
@@ -172,6 +172,7 @@ class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
             except pycurl.error:
                 return None
 
-            return url, data.getvalue()
+            code = c.getinfo(pycurl.RESPONSE_CODE)
+            return code, url, data.getvalue()
         finally:
             c.close()

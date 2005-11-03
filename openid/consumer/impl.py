@@ -131,7 +131,7 @@ class OpenIDConsumerImpl(object):
         if ret is None:
             return FAILURE, consumer_id
 
-        results = kvform.kvToDict(ret[1])
+        results = oidutil.kvToDict(ret[1])
         is_valid = results.get('is_valid', 'false')
 
         if is_valid == 'true':
@@ -234,7 +234,7 @@ class OpenIDConsumerImpl(object):
         if ret is None:
             return HTTP_FAILURE, None
 
-        consumer_id, data = ret
+        http_code, consumer_id, data = ret
 
         server = None
         delegate = None
@@ -281,7 +281,7 @@ class OpenIDConsumerImpl(object):
         if ret is None:
             return None
 
-        url, data = ret
+        http_code, url, data = ret
         results = kvform.kvToDict(data)
 
         try:
