@@ -303,7 +303,8 @@ class OpenIDConsumerImpl(object):
                 enc_mac_key = oidutil.fromBase64(results['enc_mac_key'])
                 secret = dh.xorSecret(spub, enc_mac_key)
 
-            assoc = Association.fromExpiresIn(expires_in, assoc_handle, secret)
+            assoc = Association.fromExpiresIn(
+                expires_in, assoc_handle, secret, assoc_type)
             self.store.storeAssociation(server_url, assoc)
 
             return assoc

@@ -36,7 +36,8 @@ class Store(ServerAssociationStore):
         handle = '{%s}%d/%d' % (assoc_type, time.time(), self.count)
         self.count += 1
         secret = cryptutil.randomString(20)
-        assoc = Association.fromExpiresIn(self.lifespan, handle, secret)
+        assoc = Association.fromExpiresIn(
+            self.lifespan, handle, secret, assoc_type)
         self.assocs[handle] = assoc
         return assoc
 
