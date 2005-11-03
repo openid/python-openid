@@ -116,8 +116,8 @@ class Association(object):
         @type lifetime: C{int}
         """
         if assoc_type != 'HMAC-SHA1':
-            raise ValueError(
-                'HMAC-SHA1 is the only currently supported association type')
+            fmt = 'HMAC-SHA1 is the only supported association type (got %r)'
+            raise ValueError(fmt % (assoc_type,))
 
         self.handle = handle
         self.secret = secret
@@ -230,6 +230,7 @@ class Association(object):
         @return: The binary signature of this sequence of pairs
         @rtype: str
         """
+        assert self.assoc_type == 'HMAC-SHA1'
         kv = kvform.seqToKV(pairs)
         return cryptutil.hmacSha1(self.secret, kv)
 
