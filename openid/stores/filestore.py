@@ -251,7 +251,7 @@ class FileOpenIDStore(OpenIDStore):
 
         (str, str) -> str
         """
-        if '://' not in server_url:
+        if server_url.find('://') == -1:
             raise ValueError('Bad server URL: %r' % server_url)
 
         proto, rest = server_url.split('://', 1)
