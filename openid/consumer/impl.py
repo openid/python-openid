@@ -1,11 +1,13 @@
-import urlparse
-import urllib
 import string
 import time
+import urllib
+import urlparse
 
+from openid import cryptutil
+from openid import kvform
+from openid import oidutil
 from openid.association import Association
 from openid.consumer.parse import parseLinkAttrs
-from openid import oidutil, cryptutil
 from openid.dh import DiffieHellman
 
 from openid.consumer.interface import \
@@ -129,7 +131,7 @@ class OpenIDConsumerImpl(object):
         if ret is None:
             return FAILURE, consumer_id
 
-        results = oidutil.kvToDict(ret[1])
+        results = kvform.kvToDict(ret[1])
         is_valid = results.get('is_valid', 'false')
 
         if is_valid == 'true':
@@ -280,7 +282,7 @@ class OpenIDConsumerImpl(object):
             return None
 
         url, data = ret
-        results = oidutil.kvToDict(data)
+        results = kvform.kvToDict(data)
 
         try:
             assoc_type = results['assoc_type']

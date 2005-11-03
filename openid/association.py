@@ -1,6 +1,8 @@
 import time
-from openid import oidutil
+
 from openid import cryptutil
+from openid import kvform
+from openid import oidutil
 
 class Association(object):
     """
@@ -187,7 +189,7 @@ class Association(object):
         for field_name in self.assoc_keys:
             pairs.append((field_name, data[field_name]))
 
-        return oidutil.seqToKV(pairs, strict=True)
+        return kvform.seqToKV(pairs, strict=True)
 
     def deserialize(cls, assoc_s):
         """Parse an association as stored by serialize().
@@ -199,7 +201,7 @@ class Association(object):
 
         @return: instance of this class
         """
-        pairs = oidutil.kvToSeq(assoc_s, strict=True)
+        pairs = kvform.kvToSeq(assoc_s, strict=True)
         keys = []
         values = []
         for k, v in pairs:
@@ -228,7 +230,7 @@ class Association(object):
         @return: The binary signature of this sequence of pairs
         @rtype: str
         """
-        kv = oidutil.seqToKV(pairs)
+        kv = kvform.seqToKV(pairs)
         return cryptutil.hmacSha1(self.secret, kv)
 
     def signDict(self, fields, data, prefix='openid.'):
@@ -247,4 +249,4 @@ class Association(object):
         for field in fields:
             pairs.append((field, data[prefix + field]))
 
-        return oidUtil.toBase64(self.sign(pairs))
+        return oidutil.toBase64(self.sign(pairs))

@@ -1,8 +1,9 @@
+from openid import cryptutil
+from openid import kvform
+from openid import oidutil
+from openid.dh import DiffieHellman
 from openid.server import interface
 from openid.server.trustroot import TrustRoot
-from openid import oidutil
-from openid import cryptutil
-from openid.dh import DiffieHellman
 
 _signed_fields = ['mode', 'identity', 'return_to']
 
@@ -139,7 +140,7 @@ class OpenIDServerImpl(object):
         else:
             reply['mac_key'] = oidutil.toBase64(assoc.secret)
 
-        return interface.OK, oidutil.dictToKV(reply)
+        return interface.OK, kvform.dictToKV(reply)
 
     def _checkAuth(self, args):
         assoc = self.istore.lookup(args['openid.assoc_handle'], 'HMAC-SHA1')
@@ -172,7 +173,7 @@ class OpenIDServerImpl(object):
             is_valid = 'false'
 
         reply['is_valid'] = is_valid
-        return interface.OK, oidutil.dictToKV(reply)
+        return interface.OK, kvform.dictToKV(reply)
 
     def _getErr(self, args, msg):
         return_to = args.get('openid.return_to')
@@ -186,5 +187,5 @@ class OpenIDServerImpl(object):
             return interface.ERROR, msg
 
     def _postErr(self, msg):
-        return interface.ERROR, oidutil.dictToKV({'error': msg})
+        return interface.ERROR, kvform.dictToKV({'error': msg})
 

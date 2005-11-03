@@ -6,6 +6,7 @@ import storetest
 import trustroot
 import linkparse
 import oidutil
+import kvform
 
 cryptutil.test()
 storetest.test()
@@ -13,3 +14,4 @@ trustroot.test()
 linkparse.test()
 oidutil.test()
 association.test()
+kvform.test()
