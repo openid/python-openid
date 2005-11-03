@@ -56,7 +56,7 @@ class OpenIDConsumerImpl(object):
             'openid.mode': self.mode,
             }
 
-        assoc = self._getAssociation(auth_req.server_url, replace=1)
+        assoc = self.getAssociation(auth_req.server_url, replace=1)
         if assoc is not None:
             redir_args['openid.assoc_handle'] = assoc.handle
 
@@ -150,7 +150,7 @@ class OpenIDConsumerImpl(object):
 
         return FAILURE, consumer_id
 
-    def _getAssociation(self, server_url, replace=0):
+    def getAssociation(self, server_url, replace=0):
         if self.store.isDumb():
             return None
         
