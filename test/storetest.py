@@ -120,7 +120,7 @@ def testStore(store):
 
 def test_filestore():
     print 'Testing fs'
-    from openid.consumer import filestore
+    from openid.stores import filestore
     import tempfile
     import shutil
     try:
@@ -130,7 +130,7 @@ def test_filestore():
         temp_dir = os.tmpnam()
         os.mkdir(temp_dir)
 
-    store = filestore.FilesystemOpenIDStore(temp_dir)
+    store = filestore.FileOpenIDStore(temp_dir)
     try:
         testStore(store)
     except:
@@ -140,7 +140,7 @@ def test_filestore():
         shutil.rmtree(temp_dir)
 
 def test_sqlite():
-    from openid.consumer import sqlstore
+    from openid.stores import sqlstore
     try:
         from pysqlite2 import dbapi2 as sqlite
     except ImportError:
@@ -153,7 +153,7 @@ def test_sqlite():
         testStore(store)
 
 def test_mysql():
-    from openid.consumer import sqlstore
+    from openid.stores import sqlstore
     try:
         import MySQLdb
     except ImportError:
@@ -197,7 +197,7 @@ def test_mysql():
             conn.query('DROP DATABASE %s;' % db_name)
 
 def test_memcache():
-    from openid.consumer import memcachestore
+    from openid.stores import memcachestore
     try:
         import memcache
     except ImportError:

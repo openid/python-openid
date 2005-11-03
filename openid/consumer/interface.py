@@ -44,7 +44,7 @@ LIBRARY DESIGN
     At a high level, there are two important parts in the consumer
     library.  The first important part is this module, which contains
     the interface to actually use this library.  The second is the
-    C{L{openid.consumer.stores}} module, which describes the interface to
+    C{L{openid.stores}} module, which describes the interface to
     use if you need to create a custom method for storing the state
     this library needs to maintain between requests.
 
@@ -262,22 +262,22 @@ class OpenIDConsumer(object):
 
 
         @param store: This must be an object that implements the
-            interface in C{L{openid.consumer.stores.OpenIDStore}}.
+            interface in C{L{openid.stores.OpenIDStore}}.
             Several concrete implementations are provided, to cover
             most common use cases.  For stores backed by MySQL or
-            SQLite, see the C{L{openid.consumer.sqlstore.SQLStore}}
+            SQLite, see the C{L{openid.stores.sqlstore.SQLStore}}
             class and its sublcasses.  For a filesystem-backed store,
-            see the C{L{openid.consumer.filestore}} module.
+            see the C{L{openid.stores.filestore}} module.
 
             As a last resort, if it isn't possible for the server to
             store state at all, an instance of
-            C{L{openid.consumer.stores.DumbStore}} can be used.  This
+            C{L{openid.stores.dumbstore.DumbStore}} can be used.  This
             should be an absolute last resort, though, as it makes the
             consumer vulnerable to replay attacks over the lifespan of
             the tokens the library creates.  See C{L{impl}} for
             information on controlling the lifespan of those tokens.
 
-        @type store: C{L{openid.consumer.stores.OpenIDStore}}
+        @type store: C{L{openid.stores.OpenIDStore}}
 
 
         @param fetcher: This is an optional instance of

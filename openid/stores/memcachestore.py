@@ -1,7 +1,7 @@
 from binascii import hexlify
 from openid import cryptutil
 from openid.association import Association
-from openid.consumer.stores import OpenIDStore
+from openid.stores import OpenIDStore
 
 NONCE_CODE = 'N'
 ASSOCATION_CODE = 'A'

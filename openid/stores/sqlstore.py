@@ -2,7 +2,7 @@ import time
 
 from openid import cryptutil
 from openid.association import Association
-from openid.consumer.stores import OpenIDStore
+from openid.stores import OpenIDStore
 
 def inTxn(func):
     def wrapped(self, *args, **kwargs):

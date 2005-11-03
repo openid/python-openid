@@ -24,7 +24,7 @@ except ImportError:
         raise RuntimeError('Failed to get temp file after 5 attempts')
 
 from openid.association import Association
-from openid.consumer.stores import OpenIDStore
+from openid.stores import OpenIDStore
 from openid import cryptutil
 
 filename_allowed = string.letters + string.digits + '.-'
@@ -79,7 +79,7 @@ def ensureDir(dir_name):
         if why[0] != EEXIST or not os.path.isdir(dir_name):
             raise
 
-class FilesystemOpenIDStore(OpenIDStore):
+class FileOpenIDStore(OpenIDStore):
     """
     This is a filesystem-based store for OpenID associations and
     nonces.  This store should be safe for use in concurrent systems
@@ -98,7 +98,7 @@ class FilesystemOpenIDStore(OpenIDStore):
 
     def __init__(self, directory):
         """
-        Creates a new FilesystemOpenIDStore.  This initializes the
+        Initializes a new FileOpenIDStore.  This initializes the
         nonce and association directories, which are subdirectories of
         the directory passed in.
 

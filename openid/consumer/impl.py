@@ -4,7 +4,6 @@ import string
 import time
 
 from openid.association import Association
-from openid.consumer.stores import DumbStore
 from openid.consumer.parse import parseLinkAttrs
 from openid import oidutil, cryptutil
 from openid.dh import DiffieHellman

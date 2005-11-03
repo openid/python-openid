@@ -25,7 +25,7 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 # Python-OpenID.
 # sys.path.append('/path/to/openid/')
 
-from openid.consumer import filestore
+from openid.stores import filestore
 from openid.consumer import interface as openid
 from openid.oidutil import appendArgs
 
@@ -287,7 +287,7 @@ def main(host, port, data_path):
     # Instantiate OpenID consumer store and OpenID consumer.  If you
     # were connecting to a database, you would create the database
     # connection and instantiate an appropriate store here.
-    store = filestore.FilesystemOpenIDStore(data_path)
+    store = filestore.FileOpenIDStore(data_path)
     consumer = openid.OpenIDConsumer(store)
 
     addr = (host, port)
