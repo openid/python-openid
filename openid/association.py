@@ -154,7 +154,7 @@ class Association(object):
 
         @rtype: C{bool}
         """
-        return self.__dict__ == other.__dict__
+        return type(self) is type(other) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         """
@@ -167,7 +167,7 @@ class Association(object):
 
         @rtype: C{bool}
         """
-        return self.__dict__ != other.__dict__
+        return not (self == other)
 
     def serialize(self):
         """Convert an association to KV form.
