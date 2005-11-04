@@ -210,7 +210,7 @@ Redirecting to %s""" % (redirect_url, redirect_url)
         self.render(msg, 'error', openid_url, status=404)
 
     def render(self, message=None, css_class='alert', form_contents=None,
-               status=200, title="Python OpenID Simple Example"):
+               status=200, title="Python OpenID Consumer Example"):
         """Render a page."""
         self.send_response(status)
         self.pageHeader(title)
