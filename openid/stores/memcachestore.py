@@ -232,10 +232,13 @@ class MemCacheOpenIDStore(OpenIDStore):
             return 1
 
     def getAssociation(self, server_url, handle=None):
-        """Get the association for the given server URL.
+        """Get the association for the given server URL and handle.
 
         @param server_url: the server's url
         @type server_url: str
+
+        @param handle: optional handle for the association
+        @type handle: str
 
         @return: the association for this server or None
         @rtype: openid.association.Association or NoneType

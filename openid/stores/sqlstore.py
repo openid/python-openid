@@ -219,7 +219,7 @@ class SQLStore(OpenIDStore):
 
     def txn_getAssociation(self, server_url, handle=None):
         """Get the most recent association that has been set for this
-        server URL.
+        server URL and handle.
 
         str -> NoneType or Association
         """

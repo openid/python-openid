@@ -309,7 +309,8 @@ class FileOpenIDStore(OpenIDStore):
             raise
 
     def getAssociation(self, server_url, handle=None):
-        """Retrieve an association.
+        """Retrieve an association. If no handle is specified, return
+        the association with the latest expiration.
 
         (str, str or NoneType) -> Association or NoneType
         """
