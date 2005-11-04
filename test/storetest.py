@@ -275,8 +275,8 @@ def test_memcache():
 
 def test():
     test_filestore()
-    #test_sqlite()
-    #test_mysql()
+    test_sqlite()
+    test_mysql()
     #test_memcache()
 
 if __name__ == '__main__':

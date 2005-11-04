@@ -212,25 +212,41 @@ class SQLStore(OpenIDStore):
             a.handle,
             self.blobEncode(a.secret),
             a.issued,
-            a.lifetime)
+            a.lifetime,
+            a.assoc_type)
 
     storeAssociation = inTxn(txn_storeAssociation)
 
-    def txn_getAssociation(self, server_url):
+    def txn_getAssociation(self, server_url, handle=None):
         """Get the most recent association that has been set for this
         server URL.
 
         str -> NoneType or Association
         """
-        self.db_get_assoc(server_url)
+        if handle is not None:
+            self.db_get_assoc(server_url, handle)
+        else:
+            self.db_get_assocs(server_url)
+
         rows = self.cur.fetchall()
         if len(rows) == 0:
             return None
         else:
-            (values,) = rows
-            assoc = Association(*values[1:])
-            assoc.secret = self.blobDecode(assoc.secret)
-            return assoc
+            associations = []
+            for values in rows:
+                assoc = Association(*values)
+                assoc.secret = self.blobDecode(assoc.secret)
+                expires = assoc.getExpiresIn()
+                if expires == 0:
+                    self.txn_removeAssociation(server_url, assoc.handle)
+                else:
+                    associations.append((expires, assoc))
+
+            if associations:
+                associations.sort()
+                return associations[-1][1]
+            else:
+                return None
 
     getAssociation = inTxn(txn_getAssociation)
 
@@ -300,11 +316,12 @@ class SQLiteStore(SQLStore):
     create_assoc_sql = """
     CREATE TABLE %(associations)s
     (
-        server_url VARCHAR(2047) UNIQUE PRIMARY KEY,
+        server_url VARCHAR(2047),
         handle VARCHAR(255),
         secret BLOB(128),
         issued INTEGER,
-        lifetime INTEGER
+        lifetime INTEGER,
+        assoc_type VARCHAR(64)
     );
     """
 
@@ -320,8 +337,13 @@ class SQLiteStore(SQLStore):
     get_auth_sql = 'SELECT value FROM %(settings)s WHERE setting = "auth_key";'
 
     set_assoc_sql = ('INSERT OR REPLACE INTO %(associations)s '
-                     'VALUES (?, ?, ?, ?, ?);')
-    get_assoc_sql = 'SELECT * FROM %(associations)s WHERE server_url = ?;'
+                     'VALUES (?, ?, ?, ?, ?, ?);')
+    get_assocs_sql = ('SELECT handle, secret, issued, lifetime, assoc_type '
+                      'FROM %(associations)s WHERE server_url = ?;')
+    get_assoc_sql = (
+        'SELECT handle, secret, issued, lifetime, assoc_type '
+        'FROM %(associations)s WHERE server_url = ? AND handle = ?;')
+
     remove_assoc_sql = ('DELETE FROM %(associations)s '
                         'WHERE server_url = ? AND handle = ?;')
 
@@ -358,11 +380,12 @@ class MySQLStore(SQLStore):
     create_assoc_sql = """
     CREATE TABLE %(associations)s
     (
-        server_url VARCHAR(1024) UNIQUE PRIMARY KEY,
+        server_url VARCHAR(1024),
         handle VARCHAR(255),
         secret BLOB(128),
         issued INTEGER,
-        lifetime INTEGER
+        lifetime INTEGER,
+        assoc_type VARCHAR(64)
     )
     TYPE=InnoDB;
     """
@@ -380,8 +403,12 @@ class MySQLStore(SQLStore):
     get_auth_sql = 'SELECT value FROM %(settings)s WHERE setting = "auth_key";'
 
     set_assoc_sql = ('REPLACE INTO %(associations)s '
-                     'VALUES (%%s, %%s, %%s, %%s, %%s);')
-    get_assoc_sql = 'SELECT * FROM %(associations)s WHERE server_url = %%s;'
+                     'VALUES (%%s, %%s, %%s, %%s, %%s, %%s);')
+    get_assocs_sql = ('SELECT handle, secret, issued, lifetime, assoc_type'
+                      ' FROM %(associations)s WHERE server_url = %%s;')
+    get_assoc_sql = (
+        'SELECT handle, secret, issued, lifetime, assoc_type'
+        ' FROM %(associations)s WHERE server_url = %%s AND handle = %%s;')
     remove_assoc_sql = ('DELETE FROM %(associations)s '
                         'WHERE server_url = %%s AND handle = %%s;')
 
