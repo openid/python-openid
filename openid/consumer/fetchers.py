@@ -14,13 +14,13 @@ class OpenIDHTTPFetcher(object):
         This performs an HTTP get, following redirects along the way.
 
 
-        @return: This returns a pair on success.  The first value is
-            the final url that was fetched, after following any
-            redirects.  The second value is the data that was
-            retrieved from the site.  If the fetch didn't succeed,
-            return None.
+        @return: This returns a three-tuple on success.  The first value
+            is the http return code. The second value is the final url
+            that was fetched, after following any redirects.  The third
+            value is the data that was retrieved from the site.  If the
+            fetch didn't succeed, return None.
 
-        @rtype: C{None} or a pair of C{str} objects
+        @rtype: C{None} or (C{int}, C{str}, C{str})
 
 
         @raise Exception: There are also failure conditions where this
@@ -37,12 +37,13 @@ class OpenIDHTTPFetcher(object):
         redirects along the way.
 
 
-        @return: This returns a pair on success.  The first value is
-            the final url that was posted, after following any
-            redirects.  The second value is the data that the site
-            returned.  If the fetch didn't succeed, return None.
+        @return: This returns a three-tuple on success.  The first value
+            is the http return code. The second value is the final url
+            that was fetched, after following any redirects.  The third
+            value is the data that was retrieved from the site.  If the
+            fetch didn't succeed, return None.
 
-        @rtype: C{None} or a pair of C{str} objects
+        @rtype: C{None} or (C{int}, C{str}, C{str})
 
 
         @raise Exception: There are also failure conditions where this
@@ -73,7 +74,7 @@ class UrllibFetcher(OpenIDHTTPFetcher):
             data = f.read()
         finally:
             f.close()
-        return (f.geturl(), data)
+        return (f.code, f.geturl(), data)
 
     def get(self, url):
         try:
