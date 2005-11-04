@@ -31,7 +31,7 @@ class DumbStore(OpenIDStore):
         """
         self.auth_key = cryptutil.sha1(secret_phrase)
 
-    def storeAssociation(self, unused_association):
+    def storeAssociation(self, unused_server_url, unused_association):
         """
         This implementation does nothing.
         """

@@ -39,7 +39,7 @@ def testStore(store):
 
     def checkRetrieve(url, handle=None, expected=None):
         retrieved_assoc = store.getAssociation(url, handle)
-        if expected is None:
+        if expected is None or store.isDumb():
             assert retrieved_assoc is None
         else:
             assert retrieved_assoc == expected, (retrieved_assoc, expected)
@@ -48,6 +48,12 @@ def testStore(store):
                        'value instead of a new object')
             assert retrieved_assoc.handle == expected.handle
             assert retrieved_assoc.secret == expected.secret
+
+    def checkRemove(url, handle, expected):
+        present = store.removeAssociation(url, handle)
+        expectedPresent = (not store.isDumb()) and expected
+        assert ((not expectedPresent and not present) or
+                (expectedPresent and present))
 
     assoc = genAssoc()
 
@@ -66,20 +72,16 @@ def testStore(store):
     checkRetrieve(server_url, None, assoc)
 
     # Removing an association that does not exist returns not present
-    present = store.removeAssociation(server_url + 'x', assoc.handle)
-    assert not present
+    checkRemove(server_url, assoc.handle + 'x', False)
 
     # Removing an association that does not exist returns not present
-    present = store.removeAssociation(server_url, assoc.handle + 'x')
-    assert not present
+    checkRemove(server_url + 'x', assoc.handle, False)
 
     # Removing an association that is present returns present
-    present = store.removeAssociation(server_url, assoc.handle)
-    assert present
+    checkRemove(server_url, assoc.handle, True)
 
     # but not present on subsequent calls
-    present = store.removeAssociation(server_url, assoc.handle)
-    assert not present
+    checkRemove(server_url, assoc.handle, False)
 
     # Put assoc back in the store
     store.storeAssociation(server_url, assoc)
@@ -108,33 +110,24 @@ def testStore(store):
     checkRetrieve(server_url, assoc2.handle, assoc2)
     checkRetrieve(server_url, assoc3.handle, assoc3)
 
-    present = store.removeAssociation(server_url, assoc2.handle)
-    assert present
+    checkRemove(server_url, assoc2.handle, True)
 
     checkRetrieve(server_url, None, assoc)
     checkRetrieve(server_url, assoc.handle, assoc)
     checkRetrieve(server_url, assoc2.handle, None)
     checkRetrieve(server_url, assoc3.handle, assoc3)
 
-    present = store.removeAssociation(server_url, assoc2.handle)
-    assert not present
-
-    present = store.removeAssociation(server_url, assoc.handle)
-    assert present
+    checkRemove(server_url, assoc2.handle, False)
+    checkRemove(server_url, assoc.handle, True)
 
     checkRetrieve(server_url, None, assoc3)
     checkRetrieve(server_url, assoc.handle, None)
     checkRetrieve(server_url, assoc2.handle, None)
     checkRetrieve(server_url, assoc3.handle, assoc3)
 
-    present = store.removeAssociation(server_url, assoc2.handle)
-    assert not present
-
-    present = store.removeAssociation(server_url, assoc.handle)
-    assert not present
-
-    present = store.removeAssociation(server_url, assoc3.handle)
-    assert present
+    checkRemove(server_url, assoc2.handle, False)
+    checkRemove(server_url, assoc.handle, False)
+    checkRemove(server_url, assoc3.handle, True)
 
     checkRetrieve(server_url, None, None)
     checkRetrieve(server_url, assoc.handle, None)
@@ -143,28 +136,28 @@ def testStore(store):
 
     ### Nonce functions
 
+    def testUseNonce(nonce, expected):
+        actual = store.useNonce(nonce)
+        expected = store.isDumb() or expected
+        assert (actual and expected) or (not actual and not expected)
+
     # Random nonce (not in store)
     nonce1 = generateNonce()
 
     # A nonce is not present by default
-    present = store.useNonce(nonce1)
-    assert not present
+    testUseNonce(nonce1, False)
 
     # Storing once causes useNonce to return True the first, and only
     # the first, time it is called after the store.
     store.storeNonce(nonce1)
-    present = store.useNonce(nonce1)
-    assert present
-    present = store.useNonce(nonce1)
-    assert not present
+    testUseNonce(nonce1, True)
+    testUseNonce(nonce1, False)
 
     # Storing twice has the same effect as storing once.
     store.storeNonce(nonce1)
     store.storeNonce(nonce1)
-    present = store.useNonce(nonce1)
-    assert present
-    present = store.useNonce(nonce1)
-    assert not present
+    testUseNonce(nonce1, True)
+    testUseNonce(nonce1, False)
 
     ### Auth key functions
 
@@ -271,11 +264,18 @@ def test_memcache():
         store = memcachestore.MemCacheOpenIDStore(cache)
         testStore(store)
 
+def test_dumbstore():
+    print 'Testing dumbstore'
+    from openid.stores import dumbstore
+    store = dumbstore.DumbStore('bad secret; do not use')
+    testStore(store)
+
 def test():
     test_filestore()
     test_sqlite()
     test_mysql()
     test_memcache()
+    test_dumbstore()
 
 if __name__ == '__main__':
     test()
