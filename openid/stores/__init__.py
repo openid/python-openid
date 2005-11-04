@@ -1,8 +1,8 @@
 class OpenIDStore(object):
     """
-    This is the interface for the store objects the OpenID consumer
-    library uses.  It is a single class that provides all of the
-    persistence mechanisms that the OpenID consumer library needs.
+    This is the interface for the store objects the OpenID library
+    uses.  It is a single class that provides all of the persistence
+    mechanisms that the OpenID consumer and server library needs.
 
 
     @cvar AUTH_KEY_LEN: The length of the auth key that should be
@@ -11,28 +11,35 @@ class OpenIDStore(object):
 
     AUTH_KEY_LEN = 20
 
-    def storeAssociation(self, association):
+    def storeAssociation(self, server_url, association):
         """
-        This method puts a C{L{ConsumerAssociation}} object into
-        storage.
+        This method puts a C{L{Association}} object into storage,
+        retrievable by server URL and handle.
 
+        @param server_url: The URL of the identity server that this
+            association is with.
 
-        @param association: The C{L{ConsumerAssociation}} to store.
+        @type server_url: C{str}
 
-        @type association: C{L{ConsumerAssociation}}
+        @param association: The C{L{Association}} to store.
+
+        @type association: C{L{Association}}
         """
         raise NotImplementedError
     
 
-    def getAssociation(self, server_url):
+    def getAssociation(self, server_url, handle=None):
         """
-        This method returns a C{L{ConsumerAssociation}} object from storage
-        that matches the server_url.  It returns C{None} if no such
-        association is found or if the matching association is
-        expired.
+        This method returns a C{L{Association}} object from storage
+        that matches the server_url and handle. It returns C{None} if
+        no such association is found or if the matching association is
+        expired. If no handle is supplied, the store should return
+        the association with the latest expiration time for this
+        server URL, but may return any association.
 
         This method is allowed (and encouraged) to garbage collect
-        expired associations when found.
+        expired associations when found. This method should not return
+        expired associations, although it is not an error to do so.
 
 
         @param server_url: The URL of the identity server to get the
@@ -40,11 +47,16 @@ class OpenIDStore(object):
 
         @type server_url: C{str}
 
+        @param handle: This is the handle of the association to get.
+            If there isn't an association found that matches both the
+            given URL and handle, then None is returned.
 
-        @return: The C{L{ConsumerAssociation}} for the given identity
+        @type handle: C{str} or C{NoneType}
+
+        @return: The C{L{Association}} for the given identity
             server.
 
-        @rtype: C{L{ConsumerAssociation}} or C{None}
+        @rtype: C{L{Association}} or C{None}
         """
         raise NotImplementedError
 
