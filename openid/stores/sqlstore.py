@@ -283,13 +283,13 @@ class SQLStore(OpenIDStore):
             (nonce, timestamp) = row
             nonce_age = int(time.time()) - timestamp
             if nonce_age > self.max_nonce_age:
-                present = False
+                present = 0
             else:
-                present = True
+                present = 1
 
             self.db_remove_nonce(nonce)
         else:
-            present = False
+            present = 0
 
         return present
 

@@ -74,12 +74,12 @@ def removeIfPresent(filename):
     except OSError, why:
         if why[0] == ENOENT:
             # Someone beat us to it, but it's gone, so that's OK
-            return False
+            return 0
         else:
             raise
     else:
         # File was present
-        return True
+        return 1
 
 def ensureDir(dir_name):
     """Create dir_name as a directory if it does not exist. If it
@@ -381,7 +381,7 @@ class FileOpenIDStore(OpenIDStore):
         """
         assoc = self.getAssociation(server_url)
         if assoc is None or assoc.handle != handle:
-            return False
+            return 0
         else:
             filename = self.getAssociationFilename(server_url, handle)
             return removeIfPresent(filename)
@@ -407,7 +407,7 @@ class FileOpenIDStore(OpenIDStore):
         except OSError, why:
             if why[0] == ENOENT:
                 # File was not present, so nonce is no good
-                return False
+                return 0
             else:
                 raise
         else:
@@ -419,7 +419,7 @@ class FileOpenIDStore(OpenIDStore):
                 if why[0] == ENOENT:
                     # someone beat us to it, so we cannot use this
                     # nonce anymore.
-                    return False
+                    return 0
                 else:
                     raise
 
