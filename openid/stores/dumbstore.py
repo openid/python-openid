@@ -37,7 +37,7 @@ class DumbStore(OpenIDStore):
         """
         pass
 
-    def getAssociation(self, unused_server_url):
+    def getAssociation(self, unused_server_url, unused_handle):
         """
         This implementation always returns C{None}.
 
