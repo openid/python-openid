@@ -321,7 +321,8 @@ class SQLiteStore(SQLStore):
         secret BLOB(128),
         issued INTEGER,
         lifetime INTEGER,
-        assoc_type VARCHAR(64)
+        assoc_type VARCHAR(64),
+        PRIMARY KEY (server_url, handle)
     );
     """
 
@@ -380,12 +381,13 @@ class MySQLStore(SQLStore):
     create_assoc_sql = """
     CREATE TABLE %(associations)s
     (
-        server_url VARCHAR(1024),
+        server_url VARCHAR(768),
         handle VARCHAR(255),
         secret BLOB(128),
         issued INTEGER,
         lifetime INTEGER,
-        assoc_type VARCHAR(64)
+        assoc_type VARCHAR(64),
+        PRIMARY KEY (server_url, handle)
     )
     TYPE=InnoDB;
     """
