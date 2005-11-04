@@ -265,11 +265,14 @@ def test_memcache():
         import time
         import memcache
         cache = memcache.Client(['localhost:11211'], debug=1)
+        cache.set('marker', 'set')
+        assert cache.get('marker') == 'set'
         cache.flush_all()
-
         # let the flush_all take effect
-        time.sleep(1)
+        while cache.get('marker') is not None:
+            time.sleep(0.1)
 
+        time.sleep(1)
         store = memcachestore.MemCacheOpenIDStore(cache)
         testStore(store)
 
@@ -277,7 +280,7 @@ def test():
     test_filestore()
     test_sqlite()
     test_mysql()
-    #test_memcache()
+    test_memcache()
 
 if __name__ == '__main__':
     test()
