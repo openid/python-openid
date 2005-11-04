@@ -18,7 +18,7 @@ class OpenIDHTTPFetcher(object):
             is the http return code. The second value is the final url
             that was fetched, after following any redirects.  The third
             value is the data that was retrieved from the site.  If the
-            fetch didn't succeed, return None.
+            fetch didn't succeed, return C{None}.
 
         @rtype: C{None} or (C{int}, C{str}, C{str})
 
@@ -41,7 +41,7 @@ class OpenIDHTTPFetcher(object):
             is the http return code. The second value is the final url
             that was fetched, after following any redirects.  The third
             value is the data that was retrieved from the site.  If the
-            fetch didn't succeed, return None.
+            fetch didn't succeed, return C{None}.
 
         @rtype: C{None} or (C{int}, C{str}, C{str})
 
