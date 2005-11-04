@@ -131,7 +131,7 @@ class OpenIDConsumerImpl(object):
         if ret is None:
             return FAILURE, consumer_id
 
-        results = kvform.kvToDict(ret[1])
+        results = kvform.kvToDict(ret[2])
         is_valid = results.get('is_valid', 'false')
 
         if is_valid == 'true':
