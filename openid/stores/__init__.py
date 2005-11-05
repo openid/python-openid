@@ -2,7 +2,8 @@ class OpenIDStore(object):
     """
     This is the interface for the store objects the OpenID library
     uses.  It is a single class that provides all of the persistence
-    mechanisms that the OpenID consumer and server library needs.
+    mechanisms that the OpenID library needs, for both servers and
+    consumers.
 
 
     @cvar AUTH_KEY_LEN: The length of the auth key that should be
@@ -105,8 +106,9 @@ class OpenIDStore(object):
         and returns True.  Otherwise it returns False.
 
         This method is allowed and encouraged to treat nonces older
-        than some period (like 6 hours) as no longer existing, and
-        return False and remove them.
+        than some period (a very conservative window would be 6 hours,
+        for example) as no longer existing, and return False and
+        remove them.
 
 
         @param nonce: The nonce to use.

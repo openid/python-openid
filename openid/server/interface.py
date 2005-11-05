@@ -10,9 +10,9 @@ OK = 'ok'
 ERROR  = 'error'
 
 class OpenIDServer(object):
-    def __init__(self, server_url, internal_store, external_store):
+    def __init__(self, server_url, store):
         from openid.server.impl import OpenIDServerImpl
-        self.impl = OpenIDServerImpl(server_url, internal_store, external_store)
+        self.impl = OpenIDServerImpl(server_url, store)
 
     def getAuthData(self, args):
         """
@@ -20,7 +20,7 @@ class OpenIDServer(object):
         """
         return self.impl.getAuthData(args)
     
-    def processGet(self, authorized, args):
+    def getAuthenticationResponse(self, authorized, args):
         """
         authorized is a boolean, True if the user making this request
         can authorize the identity in question, and has chosen to do
@@ -34,7 +34,7 @@ class OpenIDServer(object):
         3. Do 'About' page - info is None
         4. Error - info is the error message.
         """
-        return self.impl.processGet(authorized, args)
+        return self.impl.getAuthenticationResponse(authorized, args)
 
     def processPost(self, args):
         """

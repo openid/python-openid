@@ -1,24 +1,31 @@
+import time
+
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
+from openid import cryptutil
 from openid.dh import DiffieHellman
 from openid.server import interface
 from openid.server.trustroot import TrustRoot
+from openid.association import Association
 
 _signed_fields = ['mode', 'identity', 'return_to']
 
 class OpenIDServerImpl(object):
-    def __init__(self, server_url, internal_store, external_store):
+    SECRET_LIFETIME = 14 * 24 * 60 * 60 # 14 days, in seconds
+
+    def __init__(self, server_url, store):
         self.url = server_url
-        self.istore = internal_store
-        self.estore = external_store
+        self.normal = server_url + '|normal'
+        self.dumb = server_url + '|dumb'
+        self.store = store
 
     def getAuthData(self, args):
         trust_root = args.get('openid.trust_root')
         identity = args.get('openid.identity')
         return identity, trust_root
 
-    def processGet(self, authorized, args):
+    def getAuthenticationResponse(self, authorized, args):
         identity = args.get('openid.identity')
         if identity is None:
             return self._getErr(args, 'No identity specified')
@@ -63,17 +70,20 @@ class OpenIDServerImpl(object):
             }
 
         if assoc_handle:
-            assoc = self.estore.lookup(assoc_handle, 'HMAC-SHA1')
+            assoc = self.store.getAssociation(self.normal, assoc_handle)
 
             # fall back to dumb mode if assoc_handle not found,
             # and send the consumer an invalidate_handle message
             if assoc is None or assoc.expiresIn <= 0:
                 if assoc is not None and assoc.expiresIn <= 0:
-                    self.estore.remove(assoc.handle)
-                assoc = self.istore.get('HMAC-SHA1')
+                    self.store.removeAssociation(self.normal, assoc.handle)
+                
+                assoc = self.createAssociation('HMAC-SHA1')
+                self.store.storeAssociation(self.dumb, assoc)
                 reply['openid.invalidate_handle'] = assoc_handle
         else:
-            assoc = self.istore.get('HMAC-SHA1')
+            assoc = self.createAssociation('HMAC-SHA1')
+            self.store.storeAssociation(self.dumb, assoc)
 
         reply.update({
             'openid.assoc_handle': assoc.handle,
@@ -102,19 +112,35 @@ class OpenIDServerImpl(object):
             return self._postErr(
                 'Necessary openid argument (%r) missing.' % e[0])
 
+    def createAssociation(self, assoc_type):
+        if assoc_type == 'HMAC-SHA1':
+            secret = cryptutil.getBytes(20)
+        else:
+            return None
+
+        uniq = oidutil.toBase64(cryptutil.getBytes(4))
+        handle = '{%s}{%x}{%s}' % (assoc_type, int(time.time()), uniq)
+
+        assoc = Association.fromExpiresIn(
+            self.SECRET_LIFETIME, handle, secret, assoc_type)
+
+        return assoc
+
     def _associate(self, args):
         reply = {}
         assoc_type = args.get('openid.assoc_type', 'HMAC-SHA1')
-        assoc = self.estore.get(assoc_type)
+        assoc = self.createAssociation(assoc_type)
 
         if assoc is None:
             return self._postErr(
                 'unable to create an association for type %r' % assoc_type)
+        else:
+            self.store.storeAssociation(self.normal, assoc)
 
         reply.update({
             'assoc_type': 'HMAC-SHA1',
             'assoc_handle': assoc.handle,
-            'expires_in': assoc.expiresIn,
+            'expires_in': str(assoc.expiresIn),
             })
 
         session_type = args.get('openid.session_type')
@@ -143,7 +169,8 @@ class OpenIDServerImpl(object):
         return interface.OK, kvform.dictToKV(reply)
 
     def _checkAuth(self, args):
-        assoc = self.istore.lookup(args['openid.assoc_handle'], 'HMAC-SHA1')
+        assoc = self.store.getAssociation(
+            self.dumb, args['openid.assoc_handle'])
 
         if assoc is None:
             return self._postErr(
@@ -158,18 +185,21 @@ class OpenIDServerImpl(object):
             v_sig = assoc.signDict(signed_fields, dat)
 
             if v_sig == args['openid.sig']:
-                self.estore.remove(args['openid.assoc_handle'])
+                self.store.removeAssociation(
+                    self.normal, args['openid.assoc_handle'])
                 is_valid = 'true'
 
                 invalidate_handle = args.get('openid.invalidate_handle')
                 if invalidate_handle:
-                    if not self.estore.lookup(invalidate_handle, 'HMAC-SHA1'):
+                    if not self.store.getAssociation(self.normal,
+                                                     invalidate_handle):
                         reply['invalidate_handle'] = invalidate_handle
             else:
                 is_valid = 'false'
 
         else:
-            self.istore.remove(args['openid.assoc_handle'])
+            self.store.removeAssociation(
+                self.dumb, args['openid.assoc_handle'])
             is_valid = 'false'
 
         reply['is_valid'] = is_valid
