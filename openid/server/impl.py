@@ -20,7 +20,7 @@ class OpenIDServerImpl(object):
         self.dumb = server_url + '|dumb'
         self.store = store
 
-    def getAuthData(self, args):
+    def getAuthenticationData(self, args):
         trust_root = args.get('openid.trust_root')
         identity = args.get('openid.identity')
         return identity, trust_root

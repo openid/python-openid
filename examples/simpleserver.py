@@ -133,7 +133,8 @@ class ServerHandler(BaseHTTPRequestHandler):
 
 
     def doOpenIDGet(self):
-        identity, trust_root = self.server.openid.getAuthData(self.query)
+        identity, trust_root = \
+                  self.server.openid.getAuthenticationData(self.query)
 
         # check all three important parts
         authorized = identity and \

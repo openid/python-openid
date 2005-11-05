@@ -14,11 +14,11 @@ class OpenIDServer(object):
         from openid.server.impl import OpenIDServerImpl
         self.impl = OpenIDServerImpl(server_url, store)
 
-    def getAuthData(self, args):
+    def getAuthenticationData(self, args):
         """
         returns identity, trust_root
         """
-        return self.impl.getAuthData(args)
+        return self.impl.getAuthenticationData(args)
     
     def getAuthenticationResponse(self, authorized, args):
         """
