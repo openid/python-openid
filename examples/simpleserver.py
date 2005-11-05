@@ -18,37 +18,7 @@ from openid import cryptutil
 from openid import oidutil
 from openid.association import Association
 from openid.server import interface
-from openid.server.stores import ServerAssociationStore
-
-class Store(ServerAssociationStore):
-    """
-    This is a simple, in-memory store.  Any server using it will be
-    generating transient secrets that will only be available to the
-    process that generated them.
-    """
-    def __init__(self):
-        self.count = 0
-        self.assocs = {}
-        self.lifespan = 60 * 60 * 2
-
-    def get(self, assoc_type):
-        assert assoc_type == 'HMAC-SHA1'
-        handle = '{%s}%d/%d' % (assoc_type, time.time(), self.count)
-        self.count += 1
-        secret = cryptutil.randomString(20)
-        assoc = Association.fromExpiresIn(
-            self.lifespan, handle, secret, assoc_type)
-        self.assocs[handle] = assoc
-        return assoc
-
-    def lookup(self, assoc_handle, assoc_type):
-        if not assoc_handle.startswith('{%s}' % assoc_type):
-            return None
-        return self.assocs.get(assoc_handle)
-
-    def remove(self, handle):
-        if handle in self.assocs:
-            del self.assocs[handle]
+from openid.stores.filestore import FileOpenIDStore
 
 class OpenIDHTTPServer(HTTPServer):
     """
@@ -170,7 +140,8 @@ class ServerHandler(BaseHTTPRequestHandler):
                      identity == self.server.base_url + self.user and \
                      (identity, trust_root) in self.server.approved
 
-        status, info = self.server.openid.processGet(authorized, self.query)
+        status, info = self.server.openid.getAuthenticationResponse(\
+            authorized, self.query)
 
         if status == interface.REDIRECT:
             self.redirect(info)
@@ -441,9 +412,8 @@ def main(host, port, data_path):
         server_url = 'http://%s/openidserver' % host
     else:
         server_url = 'http://%s:%s/openidserver' % (host, port)
-    istore = Store()
-    estore = Store()
-    server = interface.OpenIDServer(server_url, istore, estore)
+    store = FileOpenIDStore('sstore')
+    server = interface.OpenIDServer(server_url, store)
 
     addr = (host, port)
     server = OpenIDHTTPServer(server, addr, ServerHandler)
