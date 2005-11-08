@@ -270,12 +270,18 @@ def test_dumbstore():
     store = dumbstore.DumbStore('bad secret; do not use')
     testStore(store)
 
+def test_memstore():
+    print 'Testing _memstore'
+    import _memstore
+    testStore(_memstore.MemoryStore())
+
 def test():
     test_filestore()
     test_sqlite()
     test_mysql()
     test_memcache()
     test_dumbstore()
+    test_memstore()
 
 if __name__ == '__main__':
     test()
