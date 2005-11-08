@@ -269,7 +269,7 @@ class FileOpenIDStore(OpenIDStore):
     def storeAssociation(self, server_url, association):
         """Store an association in the association directory.
 
-        Association -> NoneType
+        (str, Association) -> NoneType
         """
         association_s = association.serialize()
         filename = self.getAssociationFilename(server_url, association.handle)
@@ -364,7 +364,6 @@ class FileOpenIDStore(OpenIDStore):
             try:
                 association = Association.deserialize(assoc_s)
             except ValueError:
-                print 'Failed to deserialize:', filename
                 removeIfPresent(filename)
                 return None
 
@@ -380,8 +379,8 @@ class FileOpenIDStore(OpenIDStore):
 
         (str, str) -> bool
         """
-        assoc = self.getAssociation(server_url)
-        if assoc is None or assoc.handle != handle:
+        assoc = self.getAssociation(server_url, handle)
+        if assoc is None:
             return 0
         else:
             filename = self.getAssociationFilename(server_url, handle)

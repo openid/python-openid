@@ -14,37 +14,53 @@ class OpenIDStore(object):
 
     def storeAssociation(self, server_url, association):
         """
-        This method puts a C{L{Association}} object into storage,
+        This method puts a C{L{Association
+        <openid.association.Association>}} object into storage,
         retrievable by server URL and handle.
 
         @param server_url: The URL of the identity server that this
-            association is with.
+            association is with.  Because of the way the server
+            portion of the library uses this interface, don't assume
+            there are any limitations on the character set of the
+            input string.  In particular, expect to see unescaped
+            non-url-safe characters in the server_url field.
 
         @type server_url: C{str}
 
-        @param association: The C{L{Association}} to store.
+        @param association: The C{L{Association
+            <openid.association.Association>}} to store.
 
-        @type association: C{L{Association}}
+        @type association: C{L{Association
+            <openid.association.Association>}}
         """
         raise NotImplementedError
     
 
     def getAssociation(self, server_url, handle=None):
         """
-        This method returns a C{L{Association}} object from storage
-        that matches the server_url and handle. It returns C{None} if
-        no such association is found or if the matching association is
-        expired. If no handle is supplied, the store should return
-        the association with the latest expiration time for this
-        server URL, but may return any association.
+        This method returns an C{L{Association
+        <openid.association.Association>}} object from storage that
+        matches the server_url and, if specified, handle. It returns
+        C{None} if no such association is found or if the matching
+        association is expired.
+
+        If no handle is specified, the store may return any
+        association which matches the server_url.  If multiple
+        associations are valid, the recommended return value for this
+        method is the one that will remain valid for the longest
+        duration.
 
         This method is allowed (and encouraged) to garbage collect
-        expired associations when found. This method should not return
-        expired associations, although it is not an error to do so.
+        expired associations when found. This method must not return
+        expired associations.
 
 
         @param server_url: The URL of the identity server to get the
-            association for.
+            association for.  Because of the way the server portion of
+            the library uses this interface, don't assume there are
+            any limitations on the character set of the input string.
+            In particular, expect to see unescaped non-url-safe
+            characters in the server_url field.
 
         @type server_url: C{str}
 
@@ -54,10 +70,12 @@ class OpenIDStore(object):
 
         @type handle: C{str} or C{NoneType}
 
-        @return: The C{L{Association}} for the given identity
+        @return: The C{L{Association
+            <openid.association.Association>}} for the given identity
             server.
 
-        @rtype: C{L{Association}} or C{None}
+        @rtype: C{L{Association <openid.association.Association>}} or
+            C{None}
         """
         raise NotImplementedError
 
@@ -68,7 +86,11 @@ class OpenIDStore(object):
 
 
         @param server_url: The URL of the identity server the
-            association to remove belongs to.
+            association to remove belongs to.  Because of the way the
+            server portion of the library uses this interface, don't
+            assume there are any limitations on the character set of
+            the input string.  In particular, expect to see unescaped
+            non-url-safe characters in the server_url field.
 
         @type server_url: C{str}
 
@@ -90,7 +112,8 @@ class OpenIDStore(object):
 
     def storeNonce(self, nonce):
         """
-        Stores a nonce.  This is used to prevent replay attacks.
+        Stores a nonce.  This is used by the consumer to prevent
+        replay attacks.
 
 
         @param nonce: The nonce to store.
@@ -132,7 +155,7 @@ class OpenIDStore(object):
         @return: The key.  It should be C{L{AUTH_KEY_LEN}} bytes in
             length, and use the full range of byte values.  That is,
             it should be treated as a lump of binary data stored in a
-            C{str}.
+            C{str} instance.
 
         @rtype: C{str}
         """

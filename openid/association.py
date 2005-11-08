@@ -12,8 +12,8 @@ class Association(object):
     a custom C{L{openid.stores.OpenIDStore}}.
 
     If you do implement such a store, it will need to store the values
-    of the C{handle}, C{secret}, C{issued}, and C{lifetime} instance
-    variables.
+    of the C{L{handle}}, C{L{secret}}, C{L{issued}}, C{L{lifetime}}, and
+    C{L{assoc_type}} instance variables.
 
     @ivar handle: This is the handle the server gave this association.
 
@@ -40,8 +40,15 @@ class Association(object):
     @type lifetime: C{int}
 
 
+    @ivar assoc_type: This is the type of association this instance
+        represents.  The only valid value of this field at this time
+        is C{'HMAC-SHA1'}, but new types may be defined in the future.
+
+    @type assoc_type: C{str}
+
+
     @sort: __init__, fromExpiresIn, getExpiresIn, __eq__, __ne__,
-        handle, secret, issued, lifetime
+        handle, secret, issued, lifetime, assoc_type
     """
 
     # The ordering and name of keys as stored by serialize
@@ -78,6 +85,14 @@ class Association(object):
             for this association.
 
         @type secret: C{str}
+
+
+        @param assoc_type: This is the type of association this
+            instance represents.  The only valid value of this field
+            at this time is C{'HMAC-SHA1'}, but new types may be
+            defined in the future.
+
+        @type assoc_type: C{str}
         """
         issued = int(time.time())
         lifetime = expires_in
@@ -114,6 +129,14 @@ class Association(object):
             issued.
 
         @type lifetime: C{int}
+
+
+        @param assoc_type: This is the type of association this
+            instance represents.  The only valid value of this field
+            at this time is C{'HMAC-SHA1'}, but new types may be
+            defined in the future.
+
+        @type assoc_type: C{str}
         """
         if assoc_type != 'HMAC-SHA1':
             fmt = 'HMAC-SHA1 is the only supported association type (got %r)'
@@ -170,9 +193,12 @@ class Association(object):
         return not (self == other)
 
     def serialize(self):
-        """Convert an association to KV form.
+        """
+        Convert an association to KV form.
 
-        @return: String in KV form suitable for deserialization by deserialize
+        @return: String in KV form suitable for deserialization by
+            deserialize.
+        
         @rtype: str
         """
         data = {
@@ -192,12 +218,16 @@ class Association(object):
         return kvform.seqToKV(pairs, strict=True)
 
     def deserialize(cls, assoc_s):
-        """Parse an association as stored by serialize().
+        """
+        Parse an association as stored by serialize().
 
         inverse of serialize
 
+
         @param assoc_s: Association as serialized by serialize()
+        
         @type assoc_s: str
+
 
         @return: instance of this class
         """
@@ -222,12 +252,17 @@ class Association(object):
     deserialize = classmethod(deserialize)
 
     def sign(self, pairs):
-        """Generate a signature for a sequence of (key, value) pairs
+        """
+        Generate a signature for a sequence of (key, value) pairs
+
 
         @param pairs: The pairs to sign, in order
+
         @type pairs: sequence of (str, str)
 
+
         @return: The binary signature of this sequence of pairs
+
         @rtype: str
         """
         assert self.assoc_type == 'HMAC-SHA1'
@@ -235,15 +270,22 @@ class Association(object):
         return cryptutil.hmacSha1(self.secret, kv)
 
     def signDict(self, fields, data, prefix='openid.'):
-        """Generate a signature for some fields in a dictionary
+        """
+        Generate a signature for some fields in a dictionary
+
 
         @param fields: The fields to sign, in order
+
         @type fields: sequence of str
 
+
         @param data: Dictionary of values to sign
+
         @type data: {str:str}
 
+
         @return: the signature, base64 encoded
+
         @rtype: str
         """
         pairs = []

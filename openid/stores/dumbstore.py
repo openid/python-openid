@@ -4,7 +4,7 @@ from openid.stores import OpenIDStore
 class DumbStore(OpenIDStore):
     """
     This is a store for use in the worst case, when you have no way of
-    saving state on the consumer server.  Using this store makes the
+    saving state on the consumer site.  Using this store makes the
     consumer vulnerable to replay attacks (though only within the
     lifespan of the tokens), as it's unable to use nonces.  Avoid
     using this store if it is at all possible.

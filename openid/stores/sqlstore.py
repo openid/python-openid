@@ -359,7 +359,8 @@ class SQLiteStore(SQLStore):
         return buffer(s)
 
 class MySQLStore(SQLStore):
-    """This is a MySQL-based specialization of SQLStore
+    """
+    This is a MySQL-based specialization of SQLStore
 
     Uses InnoDB tables for transaction support.
 
