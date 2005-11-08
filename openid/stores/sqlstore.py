@@ -53,9 +53,9 @@ class SQLStore(OpenIDStore):
     @sort: __init__, createTables
     """
 
-    settings_table = 'oidc_settings'
-    associations_table = 'oidc_associations'
-    nonces_table = 'oidc_nonces'
+    settings_table = 'oid_settings'
+    associations_table = 'oid_associations'
+    nonces_table = 'oid_nonces'
 
     def __init__(self, conn, settings_table=None, associations_table=None,
                  nonces_table=None):
