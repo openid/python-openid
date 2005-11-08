@@ -345,7 +345,7 @@ class FileOpenIDStore(OpenIDStore):
                 return assoc
             else:
                 return None
-                    
+
     def _getAssociation(self, filename):
         try:
             assoc_file = file(filename, 'rb')

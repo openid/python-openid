@@ -104,7 +104,7 @@ class Association(object):
         """
         This is the standard constructor for creating an association.
 
-        
+
         @param handle: This is the handle the server gave this
             association.
 
@@ -198,7 +198,7 @@ class Association(object):
 
         @return: String in KV form suitable for deserialization by
             deserialize.
-        
+
         @rtype: str
         """
         data = {
@@ -225,7 +225,7 @@ class Association(object):
 
 
         @param assoc_s: Association as serialized by serialize()
-        
+
         @type assoc_s: str
 
 
