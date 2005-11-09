@@ -136,7 +136,7 @@ class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
                     return None
 
                 code = c.getinfo(pycurl.RESPONSE_CODE)
-                if code in (301, 302):
+                if code in [301, 302, 303, 307]:
                     url = self._findRedirect(headers)
                 else:
                     return code, url, data.getvalue()
