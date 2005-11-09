@@ -82,13 +82,17 @@ user_page_pat = '''\
 server_url = 'http://server.example.com/'
 consumer_url = 'http://consumer.example.com/'
 
-def _test_success(user_url, delegate_url, links):
+def _test_success(user_url, delegate_url, links, immediate=False):
     store = _memstore.MemoryStore()
+    if immediate:
+        mode = 'checkid_immediate'
+    else:
+        mode = 'checkid_setup'
 
     user_page = user_page_pat % (links,)
     fetcher = TestFetcher(user_url, user_page, assocs[0])
 
-    consumer = interface.OpenIDConsumer(store, fetcher)
+    consumer = interface.OpenIDConsumer(store, fetcher, immediate)
     (status, info) = consumer.beginAuth(user_url)
     assert status == interface.SUCCESS, status
 
@@ -100,12 +104,12 @@ def _test_success(user_url, delegate_url, links):
     qs = parsed[4]
     q = parse(qs)
     assert q == {
-        'openid.mode':'checkid_setup',
+        'openid.mode':mode,
         'openid.identity':delegate_url,
         'openid.trust_root':trust_root,
         'openid.assoc_handle':fetcher.assoc_handle,
         'openid.return_to':return_to,
-        }, (q, user_url, delegate_url)
+        }, (q, user_url, delegate_url, mode)
 
     assert redirect_url.startswith(server_url)
 
@@ -126,15 +130,16 @@ def _test_success(user_url, delegate_url, links):
 def test_success():
     user_url = 'http://www.example.com/user.html'
     links = '<link rel="openid.server" href="%s" />' % (server_url,)
-    _test_success(user_url, user_url, links)
 
-def test_delegate():
-    user_url = 'http://www.example.com/user.html'
     delegate_url = 'http://consumer.example.com/user'
-    links = ('<link rel="openid.server" href="%s" />'
+    delegate_links = ('<link rel="openid.server" href="%s" />'
              '<link rel="openid.delegate" href="%s" />') % (
         server_url, delegate_url)
-    _test_success(user_url, delegate_url, links)
+
+    _test_success(user_url, user_url, links)
+    _test_success(user_url, user_url, links, True)
+    _test_success(user_url, delegate_url, delegate_links)
+    _test_success(user_url, delegate_url, delegate_links, True)
 
 def test_bad_fetch():
     store = _memstore.MemoryStore()
@@ -171,7 +176,6 @@ def test_bad_parse():
 
 def test():
     test_success()
-    test_delegate()
     test_bad_fetch()
     test_bad_parse()
 
