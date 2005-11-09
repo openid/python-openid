@@ -293,3 +293,9 @@ class Association(object):
             pairs.append((field, data[prefix + field]))
 
         return oidutil.toBase64(self.sign(pairs))
+
+    def addSignature(self, fields, data, prefix='openid.'):
+        sig = self.signDict(fields, data, prefix)
+        signed = ','.join(fields)
+        data[prefix + 'sig'] = sig
+        data[prefix + 'signed'] = signed
