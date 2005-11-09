@@ -79,16 +79,13 @@ user_page_pat = '''\
   </body>
 </html>
 '''
+server_url = 'http://server.example.com/'
+consumer_url = 'http://consumer.example.com/'
 
-def test_success():
+def _test_success(user_url, delegate_url, links):
     store = _memstore.MemoryStore()
 
-    user_url = 'http://www.example.com/user.html'
-    consumer_url = 'http://consumer.example.com/'
-    server_url = 'http://server.example.com/'
-    links = '<link rel="openid.server" href="%s" />' % (server_url,)
-    user_page = user_page_pat % links
-
+    user_page = user_page_pat % (links,)
     fetcher = TestFetcher(user_url, user_page, assocs[0])
 
     consumer = interface.OpenIDConsumer(store, fetcher)
@@ -104,18 +101,18 @@ def test_success():
     q = parse(qs)
     assert q == {
         'openid.mode':'checkid_setup',
-        'openid.identity':user_url,
+        'openid.identity':delegate_url,
         'openid.trust_root':trust_root,
         'openid.assoc_handle':fetcher.assoc_handle,
         'openid.return_to':return_to,
-        }, q
+        }, (q, user_url, delegate_url)
 
     assert redirect_url.startswith(server_url)
 
     query = {
         'openid.mode':'id_res',
         'openid.return_to':return_to,
-        'openid.identity':user_url,
+        'openid.identity':delegate_url,
         'openid.assoc_handle':fetcher.assoc_handle,
         }
 
@@ -125,6 +122,19 @@ def test_success():
     (status, info) = consumer.completeAuth(info.token, query)
     assert status == 'success'
     assert info == user_url
+
+def test_success():
+    user_url = 'http://www.example.com/user.html'
+    links = '<link rel="openid.server" href="%s" />' % (server_url,)
+    _test_success(user_url, user_url, links)
+
+def test_delegate():
+    user_url = 'http://www.example.com/user.html'
+    delegate_url = 'http://consumer.example.com/user'
+    links = ('<link rel="openid.server" href="%s" />'
+             '<link rel="openid.delegate" href="%s" />') % (
+        server_url, delegate_url)
+    _test_success(user_url, delegate_url, links)
 
 def test_bad_fetch():
     store = _memstore.MemoryStore()
@@ -145,15 +155,23 @@ def test_bad_fetch():
 def test_bad_parse():
     store = _memstore.MemoryStore()
     user_url = 'http://user.example.com/'
-    user_page = ''
-    fetcher = TestFetcher(user_url, user_page, (None, None))
-    consumer = interface.OpenIDConsumer(store, fetcher)
-    status, info = consumer.beginAuth(user_url)
-    assert status == interface.PARSE_ERROR
-    assert info is None
+    cases = [
+        '',
+        "http://not.in.a.link.tag/",
+        '<link rel="openid.server" href="not.in.html.or.head" />',
+        ]
+    for user_page in cases:
+        fetcher = TestFetcher(user_url, user_page, (None, None))
+        consumer = interface.OpenIDConsumer(store, fetcher)
+        status, info = consumer.beginAuth(user_url)
+        assert status == interface.PARSE_ERROR
+        assert info is None
+
+
 
 def test():
     test_success()
+    test_delegate()
     test_bad_fetch()
     test_bad_parse()
 
