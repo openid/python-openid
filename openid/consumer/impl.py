@@ -281,14 +281,27 @@ class OpenIDConsumerImpl(object):
 
         ret = self.fetcher.post(server_url, body)
         if ret is None:
+            fmt = 'Getting association: failed to fetch URL: %s'
+            oidutil.log(fmt % server_url)
             return None
 
         http_code, url, data = ret
         results = kvform.kvToDict(data)
+        if http_code == 400:
+            server_error = results.get('error', '<no message from server>')
+            fmt = 'Getting association: error returned from server %s: %s'
+            oidutil.log(fmt % (server_url, server_error))
+            return None
+        elif http_code != 200:
+            fmt = 'Getting association: bad status code from server %s: %s'
+            oidutil.log(fmt % (server_url, http_code))
+            return None
 
         try:
             assoc_type = results['assoc_type']
             if assoc_type != 'HMAC-SHA1':
+                fmt = 'Unsupported assoc_type returned from server %s: %s'
+                oidutil.log(fmt % (server_url, assoc_type))
                 return None
 
             assoc_handle = results['assoc_handle']
@@ -298,7 +311,9 @@ class OpenIDConsumerImpl(object):
             if session_type is None:
                 secret = oidutil.fromBase64(results['mac_key'])
             else:
+                fmt = 'Unsupported session_type returned from server %s: %s'
                 if session_type != 'DH-SHA1':
+                    oidutil.log(fmt % (server_url, session_type))
                     return None
 
                 spub = cryptutil.base64ToLong(results['dh_server_public'])
@@ -311,5 +326,7 @@ class OpenIDConsumerImpl(object):
 
             return assoc
 
-        except KeyError:
+        except KeyError, e:
+            fmt = 'Getting association: missing key in response from %s: %s'
+            oidutil.log(fmt % (server_url, e[0]))
             return None
