@@ -235,6 +235,8 @@ class OpenIDConsumerImpl(object):
             return HTTP_FAILURE, None
 
         http_code, consumer_id, data = ret
+        if http_code != 200:
+            return HTTP_FAILURE, http_code
 
         server = None
         delegate = None
