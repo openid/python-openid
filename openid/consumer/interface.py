@@ -351,9 +351,10 @@ class OpenIDConsumer(object):
 
             If there was a problem fetching the identity page the user
             gave, the status code is set to C{L{HTTP_FAILURE}}, and
-            the additional information value is currently set to
-            C{None}.  The additional information value may change in a
-            future release.
+            the additional information value is either set to C{None}
+            if the HTTP transaction failed or the HTTP return code,
+            which will be in the 400-500 range. This additional
+            information value may change in a future release.
 
             If the identity page fetched successfully, but didn't
             include the correct link tags, the status code is set to
