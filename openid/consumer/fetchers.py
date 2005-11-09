@@ -69,33 +69,27 @@ def getHTTPFetcher(lifetime=60):
 
 class UrllibFetcher(OpenIDHTTPFetcher):
     def _fetch(self, req):
-        f = urllib2.urlopen(req)
         try:
-            data = f.read()
-        finally:
-            f.close()
-        return (f.code, f.geturl(), data)
+            f = urllib2.urlopen(req)
+            try:
+                data = f.read()
+            finally:
+                f.close()
+        except urllib2.HTTPError, why:
+            try:
+                data = why.read()
+                return (why.code, why.geturl(), data)
+            finally:
+                why.close()
+        else:
+            return (f.code, f.geturl(), data)
 
     def get(self, url):
-        try:
-            return self._fetch(url)
-        except urllib2.HTTPError, why:
-            why.close()
-            return None
+        return self._fetch(url)
 
     def post(self, url, body):
         req = urllib2.Request(url, body)
-        try:
-            return self._fetch(req)
-        except urllib2.HTTPError, why:
-            try:
-                if why.code == 400:
-                    data = why.read()
-                    return (why.code, why.geturl(), data)
-                else:
-                    return None
-            finally:
-                why.close()
+        return self._fetch(req)
 
 class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
     """A paranoid HTTPClient that uses pycurl for fetching.
