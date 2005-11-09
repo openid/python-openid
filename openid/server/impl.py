@@ -85,17 +85,9 @@ class OpenIDServerImpl(object):
             assoc = self.createAssociation('HMAC-SHA1')
             self.store.storeAssociation(self.dumb, assoc)
 
-        reply.update({
-            'openid.assoc_handle': assoc.handle,
-            })
+        reply['openid.assoc_handle'] = assoc.handle
 
-        sig = assoc.signDict(_signed_fields, reply)
-        signed = ','.join(_signed_fields)
-
-        reply.update({
-            'openid.signed': signed,
-            'openid.sig': sig,
-            })
+        sig = assoc.addSignature(_signed_fields, reply)
 
         return interface.REDIRECT, oidutil.appendArgs(return_to, reply)
 
