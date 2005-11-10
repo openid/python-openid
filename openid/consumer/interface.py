@@ -44,9 +44,9 @@ LIBRARY DESIGN
     At a high level, there are two important parts in the consumer
     library.  The first important part is this module, which contains
     the interface to actually use this library.  The second is the
-    C{L{openid.stores}} module, which describes the interface to
-    use if you need to create a custom method for storing the state
-    this library needs to maintain between requests.
+    C{L{openid.stores.interface}} module, which describes the
+    interface to use if you need to create a custom method for storing
+    the state this library needs to maintain between requests.
 
     In general, the scond part is less important for users of the
     library to know about, as several implementations are provided
@@ -89,8 +89,8 @@ STORES AND DUMB MODE
     library's ability to stop replay attacks reliably.  It still uses
     time-based checking to make replay attacks only possible within a
     small window, but they remain possible within that window.  This
-    store should only be used if the consumer site has no way to store
-    data between requests at all.
+    store should only be used if the consumer site has no way to
+    retain data between requests at all.
 
 
 IMMEDIATE MODE
@@ -262,7 +262,7 @@ class OpenIDConsumer(object):
 
 
         @param store: This must be an object that implements the
-            interface in C{L{openid.stores.OpenIDStore}}.
+            interface in C{L{openid.stores.interface.OpenIDStore}}.
             Several concrete implementations are provided, to cover
             most common use cases.  For stores backed by MySQL or
             SQLite, see the C{L{openid.stores.sqlstore.SQLStore}}
@@ -277,7 +277,7 @@ class OpenIDConsumer(object):
             the tokens the library creates.  See C{L{impl}} for
             information on controlling the lifespan of those tokens.
 
-        @type store: C{L{openid.stores.OpenIDStore}}
+        @type store: C{L{openid.stores.interface.OpenIDStore}}
 
 
         @param fetcher: This is an optional instance of
