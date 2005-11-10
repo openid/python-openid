@@ -56,7 +56,7 @@ class OpenIDConsumerImpl(object):
             'openid.mode': self.mode,
             }
 
-        assoc = self.getAssociation(auth_req.server_url, replace=1)
+        assoc = self._getAssociation(auth_req.server_url, replace=1)
         if assoc is not None:
             redir_args['openid.assoc_handle'] = assoc.handle
 
@@ -150,7 +150,7 @@ class OpenIDConsumerImpl(object):
 
         return FAILURE, consumer_id
 
-    def getAssociation(self, server_url, replace=0):
+    def _getAssociation(self, server_url, replace=0):
         if self.store.isDumb():
             return None
         
@@ -158,7 +158,9 @@ class OpenIDConsumerImpl(object):
 
         if assoc is None or \
                (replace and assoc.expiresIn < self.TOKEN_LIFETIME):
-            assoc = self._associate(server_url)
+            dh = DiffieHellman()
+            body = self._createAssociateRequest(dh)
+            assoc = self._fetchAssociation(dh, server_url, body)
 
         return assoc
 
@@ -263,22 +265,25 @@ class OpenIDConsumerImpl(object):
 
         urls = (consumer_id, server_id, server)
         return SUCCESS, tuple(map(self._normalizeUrl, urls))
-
-    def _associate(self, server_url):
-        dh = DiffieHellman()
+    
+    def _createAssociateRequest(self, dh, args=None):
+        if args is None:
+            args = {}
+        
         cpub = cryptutil.longToBase64(dh.createKeyExchange())
 
-        args = {
+        args.update({
             'openid.mode': 'associate',
             'openid.assoc_type':'HMAC-SHA1',
             'openid.session_type':'DH-SHA1',
             'openid.dh_modulus': cryptutil.longToBase64(dh.p),
             'openid.dh_gen': cryptutil.longToBase64(dh.g),
             'openid.dh_consumer_public': cpub,
-            }
+            })
 
-        body = urllib.urlencode(args)
+        return urllib.urlencode(args)
 
+    def _fetchAssociation(self, dh, server_url, body):
         ret = self.fetcher.post(server_url, body)
         if ret is None:
             fmt = 'Getting association: failed to fetch URL: %s'
@@ -297,6 +302,7 @@ class OpenIDConsumerImpl(object):
             oidutil.log(fmt % (server_url, http_code))
             return None
 
+        results = kvform.kvToDict(data)
         try:
             assoc_type = results['assoc_type']
             if assoc_type != 'HMAC-SHA1':

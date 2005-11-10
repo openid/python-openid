@@ -21,11 +21,13 @@ class OpenIDServerImpl(object):
         self.store = store
 
     def getAuthenticationData(self, args):
+        print "getAuthenticationData"
         trust_root = args.get('openid.trust_root')
         identity = args.get('openid.identity')
         return identity, trust_root
 
     def getAuthenticationResponse(self, authorized, args):
+        print "getAuthenticationResponse"
         identity = args.get('openid.identity')
         if identity is None:
             return self._getErr(args, 'No identity specified')
@@ -92,6 +94,7 @@ class OpenIDServerImpl(object):
         return interface.REDIRECT, oidutil.appendArgs(return_to, reply)
 
     def processPost(self, args):
+        print "processPost"
         try:
             mode = args['openid.mode']
             if mode == 'associate':
@@ -105,6 +108,7 @@ class OpenIDServerImpl(object):
                 'Necessary openid argument (%r) missing.' % e[0])
 
     def createAssociation(self, assoc_type):
+        print "createAssociation"
         if assoc_type == 'HMAC-SHA1':
             secret = cryptutil.getBytes(20)
         else:
@@ -119,6 +123,7 @@ class OpenIDServerImpl(object):
         return assoc
 
     def _associate(self, args):
+        print "_associate"
         reply = {}
         assoc_type = args.get('openid.assoc_type', 'HMAC-SHA1')
         assoc = self.createAssociation(assoc_type)
@@ -161,6 +166,7 @@ class OpenIDServerImpl(object):
         return interface.OK, kvform.dictToKV(reply)
 
     def _checkAuth(self, args):
+        print "_checkAuth"
         assoc = self.store.getAssociation(
             self.dumb, args['openid.assoc_handle'])
 
@@ -198,6 +204,7 @@ class OpenIDServerImpl(object):
         return interface.OK, kvform.dictToKV(reply)
 
     def _getErr(self, args, msg):
+        print "_getErr"
         return_to = args.get('openid.return_to')
         if return_to:
             err = {
@@ -209,5 +216,6 @@ class OpenIDServerImpl(object):
             return interface.ERROR, msg
 
     def _postErr(self, msg):
+        print "_postErr"
         return interface.ERROR, kvform.dictToKV({'error': msg})
 
