@@ -45,7 +45,7 @@ class OpenIDConsumerImpl(object):
         consumer_id, server_id, server_url = info
         nonce = cryptutil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
 
-        token = self._genToken(nonce, consumer_id, server_url)
+        token = self._genToken(nonce, consumer_id, server_id, server_url)
         return SUCCESS, OpenIDAuthRequest(token, server_id, server_url, nonce)
 
     def constructRedirect(self, auth_req, return_to, trust_root):
@@ -82,13 +82,16 @@ class OpenIDConsumerImpl(object):
         if ret is None:
             return FAILURE, None
 
-        nonce, consumer_id, server_url = ret
+        nonce, consumer_id, server_id, server_url = ret
 
         return_to = query.get('openid.return_to')
-        server_id = query.get('openid.identity')
+        server_id2 = query.get('openid.identity')
         assoc_handle = query.get('openid.assoc_handle')
 
         if return_to is None or server_id is None or assoc_handle is None:
+            return FAILURE, consumer_id
+
+        if server_id != server_id2:
             return FAILURE, consumer_id
 
         user_setup_url = query.get('openid.user_setup_url')
@@ -164,9 +167,10 @@ class OpenIDConsumerImpl(object):
 
         return assoc
 
-    def _genToken(self, nonce, consumer_id, server_url):
+    def _genToken(self, nonce, consumer_id, server_id, server_url):
         timestamp = str(int(time.time()))
-        joined = '\x00'.join([timestamp, nonce, consumer_id, server_url])
+        elements = [timestamp, nonce, consumer_id, server_id, server_url]
+        joined = '\x00'.join(elements)
         sig = cryptutil.hmacSha1(self.store.getAuthKey(), joined)
 
         return oidutil.toBase64('%s%s' % (sig, joined))
@@ -181,7 +185,7 @@ class OpenIDConsumerImpl(object):
             return None
 
         split = joined.split('\x00')
-        if len(split) != 4:
+        if len(split) != 5:
             return None
 
         try:
