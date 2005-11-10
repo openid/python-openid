@@ -1,6 +1,6 @@
 from openid import cryptutil, oidutil
 from openid.association import Association
-from openid.stores import OpenIDStore
+from openid.stores.interface import OpenIDStore
 
 NONCE_CODE = 'N'
 ASSOC_CODE = 'A'
