@@ -100,7 +100,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
 
         # Then, ask the library to begin the authorization.
 	# Here we find out the identity server that will verify the
-	# user's identity, and get a token that allows us to  
+	# user's identity, and get a token that allows us to
 	# communicate securely with the identity server.
         status, info = consumer.beginAuth(openid_url)
 
@@ -126,7 +126,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             return_to = self.buildURL('process', token=info.token)
 
             # Now ask the library for the URL to redirect the user to
-            # his OpenID server. It is required for security that the 
+            # his OpenID server. It is required for security that the
             # return_to URL must be under the specified trust_root. We
             # just use the base_url for this server as a trust root.
             redirect_url = consumer.constructRedirect(
