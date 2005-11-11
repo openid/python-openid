@@ -99,6 +99,9 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         consumer = self.server.openid_consumer
 
         # Then, ask the library to begin the authorization.
+	# Here we find out the identity server that will verify the
+	# user's identity, and get a token that allows us to  
+	# communicate securely with the identity server.
         status, info = consumer.beginAuth(openid_url)
 
         # If the URL was unusable (either because of network
@@ -116,18 +119,14 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         elif status == openid.SUCCESS:
             # The URL was a valid identity URL. Now we construct a URL
             # that will get us to process the server response. We will
-            # need the token from the auth request when processing the
-            # response, so we have to save it somewhere. The obvious
-            # options are including it in the URL, storing it in a
-            # cookie, and storing it in a session object if one is
-            # available. For this example, we have no session and we
-            # do not want to deal with cookies, so just add it as a
-            # query parameter to the URL.
+            # need the token from the beginAuth call when processing
+            # the response. A cookie or a session object could be used
+	    # to accomplish this, but for simplicity here we just add
+	    # it as a query parameter of the return-to URL.
             return_to = self.buildURL('process', token=info.token)
 
             # Now ask the library for the URL to redirect the user to
-            # his OpenID server. The auth request is what the library
-            # returned before. We just constructed the return_to. The
+            # his OpenID server. It is required for security that the 
             # return_to URL must be under the specified trust_root. We
             # just use the base_url for this server as a trust root.
             redirect_url = consumer.constructRedirect(
