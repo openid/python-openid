@@ -107,7 +107,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         # If the URL was unusable (either because of network
         # conditions, a server error, or that the response returned
         # was not an OpenID identity page), the library will return
-        # None. Let the user know that that URL is unusable.
+        # an error code. Let the user know that that URL is unusable.
         if status in [openid.HTTP_FAILURE, openid.PARSE_ERROR]:
             if status == openid.HTTP_FAILURE:
                 fmt = 'Failed to retrieve <q>%s</q>'
