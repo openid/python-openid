@@ -181,7 +181,6 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # failure message. The library should supply debug
             # information in a log.
             message = 'Verification failed.'
-            css_class = 'error'
 
         self.render(message, css_class, openid_url)
 
