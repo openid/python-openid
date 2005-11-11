@@ -48,7 +48,7 @@ LIBRARY DESIGN
     interface to use if you need to create a custom method for storing
     the state this library needs to maintain between requests.
 
-    In general, the scond part is less important for users of the
+    In general, the second part is less important for users of the
     library to know about, as several implementations are provided
     which cover a wide variety of situations in which consumers may
     use the library.
