@@ -21,6 +21,45 @@ def getOpenIDParameters(query):
             params[k] = v
     return params
 
+
+def quoteMinimal(s):
+    # Do not escape anything that is already 7-bit safe, so we do the
+    # minimal transform on the identity URL
+    res = []
+    for c in s:
+        if c >= u'\x80':
+            for b in c.encode('utf8'):
+                res.append('%%%02X' % ord(b))
+        else:
+            res.append(c)
+    return str(''.join(res))
+
+def normalizeUrl(url):
+    assert isinstance(url, (str, unicode)), type(url)
+
+    url = url.strip()
+    parsed = urlparse.urlparse(url)
+
+    if parsed[0] == '' or parsed[1] == '':
+        url = 'http://' + url
+        parsed = urlparse.urlparse(url)
+
+    if isinstance(url, unicode):
+        authority = parsed[1].encode('idna')
+    else:
+        authority = str(parsed[1])
+
+    tail = map(quoteMinimal, parsed[2:])
+    if tail[0] == '':
+        tail[0] = '/'
+    encoded = (str(parsed[0]), authority) + tuple(tail)
+    url = urlparse.urlunparse(encoded)
+    assert type(url) is str
+
+    return url
+
+
+
 class OpenIDConsumerImpl(object):
     NONCE_LEN = 8
     NONCE_CHRS = string.letters + string.digits
@@ -198,44 +237,8 @@ class OpenIDConsumerImpl(object):
 
         return tuple(split[1:])
 
-    def _quoteMinimal(self, s):
-        # Do not escape anything that is already 7-bit safe, so we do the
-        # minimal transform on the identity URL
-        res = []
-        for c in s:
-            if c >= u'\x80':
-                for b in c.encode('utf8'):
-                    res.append('%%%02X' % ord(b))
-            else:
-                res.append(c)
-        return str(''.join(res))
-
-    def _normalizeUrl(self, url):
-        assert isinstance(url, (str, unicode)), type(url)
-
-        url = url.strip()
-        parsed = urlparse.urlparse(url)
-
-        if parsed[0] == '' or parsed[1] == '':
-            url = 'http://' + url
-            parsed = urlparse.urlparse(url)
-
-        if isinstance(url, unicode):
-            authority = parsed[1].encode('idna')
-        else:
-            authority = str(parsed[1])
-
-        tail = map(self._quoteMinimal, parsed[2:])
-        if tail[0] == '':
-            tail[0] = '/'
-        encoded = (str(parsed[0]), authority) + tuple(tail)
-        url = urlparse.urlunparse(encoded)
-        assert type(url) is str
-
-        return url
-
     def _findIdentityInfo(self, identity_url):
-        url = self._normalizeUrl(identity_url)
+        url = normalizeUrl(identity_url)
         ret = self.fetcher.get(url)
         if ret is None:
             return HTTP_FAILURE, None
@@ -268,7 +271,7 @@ class OpenIDConsumerImpl(object):
             server_id = consumer_id
 
         urls = (consumer_id, server_id, server)
-        return SUCCESS, tuple(map(self._normalizeUrl, urls))
+        return SUCCESS, tuple(map(normalizeUrl, urls))
     
     def _createAssociateRequest(self, dh, args=None):
         if args is None:
