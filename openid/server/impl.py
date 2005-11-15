@@ -18,6 +18,10 @@ class OpenIDServerImpl(object):
         self.url = server_url
         self.normal = server_url + '|normal'
         self.dumb = server_url + '|dumb'
+
+        if store.isDumb():
+            raise ValueError, 'The OpenIDServer cannot use a dumb store.'
+
         self.store = store
 
     def getAuthenticationData(self, args):
