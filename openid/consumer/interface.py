@@ -257,9 +257,6 @@ class OpenIDConsumer(object):
         This method initializes a new C{L{OpenIDConsumer}} instance to
         access the library.
 
-        The store passed in determines where the cross-request state
-        is stored.
-
 
         @param store: This must be an object that implements the
             interface in C{L{openid.stores.interface.OpenIDStore}}.
