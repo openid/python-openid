@@ -1,4 +1,4 @@
 include COPYING
 recursive-include examples README *.py
 recursive-include test runtests *.py
-recursive-include docs *.css *.html
+recursive-include doc *.css *.html
