@@ -123,7 +123,7 @@ def parseLinkAttrs(html):
     @param html: the text to parse
     @type html: str or unicode
 
-    @return: A list of lists of link tag attribute pairs
+    @return: A list of dictionaries of attributes, one for each link tag
     @rtype: [[(type(html), type(html))]]
     """
     stripped = removed_re.sub('', html)
