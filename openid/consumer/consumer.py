@@ -126,7 +126,7 @@ USING THIS LIBRARY
     a request to the your site which includes that OpenID URL.
 
     When your site receives that request, it should create an
-    C{L{openid.consumer.interface.OpenIDConsumer}} instance, and call
+    C{L{openid.consumer.consumer.OpenIDConsumer}} instance, and call
     C{L{beginAuth<OpenIDConsumer.beginAuth>}} on it.  If
     C{L{beginAuth<OpenIDConsumer.beginAuth>}} completes successfully,
     it will return an C{L{OpenIDAuthRequest}}.  Otherwise it will
@@ -193,27 +193,27 @@ USING THIS LIBRARY
 
 
 @var SUCCESS: This is the status code returned when either the of the
-    C{L{beginAuth<openid.consumer.interface.OpenIDConsumer.beginAuth>}}
+    C{L{beginAuth<openid.consumer.consumer.OpenIDConsumer.beginAuth>}}
     or
-    C{L{completeAuth<openid.consumer.interface.OpenIDConsumer.completeAuth>}}
+    C{L{completeAuth<openid.consumer.consumer.OpenIDConsumer.completeAuth>}}
     methods return successfully.
 
 @var HTTP_FAILURE: This is the status code
-    C{L{beginAuth<openid.consumer.interface.OpenIDConsumer.beginAuth>}}
+    C{L{beginAuth<openid.consumer.consumer.OpenIDConsumer.beginAuth>}}
     returns when it is unable to fetch the OpenID URL the user
     entered.
 
 @var PARSE_ERROR: This is the status code
-    C{L{beginAuth<openid.consumer.interface.OpenIDConsumer.beginAuth>}}
+    C{L{beginAuth<openid.consumer.consumer.OpenIDConsumer.beginAuth>}}
     returns when the page fetched from the entered OpenID URL doesn't
     contain the necessary link tags to function as an identity page.
 
 @var FAILURE: This is the status code
-    C{L{completeAuth<openid.consumer.interface.OpenIDConsumer.completeAuth>}}
+    C{L{completeAuth<openid.consumer.consumer.OpenIDConsumer.completeAuth>}}
     returns when the value it received indicated an invalid login.
 
 @var SETUP_NEEDED: This is the status code
-    C{L{completeAuth<openid.consumer.interface.OpenIDConsumer.completeAuth>}}
+    C{L{completeAuth<openid.consumer.consumer.OpenIDConsumer.completeAuth>}}
     returns when the C{L{OpenIDConsumer}} instance is in immediate
     mode, and the identity server sends back a URL to send the user to
     to complete his or her login.
@@ -259,7 +259,7 @@ class OpenIDConsumer(object):
 
 
         @param store: This must be an object that implements the
-            interface in C{L{openid.stores.interface.OpenIDStore}}.
+            interface in C{L{openid.store.interface.OpenIDStore}}.
             Several concrete implementations are provided, to cover
             most common use cases.  For stores backed by MySQL or
             SQLite, see the C{L{openid.stores.sqlstore.SQLStore}}
@@ -318,13 +318,13 @@ class OpenIDConsumer(object):
 
         Third, it generates a signed token for this authentication
         transaction, which contains a timestamp, a nonce, and the
-        information needed in L{step 4<openid.consumer.interface>} in
+        information needed in L{step 4<openid.consumer.consumer>} in
         the module overview.  The token is used by the library to make
         handling the various pieces of information needed in L{step
-        4<openid.consumer.interface>} easy and secure.
+        4<openid.consumer.consumer>} easy and secure.
 
         The token generated must be preserved until L{step
-        4<openid.consumer.interface>}, which is after the redirect to
+        4<openid.consumer.consumer>}, which is after the redirect to
         the OpenID server takes place.  This means that the token must
         be preserved across http requests.  There are three basic
         approaches that might be used for storing the token.  First,
@@ -384,7 +384,7 @@ class OpenIDConsumer(object):
         """
         This method is called to construct the redirect URL sent to
         the browser to ask the server to verify its identity.  This is
-        called in L{step 3<openid.consumer.interface>} of the flow
+        called in L{step 3<openid.consumer.consumer>} of the flow
         described in the overview.  The generated redirect should be
         sent to the browser which initiated the authorization request.
 
@@ -435,7 +435,7 @@ class OpenIDConsumer(object):
         """
         This method is called to interpret the server's response to an
         OpenID request.  It is called in L{step
-        4<openid.consumer.interface>} of the flow described in the
+        4<openid.consumer.consumer>} of the flow described in the
         overview.
 
         The return value is a pair, consisting of a status and

@@ -25,15 +25,15 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 # Python-OpenID.
 # sys.path.append('/path/to/openid/')
 
-from openid.stores import filestore
-from openid.consumer import interface as openid
+from openid.store import filestore
+from openid.consumer import consumer
 from openid.oidutil import appendArgs
 
 class OpenIDHTTPServer(HTTPServer):
     """http server that contains a reference to an OpenID consumer and
     knows its base URL.
     """
-    def __init__(self, consumer, *args, **kwargs):
+    def __init__(self, oidconsumer, *args, **kwargs):
         HTTPServer.__init__(self, *args, **kwargs)
 
         if self.server_port != 80:
@@ -42,7 +42,7 @@ class OpenIDHTTPServer(HTTPServer):
         else:
             self.base_url = 'http://%s/' % (self.server_name,)
 
-        self.openid_consumer = consumer
+        self.openid_consumer = oidconsumer
 
 class OpenIDRequestHandler(BaseHTTPRequestHandler):
     """Request handler that knows how to verify an OpenID identity."""
@@ -96,27 +96,27 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                         css_class='error', form_contents=openid_url)
             return
 
-        consumer = self.server.openid_consumer
+        oidconsumer = self.server.openid_consumer
 
         # Then, ask the library to begin the authorization.
 	# Here we find out the identity server that will verify the
 	# user's identity, and get a token that allows us to
 	# communicate securely with the identity server.
-        status, info = consumer.beginAuth(openid_url)
+        status, info = oidconsumer.beginAuth(openid_url)
 
         # If the URL was unusable (either because of network
         # conditions, a server error, or that the response returned
         # was not an OpenID identity page), the library will return
         # an error code. Let the user know that that URL is unusable.
-        if status in [openid.HTTP_FAILURE, openid.PARSE_ERROR]:
-            if status == openid.HTTP_FAILURE:
+        if status in [consumer.HTTP_FAILURE, consumer.PARSE_ERROR]:
+            if status == consumer.HTTP_FAILURE:
                 fmt = 'Failed to retrieve <q>%s</q>'
             else:
                 fmt = 'Could not find OpenID information in <q>%s</q>'
 
             message = fmt % (cgi.escape(openid_url),)
             self.render(message, css_class='error', form_contents=openid_url)
-        elif status == openid.SUCCESS:
+        elif status == consumer.SUCCESS:
             # The URL was a valid identity URL. Now we construct a URL
             # that will get us to process the server response. We will
             # need the token from the beginAuth call when processing
@@ -129,7 +129,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # his OpenID server. It is required for security that the
             # return_to URL must be under the specified trust_root. We
             # just use the base_url for this server as a trust root.
-            redirect_url = consumer.constructRedirect(
+            redirect_url = oidconsumer.constructRedirect(
                 info, return_to, trust_root=self.server.base_url)
 
             # Send the redirect response 
@@ -140,7 +140,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
     def doProcess(self):
         """Handle the redirect from the OpenID server.
         """
-        consumer = self.server.openid_consumer
+        oidconsumer = self.server.openid_consumer
 
         # retrieve the token from the environment (in this case, the URL)
         token = self.query.get('token', '')
@@ -149,18 +149,18 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         # us.  Status is a code indicating the response type. info is
         # either None or a string containing more information about
         # the return type.
-        status, info = consumer.completeAuth(token, self.query)
+        status, info = oidconsumer.completeAuth(token, self.query)
         
         css_class = 'error'
         openid_url = None
-        if status == openid.FAILURE and info:
+        if status == consumer.FAILURE and info:
             # In the case of failure, if info is non-None, it is the
             # URL that we were verifying. We include it in the error
             # message to help the user figure out what happened.
             openid_url = info
             fmt = "Verification of %s failed."
             message = fmt % (cgi.escape(openid_url),)
-        elif status == openid.SUCCESS:
+        elif status == consumer.SUCCESS:
             # Success means that the transaction completed without
             # error. If info is None, it means that the user cancelled
             # the verification.
@@ -286,10 +286,10 @@ def main(host, port, data_path):
     # were connecting to a database, you would create the database
     # connection and instantiate an appropriate store here.
     store = filestore.FileOpenIDStore(data_path)
-    consumer = openid.OpenIDConsumer(store)
+    oidconsumer = consumer.OpenIDConsumer(store)
 
     addr = (host, port)
-    server = OpenIDHTTPServer(consumer, addr, OpenIDRequestHandler)
+    server = OpenIDHTTPServer(oidconsumer, addr, OpenIDRequestHandler)
 
     print 'Server running at:'
     print server.base_url

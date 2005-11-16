@@ -3,7 +3,8 @@ import urllib
 import cgi
 
 from openid import cryptutil, dh, oidutil, kvform
-from openid.consumer import interface
+from openid.consumer.consumer import OpenIDConsumer, SUCCESS, \
+     HTTP_FAILURE, PARSE_ERROR
 
 import _memstore
 
@@ -92,9 +93,9 @@ def _test_success(user_url, delegate_url, links, immediate=False):
     user_page = user_page_pat % (links,)
     fetcher = TestFetcher(user_url, user_page, assocs[0])
 
-    consumer = interface.OpenIDConsumer(store, fetcher, immediate)
+    consumer = OpenIDConsumer(store, fetcher, immediate)
     (status, info) = consumer.beginAuth(user_url)
-    assert status == interface.SUCCESS, status
+    assert status == SUCCESS, status
 
     return_to = consumer_url
     trust_root = consumer_url
@@ -144,7 +145,7 @@ def test_success():
 def test_bad_fetch():
     store = _memstore.MemoryStore()
     fetcher = TestFetcher(None, None, (None, None))
-    consumer = interface.OpenIDConsumer(store, fetcher)
+    consumer = OpenIDConsumer(store, fetcher)
     cases = [
         (None, 'http://network.error/'),
         (404, 'http://not.found/'),
@@ -154,7 +155,7 @@ def test_bad_fetch():
     for error_code, url in cases:
         fetcher.get_responses[url] = (error_code, url, None)
         (status, info) = consumer.beginAuth(url)
-        assert status == interface.HTTP_FAILURE, status
+        assert status == HTTP_FAILURE, status
         assert info == error_code, (url, info)
 
 def test_bad_parse():
@@ -167,9 +168,9 @@ def test_bad_parse():
         ]
     for user_page in cases:
         fetcher = TestFetcher(user_url, user_page, (None, None))
-        consumer = interface.OpenIDConsumer(store, fetcher)
+        consumer = OpenIDConsumer(store, fetcher)
         status, info = consumer.beginAuth(user_url)
-        assert status == interface.PARSE_ERROR
+        assert status == PARSE_ERROR
         assert info is None
 
 

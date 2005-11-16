@@ -10,7 +10,7 @@ from openid.association import Association
 from openid.consumer.parse import parseLinkAttrs
 from openid.dh import DiffieHellman
 
-from openid.consumer.interface import \
+from openid.consumer.consumer import \
      SUCCESS, FAILURE, SETUP_NEEDED, PARSE_ERROR, HTTP_FAILURE, \
      OpenIDAuthRequest
 
