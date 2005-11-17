@@ -468,7 +468,7 @@ Content-type: text/html
     <table class="banner">
       <tr>
         <td class="leftbanner">
-          <h1><a href="/">Sample OpenID Server</a></h1>
+          <h1><a href="/">Python OpenID Server Example</a></h1>
         </td>
         <td class="rightbanner">
           You are %(user_link)s
