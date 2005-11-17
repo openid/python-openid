@@ -1,6 +1,6 @@
 """
-This module contains a store with no persistent backing, for consumer
-use only.
+This module contains an C{L{OpenIDStore}} implementation with no
+persistent backing, for use only by limited consumers.
 """
 
 from openid import cryptutil

@@ -1,5 +1,6 @@
 """
-This module contains the definition of the OpenIDStore interface.
+This module contains the definition of the C{L{OpenIDStore}}
+interface.
 """
 
 class OpenIDStore(object):

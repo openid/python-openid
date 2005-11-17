@@ -1,5 +1,5 @@
 """
-This module contains an OpenIDStore implementation backed by
+This module contains an C{L{OpenIDStore}} implementation backed by
 MemCached.
 """
 

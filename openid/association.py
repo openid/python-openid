@@ -1,3 +1,8 @@
+"""
+This module contains code for dealing with associations between
+consumers and servers.
+"""
+
 import time
 
 from openid import cryptutil

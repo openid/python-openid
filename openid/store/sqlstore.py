@@ -1,6 +1,6 @@
 """
-This module contains OpenIDStore implementations that use an SQL
-database to back them.
+This module contains C{L{OpenIDStore}} implementations that use
+various SQL databases to back them.
 """
 import time
 

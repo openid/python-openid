@@ -1,6 +1,6 @@
 """
-This module contains an OpenIDStore implementation backed by flat
-files.
+This module contains an C{L{OpenIDStore}} implementation backed by
+flat files.
 """
 
 import string
