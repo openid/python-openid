@@ -82,12 +82,21 @@ class OpenIDConsumerImpl(object):
             return status, info
 
         consumer_id, server_id, server_url = info
+        return self._gotIdentityInfo(consumer_id, server_id, server_url)
+
+    def _gotIdentityInfo(self, consumer_id, server_id, server_url):
         nonce = cryptutil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
 
         token = self._genToken(nonce, consumer_id, server_id, server_url)
         return SUCCESS, OpenIDAuthRequest(token, server_id, server_url, nonce)
 
     def constructRedirect(self, auth_req, return_to, trust_root):
+        assoc = self._getAssociation(auth_req.server_url, replace=1)
+        # Because _getAssociation is asynchronous if the association
+        # is not already in the store.
+        return self._constructRedirect(assoc, auth_req, return_to, trust_root)
+
+    def _constructRedirect(self, assoc, auth_req, return_to, trust_root):
         redir_args = {
             'openid.identity': auth_req.server_id,
             'openid.return_to': return_to,
@@ -95,7 +104,6 @@ class OpenIDConsumerImpl(object):
             'openid.mode': self.mode,
             }
 
-        assoc = self._getAssociation(auth_req.server_url, replace=1)
         if assoc is not None:
             redir_args['openid.assoc_handle'] = assoc.handle
 
@@ -247,6 +255,16 @@ class OpenIDConsumerImpl(object):
         if http_code != 200:
             return HTTP_FAILURE, http_code
 
+        # This method is split in two this way to allow for
+        # asynchronous implementations of _findIdentityInfo.
+        return self._parseIdentityInfo(data, consumer_id)
+
+    def _parseIdentityInfo(self, data, consumer_id):
+        """Extract the identity server address from the user's HTML.
+
+        @param data: The HTML fetched from the Identity URL.
+        @type data: string
+        """
         server = None
         delegate = None
         link_attrs = parseLinkAttrs(data)
@@ -310,6 +328,10 @@ class OpenIDConsumerImpl(object):
             return None
 
         results = kvform.kvToDict(data)
+
+        return self._parseAssociation(results, dh, server_url)
+
+    def _parseAssociation(self, results, dh, server_url):
         try:
             assoc_type = results['assoc_type']
             if assoc_type != 'HMAC-SHA1':
