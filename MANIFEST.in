@@ -1,4 +1,4 @@
-include COPYING
+include COPYING MANIFEST.in makedoc
 recursive-include examples README *.py
 recursive-include test runtests *.py
 recursive-include doc *.css *.html
