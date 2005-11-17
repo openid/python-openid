@@ -171,7 +171,7 @@ def testStore(store):
 
 def test_filestore():
     print 'Testing fs'
-    from openid.stores import filestore
+    from openid.store import filestore
     import tempfile
     import shutil
     try:
@@ -191,7 +191,7 @@ def test_filestore():
         shutil.rmtree(temp_dir)
 
 def test_sqlite():
-    from openid.stores import sqlstore
+    from openid.store import sqlstore
     try:
         from pysqlite2 import dbapi2 as sqlite
     except ImportError:
@@ -204,7 +204,7 @@ def test_sqlite():
         testStore(store)
 
 def test_mysql():
-    from openid.stores import sqlstore
+    from openid.store import sqlstore
     try:
         import MySQLdb
     except ImportError:
@@ -248,7 +248,7 @@ def test_mysql():
             conn.query('DROP DATABASE %s;' % db_name)
 
 def test_memcache():
-    from openid.stores import memcachestore
+    from openid.store import memcachestore
     try:
         import memcache
     except ImportError:
@@ -266,7 +266,7 @@ def test_memcache():
 
 def test_dumbstore():
     print 'Testing dumbstore'
-    from openid.stores import dumbstore
+    from openid.store import dumbstore
     store = dumbstore.DumbStore('bad secret; do not use')
     testStore(store)
 

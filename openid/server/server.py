@@ -1,7 +1,7 @@
 """
 This module documents the interface to the OpenID server library.  The
 only part of the library which has to be used and isn't documented
-here is the store for associations.  See the C{L{openid.stores}}
+here is the store for associations.  See the C{L{openid.store}}
 package for more information on stores.
 
 
@@ -34,7 +34,7 @@ LIBRARY DESIGN
 
     At a high level, there are two parts of the library which are
     important.  First, there is the C{L{OpenIDServer}} class in this
-    module.  Second, there is the C{L{openid.stores}} package, which
+    module.  Second, there is the C{L{openid.store}} package, which
     contains information on the necessary persistent state mechanisms,
     and several implementations.
 
@@ -44,14 +44,14 @@ STORES
     The OpenID server needs to maintain state between requests in
     order to function.  Its mechanism for doing this is called a
     store.  The store interface is defined in
-    C{L{openid.stores.interface.OpenIDStore}}.  Additionally, several
+    C{L{openid.store.interface.OpenIDStore}}.  Additionally, several
     concrete store implementations are provided, so that most sites
     won't need to implement a custom store.  For a store backed by
     flat files on disk, see
-    C{L{openid.stores.filestore.FileOpenIDStore}}.  For stores based
-    on MySQL or SQLite, see the C{L{openid.stores.sqlstore}} module.
+    C{L{openid.store.filestore.FileOpenIDStore}}.  For stores based
+    on MySQL or SQLite, see the C{L{openid.store.sqlstore}} module.
     For a store using Danga's memcached caching system, see the
-    C{L{openid.stores.memcachestore}} module.
+    C{L{openid.store.memcachestore}} module.
 
 
 USING THIS LIBRARY
@@ -216,16 +216,16 @@ class OpenIDServer(object):
 
 
         @param store: This is the instance of an object implementing
-            C{L{openid.stores.interface.OpenIDStore}} interface which
+            C{L{openid.store.interface.OpenIDStore}} interface which
             the library will use for persistent storage.  See the
-            C{L{OpenIDStore<openid.stores.interface.OpenIDStore>}
+            C{L{OpenIDStore<openid.store.interface.OpenIDStore>}}
             documentation for more information on stores and various
             implementations.  Note that the store used for the server
             must not be a dumb-style store.  It's not possible to be a
             functional OpenID server without persistent storage.
 
         @type store: An object implementing the
-            C{L{openid.stores.interface.OpenIDStore}} interface
+            C{L{openid.store.interface.OpenIDStore}} interface
         """
         from openid.server.impl import OpenIDServerImpl
         self.impl = OpenIDServerImpl(server_url, store)

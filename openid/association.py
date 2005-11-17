@@ -9,7 +9,7 @@ class Association(object):
     This class represents an association between a server and a
     consumer.  In general, users of this library will never see
     instances of this object.  The only exception is if you implement
-    a custom C{L{openid.stores.OpenIDStore}}.
+    a custom C{L{openid.store.interface.OpenIDStore}}.
 
     If you do implement such a store, it will need to store the values
     of the C{L{handle}}, C{L{secret}}, C{L{issued}}, C{L{lifetime}}, and
@@ -64,8 +64,9 @@ class Association(object):
     def fromExpiresIn(cls, expires_in, handle, secret, assoc_type):
         """
         This is an alternate constructor used by the OpenID consumer
-        library to create associations.  C{L{OpenIDStore}}
-        implementations shouldn't use this constructor.
+        library to create associations.  C{L{OpenIDStore
+        <openid.store.interface.OpenIDStore>}} implementations
+        shouldn't use this constructor.
 
 
         @param expires_in: This is the amount of time this association

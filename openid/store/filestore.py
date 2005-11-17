@@ -24,7 +24,7 @@ except ImportError:
         raise RuntimeError('Failed to get temp file after 5 attempts')
 
 from openid.association import Association
-from openid.stores.interface import OpenIDStore
+from openid.store.interface import OpenIDStore
 from openid import cryptutil, oidutil
 
 filename_allowed = string.letters + string.digits + '.'

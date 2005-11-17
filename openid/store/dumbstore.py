@@ -1,5 +1,5 @@
 from openid import cryptutil
-from openid.stores.interface import OpenIDStore
+from openid.store.interface import OpenIDStore
 
 class DumbStore(OpenIDStore):
     """
