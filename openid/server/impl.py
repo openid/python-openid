@@ -3,7 +3,6 @@ import time
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
-from openid import cryptutil
 from openid.dh import DiffieHellman
 from openid.server import server
 from openid.server.trustroot import TrustRoot
