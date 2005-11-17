@@ -3,63 +3,56 @@ the openid libraries.  They are both written using python's standard
 BaseHTTPServer.
 
 
-To go through the example login:
+To run the example system:
 
-1) Start the consumer server (from within the examples dir):
+1. Make sure you've installed the library, as explained in the
+   installation instructions.
 
-	python httpconsumer.py
+2. Start the consumer server:
 
-
-2) In a different terminal, start the server:
-
-	python sampleserver.py
+        python consumer.py --port 8001
 
 
-3) Open your web browser, and go to the consumer server:
+3. In another terminal, start the identity server:
 
-	http://localhost:8081/
+        python server.py --port 8000
 
-   Note that all pages the consumer shows will have a yellow
-   background.
-
-
-4) Enter an identity url managed by the sample identity server:
-
-        http://localhost:8082/bob
+   (Hit Ctrl-C in either server's window to stop that server.)
 
 
-5) The browser will redirect you to the sample server, which will want
-   you to log in.  Enter the username for the identity url into login
-   box:
- 
+4. Open your web broswer, and go to the consumer server:
+
+        http://localhost:8001/
+
+   Note that all pages the consumer server shows will have "Python OpenID
+   Consumer Example" across the top.
+
+
+5. Enter an identity url managed by the sample identity server:
+
+        http://localhost:8000/bob
+
+
+6. The browser will be redirected to the sample server, which will be
+   requesting that you log in to proceed.  Enter the username for the
+   identity URL into the login box:
+
         bob
 
-   Note that all pages the id server shows will have a blue/purple
-   background
+   Note that all pages the identity server shows will have "Python
+   OpenID Server Example" across the top.
 
 
-6) After you log in as bob, the sample server will ask you if you want
-   to allow http://localhost:8081/ to know your identity.  Say yes.
+7. After you log in as bob, the server example will ask you if you
+   want to allow http://localhost:8001/ to know your identity.  Say
+   yes.
 
 
-7) You should end up back on the consumer site (yellow background) at
-   a page indicating how long it thinks you should stay logged in at
-   the consumer's site.
+8. You should end up back on the consumer site, at a page indicating
+   you've logged in successfully.
 
 
-You can then click on the "home" link and try different logins, to get
-ideas of the flow through the sample system in different cases.  The id
-server stores your current identity in your browser with a cookie, and
-it stores what trust roots each user has authorized in a small table
-in memory.  The main id server page (http://localhost:8082/) has links
-to let you see and change who you are logged in as.  To reset the list
-of authorized trust_roots, restart the sample server.
-
-------
-In addition to the above examples, simple.cgi is a consumer-only example that
-simply verifies an identity.  It is a cgi application and will run under any
-cgi enabled web server.  Just copy simple.cgi to your cgi-bin, make sure the
-Python-OpenID package is in your PythonPath, change the file's permissions's
-to execubtable, and thats it.  Load simple.cgi in your browser to test
-a simple consumer in dumb mode.  The source code for simple.cgi is well
-documented and a great intro to using the Python-OpenID library.
+That's a basic OpenID login procedure.  You can continue through it,
+playing with variations to see how they work.  The python code is
+intended to be a straightforward example of how to use the python
+OpenID library to function as either an identity server or consumer.
