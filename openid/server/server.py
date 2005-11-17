@@ -84,7 +84,7 @@ USING THIS LIBRARY
 
     When a POST request comes in, get an C{L{OpenIDServer}} instance
     with an appropriate store, and call its
-    C{L{processPost<OpenIDServer.processPost}} method with the parsed
+    C{L{processPost<OpenIDServer.processPost>}} method with the parsed
     POST parameters.  The return value is a pair, consisting of a
     status value and a response body.  If the status value is
     C{L{openid.server.server.OK}}, send the body back with an HTTP
@@ -101,10 +101,10 @@ USING THIS LIBRARY
            store.
 
         2. Call its
-           C{L{getAuthenticationData<OpenIDServer.getAuthentication>}}
+           C{L{getAuthenticationData<OpenIDServer.getAuthenticationData>}}
            method with the arguments provided for this GET request.
-           The return value is a pair (identity URL, trust root) that this
-           request is asking to authorize.
+           The return value is a pair (identity URL, trust root) that
+           this request is asking to authorize.
 
         3. Determine if the user making this request is authorized to
            identify himself or herself as the owner of the identity
@@ -268,38 +268,41 @@ class OpenIDServer(object):
         to this request.  The second value is additional information
         to use when taking that action.
 
-        1. Sending a redirect to the user's browser: The second value
-           is the URL to redirect the the browser to.
+            1. Sending a redirect to the user's browser: The second
+               value is the URL to redirect the the browser to.
 
-        2. Asking the user for additional information to complete the
-           authentication procedure: The second value is another pair.
-           The pair contains two URLs.  The first is a URL to retry
-           this authentication request.  The second is a URL to
-           redirect the browser to if the user decides to cancel.
+            2. Asking the user for additional information to complete
+               the authentication procedure: The second value is
+               another pair.  The pair contains two URLs.  The first
+               is a URL to retry this authentication request.  The
+               second is a URL to redirect the browser to if the user
+               decides to cancel.
 
-           The general plan this supports is to present the user a
-           page asking for additional information, and present the
-           user with 'ok' and 'cancel' buttons.  When the user hits
-           the 'ok' button, process the additional information they
-           gave, and then redirect them to the retry URL.  If they hit
-           the 'cancel' button, send them to the cancel URL.  This is
-           a convenient pattern for dealing with OpenID requests that
-           need additional information for the user.
+               The general plan this supports is to present the user a
+               page asking for additional information, and present the
+               user with 'ok' and 'cancel' buttons.  When the user
+               hits the 'ok' button, process the additional
+               information they gave, and then redirect them to the
+               retry URL.  If they hit the 'cancel' button, send them
+               to the cancel URL.  This is a convenient pattern for
+               dealing with OpenID requests that need additional
+               information for the user.
 
-        3. Showing a page with a short description of OpenID: This is
-           for the case when the user visits the OpenID server URL
-           directly, without making an OpenID request.  In these
-           cases, the best behavior is to show a page with a short
-           description of OpenID, as the user typically found an
-           OpenID server URL in a web page and is curious what it is
-           for.  When this is the case, the second value of the return
-           pair is C{None}.
+            3. Showing a page with a short description of OpenID: This
+               is for the case when the user visits the OpenID server
+               URL directly, without making an OpenID request.  In
+               these cases, the best behavior is to show a page with a
+               short description of OpenID, as the user typically
+               found an OpenID server URL in a web page and is curious
+               what it is for.  When this is the case, the second
+               value of the return pair is C{None}.
 
-        4. Showing an error page: If the request contained an error
-           that couldn't be recovered from, the second value will be
-           an error message which may help the user determine what
-           went wrong.  Showing them an error page including the error
-           message is probably the best approach.
+            4. Showing an error page: If the request contained an
+               error that couldn't be recovered from, the second value
+               will be an error message which may help the user
+               determine what went wrong.  Showing them an error page
+               including the error message is probably the best
+               approach.
 
         The exact value of the first parameter to select each of those
         options is covered in the return value documentation.

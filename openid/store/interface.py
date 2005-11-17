@@ -1,3 +1,7 @@
+"""
+This module contains the definition of the OpenIDStore interface.
+"""
+
 class OpenIDStore(object):
     """
     This is the interface for the store objects the OpenID library
@@ -8,6 +12,9 @@ class OpenIDStore(object):
 
     @cvar AUTH_KEY_LEN: The length of the auth key that should be
         returned by the C{L{getAuthKey}} method.
+
+    @sort: storeAssociation, getAssociation, removeAssociation,
+        storeNonce, useNonce, getAuthKey, isDumb
     """
 
     AUTH_KEY_LEN = 20
@@ -18,6 +25,7 @@ class OpenIDStore(object):
         <openid.association.Association>}} object into storage,
         retrievable by server URL and handle.
 
+
         @param server_url: The URL of the identity server that this
             association is with.  Because of the way the server
             portion of the library uses this interface, don't assume
@@ -27,11 +35,17 @@ class OpenIDStore(object):
 
         @type server_url: C{str}
 
+
         @param association: The C{L{Association
             <openid.association.Association>}} to store.
 
         @type association: C{L{Association
             <openid.association.Association>}}
+
+
+        @return: C{None}
+
+        @rtype: C{NoneType}
         """
         raise NotImplementedError
     
@@ -40,12 +54,12 @@ class OpenIDStore(object):
         """
         This method returns an C{L{Association
         <openid.association.Association>}} object from storage that
-        matches the server_url and, if specified, handle. It returns
+        matches the server URL and, if specified, handle. It returns
         C{None} if no such association is found or if the matching
         association is expired.
 
         If no handle is specified, the store may return any
-        association which matches the server_url.  If multiple
+        association which matches the server URL.  If multiple
         associations are valid, the recommended return value for this
         method is the one that will remain valid for the longest
         duration.
@@ -64,18 +78,21 @@ class OpenIDStore(object):
 
         @type server_url: C{str}
 
-        @param handle: This is the handle of the association to get.
-            If there isn't an association found that matches both the
-            given URL and handle, then None is returned.
+
+        @param handle: This optional parameter is the handle of the
+            specific association to get.  If no specific handle is
+            provided, any valid association matching the server URL is
+            returned.
 
         @type handle: C{str} or C{NoneType}
+
 
         @return: The C{L{Association
             <openid.association.Association>}} for the given identity
             server.
 
         @rtype: C{L{Association <openid.association.Association>}} or
-            C{None}
+            C{NoneType}
         """
         raise NotImplementedError
 
@@ -105,7 +122,7 @@ class OpenIDStore(object):
 
         @return: Returns whether or not the given association existed.
 
-        @rtype: C{bool}
+        @rtype: C{bool} or C{int}
         """
         raise NotImplementedError
 
@@ -119,6 +136,11 @@ class OpenIDStore(object):
         @param nonce: The nonce to store.
 
         @type nonce: C{str}
+
+
+        @return: C{None}
+
+        @rtype: C{NoneType}
         """
         raise NotImplementedError
 
@@ -126,7 +148,8 @@ class OpenIDStore(object):
         """
         This method is called when the library is attempting to use a
         nonce.  If the nonce is in the store, this method removes it
-        and returns True.  Otherwise it returns False.
+        and returns a value which evaluates as true.  Otherwise it
+        returns a value which evaluates as false.
 
         This method is allowed and encouraged to treat nonces older
         than some period (a very conservative window would be 6 hours,
@@ -139,9 +162,9 @@ class OpenIDStore(object):
         @type nonce: C{str}
 
 
-        @return: C{True} if the nonce existed, C{False} if it didn't.
+        @return: Whether or not the nonce was valid.
 
-        @rtype: C{bool}
+        @rtype: C{bool} or C{int}
         """
         raise NotImplementedError
 

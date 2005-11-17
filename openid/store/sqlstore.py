@@ -1,3 +1,7 @@
+"""
+This module contains OpenIDStore implementations that use an SQL
+database to back them.
+"""
 import time
 
 from openid import cryptutil
@@ -360,7 +364,7 @@ class SQLiteStore(SQLStore):
 
 class MySQLStore(SQLStore):
     """
-    This is a MySQL-based specialization of SQLStore
+    This is a MySQL-based specialization of C{L{SQLStore}}.
 
     Uses InnoDB tables for transaction support.
 

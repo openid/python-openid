@@ -1,3 +1,8 @@
+"""
+This module contains an OpenIDStore implementation backed by
+MemCached.
+"""
+
 from openid import cryptutil, oidutil
 from openid.association import Association
 from openid.store.interface import OpenIDStore
@@ -294,7 +299,7 @@ class MemCacheOpenIDStore(OpenIDStore):
 
         @return: the association record with the latest expiration
 
-        @rtype: C{L{AssociationRecord}} or C{NoneType}
+        @rtype: C{L{_AssociationRecord}} or C{NoneType}
         """
         root_key = self._rootKey(server_url)
         first_handle = next_handle = self.memcache.get(root_key)
@@ -333,7 +338,7 @@ class MemCacheOpenIDStore(OpenIDStore):
 
         @return: the record or C{None}
 
-        @rtype: C{L{AssociationRecord}} or C{NoneType}
+        @rtype: C{L{_AssociationRecord}} or C{NoneType}
         """
         key = self._assocKey(server_url, handle)
         rec_s = self.memcache.get(key)
@@ -361,9 +366,9 @@ class MemCacheOpenIDStore(OpenIDStore):
         @type server_url: C{str}
 
 
-        @param assoc: the association for the server_url
+        @param association: the association for the server_url
 
-        @type assoc: C{L{openid.association.Association}}
+        @type association: C{L{openid.association.Association}}
 
 
         @return: None

@@ -1,3 +1,8 @@
+"""
+This module contains a store with no persistent backing, for consumer
+use only.
+"""
+
 from openid import cryptutil
 from openid.store.interface import OpenIDStore
 
@@ -8,6 +13,12 @@ class DumbStore(OpenIDStore):
     consumer vulnerable to replay attacks (though only within the
     lifespan of the tokens), as it's unable to use nonces.  Avoid
     using this store if it is at all possible.
+
+    Most of the methods of this class are implementation details.
+    Users of this class need to worry only about the C{L{__init__}}
+    method.
+
+    @sort: __init__
     """
     def __init__(self, secret_phrase):
         """

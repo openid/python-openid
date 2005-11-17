@@ -1,3 +1,8 @@
+"""
+This module contains an OpenIDStore implementation backed by flat
+files.
+"""
+
 import string
 import os
 import os.path

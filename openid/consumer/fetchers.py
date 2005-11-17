@@ -68,6 +68,10 @@ def getHTTPFetcher(lifetime=60):
 
 
 class UrllibFetcher(OpenIDHTTPFetcher):
+    """
+    A very primitive C{L{OpenIDHTTPFetcher}} that uses urllib2.  Not
+    recommended for use if anything else is available.
+    """
     def _fetch(self, req):
         try:
             f = urllib2.urlopen(req)
@@ -92,8 +96,10 @@ class UrllibFetcher(OpenIDHTTPFetcher):
         return self._fetch(req)
 
 class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
-    """A paranoid HTTPClient that uses pycurl for fetching.
-    See http://pycurl.sourceforge.net/"""
+    """
+    A paranoid C{L{OpenIDHTTPFetcher}} that uses pycurl for fetching.
+    See U{http://pycurl.sourceforge.net/}.
+    """
     ALLOWED_TIME = 20 # seconds
 
     def __init__(self):
