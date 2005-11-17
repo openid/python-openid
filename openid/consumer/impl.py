@@ -195,7 +195,7 @@ class OpenIDConsumerImpl(object):
     def _getAssociation(self, server_url, replace=0):
         if self.store.isDumb():
             return None
-        
+
         assoc = self.store.getAssociation(server_url)
 
         if assoc is None or \
@@ -272,11 +272,11 @@ class OpenIDConsumerImpl(object):
 
         urls = (consumer_id, server_id, server)
         return SUCCESS, tuple(map(normalizeUrl, urls))
-    
+
     def _createAssociateRequest(self, dh, args=None):
         if args is None:
             args = {}
-        
+
         cpub = cryptutil.longToBase64(dh.createKeyExchange())
 
         args.update({
