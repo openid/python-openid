@@ -1,0 +1,27 @@
+This is the Python OpenID library.
+
+
+INSTALLATION
+============
+
+To install the base library, just run the following command:
+
+python setup.py install
+
+
+GETTING STARTED
+===============
+
+The example directory includes an example server and consumer
+implementation.  See the README file in that directory for more
+information on running the examples.
+
+Library documentation is available in html form in the doc directory.
+
+
+CONTACT
+=======
+
+Send bug reports, suggestions, comments, and questions to
+openid@janrain.com.
+

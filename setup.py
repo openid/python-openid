@@ -14,8 +14,10 @@ setup(
     packages=['openid',
               'openid.consumer',
               'openid.server',
-              'openid.stores',
+              'openid.store',
               ],
     license=copying,
+    author='Janrain',
+    author_email='openid@janrain.com',
     )
 
