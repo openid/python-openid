@@ -87,13 +87,13 @@ USING THIS LIBRARY
     C{L{processPost<OpenIDServer.processPost}} method with the parsed
     POST parameters.  The return value is a pair, consisting of a
     status value and a response body.  If the status value is
-    C{L{openid.consumer.interface.OK}}, send the body back with an
-    HTTP status code of 200.  If the status value is
-    C{L{openid.consumer.interface.ERROR}}, send the body back with an
-    HTTP status code of 400.  Both of those response codes are
-    prescribed by the U{OpenID spec<http://openid.net/specs.bml>}.
-    The content type for the responses is explicitly not defined, but
-    text/plain is suggested.
+    C{L{openid.server.server.OK}}, send the body back with an HTTP
+    status code of 200.  If the status value is
+    C{L{openid.server.server.ERROR}}, send the body back with an HTTP
+    status code of 400.  Both of those response codes are prescribed
+    by the U{OpenID spec<http://openid.net/specs.bml>}.  The content
+    type for the responses is explicitly not defined, but text/plain
+    is suggested.
 
     When a GET request comes in, several steps need to take place:
 
@@ -345,7 +345,7 @@ class OpenIDServer(object):
     def processPost(self, args):
         """
         This method processes POST requests to the OpenID server URL.
-        See the L{module documentation<openid.server.interface>} for
+        See the L{module documentation<openid.server.server>} for
         more notes on when to use this method.
 
 

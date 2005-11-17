@@ -5,7 +5,7 @@ from openid import kvform
 from openid import oidutil
 from openid import cryptutil
 from openid.dh import DiffieHellman
-from openid.server import interface
+from openid.server import server
 from openid.server.trustroot import TrustRoot
 from openid.association import Association
 
@@ -55,13 +55,13 @@ class OpenIDServerImpl(object):
             if mode == 'checkid_immediate':
                 nargs = dict(args)
                 nargs['openid.mode'] = 'checkid_setup'
-                return interface.REDIRECT, oidutil.appendArgs(self.url, nargs)
+                return server.REDIRECT, oidutil.appendArgs(self.url, nargs)
 
             elif mode == 'checkid_setup':
                 ret = oidutil.appendArgs(self.url, args)
                 can = oidutil.appendArgs(return_to, {'openid.mode': 'cancel'})
 
-                return interface.DO_AUTH, (ret, can)
+                return server.DO_AUTH, (ret, can)
 
             else:
                 return self._getErr(
@@ -93,7 +93,7 @@ class OpenIDServerImpl(object):
 
         sig = assoc.addSignature(_signed_fields, reply)
 
-        return interface.REDIRECT, oidutil.appendArgs(return_to, reply)
+        return server.REDIRECT, oidutil.appendArgs(return_to, reply)
 
     def processPost(self, args):
         try:
@@ -162,7 +162,7 @@ class OpenIDServerImpl(object):
         else:
             reply['mac_key'] = oidutil.toBase64(assoc.secret)
 
-        return interface.OK, kvform.dictToKV(reply)
+        return server.OK, kvform.dictToKV(reply)
 
     def _checkAuth(self, args):
         assoc = self.store.getAssociation(
@@ -199,7 +199,7 @@ class OpenIDServerImpl(object):
             is_valid = 'false'
 
         reply['is_valid'] = is_valid
-        return interface.OK, kvform.dictToKV(reply)
+        return server.OK, kvform.dictToKV(reply)
 
     def _getErr(self, args, msg):
         return_to = args.get('openid.return_to')
@@ -208,10 +208,10 @@ class OpenIDServerImpl(object):
                 'openid.mode': 'error',
                 'openid.error': msg
                 }
-            return interface.REDIRECT, oidutil.appendArgs(return_to, err)
+            return server.REDIRECT, oidutil.appendArgs(return_to, err)
         else:
-            return interface.ERROR, msg
+            return server.ERROR, msg
 
     def _postErr(self, msg):
-        return interface.ERROR, kvform.dictToKV({'error': msg})
+        return server.ERROR, kvform.dictToKV({'error': msg})
 

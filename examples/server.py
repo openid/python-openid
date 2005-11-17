@@ -17,15 +17,15 @@ from xml.sax.saxutils import quoteattr, escape
 from openid import cryptutil
 from openid import oidutil
 from openid.association import Association
-from openid.server import interface
-from openid.stores.filestore import FileOpenIDStore
+from openid.server import server
+from openid.store.filestore import FileOpenIDStore
 
 class OpenIDHTTPServer(HTTPServer):
     """
     http server that contains a reference to an OpenID Server and
     knows its base URL.
     """
-    def __init__(self, server, *args, **kwargs):
+    def __init__(self, oidserver, *args, **kwargs):
         HTTPServer.__init__(self, *args, **kwargs)
 
         if self.server_port != 80:
@@ -34,7 +34,7 @@ class OpenIDHTTPServer(HTTPServer):
         else:
             self.base_url = 'http://%s/' % (self.server_name,)
 
-        self.openid = server
+        self.openid = oidserver
         self.approved = {}
 
 class ServerHandler(BaseHTTPRequestHandler):
@@ -95,9 +95,9 @@ class ServerHandler(BaseHTTPRequestHandler):
             path = self.parsed_uri[2]
             if path == '/openidserver':
                 status, body = self.server.openid.processPost(self.query)
-                if status == interface.OK:
+                if status == server.OK:
                     self.send_response(200)
-                elif status == interface.ERROR:
+                elif status == server.ERROR:
                     self.send_response(400)
                 else:
                     assert 0, 'should be unreachable %r' % (status,)
@@ -155,10 +155,10 @@ class ServerHandler(BaseHTTPRequestHandler):
         status, info = self.server.openid.getAuthenticationResponse(\
             authorized, self.query)
 
-        if status == interface.REDIRECT:
+        if status == server.REDIRECT:
             self.redirect(info)
 
-        elif status == interface.DO_AUTH:
+        elif status == server.DO_AUTH:
             retry, cancel = info
 
             if identity_ok:
@@ -166,10 +166,10 @@ class ServerHandler(BaseHTTPRequestHandler):
             else:
                 self.showLoginPage(retry, cancel)
 
-        elif status == interface.DO_ABOUT:
-            self.showAboutPage(self)
+        elif status == server.DO_ABOUT:
+            self.showAboutPage()
 
-        elif status == interface.ERROR:
+        elif status == server.ERROR:
             self.showErrorPage(info)
 
         else:
@@ -255,7 +255,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         told that you control identity URL listed below. (If you are
         using a delegated identity, the site will take care of
         reversing the delegation on its own.)</p>
-        ''' % args, form='''\
+        ''', form='''\
         <table>
           <tr><td>Identity:</td><td>%(identity)s</td></tr>
           <tr><td>Trust Root:</td><td>%(trust_root)s</td></tr>
@@ -490,15 +490,15 @@ def main(host, port, data_path):
         server_url = 'http://%s/openidserver' % host
     else:
         server_url = 'http://%s:%s/openidserver' % (host, port)
-    store = FileOpenIDStore('sstore')
-    server = interface.OpenIDServer(server_url, store)
+    store = FileOpenIDStore(data_path)
+    oidserver = server.OpenIDServer(server_url, store)
 
     addr = (host, port)
-    server = OpenIDHTTPServer(server, addr, ServerHandler)
+    httpserver = OpenIDHTTPServer(oidserver, addr, ServerHandler)
 
     print 'Server running at:'
-    print server.base_url
-    server.serve_forever()
+    print httpserver.base_url
+    httpserver.serve_forever()
 
 if __name__ == '__main__':
     host = 'localhost'
