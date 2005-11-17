@@ -1,4 +1,10 @@
+import sys
+import os
+
 from distutils.core import setup
+
+if 'sdist' in sys.argv:
+    os.system('./makedoc')
 
 try:
     f = open('COPYING', 'r')
