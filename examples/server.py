@@ -6,7 +6,6 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from urlparse import urlparse
 
 import time
-import random
 import Cookie
 import cgi
 import cgitb
