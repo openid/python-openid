@@ -12,7 +12,7 @@ python setup.py install
 GETTING STARTED
 ===============
 
-The example directory includes an example server and consumer
+The examples directory includes an example server and consumer
 implementation.  See the README file in that directory for more
 information on running the examples.
 
