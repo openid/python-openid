@@ -90,7 +90,7 @@ class OpenIDServerImpl(object):
 
         reply['openid.assoc_handle'] = assoc.handle
 
-        sig = assoc.addSignature(_signed_fields, reply)
+        assoc.addSignature(_signed_fields, reply)
 
         return server.REDIRECT, oidutil.appendArgs(return_to, reply)
 
