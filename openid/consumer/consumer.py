@@ -296,8 +296,8 @@ class OpenIDConsumer(object):
         @type immediate: C{bool}
         """
         if fetcher is None:
-            from openid.consumer.fetchers import getHTTPFetcher
-            fetcher = getHTTPFetcher()
+            from openid.consumer.fetchers import _getHTTPFetcher
+            fetcher = _getHTTPFetcher()
 
         from openid.consumer.impl import OpenIDConsumerImpl
         self.impl = OpenIDConsumerImpl(store, immediate, fetcher)

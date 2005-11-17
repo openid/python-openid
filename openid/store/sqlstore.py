@@ -8,7 +8,7 @@ from openid import cryptutil
 from openid.association import Association
 from openid.store.interface import OpenIDStore
 
-def inTxn(func):
+def _inTxn(func):
     def wrapped(self, *args, **kwargs):
         return self._callInTransaction(func, self, *args, **kwargs)
 
@@ -178,7 +178,7 @@ class SQLStore(OpenIDStore):
         self.db_create_assoc()
         self.db_create_settings()
 
-    createTables = inTxn(txn_createTables)
+    createTables = _inTxn(txn_createTables)
 
     def txn_getAuthKey(self):
         """Get the key for this consumer to use to sign its own
@@ -203,7 +203,7 @@ class SQLStore(OpenIDStore):
 
         return auth_key
 
-    getAuthKey = inTxn(txn_getAuthKey)
+    getAuthKey = _inTxn(txn_getAuthKey)
 
     def txn_storeAssociation(self, server_url, association):
         """Set the association for the server URL.
@@ -219,7 +219,7 @@ class SQLStore(OpenIDStore):
             a.lifetime,
             a.assoc_type)
 
-    storeAssociation = inTxn(txn_storeAssociation)
+    storeAssociation = _inTxn(txn_storeAssociation)
 
     def txn_getAssociation(self, server_url, handle=None):
         """Get the most recent association that has been set for this
@@ -252,7 +252,7 @@ class SQLStore(OpenIDStore):
             else:
                 return None
 
-    getAssociation = inTxn(txn_getAssociation)
+    getAssociation = _inTxn(txn_getAssociation)
 
     def txn_removeAssociation(self, server_url, handle):
         """Remove the association for the given server URL and handle,
@@ -263,7 +263,7 @@ class SQLStore(OpenIDStore):
         self.db_remove_assoc(server_url, handle)
         return self.cur.rowcount > 0 # -1 is undefined
 
-    removeAssociation = inTxn(txn_removeAssociation)
+    removeAssociation = _inTxn(txn_removeAssociation)
 
     def txn_storeNonce(self, nonce):
         """Add this nonce to the set of extant nonces, ignoring if it
@@ -274,7 +274,7 @@ class SQLStore(OpenIDStore):
         now = int(time.time())
         self.db_add_nonce(nonce, now)
 
-    storeNonce = inTxn(txn_storeNonce)
+    storeNonce = _inTxn(txn_storeNonce)
 
     def txn_useNonce(self, nonce):
         """Return whether this nonce is present, and if it is, then
@@ -297,7 +297,7 @@ class SQLStore(OpenIDStore):
 
         return present
 
-    useNonce = inTxn(txn_useNonce)
+    useNonce = _inTxn(txn_useNonce)
 
 class SQLiteStore(SQLStore):
     """

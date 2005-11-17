@@ -42,13 +42,13 @@ class DumbStore(OpenIDStore):
         """
         self.auth_key = cryptutil.sha1(secret_phrase)
 
-    def storeAssociation(self, unused_server_url, unused_association):
+    def storeAssociation(self, server_url, association):
         """
         This implementation does nothing.
         """
         pass
 
-    def getAssociation(self, unused_server_url, unused_handle):
+    def getAssociation(self, server_url, handle=None):
         """
         This implementation always returns C{None}.
 
@@ -59,7 +59,7 @@ class DumbStore(OpenIDStore):
         """
         return None
 
-    def removeAssociation(self, unused_server_url, unused_handle):
+    def removeAssociation(self, server_url, handle):
         """
         This implementation always returns C{False}.
 

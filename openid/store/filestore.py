@@ -32,7 +32,7 @@ from openid.association import Association
 from openid.store.interface import OpenIDStore
 from openid import cryptutil, oidutil
 
-filename_allowed = string.letters + string.digits + '.'
+_filename_allowed = string.letters + string.digits + '.'
 try:
     # 2.4
     set
@@ -43,32 +43,32 @@ except NameError:
     except ImportError:
         # Python < 2.2
         d = {}
-        for c in filename_allowed:
+        for c in _filename_allowed:
             d[c] = None
-        isFilenameSafe = d.has_key
+        _isFilenameSafe = d.has_key
         del d
     else:
-        isFilenameSafe = sets.Set(filename_allowed).__contains__
+        _isFilenameSafe = sets.Set(_filename_allowed).__contains__
 else:
-    isFilenameSafe = set(filename_allowed).__contains__
+    _isFilenameSafe = set(_filename_allowed).__contains__
 
-def safe64(s):
+def _safe64(s):
     h64 = oidutil.toBase64(cryptutil.sha1(s))
     h64 = h64.replace('+', '_')
     h64 = h64.replace('/', '.')
     h64 = h64.replace('=', '')
     return h64
 
-def filenameEscape(s):
+def _filenameEscape(s):
     filename_chunks = []
     for c in s:
-        if isFilenameSafe(c):
+        if _isFilenameSafe(c):
             filename_chunks.append(c)
         else:
             filename_chunks.append('_%02X' % ord(c))
     return ''.join(filename_chunks)
 
-def removeIfPresent(filename):
+def _removeIfPresent(filename):
     """Attempt to remove a file, returning whether the file existed at
     the time of the call.
 
@@ -86,7 +86,7 @@ def removeIfPresent(filename):
         # File was present
         return 1
 
-def ensureDir(dir_name):
+def _ensureDir(dir_name):
     """Create dir_name as a directory if it does not exist. If it
     exists, make sure that it is, in fact, a directory.
 
@@ -151,10 +151,10 @@ class FileOpenIDStore(OpenIDStore):
 
         () -> NoneType
         """
-        ensureDir(os.path.dirname(self.auth_key_name))
-        ensureDir(self.nonce_dir)
-        ensureDir(self.association_dir)
-        ensureDir(self.temp_dir)
+        _ensureDir(os.path.dirname(self.auth_key_name))
+        _ensureDir(self.nonce_dir)
+        _ensureDir(self.association_dir)
+        _ensureDir(self.temp_dir)
 
     def _mktemp(self):
         """Create a temporary file on the same filesystem as
@@ -172,7 +172,7 @@ class FileOpenIDStore(OpenIDStore):
             file_obj = os.fdopen(fd, 'wb')
             return file_obj, name
         except:
-            removeIfPresent(name)
+            _removeIfPresent(name)
             raise
 
     def readAuthKey(self):
@@ -225,7 +225,7 @@ class FileOpenIDStore(OpenIDStore):
                 else:
                     raise
         finally:
-            removeIfPresent(tmp)
+            _removeIfPresent(tmp)
 
         return auth_key
 
@@ -260,10 +260,10 @@ class FileOpenIDStore(OpenIDStore):
             raise ValueError('Bad server URL: %r' % server_url)
 
         proto, rest = server_url.split('://', 1)
-        domain = filenameEscape(rest.split('/', 1)[0])
-        url_hash = safe64(server_url)
+        domain = _filenameEscape(rest.split('/', 1)[0])
+        url_hash = _safe64(server_url)
         if handle:
-            handle_hash = safe64(handle)
+            handle_hash = _safe64(handle)
         else:
             handle_hash = ''
         
@@ -310,7 +310,7 @@ class FileOpenIDStore(OpenIDStore):
         except:
             # If there was an error, don't leave the temporary file
             # around.
-            removeIfPresent(tmp)
+            _removeIfPresent(tmp)
             raise
 
     def getAssociation(self, server_url, handle=None):
@@ -369,12 +369,12 @@ class FileOpenIDStore(OpenIDStore):
             try:
                 association = Association.deserialize(assoc_s)
             except ValueError:
-                removeIfPresent(filename)
+                _removeIfPresent(filename)
                 return None
 
         # Clean up expired associations
         if association.getExpiresIn() == 0:
-            removeIfPresent(filename)
+            _removeIfPresent(filename)
             return None
         else:
             return association
@@ -389,7 +389,7 @@ class FileOpenIDStore(OpenIDStore):
             return 0
         else:
             filename = self.getAssociationFilename(server_url, handle)
-            return removeIfPresent(filename)
+            return _removeIfPresent(filename)
 
     def storeNonce(self, nonce):
         """Mark this nonce as present.
@@ -461,7 +461,7 @@ class FileOpenIDStore(OpenIDStore):
                 # Remove the nonce if it has expired
                 nonce_age = now - st.st_mtime
                 if nonce_age > self.max_nonce_age:
-                    removeIfPresent(filename)
+                    _removeIfPresent(filename)
 
         association_filenames = os.listdir(self.association_dir)
         for association_filename in association_filenames:
@@ -482,7 +482,7 @@ class FileOpenIDStore(OpenIDStore):
                 try:
                     association = Association.deserialize(assoc_s)
                 except ValueError:
-                    removeIfPresent(association_filename)
+                    _removeIfPresent(association_filename)
                 else:
                     if association.getExpiresIn() == 0:
-                        removeIfPresent(association_filename)
+                        _removeIfPresent(association_filename)

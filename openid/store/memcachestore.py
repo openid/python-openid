@@ -7,11 +7,11 @@ from openid import cryptutil, oidutil
 from openid.association import Association
 from openid.store.interface import OpenIDStore
 
-NONCE_CODE = 'N'
-ASSOC_CODE = 'A'
-SERVER_CODE = 'S'
+_NONCE_CODE = 'N'
+_ASSOC_CODE = 'A'
+_SERVER_CODE = 'S'
 
-class AssociationRecord(object):
+class _AssociationRecord(object):
     def __init__(self):
         self.key = None
         self.next = ''
@@ -121,7 +121,7 @@ class MemCacheOpenIDStore(OpenIDStore):
 
         @rtype: C{str}
         """
-        return self.key_prefix + NONCE_CODE + nonce
+        return self.key_prefix + _NONCE_CODE + nonce
 
     def _assocKey(self, server_url, handle):
         """
@@ -141,11 +141,11 @@ class MemCacheOpenIDStore(OpenIDStore):
         """
         hashed_url = oidutil.toBase64(cryptutil.sha1(server_url) + 
                                       cryptutil.sha1(handle))
-        return (hash(server_url), self.key_prefix + ASSOC_CODE + hashed_url)
+        return (hash(server_url), self.key_prefix + _ASSOC_CODE + hashed_url)
 
     def _rootKey(self, server_url):
         url_hash = oidutil.toBase64(cryptutil.sha1(server_url))
-        return (hash(server_url), self.key_prefix + SERVER_CODE + url_hash)
+        return (hash(server_url), self.key_prefix + _SERVER_CODE + url_hash)
 
     def setKeyPrefix(self, prefix):
         """
@@ -346,7 +346,7 @@ class MemCacheOpenIDStore(OpenIDStore):
             return None
 
         try:
-            rec = AssociationRecord.deserialize(rec_s)
+            rec = _AssociationRecord.deserialize(rec_s)
         except ValueError:
             # Unfortunately, we've orphaned the following associations
             # in the list. They're still directly available, but will
@@ -356,7 +356,7 @@ class MemCacheOpenIDStore(OpenIDStore):
         else:
             return rec
 
-    def storeAssociation(self, server_url, assoc):
+    def storeAssociation(self, server_url, association):
         """
         Add an association for a server_url
 
@@ -373,22 +373,22 @@ class MemCacheOpenIDStore(OpenIDStore):
 
         @return: None
         """
-        rec = AssociationRecord()
-        rec.assoc = assoc
+        rec = _AssociationRecord()
+        rec.assoc = association
 
         updates = []
 
-        old_rec = self._getAssociationRecord(server_url, assoc.handle)
+        old_rec = self._getAssociationRecord(server_url, association.handle)
         if old_rec is None:
             # This is not yet linked
             root_key = self._rootKey(server_url)
-            updates.append((root_key, assoc.handle))
+            updates.append((root_key, association.handle))
             rec.next = self.memcache.get(root_key)
         else:
-            assert old_rec.next != assoc.handle
+            assert old_rec.next != association.handle
             rec.next = old_rec.next
 
-        key = self._assocKey(server_url, assoc.handle)
+        key = self._assocKey(server_url, association.handle)
         rec_s = rec.serialize()
         updates.insert(0, (key, rec_s))
 

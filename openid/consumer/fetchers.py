@@ -60,7 +60,7 @@ try:
 except ImportError:
     pycurl = None
 
-def getHTTPFetcher(lifetime=60):
+def _getHTTPFetcher():
     if pycurl is None:
         return UrllibFetcher()
     else:
