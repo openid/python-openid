@@ -6,11 +6,9 @@ from distutils.core import setup
 if 'sdist' in sys.argv:
     os.system('./makedoc')
 
-try:
+def getLicense():
     f = open('COPYING', 'r')
-    copying = f.read()
-finally:
-    f.close()
+    return f.read()
 
 setup(
     name='python-openid',
@@ -22,7 +20,7 @@ setup(
               'openid.server',
               'openid.store',
               ],
-    license=copying,
+    license=getLicense(),
     author='Janrain',
     author_email='openid@janrain.com',
     )
