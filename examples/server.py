@@ -139,7 +139,9 @@ class ServerHandler(BaseHTTPRequestHandler):
         identity, trust_root = \
                   self.server.openid.getAuthenticationData(self.query)
 
-        identity_ok = self.user and identity == self.server.base_url + self.user
+        identity_ok = (self.user and identity == \
+                       self.server.base_url + self.user)
+
         # check all three important parts
         if identity_ok:
             key = (identity, trust_root)
