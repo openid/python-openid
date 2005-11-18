@@ -56,10 +56,6 @@ class ServerHandler(BaseHTTPRequestHandler):
                 morsel = Cookie.BaseCookie(cookies).get('user')
                 if morsel:
                     self.user = morsel.value
-                else:
-                    self.user = None
-            else:
-                self.user = None
 
             if path == '/':
                 self.showMainPage()
