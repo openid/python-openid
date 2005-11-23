@@ -285,7 +285,7 @@ class OpenIDServer(object):
         trust_root = args.get('openid.trust_root')
         identity = args.get('openid.identity')
         return identity, trust_root
-    
+
     def getAuthenticationResponse(self, authorized, args):
         """
         This method determines the correct response to make to an
@@ -422,7 +422,7 @@ class OpenIDServer(object):
             if assoc is None or assoc.expiresIn <= 0:
                 if assoc is not None and assoc.expiresIn <= 0:
                     self.store.removeAssociation(self.normal, assoc.handle)
-                
+
                 assoc = self._createAssociation('HMAC-SHA1')
                 self.store.storeAssociation(self.dumb, assoc)
                 reply['openid.invalidate_handle'] = assoc_handle
@@ -581,4 +581,3 @@ class OpenIDServer(object):
 
     def _postErr(self, msg):
         return ERROR, kvform.dictToKV({'error': msg})
-
