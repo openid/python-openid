@@ -8,6 +8,7 @@ import linkparse
 import oidutil
 import kvform
 import consumer
+import fetchers
 
 cryptutil.test()
 storetest.test()
@@ -17,3 +18,4 @@ oidutil.test()
 association.test()
 kvform.test()
 consumer.test()
+fetchers.test()

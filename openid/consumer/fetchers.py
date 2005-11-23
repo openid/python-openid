@@ -63,12 +63,37 @@ try:
 except ImportError:
     pycurl = None
 
-def _getHTTPFetcher():
+def _getHTTPFetcher(raise_exceptions=False):
     if pycurl is None:
-        return UrllibFetcher()
+        fetcher = UrllibFetcher()
     else:
-        return ParanoidHTTPFetcher()
+        fetcher = ParanoidHTTPFetcher()
 
+    if not raise_exceptions:
+        fetcher = ExceptionCatchingFetcher(fetcher)
+
+    return fetcher
+
+def allowedURL(url):
+    return url.startswith('http://') or url.startswith('https://')
+
+class ExceptionCatchingFetcher(OpenIDHTTPFetcher):
+    def __init__(self, fetcher):
+        self.fetcher = fetcher
+
+    def _fetch(self, func, *args):
+        try:
+            return func(*args)
+        except (SystemExit, KeyboardInterrupt):
+            raise
+        except:
+            return None
+        
+    def post(self, url, body):
+        return self._fetch(self.fetcher.post, url, body)
+
+    def get(self, url):
+        return self._fetch(self.fetcher.get, url)
 
 class UrllibFetcher(OpenIDHTTPFetcher):
     """
@@ -88,8 +113,6 @@ class UrllibFetcher(OpenIDHTTPFetcher):
                 return (why.code, why.geturl(), data)
             finally:
                 why.close()
-        except:
-            return None
         else:
             if hasattr(f, 'code'):
                 code = f.code
@@ -99,11 +122,20 @@ class UrllibFetcher(OpenIDHTTPFetcher):
             return (code, f.geturl(), data)
 
     def get(self, url):
+        if not allowedURL(url):
+            raise ValueError('Bad URL scheme: %r' % (url,))
+
         return self._fetch(url)
 
     def post(self, url, body):
+        if not allowedURL(url):
+            raise ValueError('Bad URL scheme: %r' % (url,))
+
         req = urllib2.Request(url, body)
         return self._fetch(req)
+
+class OpenIDHTTPError(Exception):
+    pass
 
 class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
     """
@@ -126,7 +158,7 @@ class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
 
     def _checkURL(self, url):
         # XXX: make sure url is well-formed and routeable
-        return True
+        return allowedURL(url)
 
     def get(self, url):
         c = pycurl.Curl()
@@ -137,7 +169,8 @@ class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
             off = self.ALLOWED_TIME
             while off > 0:
                 if not self._checkURL(url):
-                    return None
+                    raise OpenIDHTTPError(
+                        "Fetching URL not allowed: %r" % (url,))
                 
                 data = cStringIO.StringIO()
                 headers = cStringIO.StringIO()
@@ -146,10 +179,7 @@ class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
                 c.setopt(pycurl.TIMEOUT, off)
                 c.setopt(pycurl.URL, url)
 
-                try:
-                    c.perform()
-                except pycurl.error:
-                    return None
+                c.perform()
 
                 code = c.getinfo(pycurl.RESPONSE_CODE)
                 if code in [301, 302, 303, 307]:
@@ -159,13 +189,13 @@ class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
 
                 off = stop - int(time.time())
 
-            return None
+            raise OpenIDHTTPError("Timed out fetching: %r" % (url,))
         finally:
             c.close()
 
     def post(self, url, body):
         if not self._checkURL(url):
-            return None
+            raise OpenIDHTTPError("Fetching URL not allowed: %r" % (url,))
 
         c = pycurl.Curl()
         try:
@@ -178,10 +208,7 @@ class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
             data = cStringIO.StringIO()
             c.setopt(pycurl.WRITEFUNCTION, data.write)
 
-            try:
-                c.perform()
-            except pycurl.error:
-                return None
+            c.perform()
 
             code = c.getinfo(pycurl.RESPONSE_CODE)
             return code, url, data.getvalue()
