@@ -737,14 +737,14 @@ class OpenIDConsumer(object):
         if args is None:
             args = {}
 
-        cpub = cryptutil.longToBase64(dh.createKeyExchange())
+        cpub = cryptutil.longToBase64(dh.public)
 
         args.update({
             'openid.mode': 'associate',
             'openid.assoc_type':'HMAC-SHA1',
             'openid.session_type':'DH-SHA1',
-            'openid.dh_modulus': cryptutil.longToBase64(dh.p),
-            'openid.dh_gen': cryptutil.longToBase64(dh.g),
+            'openid.dh_modulus': cryptutil.longToBase64(dh.modulus),
+            'openid.dh_gen': cryptutil.longToBase64(dh.generator),
             'openid.dh_consumer_public': cpub,
             })
 

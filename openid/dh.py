@@ -5,31 +5,32 @@ class DiffieHellman(object):
 
     DEFAULT_GEN = 2
 
-    def _fromBase64(cls, p=None, g=None):
-        if p is not None:
-            p = cryptutil.base64ToLong(p)
-        if g is not None:
-            g = cryptutil.base64ToLong(g)
+    def _fromBase64(cls, modulus=None, generator=None):
+        if modulus is not None:
+            modulus = cryptutil.base64ToLong(modulus)
+        if generator is not None:
+            generator = cryptutil.base64ToLong(generator)
 
-        return cls(p, g)
+        return cls(modulus, generator)
 
     fromBase64 = classmethod(_fromBase64)
 
-    def __init__(self, p=None, g=None):
-        if p is None:
-            p = self.DEFAULT_MOD
-        self.p = long(p)
+    def __init__(self, modulus=None, generator=None):
+        if modulus is None:
+            modulus = self.DEFAULT_MOD
+        self.modulus = long(modulus)
 
-        if g is None:
-            g = self.DEFAULT_GEN
-        self.g = long(g)
+        if generator is None:
+            generator = self.DEFAULT_GEN
+        self.generator = long(generator)
 
-        self.x = cryptutil.randrange(1, p - 1)
+        self.private = cryptutil.randrange(1, modulus - 1)
+        self.public = pow(self.generator, self.private, self.modulus)
 
-    def createKeyExchange(self):
-        return pow(self.g, self.x, self.p)
+    def getSharedSecret(self, composite):
+        return pow(composite, self.private, self.modulus)
 
     def xorSecret(self, composite, secret):
-        dh_shared = pow(composite, self.x, self.p)
+        dh_shared = self.getSharedSecret(composite)
         sha1_dh_shared = cryptutil.sha1(cryptutil.longToBinary(dh_shared))
         return cryptutil.strxor(secret, sha1_dh_shared)

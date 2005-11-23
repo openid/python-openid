@@ -28,8 +28,7 @@ def associate(qs, assoc_secret, assoc_handle):
     assert q['openid.mode'] == 'associate'
     assert q['openid.assoc_type'] == 'HMAC-SHA1'
     assert q['openid.session_type'] == 'DH-SHA1'
-    d = dh.DiffieHellman.fromBase64(
-        q['openid.dh_modulus'], q['openid.dh_gen'])
+    d = dh.DiffieHellman.fromBase64(q['openid.dh_modulus'], q['openid.dh_gen'])
 
     composite = cryptutil.base64ToLong(q['openid.dh_consumer_public'])
     enc_mac_key = oidutil.toBase64(d.xorSecret(composite, assoc_secret))
@@ -38,7 +37,7 @@ def associate(qs, assoc_secret, assoc_handle):
         'assoc_handle':assoc_handle,
         'expires_in':'600',
         'session_type':'DH-SHA1',
-        'dh_server_public':cryptutil.longToBase64(d.createKeyExchange()),
+        'dh_server_public':cryptutil.longToBase64(d.public),
         'enc_mac_key':enc_mac_key,
         }
     return kvform.dictToKV(reply_dict)

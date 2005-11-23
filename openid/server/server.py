@@ -503,19 +503,18 @@ class OpenIDServer(object):
         session_type = args.get('openid.session_type')
         if session_type:
             if session_type == 'DH-SHA1':
-                p = args['openid.dh_modulus']
-                g = args['openid.dh_gen']
+                modulus = args['openid.dh_modulus']
+                generator = args['openid.dh_gen']
                 consumer_public = args['openid.dh_consumer_public']
 
-                dh = DiffieHellman.fromBase64(p, g)
+                dh = DiffieHellman.fromBase64(modulus, generator)
 
                 cpub = cryptutil.base64ToLong(consumer_public)
                 mac_key = dh.xorSecret(cpub, assoc.secret)
-                spub = dh.createKeyExchange()
 
                 reply.update({
                     'session_type': session_type,
-                    'dh_server_public': cryptutil.longToBase64(spub),
+                    'dh_server_public': cryptutil.longToBase64(dh.public),
                     'enc_mac_key': oidutil.toBase64(mac_key),
                     })
             else:
