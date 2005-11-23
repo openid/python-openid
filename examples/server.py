@@ -11,7 +11,9 @@ import cgi
 import cgitb
 import sys
 
-from xml.sax.saxutils import quoteattr, escape
+def quoteattr(s):
+    qs = cgi.escape(s, 1)
+    return '"%s"' % (qs,)
 
 from openid import cryptutil
 from openid import oidutil
@@ -279,7 +281,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         approved_trust_roots = []
         for (aident, trust_root) in self.server.approved.keys():
             if aident == ident:
-                trs = '<li><tt>%s</tt></li>\n' % escape(trust_root)
+                trs = '<li><tt>%s</tt></li>\n' % cgi.escape(trust_root)
                 approved_trust_roots.append(trs)
 
         if approved_trust_roots:
