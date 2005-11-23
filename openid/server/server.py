@@ -106,10 +106,9 @@ USING THIS LIBRARY
            The return value is a pair (identity URL, trust root) that
            this request is asking to authorize.
 
-        3. Determine if the user making this request is authorized to
-           identify himself or herself as the owner of the identity
-           URL in question.  If so, determine whether the user has
-           authorized telling the consumer identified by trust root
+        3. Authenticate the user as the owner of the identity
+           URL in question.  Then determine whether the user has
+           authorized telling the consumer (as identified by trust root)
            that he owns the identity URL.  Both of those are very
            application-specific bits of logic, and depend heavily on
            design choices you've made as an identity server.  The end
@@ -235,7 +234,7 @@ class OpenIDServer(object):
         @type server_url: C{str}
 
 
-        @param store: This is the instance of an object implementing
+        @param store: This in an object implementing the
             C{L{openid.store.interface.OpenIDStore}} interface which
             the library will use for persistent storage.  See the
             C{L{OpenIDStore<openid.store.interface.OpenIDStore>}}
@@ -346,12 +345,7 @@ class OpenIDServer(object):
             provided to make extracting the identity url and trust
             root easy, to aid in the calculation of this value.
 
-        @type authorized: Anything which will be correctly evaluated
-            by C{if authorized:}.  Typically, this is a C{bool} value,
-            but that type wasn't available in some older versions of
-            Python.  For those versions, this will probably be an
-            C{int}.
-
+        @type authorized: C{bool}
 
         @param args: This should be a C{dict}-like object that
             contains the parsed, unescaped query arguments that were
