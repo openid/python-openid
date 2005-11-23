@@ -51,11 +51,17 @@ def test_fetcher(fetcher, exc):
 def run_fetcher_tests():
     exc_fetchers = [fetchers.UrllibFetcher(),]
     try:
-        import pycurl
-    except ImportError:
-        pass
-    else:
         exc_fetchers.append(fetchers.ParanoidHTTPFetcher())
+    except RuntimeError, why:
+        if why[0] == 'Cannot find pycurl library':
+            try:
+                import pycurl
+            except ImportError:
+                pass
+            else:
+                assert False, 'curl present but not detected'
+        else:
+            raise
 
     non_exc_fetchers = []
     for f in exc_fetchers:
