@@ -88,6 +88,8 @@ class UrllibFetcher(OpenIDHTTPFetcher):
                 return (why.code, why.geturl(), data)
             finally:
                 why.close()
+        except:
+            return None
         else:
             return (f.code, f.geturl(), data)
 
