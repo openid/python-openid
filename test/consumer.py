@@ -139,6 +139,15 @@ def _test_success(user_url, delegate_url, links, immediate=False):
     run()
     assert fetcher.num_assocs == 1
 
+    # Another association is created if we remove the existing one
+    store.removeAssociation(server_url, fetcher.assoc_handle)
+    run()
+    assert fetcher.num_assocs == 2
+
+    # Test that doing it again uses the existing association
+    run()
+    assert fetcher.num_assocs == 2
+
 def test_success():
     user_url = 'http://www.example.com/user.html'
     links = '<link rel="openid.server" href="%s" />' % (server_url,)
