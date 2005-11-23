@@ -48,6 +48,7 @@ class TestFetcher(object):
         self.get_responses = {user_url:(200, user_url, user_page)}
         self.assoc_secret = assoc_secret
         self.assoc_handle = assoc_handle
+        self.num_assocs = 0
 
     def response(self, url, body):
         if body is None:
@@ -68,6 +69,7 @@ class TestFetcher(object):
             return self.response(url, None)
         else:
             response = associate(body, self.assoc_secret, self.assoc_handle)
+            self.num_assocs += 1
             return self.response(url, response)
         
 user_page_pat = '''\
@@ -95,39 +97,48 @@ def _test_success(user_url, delegate_url, links, immediate=False):
     fetcher = TestFetcher(user_url, user_page, assocs[0])
 
     consumer = OpenIDConsumer(store, fetcher, immediate)
-    (status, info) = consumer.beginAuth(user_url)
-    assert status == SUCCESS, status
+    def run():
+        (status, info) = consumer.beginAuth(user_url)
+        assert status == SUCCESS, status
 
-    return_to = consumer_url
-    trust_root = consumer_url
-    redirect_url = consumer.constructRedirect(info, return_to, trust_root)
+        return_to = consumer_url
+        trust_root = consumer_url
+        redirect_url = consumer.constructRedirect(info, return_to, trust_root)
 
-    parsed = urlparse.urlparse(redirect_url)
-    qs = parsed[4]
-    q = parse(qs)
-    assert q == {
-        'openid.mode':mode,
-        'openid.identity':delegate_url,
-        'openid.trust_root':trust_root,
-        'openid.assoc_handle':fetcher.assoc_handle,
-        'openid.return_to':return_to,
-        }, (q, user_url, delegate_url, mode)
+        parsed = urlparse.urlparse(redirect_url)
+        qs = parsed[4]
+        q = parse(qs)
+        assert q == {
+            'openid.mode':mode,
+            'openid.identity':delegate_url,
+            'openid.trust_root':trust_root,
+            'openid.assoc_handle':fetcher.assoc_handle,
+            'openid.return_to':return_to,
+            }, (q, user_url, delegate_url, mode)
 
-    assert redirect_url.startswith(server_url)
+        assert redirect_url.startswith(server_url)
 
-    query = {
-        'openid.mode':'id_res',
-        'openid.return_to':return_to,
-        'openid.identity':delegate_url,
-        'openid.assoc_handle':fetcher.assoc_handle,
-        }
+        query = {
+            'openid.mode':'id_res',
+            'openid.return_to':return_to,
+            'openid.identity':delegate_url,
+            'openid.assoc_handle':fetcher.assoc_handle,
+            }
 
-    assoc = store.getAssociation(server_url, fetcher.assoc_handle)
-    assoc.addSignature(['mode', 'return_to', 'identity'], query)
+        assoc = store.getAssociation(server_url, fetcher.assoc_handle)
+        assoc.addSignature(['mode', 'return_to', 'identity'], query)
 
-    (status, info) = consumer.completeAuth(info.token, query)
-    assert status == 'success'
-    assert info == user_url
+        (status, info) = consumer.completeAuth(info.token, query)
+        assert status == 'success'
+        assert info == user_url
+
+    assert fetcher.num_assocs == 0
+    run()
+    assert fetcher.num_assocs == 1
+
+    # Test that doing it again uses the existing association
+    run()
+    assert fetcher.num_assocs == 1
 
 def test_success():
     user_url = 'http://www.example.com/user.html'
@@ -174,12 +185,36 @@ def test_bad_parse():
         assert status == PARSE_ERROR
         assert info is None
 
+def test_construct():
+    store_sentinel = object()
+    fetcher_sentinel = object()
+    oidc = OpenIDConsumer(store_sentinel, fetcher_sentinel)
+    assert oidc.store is store_sentinel
+    assert oidc.fetcher is fetcher_sentinel
+    assert not oidc.immediate
 
+    oidc = OpenIDConsumer(store_sentinel, fetcher_sentinel, immediate=1)
+    assert oidc.store is store_sentinel
+    assert oidc.fetcher is fetcher_sentinel
+    assert oidc.immediate
+    
+    oidc = OpenIDConsumer(store_sentinel, fetcher=None)
+    f = oidc.fetcher
+    assert hasattr(f, 'get')
+    assert hasattr(f, 'post')
+
+    try:
+        oidc = OpenIDConsumer(fetcher=fetcher_sentinel)
+    except TypeError:
+        pass
+    else:
+        raise AssertionError('Instantiated a consumer without a store')
 
 def test():
     test_success()
     test_bad_fetch()
     test_bad_parse()
+    test_construct()
 
 if __name__ == '__main__':
     test()
