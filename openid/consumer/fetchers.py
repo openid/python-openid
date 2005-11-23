@@ -1,3 +1,6 @@
+"""
+This module contains the HTTP fetcher interface and several implementations.
+"""
 import urllib2
 import time
 import cStringIO
