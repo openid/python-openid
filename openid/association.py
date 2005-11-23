@@ -56,6 +56,9 @@ class Association(object):
         handle, secret, issued, lifetime, assoc_type
     """
 
+    # This is a HMAC-SHA1 specific value.
+    SIG_LENGTH = 20
+
     # The ordering and name of keys as stored by serialize
     assoc_keys = [
         'version',
@@ -305,3 +308,14 @@ class Association(object):
         signed = ','.join(fields)
         data[prefix + 'sig'] = sig
         data[prefix + 'signed'] = signed
+
+    def checkSignature(self, data, prefix='openid.'):
+        try:
+            signed = data[prefix + 'signed']
+            fields = signed.split(',')
+            expected_sig = self.signDict(fields, data, prefix)
+            request_sig = data[prefix + 'sig']
+        except KeyError:
+            return False
+
+        return request_sig == expected_sig
