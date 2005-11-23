@@ -48,15 +48,15 @@ def test_fetcher(fetcher, exc):
         else:
             assert result is None, (fetcher, result)
         
-def test_curl_exc():
-    fetcher = fetchers.ParanoidHTTPFetcher()
-    test_fetcher(fetcher)
-
 def run_fetcher_tests():
-    exc_fetchers = [
-        fetchers.UrllibFetcher(),
-        fetchers.ParanoidHTTPFetcher(),
-        ]
+    exc_fetchers = [fetchers.UrllibFetcher(),]
+    try:
+        import pycurl
+    except ImportError:
+        pass
+    else:
+        exc_fetchers.append(fetchers.ParanoidHTTPFetcher())
+
     non_exc_fetchers = []
     for f in exc_fetchers:
         non_exc_fetchers.append(fetchers.ExceptionCatchingFetcher(f))
@@ -138,6 +138,12 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
         self.wfile.close()
+
+    def finish(self):
+        if not self.wfile.closed:
+            self.wfile.flush()
+        self.wfile.close()
+        self.rfile.close()
 
 def test():
     host = 'localhost'
