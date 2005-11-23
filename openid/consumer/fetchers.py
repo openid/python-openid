@@ -91,7 +91,12 @@ class UrllibFetcher(OpenIDHTTPFetcher):
         except:
             return None
         else:
-            return (f.code, f.geturl(), data)
+            if hasattr(f, 'code'):
+                code = f.code
+            else:
+                code = 200
+            
+            return (code, f.geturl(), data)
 
     def get(self, url):
         return self._fetch(url)
