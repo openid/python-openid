@@ -105,34 +105,38 @@ def testStore(store):
     assoc3 = genAssoc(issued=2, lifetime=100)
     store.storeAssociation(server_url, assoc3)
 
-    checkRetrieve(server_url, None, assoc2)
+    checkRetrieve(server_url, None, assoc3)
     checkRetrieve(server_url, assoc.handle, assoc)
     checkRetrieve(server_url, assoc2.handle, assoc2)
     checkRetrieve(server_url, assoc3.handle, assoc3)
 
     checkRemove(server_url, assoc2.handle, True)
 
-    checkRetrieve(server_url, None, assoc)
+    checkRetrieve(server_url, None, assoc3)
     checkRetrieve(server_url, assoc.handle, assoc)
     checkRetrieve(server_url, assoc2.handle, None)
     checkRetrieve(server_url, assoc3.handle, assoc3)
 
     checkRemove(server_url, assoc2.handle, False)
-    checkRemove(server_url, assoc.handle, True)
+    checkRemove(server_url, assoc3.handle, True)
 
-    checkRetrieve(server_url, None, assoc3)
-    checkRetrieve(server_url, assoc.handle, None)
+    checkRetrieve(server_url, None, assoc)
+    checkRetrieve(server_url, assoc.handle, assoc)
     checkRetrieve(server_url, assoc2.handle, None)
-    checkRetrieve(server_url, assoc3.handle, assoc3)
+    checkRetrieve(server_url, assoc3.handle, None)
 
     checkRemove(server_url, assoc2.handle, False)
-    checkRemove(server_url, assoc.handle, False)
-    checkRemove(server_url, assoc3.handle, True)
+    checkRemove(server_url, assoc.handle, True)
+    checkRemove(server_url, assoc3.handle, False)
 
     checkRetrieve(server_url, None, None)
     checkRetrieve(server_url, assoc.handle, None)
     checkRetrieve(server_url, assoc2.handle, None)
     checkRetrieve(server_url, assoc3.handle, None)
+
+    checkRemove(server_url, assoc2.handle, False)
+    checkRemove(server_url, assoc.handle, False)
+    checkRemove(server_url, assoc3.handle, False)
 
     ### Nonce functions
 

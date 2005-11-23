@@ -22,7 +22,7 @@ class ServerAssocs(object):
     def best(self):
         best = None
         for assoc in self.assocs.values():
-            if best is None or best.getExpiresIn() < assoc.getExpiresIn():
+            if best is None or best.issued < assoc.issued:
                 best = assoc
         return best
 

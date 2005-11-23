@@ -240,11 +240,10 @@ class SQLStore(OpenIDStore):
             for values in rows:
                 assoc = Association(*values)
                 assoc.secret = self.blobDecode(assoc.secret)
-                expires = assoc.getExpiresIn()
-                if expires == 0:
+                if assoc.getExpiresIn() == 0:
                     self.txn_removeAssociation(server_url, assoc.handle)
                 else:
-                    associations.append((expires, assoc))
+                    associations.append((assoc.issued, assoc))
 
             if associations:
                 associations.sort()

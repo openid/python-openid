@@ -341,8 +341,8 @@ class FileOpenIDStore(OpenIDStore):
                 full_name = os.path.join(self.association_dir, name)
                 association = self._getAssociation(full_name)
                 if association is not None:
-                    expires = association.getExpiresIn(0)
-                    matching_associations.append((expires, association))
+                    matching_associations.append(
+                        (association.issued, association))
 
             matching_associations.sort()
             if matching_associations:

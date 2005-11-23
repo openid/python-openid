@@ -310,9 +310,9 @@ class MemCacheOpenIDStore(OpenIDStore):
                 # The list is broken
                 break
 
-            expires = rec.assoc.getExpiresIn()
-            if best is None or best[0] <= expires:
-                best = (expires, rec)
+            issued = rec.assoc.issued
+            if best is None or best[0] <= issued:
+                best = (issued, rec)
 
             next_handle = rec.next
 
