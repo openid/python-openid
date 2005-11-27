@@ -91,6 +91,36 @@ def test():
     <![cDaTa[
     <link>
     ]]>
+
+    <htmlx>
+    <head>
+    <link>
+
+    <html:summer>
+    <head>
+    <link>
+
+    <html>
+    <head:zucchini>
+    <link>
+
+    <html/>
+    <head>
+    <link>
+
+    <html/>
+    <html>
+    <head>
+    <link>
+
+    <html>
+    <head/>
+    <link>
+
+    <html>
+    <head/>
+    <head>
+    <link>
     """
 
     cases = no_match_cases_str.strip().split('\n\n')
@@ -101,6 +131,22 @@ def test():
     <html>
     <head>
     <link>
+
+    <html>
+    <head>
+    <link/>
+
+    <html >
+    <head>
+    <link>
+
+    <html>
+    <head >
+    <link>
+
+    <html>
+    <head>
+    <link >
 
     <html><head><link>
 

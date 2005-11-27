@@ -79,9 +79,10 @@ removed_re = re.compile(r'<!--.*?-->|'
                         r'<script\b[^>]*>.*?</script>', flags)
 
 # Must contain at least an open html and an open head tag
-html_find = re.compile(r'<html\b.*?>.*?(?:</?html>|\Z)', flags)
-head_find = re.compile(r'<head\b.*?>.*?(?:</?head>|<body>|\Z)', flags)
-link_find = re.compile(r'<link\b', flags)
+html_find = re.compile(r'<html\b(?!:)[^>]*?(/>|>.*?(?:</?html>|\Z))', flags)
+head_find = re.compile(r'<head\b(?!:)[^>]*?(/>|>.*?(?:</?head>|<body>|\Z))',
+                       flags)
+link_find = re.compile(r'<link\b(?!:)', flags)
 
 attr_find = re.compile(r'''
 # Must start with a sequence of word-characters, followed by an equals sign
