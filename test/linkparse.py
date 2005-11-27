@@ -128,18 +128,29 @@ def test():
         run(case, [])
 
     empty_link_cases_str = """
+    <!-- Plain vanilla -->
     <html>
     <head>
     <link>
 
+    <!-- Ignore tags in the <script:... > namespace -->
+    <html>
+    <head>
+    <script:paddypan>
+    <link>
+    </script:paddypan>
+
+    <!-- Short link tag -->
     <html>
     <head>
     <link/>
 
+    <!-- Spaces in the HTML tag -->
     <html >
     <head>
     <link>
 
+    <!-- Spaces in the head tag -->
     <html>
     <head >
     <link>

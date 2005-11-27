@@ -71,12 +71,29 @@ __all__ = ['parseLinkAttrs']
 
 import re
 
-flags = re.DOTALL | re.IGNORECASE | re.VERBOSE | re.UNICODE
+flags = ( re.DOTALL # Match newlines with '.'
+        | re.IGNORECASE
+        | re.VERBOSE # Allow comments and whitespace in patterns
+        | re.UNICODE # Make \b respect Unicode word boundaries
+        )
 
 # Stuff to remove before we start looking for tags
-removed_re = re.compile(r'<!--.*?-->|'
-                        r'<!\[CDATA\[.*?\]\]>|'
-                        r'<script\b[^>]*>.*?</script>', flags)
+removed_re = re.compile(r'''
+  # Comments
+  <!--.*?-->
+
+  # CDATA blocks
+| <!\[CDATA\[.*?\]\]>
+
+  # script blocks
+| <script\b
+
+  # make sure script is not an XML namespace
+  (?!:)
+
+  [^>]*>.*?</script>
+
+''', flags)
 
 tag_expr = r'''
 # Starts with the tag name at a word boundary, where the tag name is
