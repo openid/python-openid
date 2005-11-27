@@ -78,10 +78,47 @@ removed_re = re.compile(r'<!--.*?-->|'
                         r'<!\[CDATA\[.*?\]\]>|'
                         r'<script\b[^>]*>.*?</script>', flags)
 
+tag_expr = r'''
+# Starts with the tag name at a word boundary, where the tag name is
+# not a namespace
+<%(tag_name)s\b(?!:)
+
+# All of the stuff up to a ">", hopefully attributes.
+(?P<attrs>[^>]*?)
+
+(?: # Match a short tag
+    />
+
+|   # Match a full tag
+    >
+
+    (?P<contents>.*?)
+
+    # Closed by
+    (?: # One of the specified close tags
+        </?%(closers)s\s*>
+
+        # End of the string
+    |   \Z
+
+    )
+
+)
+'''
+
+def tagMatcher(tag_name, *close_tags):
+    if close_tags:
+        options = '|'.join((tag_name,) + close_tags)
+        closers = '(?:%s)' % (options,)
+    else:
+        closers = tag_name
+
+    expr = tag_expr % locals()
+    return re.compile(expr, flags)
+
 # Must contain at least an open html and an open head tag
-html_find = re.compile(r'<html\b(?!:)[^>]*?(/>|>.*?(?:</?html>|\Z))', flags)
-head_find = re.compile(r'<head\b(?!:)[^>]*?(/>|>.*?(?:</?head>|<body>|\Z))',
-                       flags)
+html_find = tagMatcher('html')
+head_find = tagMatcher('head', 'body')
 link_find = re.compile(r'<link\b(?!:)', flags)
 
 attr_find = re.compile(r'''
@@ -129,13 +166,15 @@ def parseLinkAttrs(html):
     """
     stripped = removed_re.sub('', html)
     html_mo = html_find.search(stripped)
-    if html_mo is None:
+    if html_mo is None or html_mo.start('contents') == -1:
         return []
 
-    head_mo = head_find.search(stripped, html_mo.start(), html_mo.end())
-    if head_mo is None:
+    start, end = html_mo.span('contents')
+    head_mo = head_find.search(stripped, start, end)
+    if head_mo is None or head_mo.start('contents') == -1:
         return []
 
+    start, end = head_mo.span('contents')
     link_mos = link_find.finditer(stripped, head_mo.start(), head_mo.end())
 
     matches = []
