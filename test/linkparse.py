@@ -295,6 +295,30 @@ def test():
            'href': 'http://www.myopenid.com/server'},
           {'rel': 'openid.delegate',
             'href': 'http://example.myopenid.com/'}]),
+
+##         # from brian's livejournal page
+##         ("""<!DOCTYPE html
+##          PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+##                 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+##                 <html xmlns="http://www.w3.org/1999/xhtml">
+##                   <head>
+##                     <link rel="stylesheet" href="http://www.livejournal.com/~serotta/res/319998/stylesheet?1130478711" type="text/css" />
+##         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+## <link rel="alternate" type="application/rss+xml" title="RSS" href="http://www.livejournal.com/~serotta/data/rss" />
+## <link rel="alternate" type="application/atom+xml" title="Atom" href="http://www.livejournal.com/~serotta/data/atom" />
+## <link rel="service.feed" type="application/atom+xml" title="AtomAPI-enabled feed" href="http://www.livejournal.com/interface/atomapi/serotta /feed" />
+## <link rel="service.post" type="application/atom+xml" title="Create a new post" href="http://www.livejournal.com/interface/atomapi/serotta/po st" />
+## <link rel="meta" type="application/rdf+xml" title="FOAF" href="http://www.livejournal.com/~serotta/data/foaf" />
+## <meta name="foaf:maker" content="foaf:mbox_sha1sum '12f8abdacb5b1a806711e23249da592c0d316260'" />
+## <meta name="robots" content="noindex, nofollow, noarchive" />
+## <meta name="googlebot" content="nosnippet" />
+## <link rel="openid.server" href="http://www.livejournal.com/openid/server.bml" />
+##                   <title>Brian</title>
+##         </head>""",
+##          [{'rel':'openid.server',
+##            'href':'http://www.livejournal.com/openid/server.bml'},
+##         ])
+        
         ]
 
     for html, expected in cases:
