@@ -62,12 +62,13 @@ class TestFetcher(object):
             return self.response(url, None)
 
     def post(self, url, body):
-        if 'openid.mode=associate' in body:
+        try:
+            body.index('openid.mode=associate')
+        except ValueError:
+            return self.response(url, None)
+        else:
             response = associate(body, self.assoc_secret, self.assoc_handle)
             return self.response(url, response)
-        else:
-            return self.response(url, None)
-
         
 user_page_pat = '''\
 <html>
