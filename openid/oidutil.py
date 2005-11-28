@@ -41,8 +41,17 @@ def getOpenIDParameters(query):
 
 
 def quoteMinimal(s):
-    # Do not escape anything that is already 7-bit safe, so we do the
-    # minimal transform on the identity URL
+    """Turn a str or unicode object into an ASCII string
+
+    Replace non-ascii characters with a %-encoded, UTF-8
+    encoding. This function will fail if the input is a str and there
+    are non-7-bit-safe characters. It is assumed that the caller will
+    have already translated the input into a Unicode character
+    sequence, according to the encoding of the HTTP POST or GET.
+
+    Do not escape anything that is already 7-bit safe, so we do the
+    minimal transform on the identity URL
+    """
     res = []
     for c in s:
         if c >= u'\x80':
@@ -51,7 +60,6 @@ def quoteMinimal(s):
         else:
             res.append(c)
     return str(''.join(res))
-
 
 def normalizeUrl(url):
     assert isinstance(url, (str, unicode)), type(url)
