@@ -1,3 +1,10 @@
+"""
+This module contains the C{L{TrustRoot}} class, which helps handle
+trust root checking.  This module is used by the
+C{L{openid.server.server}} module, but it is also available to server
+implementers who wish to use it for additional trust root checking.
+"""
+
 from urlparse import urlparse, urlunparse
 
 ############################################
@@ -18,7 +25,7 @@ _top_level_domains = (
     ).split('|')
 
 
-def parseURL(url):
+def _parseURL(url):
     proto, netloc, path, params, query, frag = urlparse(url)
     path = urlunparse(('', '', path, params, query, frag))
 
@@ -36,8 +43,15 @@ def parseURL(url):
 
 
 class TrustRoot(object):
-    """Represents a valid openid trust root.  The parse classmethod
-    accepts a trust root string, producing a TrustRoot object.
+    """
+    This class represents a valid openid trust root.  The C{L{parse}}
+    classmethod accepts a trust root string, producing a
+    C{L{TrustRoot}} object.  The method OpenID server implementers
+    would be most likely to use is the C{L{isSane}} method, which
+    checks the trust root for given patterns that indicate that the
+    trust root is too broad.
+
+    @sort: parse, isSane
     """
     
     def __init__(self, unparsed, proto, wildcard, host, port, path):
@@ -49,8 +63,21 @@ class TrustRoot(object):
         self.path = path
 
     def isSane(self):
-        """Checks the sanity of this trust root.
-        http://*.com/ for example is not sane.  Returns a bool."""        
+        """
+        This method checks the to see if a trust root represents a
+        reasonable (sane) set of URLs.  'http://*.com/', for example
+        is not a reasonable pattern, as it cannot meaningfully specify
+        the site claiming it.  This function attempts to find many
+        related examples, but it can only work via heuristics.
+        Negative responses from this method should be treated as
+        advisory, used only to alert the user to examine the trust
+        root carefully.
+
+
+        @return: Whether the trust root is sane
+
+        @rtype: C{bool}
+        """
 
         if self.host == 'localhost':
             return True
@@ -77,9 +104,21 @@ class TrustRoot(object):
         return bool(len(host))
 
     def validateURL(self, url):
-        """Validates a URL against this trust root.  Returns a bool"""
+        """
+        Validates a URL against this trust root.
 
-        url_parts = parseURL(url)
+
+        @param url: The URL to check
+
+        @type url: C{str}
+
+
+        @return: Whether the given URL is within this trust root.
+
+        @rtype: C{bool}
+        """
+
+        url_parts = _parseURL(url)
         if url_parts is None:
             return False
 
@@ -100,10 +139,26 @@ class TrustRoot(object):
             return host.endswith(self.host)
 
     def parse(cls, trust_root):
+        """
+        This method creates a C{L{TrustRoot}} instance from the given
+        input, if possible.
+
+
+        @param trust_root: This is the trust root to parse into a
+        C{L{TrustRoo}} object.
+
+        @type trust_root: C{str}
+
+
+        @return: A C{L{TrustRoot}} instance if trust_root parses as a
+        trust root, C{None} otherwise.
+
+        @rtype: C{NoneType} or C{L{TrustRoot}}
+        """
         if not isinstance(trust_root, (str, unicode)):
             return None
 
-        url_parts = parseURL(trust_root)
+        url_parts = _parseURL(trust_root)
         if url_parts is None:
             return None
         
