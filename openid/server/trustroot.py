@@ -145,7 +145,7 @@ class TrustRoot(object):
 
 
         @param trust_root: This is the trust root to parse into a
-        C{L{TrustRoo}} object.
+        C{L{TrustRoot}} object.
 
         @type trust_root: C{str}
 
