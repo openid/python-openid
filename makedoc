@@ -11,6 +11,7 @@ epydoc --html --output doc/ --name "Python-OpenID" --top openid \
     openid/consumer/fetchers.py \
     openid/server/__init__.py \
     openid/server/server.py \
+    openid/server/trustroot.py \
     openid/store/__init__.py \
     openid/store/interface.py \
     openid/store/filestore.py \
