@@ -584,12 +584,8 @@ class OpenIDConsumer(object):
             assoc.expiresIn <= 0):
             # It's not an association we know about.  Dumb mode is our
             # only possible path for recovery.
-            check_args = oidutil.getOpenIDParameters(query)
-            check_args['openid.mode'] = 'check_authentication'
-            post_data = urllib.urlencode(check_args)
-
             return self._checkAuth(
-                nonce, consumer_id, post_data, server_url)
+                nonce, consumer_id, query, server_url)
 
         # Check the signature
         sig = query.get('openid.sig')
@@ -597,9 +593,8 @@ class OpenIDConsumer(object):
         if sig is None or signed is None:
             return FAILURE, consumer_id
 
-        args = oidutil.getOpenIDParameters(query)
         signed_list = signed.split(',')
-        v_sig = assoc.signDict(signed_list, args)
+        v_sig = assoc.signDict(signed_list, query)
 
         if v_sig != sig:
             return FAILURE, consumer_id
@@ -609,7 +604,15 @@ class OpenIDConsumer(object):
 
         return SUCCESS, consumer_id
 
-    def _checkAuth(self, nonce, consumer_id, post_data, server_url):
+    def _checkAuth(self, nonce, consumer_id, query, server_url):
+        # XXX: send only those arguments that were signed?
+        check_args = {}
+        for k, v in query.iteritems():
+            if k.startswith('openid.'):
+                check_args[k] = v
+        check_args['openid.mode'] = 'check_authentication'
+        post_data = urllib.urlencode(check_args)
+
         ret = self.fetcher.post(server_url, post_data)
         if ret is None:
             return FAILURE, consumer_id

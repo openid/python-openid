@@ -31,15 +31,6 @@ def fromBase64(s):
     except binascii.Error:
         return ''
 
-
-def getOpenIDParameters(query):
-    params = {}
-    for k, v in query.iteritems():
-        if k.startswith('openid.'):
-            params[k] = v
-    return params
-
-
 def quoteMinimal(s):
     """Turn a str or unicode object into an ASCII string
 
