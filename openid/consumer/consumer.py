@@ -605,10 +605,16 @@ class OpenIDConsumer(object):
 
     def _checkAuth(self, nonce, query, server_url):
         # XXX: send only those arguments that were signed?
-        check_args = {}
-        for k, v in query.iteritems():
-            if k.startswith('openid.'):
-                check_args[k] = v
+        signed = query.get('openid.signed')
+        if signed is None:
+            return FAILURE
+
+        whitelist = ['assoc_handle', 'sig', 'signed', 'invalidate_handle']
+        signed = signed.split(',') + whitelist
+
+        arg_filter = lambda (k, v): 'openid.' + k in signed
+        check_args = dict(filter(arg_filter, query.iteritems()))
+
         check_args['openid.mode'] = 'check_authentication'
         post_data = urllib.urlencode(check_args)
 
