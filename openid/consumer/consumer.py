@@ -637,7 +637,8 @@ class OpenIDConsumer(object):
 
         error = results.get('error')
         if error is not None:
-            return FAILURE, consumer_id
+            oidutil.log('Error message from server during '
+                        'check_authentication: %r' % (error,))
 
         return FAILURE
 
