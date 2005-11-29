@@ -584,8 +584,7 @@ class OpenIDConsumer(object):
             assoc.expiresIn <= 0):
             # It's not an association we know about.  Dumb mode is our
             # only possible path for recovery.
-            return self._checkAuth(
-                nonce, consumer_id, query, server_url)
+            return self._checkAuth(nonce, query, server_url), consumer_id
 
         # Check the signature
         sig = query.get('openid.sig')
@@ -604,7 +603,7 @@ class OpenIDConsumer(object):
 
         return SUCCESS, consumer_id
 
-    def _checkAuth(self, nonce, consumer_id, query, server_url):
+    def _checkAuth(self, nonce, query, server_url):
         # XXX: send only those arguments that were signed?
         check_args = {}
         for k, v in query.iteritems():
@@ -615,7 +614,7 @@ class OpenIDConsumer(object):
 
         ret = self.fetcher.post(server_url, post_data)
         if ret is None:
-            return FAILURE, consumer_id
+            return FAILURE
 
         results = kvform.kvToDict(ret[2])
         is_valid = results.get('is_valid', 'false')
@@ -626,15 +625,15 @@ class OpenIDConsumer(object):
                 self.store.removeAssociation(server_url, invalidate_handle)
 
             if not self.store.useNonce(nonce):
-                return FAILURE, consumer_id
+                return FAILURE
 
-            return SUCCESS, consumer_id
+            return SUCCESS
 
         error = results.get('error')
         if error is not None:
             return FAILURE, consumer_id
 
-        return FAILURE, consumer_id
+        return FAILURE
 
     def _getAssociation(self, server_url, replace=0):
         if self.store.isDumb():
