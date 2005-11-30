@@ -231,7 +231,7 @@ from openid import kvform
 from openid import oidutil
 from openid.association import Association
 from openid.dh import DiffieHellman
-from openid.consumer.parse import parseLinkAttrs
+from openid.consumer.parse import findFirstHref, parseLinkAttrs
 from openid.consumer.fetchers import _getHTTPFetcher
 
 __all__ = ['SUCCESS', 'FAILURE', 'SETUP_NEEDED', 'HTTP_FAILURE', 'PARSE_ERROR',
@@ -707,20 +707,9 @@ class OpenIDConsumer(object):
         @param data: The HTML fetched from the Identity URL.
         @type data: string
         """
-        server = None
-        delegate = None
         link_attrs = parseLinkAttrs(data)
-        for attrs in link_attrs:
-            rel = attrs.get('rel')
-            if rel == 'openid.server' and server is None:
-                href = attrs.get('href')
-                if href is not None:
-                    server = href
-
-            if rel == 'openid.delegate' and delegate is None:
-                href = attrs.get('href')
-                if href is not None:
-                    delegate = href
+        server = findFirstHref(link_attrs, 'openid.server')
+        delegate = findFirstHref(link_attrs, 'openid.delegate')
 
         if server is None:
             return PARSE_ERROR, None

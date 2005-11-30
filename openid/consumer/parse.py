@@ -213,3 +213,33 @@ def parseLinkAttrs(html):
         matches.append(link_attrs)
 
     return matches
+
+def relMatches(rel_attr, target_rel):
+    """Does this target_rel appear in the rel_str?"""
+    rels = rel_attr.strip().split()
+    for rel in rels:
+        rel = rel.lower()
+        if rel == target_rel:
+            return 1
+
+    return 0
+
+def linkHasRel(link_attrs, target_rel):
+    """Does this link have target_rel as a relationship?"""
+    rel_attr = link_attrs.get('rel')
+    return rel_attr and relMatches(rel_attr, target_rel)
+    
+def findLinksRel(link_attrs_list, target_rel):
+    """Filter the list of link attributes on whether it has target_rel
+    as a relationship."""
+    matchesTarget = lambda attrs: linkHasRel(attrs, target_rel)
+    return filter(matchesTarget, link_attrs_list)
+
+def findFirstHref(link_attrs_list, target_rel):
+    """Return the value of the href attribute for the first link tag
+    in the list that has target_rel as a relationship."""
+    matches = findLinksRel(link_attrs_list, target_rel)
+    if not matches:
+        return None
+    first = matches[0]
+    return first.get('href')
