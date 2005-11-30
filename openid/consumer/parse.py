@@ -216,6 +216,7 @@ def parseLinkAttrs(html):
 
 def relMatches(rel_attr, target_rel):
     """Does this target_rel appear in the rel_str?"""
+    # XXX: TESTME
     rels = rel_attr.strip().split()
     for rel in rels:
         rel = rel.lower()
@@ -226,18 +227,21 @@ def relMatches(rel_attr, target_rel):
 
 def linkHasRel(link_attrs, target_rel):
     """Does this link have target_rel as a relationship?"""
+    # XXX: TESTME
     rel_attr = link_attrs.get('rel')
     return rel_attr and relMatches(rel_attr, target_rel)
     
 def findLinksRel(link_attrs_list, target_rel):
     """Filter the list of link attributes on whether it has target_rel
     as a relationship."""
+    # XXX: TESTME
     matchesTarget = lambda attrs: linkHasRel(attrs, target_rel)
     return filter(matchesTarget, link_attrs_list)
 
 def findFirstHref(link_attrs_list, target_rel):
     """Return the value of the href attribute for the first link tag
     in the list that has target_rel as a relationship."""
+    # XXX: TESTME
     matches = findLinksRel(link_attrs_list, target_rel)
     if not matches:
         return None
