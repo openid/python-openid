@@ -1,8 +1,6 @@
 from openid.server.trustroot import TrustRoot
 
 def test():
-    print 'Testing...'
-
     # test invalid trust root strings
     def assertBad(s):
         tr = TrustRoot.parse(s)
@@ -95,8 +93,6 @@ def test():
                 'http://localhost:8082/?action=openid', True)
     assertValid('http://goathack.livejournal.org:8020/',
                 'http://goathack.livejournal.org:8020/openid/login.bml', True)
-
-    print 'All tests passed!'
 
 if __name__ == '__main__':
     test()

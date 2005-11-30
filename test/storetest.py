@@ -174,7 +174,6 @@ def testStore(store):
     assert len(key) == store.AUTH_KEY_LEN
 
 def test_filestore():
-    print 'Testing fs'
     from openid.store import filestore
     import tempfile
     import shutil
@@ -189,7 +188,6 @@ def test_filestore():
     try:
         testStore(store)
     except:
-        print 'Test was in', temp_dir
         raise
     else:
         shutil.rmtree(temp_dir)
@@ -201,7 +199,6 @@ def test_sqlite():
     except ImportError:
         pass
     else:
-        print 'Testing sqlite'
         conn = sqlite.connect(':memory:')
         store = sqlstore.SQLiteStore(conn)
         store.createTables()
@@ -214,7 +211,6 @@ def test_mysql():
     except ImportError:
         pass
     else:
-        print 'Testing mysql'
         db_user = 'openid_test'
         db_passwd = ''
         db_name = 'openid_test'
@@ -258,7 +254,6 @@ def test_memcache():
     except ImportError:
         pass
     else:
-        print 'Testing memcache'
         import time
         import memcache
         cache = memcache.Client(['localhost:11211'], debug=1)
@@ -269,13 +264,11 @@ def test_memcache():
         testStore(store)
 
 def test_dumbstore():
-    print 'Testing dumbstore'
     from openid.store import dumbstore
     store = dumbstore.DumbStore('bad secret; do not use')
     testStore(store)
 
 def test_memstore():
-    print 'Testing _memstore'
     import _memstore
     testStore(_memstore.MemoryStore())
 
