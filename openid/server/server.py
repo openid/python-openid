@@ -405,10 +405,12 @@ class AuthorizationInfo(object):
     This is a class to 
     """
 
-    def __init__(self, args):
+    def __init__(self, server_url, args):
         """
         
         """
+        self.server_url = server_url
+
         return_to = args.get('openid.return_to')
 
         self.identity_url = args.get('openid.identity')
@@ -420,23 +422,29 @@ class AuthorizationInfo(object):
         self.args = dict(args.iteritems())
 
     def retry(self, openid_server, is_authorized):
-        return openid_server.getOpenIDResponse(
-            'GET', self.args, is_authorized)
+        return openid_server.getOpenIDResponse('GET', self.args, is_authorized)
 
     def cancel(self):
         return REDIRECT, self.cancel_url
 
-    def getRetryURL(self, server_url):
-        return oidutil.appendArgs(server_url, self.args)
+    def getRetryURL(self):
+        return oidutil.appendArgs(self.server_url, self.args)
 
     def getCancelURL(self):
         return self.cancel_url
 
+    def getIdentityURL(self):
+        return self.identity_url
+
+    def getTrustRoot(self):
+        return self.trust_root
+
     def serialize(self):
-        return urllib.urlencode(self.args)
+        return self.server_url + '|' + urllib.urlencode(self.args)
 
     def deserialize(cls, string_form):
-        return cls(dict(cgi.parse_qsl(string_form)))
+        server_url, args = string_form.split('|', 1)
+        return cls(server_url, dict(cgi.parse_qsl(args)))
 
     deserialize = classmethod(deserialize)
 
@@ -578,7 +586,7 @@ class LowLevelServer(object):
                 return REDIRECT, oidutil.appendArgs(self.url, nargs)
 
             elif mode == 'checkid_setup':
-                return DO_AUTH, AuthorizationInfo(args)
+                return DO_AUTH, AuthorizationInfo(self.url, args)
 
             else:
                 raise AssertionError, 'unreachable'
