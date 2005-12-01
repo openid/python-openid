@@ -429,6 +429,9 @@ class AuthorizationInfo(object):
     def getRetryURL(self, server_url):
         return oidutil.appendArgs(server_url, self.args)
 
+    def getCancelURL(self):
+        return self.cancel_url
+
     def serialize(self):
         return urllib.urlencode(self.args)
 
