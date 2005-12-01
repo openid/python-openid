@@ -298,7 +298,7 @@ def main(host, port, data_path):
 if __name__ == '__main__':
     host = 'localhost'
     data_path = 'cstore'
-    port = 8000
+    port = 8001
 
     try:
         import optparse
