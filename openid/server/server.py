@@ -666,7 +666,7 @@ class LowLevelServer(object):
 
         return REMOTE_OK, kvform.dictToKV(reply)
 
-    def checkAuth(self, args):
+    def checkAuthentication(self, args):
         assoc_handle = args.get('openid.assoc_handle')
 
         if assoc_handle is None:
