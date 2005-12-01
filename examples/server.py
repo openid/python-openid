@@ -51,18 +51,18 @@ class ServerHandler(BaseHTTPRequestHandler):
             for k, v in cgi.parse_qsl(self.parsed_uri[4]):
                 self.query[k] = v
 
-            path = self.parsed_uri[2].lower()
+            self.setUser()
 
-            cookies = self.headers.get('Cookie')
-            if cookies:
-                morsel = Cookie.BaseCookie(cookies).get('user')
-                if morsel:
-                    self.user = morsel.value
+            path = self.parsed_uri[2].lower()
 
             if path == '/':
                 self.showMainPage()
             elif path == '/openidserver':
-                self.doOpenIDGet()
+                status, info = self.server.openid.getOpenIDResponse(
+                    'GET', self.query, self.isAuthorized)
+
+                self.doOpenIDResponse(status, info)
+
             elif path == '/login':
                 self.showLoginPage('/', '/')
             elif path == '/loginsubmit':
@@ -82,6 +82,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         try:
             self.parsed_uri = urlparse(self.path)
 
+            self.setUser()
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
 
@@ -91,31 +92,32 @@ class ServerHandler(BaseHTTPRequestHandler):
 
             path = self.parsed_uri[2]
             if path == '/openidserver':
-                status, body = self.server.openid.processPost(self.query)
-                if status == server.OK:
-                    self.send_response(200)
-                elif status == server.ERROR:
-                    self.send_response(400)
-                else:
-                    assert 0, 'should be unreachable %r' % (status,)
-
-                self.end_headers()
-                self.wfile.write(body)
+                self.doOpenID('POST')
 
             elif path == '/allow':
+                auth_info = server.AuthorizationInfo.deserialize(
+                    self.query['auth_info'])
+
                 if 'yes' in self.query:
-                    identity = self.query['identity']
-                    trust_root = self.query['trust_root']
+                    identity = auth_info.identity_url
+                    trust_root = auth_info.trust_root
                     if self.query.get('remember', 'no') == 'yes':
                         duration = 'always'
                     else:
                         duration = 'once'
 
                     self.server.approved[(identity, trust_root)] = duration
-                    self.redirect(self.query['success_to'])
+
+                    if 'login_as' in self.query:
+                        self.user = self.query['login_as']
+
+                    status, info = auth_info.retry(
+                        self.server.openid, self.isAuthorized)
+
+                    self.doOpenIDResponse(status, info)
 
                 elif 'no' in self.query:
-                    self.redirect(self.query['fail_to'])
+                    self.doOpenIDResponse(*auth_info.cancel())
 
                 else:
                     assert 0, 'strange allow post.  %r' % (self.query,)
@@ -132,43 +134,48 @@ class ServerHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(cgitb.html(sys.exc_info(), context=10))
 
+    def setUser(self):
+        cookies = self.headers.get('Cookie')
+        if cookies:
+            morsel = Cookie.BaseCookie(cookies).get('user')
+            if morsel:
+                self.user = morsel.value
 
-    def doOpenIDGet(self):
-        identity, trust_root = \
-                  self.server.openid.getAuthenticationData(self.query)
+    def isAuthorized(self, identity_url, trust_root):
+        if self.user is None:
+            return 0
 
-        identity_ok = (self.user and identity == \
-                       self.server.base_url + self.user)
+        if identity_url != self.server.base_url + self.user:
+            return 0
 
-        # check all three important parts
-        if identity_ok:
-            key = (identity, trust_root)
-            approval = self.server.approved.get(key)
-            if approval == 'once':
-                del self.server.approved[key]
+        key = (identity_url, trust_root)
+        approval = self.server.approved.get(key)
+        if approval == 'once':
+            del self.server.approved[key]
 
-            authorized = approval is not None
-        else:
-            authorized = False
+        return approval is not None
 
-        status, info = self.server.openid.getAuthenticationResponse(\
-            authorized, self.query)
-
+    def doOpenIDResponse(self, status, info):
         if status == server.REDIRECT:
             self.redirect(info)
 
         elif status == server.DO_AUTH:
-            retry, cancel = info
-
-            if identity_ok:
-                self.showDecidePage(identity, trust_root, retry, cancel)
-            else:
-                self.showLoginPage(retry, cancel)
+            self.showDecidePage(info)
 
         elif status == server.DO_ABOUT:
             self.showAboutPage()
 
-        elif status == server.ERROR:
+        elif status == server.REMOTE_OK:
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(info)
+
+        elif status == server.REMOTE_ERROR:
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write(info)
+
+        elif status == server.LOCAL_ERROR:
             self.showErrorPage(info)
 
         else:
@@ -177,26 +184,30 @@ class ServerHandler(BaseHTTPRequestHandler):
     def doLogin(self):
         if 'submit' in self.query:
             if 'user' in self.query:
-                cookie = ('Set-Cookie', 'user=%s' % self.query['user'])
+                self.user = self.query['user']
             else:
-                t1970 = time.gmtime(0)
-                expires = time.strftime(
-                    'Expires=%a, %d-%b-%y %H:%M:%S GMT', t1970)
-                cookie = ('Set-Cookie', 'user=;%s' % expires)
-            self.redirect(self.query['success_to'], cookie)
+                self.user = None
+            self.redirect(self.query['success_to'])
         elif 'cancel' in self.query:
             self.redirect(self.query['fail_to'])
         else:
             assert 0, 'strange login %r' % (self.query,)
 
-    def redirect(self, url, *headers):
+    def redirect(self, url):
         self.send_response(302)
         self.send_header('Location', url)
-
-        for k, v in headers:
-            self.send_header(k, v)
+        self.writeUserHeader()
 
         self.end_headers()
+
+    def writeUserHeader(self):
+        if self.user is None:
+            t1970 = time.gmtime(0)
+            expires = time.strftime(
+                'Expires=%a, %d-%b-%y %H:%M:%S GMT', t1970)
+            self.send_header('Set-Cookie', 'user=;%s' % expires)
+        else:
+            self.send_header('Set-Cookie', 'user=%s' % self.user)
 
     def showAboutPage(self):
         self.showPage(200, 'This is an OpenID server', msg='''\
@@ -241,37 +252,71 @@ class ServerHandler(BaseHTTPRequestHandler):
         -->
         ''' % error_message)
 
-    def showDecidePage(self, identity, trust_root, retry, cancel):
-        args = {
-            'identity': identity,
-            'trust_root': trust_root,
-            'retry': retry,
-            'cancel': cancel,
-            }
-        self.showPage(200, 'Approve OpenID request?', msg='''\
-        <p>A new site has asked for your identity.  If you approve,
-        the site represented by the trust root below will be
-        told that you control identity URL listed below. (If you are
-        using a delegated identity, the site will take care of
-        reversing the delegation on its own.)</p>
-        ''', form='''\
-        <table>
-          <tr><td>Identity:</td><td>%(identity)s</td></tr>
-          <tr><td>Trust Root:</td><td>%(trust_root)s</td></tr>
-        </table>
-        <p>Allow this login to proceed?</p>
-        <form method="POST" action="/allow">
-          <input type="checkbox" id="remember" name="remember" value="yes"
-              checked="checked" /><label for="remember">Remember this
-              decision</label><br />
-          <input type="hidden" name="identity" value="%(identity)s" />
-          <input type="hidden" name="trust_root" value="%(trust_root)s" />
-          <input type="hidden" name="success_to" value="%(retry)s" />
-          <input type="hidden" name="fail_to" value="%(cancel)s" />
-          <input type="submit" name="yes" value="yes" />
-          <input type="submit" name="no" value="no" />
-        </form>
-        ''' % args)
+    def showDecidePage(self, auth_info):
+        expected_user = auth_info.identity_url[len(self.server.base_url):]
+
+        if expected_user == self.user:
+            msg = '''\
+            <p>A new site has asked for your identity.  If you
+            approve, the site represented by the trust root below will
+            be told that you control identity URL listed below. (If
+            you are using a delegated identity, the site will take
+            care of reversing the delegation on its own.)</p>'''
+
+            fdata = {
+                'identity': auth_info.identity_url,
+                'trust_root': auth_info.trust_root,
+                'auth_info': auth_info.serialize(),
+                }
+            form = '''\
+            <table>
+              <tr><td>Identity:</td><td>%(identity)s</td></tr>
+              <tr><td>Trust Root:</td><td>%(trust_root)s</td></tr>
+            </table>
+            <p>Allow this authentication to proceed?</p>
+            <form method="POST" action="/allow">
+              <input type="checkbox" id="remember" name="remember" value="yes"
+                  checked="checked" /><label for="remember">Remember this
+                  decision</label><br />
+              <input type="hidden" name="auth_info" value="%(auth_info)s" />
+              <input type="submit" name="yes" value="yes" />
+              <input type="submit" name="no" value="no" />
+            </form>''' % fdata
+        else:
+            mdata = {
+                'expected_user': expected_user,
+                'user': self.user,
+                }
+            msg = '''\
+            <p>A site has asked for an identity belonging to
+            %(expected_user)s, but you are logged in as %(user)s.  To
+            log in as %(expected_user)s and approve the login request,
+            hit OK below.  The "Remember this decision" checkbox
+            applies only to the trust root decision.</p>''' % mdata
+
+            fdata = {
+                'identity': auth_info.identity_url,
+                'trust_root': auth_info.trust_root,
+                'auth_info': auth_info.serialize(),
+                'expected_user': expected_user,
+                }
+            form = '''\
+            <table>
+              <tr><td>Identity:</td><td>%(identity)s</td></tr>
+              <tr><td>Trust Root:</td><td>%(trust_root)s</td></tr>
+            </table>
+            <p>Allow this authentication to proceed?</p>
+            <form method="POST" action="/allow">
+              <input type="checkbox" id="remember" name="remember" value="yes"
+                  checked="checked" /><label for="remember">Remember this
+                  decision</label><br />
+              <input type="hidden" name="auth_info" value="%(auth_info)s"/>
+              <input type="hidden" name="login_as" value="%(expected_user)s"/>
+              <input type="submit" name="yes" value="yes" />
+              <input type="submit" name="no" value="no" />
+            </form>''' % fdata
+        
+        self.showPage(200, 'Approve OpenID request?', msg=msg, form=form)
 
     def showIdPage(self, path):
         tag = '<link rel="openid.server" href="%sopenidserver">' %\
@@ -327,28 +372,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         ''' % (user_message, quoteattr(self.server.base_url), self.server.base_url))
 
     def showLoginPage(self, success_to, fail_to):
-        if self.path == '/login':
-            user_message = None
-        else:
-            if self.user:
-                why = '''\
-                logged in as <strong>%s</strong>, who does not own the
-                identity URL that the consumer is attempting to
-                verify''' % (self.user,)
-            else:
-                why = 'not logged in to this server'
-
-            user_message = """
-            <p>This is the login page for the OpenID server.  You are
-            attempting to use this server to verify an identity URL
-            and you are %s. The server needs to know who you are
-            before you can approve the request.</p>
-
-            <p>Click <strong>Cancel</strong> to return to the OpenID
-            consumer that initiated this transaction.</p>
-            """ % (why,)
-
-        self.showPage(200, 'Login Page', msg=user_message, form='''\
+        self.showPage(200, 'Login Page', form='''\
         <h2>Login</h2>
         <p>You may log in with any name. This server does not use
         passwords because it is just a sample of how to use the OpenID
@@ -402,6 +426,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             }
         
         self.send_response(response_code)
+        self.writeUserHeader()
 
         self.wfile.write('''\
 Content-type: text/html
