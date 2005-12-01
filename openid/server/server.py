@@ -116,19 +116,20 @@ USING THIS LIBRARY
            whether the request is correctly authorized or not.
 
         4. Call the C{L{OpenIDServer}} instance's
-           C{L{getAuthenticationResponse<OpenIDServer.getAuthenticationResponse>}}
-           method.  The first argument is the value calculated in the
-           previous state, a boolean value indicating whether the
-           request is properly authorized.  The second argument is the
-           arguments provided for this GET request.
+           C{L{getAuthenticationResponse
+           <OpenIDServer.getAuthenticationResponse>}} method.  The
+           first argument is the value calculated in the previous
+           state, a boolean value indicating whether the request is
+           properly authorized.  The second argument is the arguments
+           provided for this GET request.
 
         5. The return value from that call is a pair, (status, info).
            Depending on the status value returned, there are several
            different actions you might take.  See the documentation
-           for the
-           C{L{getAuthenticationResponse<OpenIDServer.getAuthenticationResponse>}}
-           method for a full list of possible results, what they mean,
-           and what the appropriate action for each is.
+           for the C{L{getAuthenticationResponse
+           <OpenIDServer.getAuthenticationResponse>}} method for a
+           full list of possible results, what they mean, and what the
+           appropriate action for each is.
 
     Processing all the results from that last step is fairly simple,
     but it involves adding a few additional pages to your site.  There
@@ -146,44 +147,57 @@ USING THIS LIBRARY
     above what this library provides.
 
 
-@var OK: This is the status code returned by
-    C{L{processPost<OpenIDServer.processPost>}} to indicate that the
-    response should have a 200 HTTP code.
-
-
-@var ERROR: This status code is returned in two different
-    places. C{L{processPost<OpenIDServer.processPost>}} returns this
-    code to inidcate that the response should have a 400 HTTP code.
-    C{L{getAuthenticationResponse<OpenIDServer.getAuthenticationResponse>}}
-    returns this code to indicate that something has gone wrong, and
-    the best you can do is tell the user.
-
-
 @var REDIRECT: This status code is returned by
-    C{L{getAuthenticationResponse<OpenIDServer.getAuthenticationResponse>}}
-    when user should be sent a redirect.
+    C{L{getOpenIDResponse<OpenIDServer.getOpenIDResponse>}} when the
+    user should be sent a redirect.
 
 
 @var DO_AUTH: This status code is returned by
-    C{L{getAuthenticationResponse<OpenIDServer.getAuthenticationResponse>}}
-    when the library has determined that it's up to the application
-    and user to fix the reason the library isn't authorized to return
-    a successful authentication response.
+    C{L{getOpenIDResponse<OpenIDServer.getOpenIDResponse>}} when the
+    library has determined that it's up to the application and user to
+    fix the reason the library isn't authorized to return a successful
+    authentication response.
 
 
 @var DO_ABOUT: This status code is returned by
-    C{L{getAuthenticationResponse<OpenIDServer.getAuthenticationResponse>}}
-    when there were no OpenID arguments provided at all.  This is
-    typically the case when somebody notices the <link> tag in a web
-    page, wonders what it's there for, and decides to type it in.  The
-    standard behavior in this case is to show a page with a small
-    explanation of OpenID.
+    C{L{getOpenIDResponse<OpenIDServer.getOpenIDResponse>}} when there
+    were no OpenID arguments provided at all.  This is typically the
+    case when somebody notices the <link> tag in a web page, wonders
+    what it's there for, and decides to type it in.  The standard
+    behavior in this case is to show a page with a small explanation
+    of OpenID.
 
 
-@sort: OK, ERROR, REDIRECT, DO_AUTH, DO_ABOUT, OpenIDServer
+@var REMOTE_OK: This status code is returned by
+    C{L{getOpenIDResponse<OpenIDServer.getOpenIDResponse>}} when the
+    server should send a 200 response code and an exact message body.
+    This is for informing a remote site everything worked correctly.
+
+
+@var REMOTE_ERROR: This status code is returned by
+    C{L{getOpenIDResponse<OpenIDServer.getOpenIDResponse>}} when the
+    server should send a 400 response code and an exact message body.
+    This is for informing a remote site that an error occured while
+    processing the request.
+
+
+@var LOCAL_ERROR: This status code is returned by
+    C{L{getOpenIDResponse<OpenIDServer.getOpenIDResponse>}} when
+    something went wrong, and the library isn't able to find an
+    appropriate in-protocol response.  When this happens, a short
+    plaintext description of the error will be provided.  The server
+    will probably want to return some sort of error page here, but its
+    contents are not strictly prescribed, like those of the
+    C{L{REMOTE_ERROR}} case.
+
+
+@sort: REDIRECT, DO_AUTH, DO_ABOUT, REMOTE_OK, REMOTE_ERROR,
+    LOCAL_ERROR, OpenIDServer
 """
 
 import time
+import urllib
+import cgi
 
 from openid import cryptutil
 from openid import kvform
@@ -194,12 +208,14 @@ from openid.association import Association
 
 _signed_fields = ['mode', 'identity', 'return_to']
 
-REDIRECT = 'redirect'
-DO_AUTH  = 'do_auth'
-DO_ABOUT = 'do_about'
+REDIRECT     = 'redirect'
+DO_AUTH      = 'do_auth'
+DO_ABOUT     = 'do_about'
 
-OK       = 'ok'
-ERROR    = 'error'
+REMOTE_OK    = 'exact_ok'
+REMOTE_ERROR = 'exact_error'
+
+LOCAL_ERROR  = 'local_error'
 
 class OpenIDServer(object):
     """
@@ -208,17 +224,10 @@ class OpenIDServer(object):
     (or even used concurrently by multiple threads) as needed.
 
 
-    @cvar SECRET_LIFETIME: This is the lifetime that secrets generated
-        by this library are valid for, in seconds.
-
-    @type SECRET_LIFETIME: C{int}
-
 
     @sort: __init__, getAuthenticationData, getAuthenticationResponse,
         processPost
     """
-
-    SECRET_LIFETIME = 14 * 24 * 60 * 60 # 14 days, in seconds
 
     def __init__(self, server_url, store):
         """
@@ -245,47 +254,210 @@ class OpenIDServer(object):
 
         @type store: An object implementing the
             C{L{openid.store.interface.OpenIDStore}} interface
+
+
         """
-        self.url = server_url
-        self.normal = server_url + '|normal'
-        self.dumb = server_url + '|dumb'
+        self.low_level = LowLevelServer(server_url, store)
 
-        if store.isDumb():
-            raise ValueError, 'OpenIDServer cannot use a dumb store.'
-
-        self.store = store
-
-    def getAuthenticationData(self, args):
+    def getOpenIDResponse(self, http_method, args, is_authorized):
         """
-        This method extracts the requested identity URL and trust root
-        from the parameters supplied to the GET request to the OpenID
-        server URL.
+        This method processes an OpenID request, and determines the
+        proper response to it.  It then communicates what that
+        response should be back to its caller via return codes.
+
+        The return value of this method is a pair, C{(status, info)}.
+        The first value is the status code describing what action
+        should be taken.  The second value is additional information
+        for taking that action.
+
+        The following return codes are possible:
+
+            1.  C{L{REDIRECT}} - This code indicates that the server
+                should respond with an HTTP redirect.  In this case,
+                C{info} is the URL to redirect the client to.
+
+            2.  C{L{DO_AUTH}} - This code indicates that the server
+                should take whatever actions are necessary to allow
+                this authentication to succeed or be cancelled, then
+                try again.  In this case C{info} is a
+                C{AuthorizationInfo} object, which contains additional
+                useful information.
+
+            3.  C{L{DO_ABOUT}} -
+
+            4.  C{L{REMOTE_OK}} -
+
+            5.  C{L{REMOTE_ERROR}} -
+
+            6.  C{L{LOCAL_ERROR}} -
+
+
+        @param http_method: This is a string describing the HTTP
+            method used to make the current request.  The only
+            expected values are C{'GET'} and C{'POST'}, though
+            capitalization will be ignored.  Any value other than one
+            of the expected ones will result in a LOCAL_ERROR return
+            code.
+
+        @type http_method: C{str}
 
 
         @param args: This should be a C{dict}-like object that
-            contains the parsed, unescaped query arguments that were
-            sent with the OpenID request being handled.  The keys and
+            contains the parsed, unescaped arguments that were sent
+            with the OpenID request being handled.  The keys and
             values in the dictionary should both be either C{str} or
             C{unicode} objects.
 
         @type args: a C{dict}-like object
 
 
-        @return: This returns a pair, consisting of the identity url
-            and trust root in the request.  If either value is not
-            present in the request, C{None} is returned for that value
-            in the pair.  The values returned otherwise are either
-            C{str} or C{unicode} instances, depending on what the
-            values in C{args} are.
+        @param is_authorized: This is a callback function which this
+            C{L{OpenIDServer}} instance will use to determine the
+            result of an authentication request.  The function will be
+            called with two C{str} arguments, C{identity_url} and
+            C{trust_root}.  It should return a C{bool} value
+            indicating whether this identity request is authorized to
+            succeed.
 
-        @rtype: (C{str} or C{unicode} or C{NoneType}, C{str} or
-            C{unicode} or C{NoneType})
+            The function needs to perform two seperate tasks, and
+            return C{True} only if it gets a positive result from
+            each.
+
+            The first task is to determine the user making this
+            request, and if they are authorized to claim the identity
+            URL passed to the function.  If the user making this
+            request isn't authorized to claim the identity URL, the
+            callback should return C{False}.
+
+            The second task is to determine if the user will allow the
+            trust root in question to determine his or her identity.
+            If they have not previously authorized the trust root to
+            know they're identity the callback should return C{False}.
+
+            If neither of those returned C{False}, the callback should
+            return C{True}.  An example callback might look like this::
+
+                def is_authorized(identity_url, trust_root):
+                    user = getUserName()
+                    if user is None:
+                        return False
+
+                    if identity_url != getIdentityUrl(user):
+                        return False
+
+                    if trust_root not in getTrustRoots(user):
+                        return False
+
+                    return True
+
+            That's obviously a pseudocode-ish example, but it conveys
+            the important steps.  This callback should work only with
+            information already submitted, ie. the user already logged
+            in and the trust roots they've already approved.  It is
+            important that this callback does not attempt to interact
+            with the user.  Doing so would lead to violating the
+            OpenID specification when the server is handling a
+            checkid_immediate request.
+
+        @type is_authorized: A function, taking two C{str} objects and
+            returning a C{bool}.
+
+
+        @return: A pair, C{(status, value)} which describes the
+            appropriate response to an OpenID request, as above.  The
+            first value will always be one of the constants defined in
+            this package.
+
+        @rtype: (C{str}, depends on the first)
         """
-        trust_root = args.get('openid.trust_root')
-        identity = args.get('openid.identity')
-        return identity, trust_root
+        if http_method.upper() == 'GET':
+            trust_root = args.get('openid.trust_root')
+            if not trust_root:
+                trust_root = args.get('openid.return_to')
 
-    def getAuthenticationResponse(self, authorized, args):
+            identity_url = args.get('openid.identity')
+            if identity_url is None or trust_root is None:
+                authorized = 0 # not False for 2.2 compatibility
+            else:
+                authorized = is_authorized(identity_url, trust_root)
+
+            return self.low_level.getAuthResponse(authorized, args)
+
+        elif http_method.upper() == 'POST':
+            mode = args.get('openid.mode')
+            if mode == 'associate':
+                return self.low_level.associate(args)
+
+            elif mode == 'check_authentication':
+                return self.low_level.checkAuthentication(args)
+
+            else:
+                err = 'Unrecognized openid.mode (%r)' % mode
+                return self.low_level.postError(err)
+
+        else:
+            err = 'HTTP method %r is not valid with OpenID' % (http_method,)
+            return LOCAL_ERROR, err
+
+
+class AuthorizationInfo(object):
+    """
+    This is a class to 
+    """
+
+    def __init__(self, args):
+        """
+        
+        """
+        return_to = args.get('openid.return_to')
+
+        self.identity_url = args.get('openid.identity')
+        self.trust_root = args.get('openid.trust_root') or return_to
+
+        cancel_args = {'openid.mode': 'cancel'}
+        self.cancel_url = oidutil.appendArgs(return_to, cancel_args)
+
+        self.args = dict(args.iteritems())
+
+    def retry(self, openid_server, is_authorized):
+        return openid_server.getOpenIDResponse(
+            'GET', self.args, is_authorized)
+
+    def cancel(self):
+        return REDIRECT, self.cancel_url
+
+    def serialize(self):
+        return urllib.urlencode(self.args)
+
+    def deserialize(cls, string_form):
+        return cls(dict(cgi.parse_qsl(string_form)))
+
+    deserialize = classmethod(deserialize)
+
+
+class LowLevelServer(object):
+    """
+    @cvar SECRET_LIFETIME: This is the lifetime that secrets generated
+        by this library are valid for, in seconds.
+
+    @type SECRET_LIFETIME: C{int}
+
+    """
+    
+    SECRET_LIFETIME = 14 * 24 * 60 * 60 # 14 days, in seconds
+
+    def __init__(self, server_url, store):
+        self.url = server_url
+        self.normal_key = server_url + '|normal'
+        self.dumb_key = server_url + '|dumb'
+
+        if store.isDumb():
+            raise ValueError, 'OpenIDServer cannot use a dumb store.'
+
+        self.store = store
+
+
+    def getAuthResponse(self, authorized, args):
         """
         This method determines the correct response to make to an
         authentication request.
@@ -365,26 +537,33 @@ class OpenIDServer(object):
 
         @rtype: (C{str}, C{str} or C{(str, str)} or C{NoneType})
         """
+        mode = args.get('openid.mode')
+
+        if mode not in ['checkid_immediate', 'checkid_setup']:
+            err = 'openid.mode (%r) not understood for this request' % mode
+            return self.getError(args, err)
+
         identity = args.get('openid.identity')
         if identity is None:
-            return self._getErr(args, 'No identity specified')
+            return self.getError(args, 'No identity specified')
 
         trust_root = args.get('openid.trust_root')
+        if trust_root is None:
+            trust_root = args.get('openid.return_to')
+
         tr = TrustRoot.parse(trust_root)
         if tr is None:
-            return self._getErr(args, 'Malformed trust_root: %s' % trust_root)
+            err = 'Malformed trust_root: %r' % (trust_root,)
+            return self.getError(args, err)
 
         return_to = args.get('openid.return_to')
         if return_to is None:
-            return self._getErr(args, 'No return_to URL specified')
+            return self.getError(args, 'No return_to URL specified')
 
         if not tr.validateURL(return_to):
-            return self._getErr(
-                args, 'return_to(%s) not valid against trust_root(%s)' % (
-                return_to, trust_root))
-
-        assoc_handle = args.get('openid.assoc_handle')
-        mode = args.get('openid.mode')
+            err = 'return_to(%s) not valid against trust_root(%s)' % \
+                  (return_to, trust_root)
+            return self.getError(args, err)
 
         if not authorized:
             if mode == 'checkid_immediate':
@@ -393,14 +572,10 @@ class OpenIDServer(object):
                 return REDIRECT, oidutil.appendArgs(self.url, nargs)
 
             elif mode == 'checkid_setup':
-                ret = oidutil.appendArgs(self.url, args)
-                can = oidutil.appendArgs(return_to, {'openid.mode': 'cancel'})
-
-                return DO_AUTH, (ret, can)
+                return DO_AUTH, AuthorizationInfo(args)
 
             else:
-                return self._getErr(
-                    args, 'open.mode (%r) not understood' % mode)
+                raise AssertionError, 'unreachable'
 
         reply = {
             'openid.mode': 'id_res',
@@ -408,21 +583,23 @@ class OpenIDServer(object):
             'openid.identity': identity,
             }
 
+        store = self.store
+        assoc_handle = args.get('openid.assoc_handle')
         if assoc_handle:
-            assoc = self.store.getAssociation(self.normal, assoc_handle)
+            assoc = store.getAssociation(self.normal_key, assoc_handle)
 
             # fall back to dumb mode if assoc_handle not found,
             # and send the consumer an invalidate_handle message
             if assoc is None or assoc.expiresIn <= 0:
                 if assoc is not None and assoc.expiresIn <= 0:
-                    self.store.removeAssociation(self.normal, assoc.handle)
+                    store.removeAssociation(self.normal_key, assoc.handle)
 
-                assoc = self._createAssociation('HMAC-SHA1')
-                self.store.storeAssociation(self.dumb, assoc)
+                assoc = self.createAssociation('HMAC-SHA1')
+                store.storeAssociation(self.dumb_key, assoc)
                 reply['openid.invalidate_handle'] = assoc_handle
         else:
-            assoc = self._createAssociation('HMAC-SHA1')
-            self.store.storeAssociation(self.dumb, assoc)
+            assoc = self.createAssociation('HMAC-SHA1')
+            store.storeAssociation(self.dumb_key, assoc)
 
         reply['openid.assoc_handle'] = assoc.handle
 
@@ -430,46 +607,98 @@ class OpenIDServer(object):
 
         return REDIRECT, oidutil.appendArgs(return_to, reply)
 
-    def processPost(self, args):
-        """
-        This method processes POST requests to the OpenID server URL.
-        See the L{module documentation<openid.server.server>} for
-        more notes on when to use this method.
+    def associate(self, args):
+        reply = {}
+        assoc_type = args.get('openid.assoc_type', 'HMAC-SHA1')
+        assoc = self.createAssociation(assoc_type)
 
+        if assoc is None:
+            err = 'unable to create an association for type %r' % assoc_type
+            return self.postError(err)
+        else:
+            self.store.storeAssociation(self.normal_key, assoc)
 
-        @param args: This should be a C{dict}-like object that
-            contains the parsed, unescaped post arguments that were
-            sent with the OpenID request being handled.  The keys and
-            values in the dictionary should both be either C{str} or
-            C{unicode} objects.
+        reply.update({
+            'assoc_type': 'HMAC-SHA1',
+            'assoc_handle': assoc.handle,
+            'expires_in': str(assoc.expiresIn),
+            })
 
-        @type args: a C{dict}-like object
+        session_type = args.get('openid.session_type')
+        if session_type:
+            if session_type == 'DH-SHA1':
+                p = args['openid.dh_modulus']
+                g = args['openid.dh_gen']
+                consumer_public = args['openid.dh_consumer_public']
 
+                dh = DiffieHellman.fromBase64(modulus, generator)
 
-        @return: This method returns a pair, consisting of a status
-            value and the content to return from the request.  The
-            status value is either C{L{OK}} or C{L{ERROR}}.  When it's
-            C{L{OK}}, the response to this request should have HTTP
-            status code 200.  If the status is C{L{ERROR}}, the
-            response should have HTTP status code 400.  In either
-            case, the body of the response should be the second value
-            in the pair.
+                consumer_public = args.get('openid.dh_consumer_public')
+                if consumer_public is None:
+                    err = 'Missing openid.dh_consumer_public'
+                    return self.postError(err)
 
-        @rtype: (C{str}, C{str})
-        """
-        try:
-            mode = args['openid.mode']
-            if mode == 'associate':
-                return self._associate(args)
-            elif mode == 'check_authentication':
-                return self._checkAuth(args)
+                cpub = cryptutil.base64ToLong(consumer_public)
+                mac_key = dh.xorSecret(cpub, assoc.secret)
+
+                reply.update({
+                    'session_type': session_type,
+                    'dh_server_public': cryptutil.longToBase64(dh.public),
+                    'enc_mac_key': oidutil.toBase64(mac_key),
+                    })
             else:
-                return self._postErr('Unrecognized openid.mode (%r)' % mode)
-        except KeyError, e:
-            return self._postErr(
-                'Necessary openid argument (%r) missing.' % e[0])
+                return self.postError('session_type must be DH-SHA1')
+        else:
+            reply['mac_key'] = oidutil.toBase64(assoc.secret)
 
-    def _createAssociation(self, assoc_type):
+        return REMOTE_OK, kvform.dictToKV(reply)
+
+    def checkAuth(self, args):
+        assoc_handle = args.get('openid.assoc_handle')
+
+        if assoc_handle is None:
+            return self.postError('Missing openid.assoc_handle')
+
+        assoc = self.store.getAssociation(self.dumb_key, assoc_handle)
+
+        reply = {}
+        if assoc and assoc.expiresIn > 0:
+            signed = args.get('openid.signed')
+            if signed is None:
+                return self.postError('Missing openid.signed')
+
+            sig = args.get('openid.sig')
+            if sig is None:
+                return self.postError('Missing openid.sig')
+
+            to_verify = dict(args)
+            to_verify['openid.mode'] = 'id_res'
+
+            signed_fields = signed.strip().split(',')
+            tv_sig = assoc.signDict(signed_fields, to_verify)
+
+            if tv_sig == sig:
+                self.store.removeAssociation(self.normal_key, assoc_handle)
+                is_valid = 'true'
+
+                invalidate_handle = args.get('openid.invalidate_handle')
+                if invalidate_handle:
+                    if not self.store.getAssociation(self.normal_key,
+                                                     invalidate_handle):
+                        reply['invalidate_handle'] = invalidate_handle
+            else:
+                is_valid = 'false'
+
+        else:
+            if assoc:
+                self.store.removeAssociation(self.dumb_key, assoc_handle)
+
+            is_valid = 'false'
+
+        reply['is_valid'] = is_valid
+        return REMOTE_OK, kvform.dictToKV(reply)
+
+    def createAssociation(self, assoc_type):
         if assoc_type == 'HMAC-SHA1':
             secret = cryptutil.getBytes(20)
         else:
@@ -483,85 +712,7 @@ class OpenIDServer(object):
 
         return assoc
 
-    def _associate(self, args):
-        reply = {}
-        assoc_type = args.get('openid.assoc_type', 'HMAC-SHA1')
-        assoc = self._createAssociation(assoc_type)
-
-        if assoc is None:
-            return self._postErr(
-                'unable to create an association for type %r' % assoc_type)
-        else:
-            self.store.storeAssociation(self.normal, assoc)
-
-        reply.update({
-            'assoc_type': 'HMAC-SHA1',
-            'assoc_handle': assoc.handle,
-            'expires_in': str(assoc.expiresIn),
-            })
-
-        session_type = args.get('openid.session_type')
-        if session_type:
-            if session_type == 'DH-SHA1':
-                modulus = args['openid.dh_modulus']
-                generator = args['openid.dh_gen']
-                consumer_public = args['openid.dh_consumer_public']
-
-                dh = DiffieHellman.fromBase64(modulus, generator)
-
-                cpub = cryptutil.base64ToLong(consumer_public)
-                mac_key = dh.xorSecret(cpub, assoc.secret)
-
-                reply.update({
-                    'session_type': session_type,
-                    'dh_server_public': cryptutil.longToBase64(dh.public),
-                    'enc_mac_key': oidutil.toBase64(mac_key),
-                    })
-            else:
-                return self._postErr('session_type must be DH-SHA1')
-        else:
-            reply['mac_key'] = oidutil.toBase64(assoc.secret)
-
-        return OK, kvform.dictToKV(reply)
-
-    def _checkAuth(self, args):
-        assoc = self.store.getAssociation(
-            self.dumb, args['openid.assoc_handle'])
-
-        if assoc is None:
-            return self._postErr(
-                'no secret found for %r' % args['openid.assoc_handle'])
-
-        reply = {}
-        if assoc.expiresIn > 0:
-            dat = dict(args)
-            dat['openid.mode'] = 'id_res'
-
-            signed_fields = args['openid.signed'].strip().split(',')
-            v_sig = assoc.signDict(signed_fields, dat)
-
-            if v_sig == args['openid.sig']:
-                self.store.removeAssociation(
-                    self.normal, args['openid.assoc_handle'])
-                is_valid = 'true'
-
-                invalidate_handle = args.get('openid.invalidate_handle')
-                if invalidate_handle:
-                    if not self.store.getAssociation(self.normal,
-                                                     invalidate_handle):
-                        reply['invalidate_handle'] = invalidate_handle
-            else:
-                is_valid = 'false'
-
-        else:
-            self.store.removeAssociation(
-                self.dumb, args['openid.assoc_handle'])
-            is_valid = 'false'
-
-        reply['is_valid'] = is_valid
-        return OK, kvform.dictToKV(reply)
-
-    def _getErr(self, args, msg):
+    def getError(self, args, msg):
         return_to = args.get('openid.return_to')
         if return_to:
             err = {
@@ -570,7 +721,7 @@ class OpenIDServer(object):
                 }
             return REDIRECT, oidutil.appendArgs(return_to, err)
         else:
-            return ERROR, msg
+            return LOCAL_ERROR, msg
 
-    def _postErr(self, msg):
-        return ERROR, kvform.dictToKV({'error': msg})
+    def postError(self, msg):
+        return REMOTE_ERROR, kvform.dictToKV({'error': msg})
