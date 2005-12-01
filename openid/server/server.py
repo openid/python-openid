@@ -627,9 +627,8 @@ class LowLevelServer(object):
         session_type = args.get('openid.session_type')
         if session_type:
             if session_type == 'DH-SHA1':
-                p = args['openid.dh_modulus']
-                g = args['openid.dh_gen']
-                consumer_public = args['openid.dh_consumer_public']
+                modulus = args.get('openid.dh_modulus')
+                generator = args.get('openid.dh_gen')
 
                 dh = DiffieHellman.fromBase64(modulus, generator)
 
