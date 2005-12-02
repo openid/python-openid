@@ -74,7 +74,7 @@ def _getHTTPFetcher(raise_exceptions=False):
 
     return fetcher
 
-def allowedURL(url):
+def _allowedURL(url):
     return url.startswith('http://') or url.startswith('https://')
 
 class ExceptionCatchingFetcher(OpenIDHTTPFetcher):
@@ -122,13 +122,13 @@ class UrllibFetcher(OpenIDHTTPFetcher):
             return (code, f.geturl(), data)
 
     def get(self, url):
-        if not allowedURL(url):
+        if not _allowedURL(url):
             raise ValueError('Bad URL scheme: %r' % (url,))
 
         return self._fetch(url)
 
     def post(self, url, body):
-        if not allowedURL(url):
+        if not _allowedURL(url):
             raise ValueError('Bad URL scheme: %r' % (url,))
 
         req = urllib2.Request(url, body)
@@ -158,7 +158,7 @@ class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
 
     def _checkURL(self, url):
         # XXX: make sure url is well-formed and routeable
-        return allowedURL(url)
+        return _allowedURL(url)
 
     def get(self, url):
         c = pycurl.Curl()
