@@ -393,7 +393,7 @@ class OpenIDServer(object):
                 return self.low_level.checkAuthentication(args)
 
             else:
-                err = 'Unrecognized openid.mode (%r)' % mode
+                err = 'Invalid openid.mode (%r) for POST requests' % mode
                 return self.low_level.postError(err)
 
         else:
@@ -619,7 +619,7 @@ class LowLevelServer(object):
         self.dumb_key = server_url + '|dumb'
 
         if store.isDumb():
-            raise ValueError, 'OpenIDServer cannot use a dumb store.'
+            raise ValueError, 'OpenID servers cannot use a dumb store.'
 
         self.store = store
 
@@ -668,7 +668,7 @@ class LowLevelServer(object):
         mode = args.get('openid.mode')
 
         if mode not in ['checkid_immediate', 'checkid_setup']:
-            err = 'openid.mode (%r) not understood for this request' % mode
+            err = 'invalid openid.mode (%r) for GET requests' % mode
             return self.getError(args, err)
 
         identity = args.get('openid.identity')
