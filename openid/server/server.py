@@ -8,35 +8,38 @@ package for more information on stores.
 OVERVIEW
 ========
 
-    From an identity server's perspective, there are two different
-    classes of requests that it has to handle on its OpenID URL.
+    There are two different classes of requests that identity servers
+    need to be able to handle.  First are the requests made directly
+    by identity consumers.  Second are the requests made indirectly,
+    via redirects sent to the user's web browser.
 
     The first class are the requests made to it directly by identity
     consumers.  These are HTTP POST requests made to the published
-    OpenID server URL.  There are two types of POST requests, requests
+    OpenID server URL.  There are two types of these requests, requests
     to create an association, and requests to verify identity requests
     signed with a secret that is entirely private to the server.
 
     The second class are the requests made through redirects.  These
     are HTTP GET requests coming from the user's web browser.  For
     these requests, the identity server must perform several steps.
-    It has to determine the identity of the user performing the GET
-    request, determine if they are allowed to use the identity
-    requested, and then take the correct action depending on the exact
-    form of the request and the answers to those questions.
+    It has to determine the identity of the user making the request,
+    determine if they are allowed to use the identity requested, and
+    then take the correct action depending on the exact form of the
+    request and the answers to those questions.
 
 
 LIBRARY DESIGN
 ==============
 
-    This server library is designed to make dealing with those two
-    classes of requests as straightforward as possible.
+    This server library is designed to make dealing with both classes
+    of requests as straightforward as possible.
 
     At a high level, there are two parts of the library which are
     important.  First, there is the C{L{OpenIDServer}} class in this
     module.  Second, there is the C{L{openid.store}} package, which
     contains information on the necessary persistent state mechanisms,
     and several implementations.
+
 
 STORES
 ======
@@ -78,57 +81,32 @@ USING THIS LIBRARY
     alternative approaches, most of which should be fairly obvious.
 
     The next step is to write the code to handle requests to the
-    server URL.  This can be divided into two tasks, one for POSTs and
-    one for GETs.  Handling POST requests is more straightforward, so
-    it's easier to tackle first.
-
-    When a POST request comes in, get an C{L{OpenIDServer}} instance
-    with an appropriate store, and call its
-    C{L{processPost<OpenIDServer.processPost>}} method with the parsed
-    POST parameters.  The return value is a pair, consisting of a
-    status value and a response body.  If the status value is
-    C{L{openid.server.server.OK}}, send the body back with an HTTP
-    status code of 200.  If the status value is
-    C{L{openid.server.server.ERROR}}, send the body back with an HTTP
-    status code of 400.  Both of those response codes are prescribed
-    by the U{OpenID spec<http://openid.net/specs.bml>}.  The content
-    type for the responses is explicitly not defined, but text/plain
-    is suggested.
-
-    When a GET request comes in, several steps need to take place:
+    server URL.  When a request comes in, several steps need to take
+    place:
 
         1. Get an C{L{OpenIDServer}} instance with an appropriate
-           store.
+           store.  This may be a previously created instance, or a new
+           one, whichever is convenient for your application.
 
-        2. Call its
-           C{L{getAuthenticationData<OpenIDServer.getAuthenticationData>}}
-           method with the arguments provided for this GET request.
-           The return value is a pair (identity URL, trust root) that
-           this request is asking to authorize.
+        2. Call the C{L{OpenIDServer}} instance's
+           C{L{getOpenIDResponse<OpenIDServer.getOpenIDResponse>}}
+           method.  The first argument is a string indicating the HTTP
+           method used to make the request.  This should be either
+           C{'GET'} or C{'POST'}, the two HTTP methods that OpenID
+           uses.  The second argument is the GET or POST (as
+           appropriate) arguments provided for this request, parsed
+           into a C{dict}-like structure.  The third argument is a
+           callback function for determining if authentication
+           requests can proceed.  For more details on the callback
+           function, see the the documentation for
+           C{L{getOpenIDResponse<OpenIDServer.getOpenIDResponse>}}.
 
-        3. Authenticate the user as the owner of the identity
-           URL in question.  Then determine whether the user has
-           authorized telling the consumer (as identified by trust root)
-           that he owns the identity URL.  Both of those are very
-           application-specific bits of logic, and depend heavily on
-           design choices you've made as an identity server.  The end
-           result of these checks should be a boolean value indicating
-           whether the request is correctly authorized or not.
-
-        4. Call the C{L{OpenIDServer}} instance's
-           C{L{getAuthenticationResponse
-           <OpenIDServer.getAuthenticationResponse>}} method.  The
-           first argument is the value calculated in the previous
-           state, a boolean value indicating whether the request is
-           properly authorized.  The second argument is the arguments
-           provided for this GET request.
-
-        5. The return value from that call is a pair, (status, info).
+        3. The return value from that call is a pair, (status, info).
            Depending on the status value returned, there are several
            different actions you might take.  See the documentation
-           for the C{L{getAuthenticationResponse
-           <OpenIDServer.getAuthenticationResponse>}} method for a
-           full list of possible results, what they mean, and what the
+           for the C{L{getOpenIDResponse
+           <OpenIDServer.getOpenIDResponse>}} method for a full list
+           of possible results, what they mean, and what the
            appropriate action for each is.
 
     Processing all the results from that last step is fairly simple,
@@ -223,22 +201,28 @@ class OpenIDServer(object):
     contain no per-request state, so a single instance can be reused
     (or even used concurrently by multiple threads) as needed.
 
+    This class presents an extremely high-level interface to the
+    OpenID server library via the C{L{getOpenIDResponse}} method.
+    Server implementations that wish to handle dispatching themselves
+    can use the interface provided by the C{L{LowLevelServer}} class.
 
 
-    @sort: __init__, getAuthenticationData, getAuthenticationResponse,
-        processPost
+    @sort: __init__, getOpenIDResponse
     """
 
     def __init__(self, server_url, store):
         """
-        This method initializes a new C{L{OpenIDServer}} instance to
-        access the library.
+        This method initializes a new C{L{OpenIDServer}} instance.
+        C{L{OpenIDServer}} instance contain no per-request internal
+        state, so they can be reused or used concurrently by multiple
+        threads, if desired.
 
 
         @param server_url: This is the server's OpenID URL.  It is
             used whenever the server needs to generate a URL that will
             cause another OpenID request to be made, which can happen
-            in authentication requests.
+            in authentication requests.  It's also used as part of the
+            key for looking up and storing the server's secrets.
 
         @type server_url: C{str}
 
@@ -283,13 +267,30 @@ class OpenIDServer(object):
                 C{AuthorizationInfo} object, which contains additional
                 useful information.
 
-            3.  C{L{DO_ABOUT}} -
+            3.  C{L{DO_ABOUT}} - This code indicates that the server
+                should display a page containing information about
+                OpenID.  This is returned when it appears that a user
+                entered an OpenID server URL directly in their
+                browser, and the request wasn't an OpenID request at
+                all.  In this case C{info} is C{None}.
 
-            4.  C{L{REMOTE_OK}} -
+            4.  C{L{REMOTE_OK}} - This code indicates that the server
+                should return content verbatim in response to this
+                request, with an HTTP status code of 200.  In this
+                case, C{info} is a C{str} containing the content to
+                return.
 
-            5.  C{L{REMOTE_ERROR}} -
+            5.  C{L{REMOTE_ERROR}} - This code indicates that the
+                server should return content verbatim in response to
+                this request, with an HTTP status code of 400.  In
+                this case, C{info} is a C{str} containing the content
+                to return.
 
-            6.  C{L{LOCAL_ERROR}} -
+            6.  C{L{LOCAL_ERROR}} - This code indicates an error that
+                can't be handled within the protocol.  When this
+                happens, the server may inform the user that an error
+                has occured as it sees fit.  In this case, C{info} is
+                a short description of the error.
 
 
         @param http_method: This is a string describing the HTTP
@@ -402,12 +403,56 @@ class OpenIDServer(object):
 
 class AuthorizationInfo(object):
     """
-    This is a class to 
+    This is a class to encapsulate information that is useful when
+    interacting with a user to determine if an authentication request
+    can be authorized to succeed.  This class provides methods to get
+    the identity URL and trust root from the request that failed.
+    Given those, the server can determine what needs to happen in
+    order to allow the request to proceed, and can ask the user to
+    perform the necessary actions.
+
+    The user may choose to either perform the actions or not.  If they
+    do, the server should try to perform the request OpenID request
+    again.  If they choose not to, and inform the server by hitting
+    some form of cancel button, the server should redirect them back
+    to the consumer with a notification of that for the consumer.
+
+    This class provides two approaches for each of those actions.  The
+    server can either send the user redirects which will cause the
+    user to retry the OpenID request, or it can help perform those
+    actions without involving an extra redirect, producing output that
+    works like that of C{L{OpenIDServer.getOpenIDResponse}}.
+
+    Both approaches work equally well, and you should choose the one
+    that fits into your framework better.
+
+    The C{L{retry}} and C{L{cancel}} methods produce C{(status,
+    info)} pairs that should be handled exactly like the responses
+    from C{L{OpenIDServer.getOpenIDResponse}}.
+
+    The C{L{getRetryURL}} and C{L{getCancelURL}} methods return URLs
+    to which the user can be redirected to automatically retry or
+    cancel this OpenID request.
     """
 
     def __init__(self, server_url, args):
         """
-        
+        This creates a new C{L{AuthorizationInfo}} object for the
+        given values.
+
+        This constructor is intended primarily for use by the library.
+
+
+        @param server_url: This is the OpenID server's url.  It's used
+            to calculate the retry URL, if requested.
+
+        @type server_url: C{str}
+
+
+        @param args: The query arguments for this request.  This class
+            strips out all non-OpenID arguments.
+
+        @type args: a C{dict}-like object
         """
         self.server_url = server_url
 
@@ -422,27 +467,129 @@ class AuthorizationInfo(object):
         self.args = dict(args.iteritems())
 
     def retry(self, openid_server, is_authorized):
+        """
+        This method retries an OpenID authentication request.
+
+
+        @param openid_server: This is an instance of
+            C{L{OpenIDServer}} that will perform the retry.
+
+        @type openid_server: C{L{OpenIDServer}}
+
+
+        @param is_authorized: This is a callback to determine if the
+            request is authorized, as documented in
+            C{L{OpenIDServer.getOpenIDResponse}}.
+
+        @type is_authorized: A function, taking two C{str} objects and
+            returning a C{bool}.
+
+
+        @return: A C{(status, info)} pair, to be handled like the
+            return value from C{L{OpenIDServer.getOpenIDResponse}}.
+
+        @rtype: (C{str}, depends on the first)
+        """
         return openid_server.getOpenIDResponse('GET', self.args, is_authorized)
 
     def cancel(self):
+        """
+        This method cancels an OpenID authentication request.
+
+
+        @return: A C{(status, info)} pair, to be handled like the
+            return value from C{L{OpenIDServer.getOpenIDResponse}}.
+
+        @rtype: (C{str}, depends on the first)
+        """
         return REDIRECT, self.cancel_url
 
     def getRetryURL(self):
+        """
+        This method returns a URL for retrying the OpenID request that
+        generated this C{L{AuthorizationInfo}} object.  If the user's
+        web browser is redirected to this URL, the request will be
+        retried automatically.
+
+
+        @return: A URL which will cause an OpenID request on this
+            server.
+
+        @rtype: C{str}
+        """
         return oidutil.appendArgs(self.server_url, self.args)
 
     def getCancelURL(self):
+        """
+        This method returns a URL which cancels the OpenID request
+        that generated this C{L{AuthorizationInfo}} object.  If the
+        user's web browser is redirected to this URL, the request will
+        be canceled.
+
+
+        @return: A URL which is a response cancelling this OpenID
+            request.
+
+        @rtype: C{str}
+        """
         return self.cancel_url
 
     def getIdentityURL(self):
+        """
+        This method returns the identity URL in the request that
+        generated this C{L{AuthorizationInfo}} object.
+
+
+        @return: The identity URL this request is asking about.
+
+        @rtype: C{str}
+        """
         return self.identity_url
 
     def getTrustRoot(self):
+        """
+        This method returns the trust root in the request that
+        generated this C{L{AuthorizationInfo}} object.
+
+
+        @return: The trust root this request is on behalf of.
+
+        @rtype: C{str}
+        """
         return self.trust_root
 
     def serialize(self):
+        """
+        This method generates a string representing this
+        C{L{AuthorizationInfo}} object.  The result string can be used
+        with the C{L{deserialize}} method to create a new
+        C{L{AuthorizationInfo}} object with the same functionality as
+        this one.
+
+
+        @return: A serialized form of this object.
+
+        @rtype: C{str}
+        """
         return self.server_url + '|' + urllib.urlencode(self.args)
 
     def deserialize(cls, string_form):
+        """
+        This method create a C{L{AuthorizationInfo}} object from a
+        string created by the C{L{serialize}} method of the class.
+
+
+        @param string_form: This is a string that came from a
+            C{L{serialize}} call on a C{L{AuthorizationInfo}}
+            instance.
+
+        @type string_form: C{str}
+
+
+        @return: A new C{L{AuthorizationInfo}} object
+
+        @rtype: C{L{AuthorizationInfo}}
+        """
         server_url, args = string_form.split('|', 1)
         return cls(server_url, dict(cgi.parse_qsl(args)))
 
@@ -451,16 +598,22 @@ class AuthorizationInfo(object):
 
 class LowLevelServer(object):
     """
+    This class provides direct access to most of the low-level
+    functionality of the OpenID server.  It is currently in need of
+    significantly more documentation.
+    
     @cvar SECRET_LIFETIME: This is the lifetime that secrets generated
         by this library are valid for, in seconds.
 
     @type SECRET_LIFETIME: C{int}
-
     """
     
     SECRET_LIFETIME = 14 * 24 * 60 * 60 # 14 days, in seconds
 
     def __init__(self, server_url, store):
+        """
+
+        """
         self.url = server_url
         self.normal_key = server_url + '|normal'
         self.dumb_key = server_url + '|dumb'
@@ -481,45 +634,6 @@ class LowLevelServer(object):
         to this request.  The second value is additional information
         to use when taking that action.
 
-            1. Sending a redirect to the user's browser: The second
-               value is the URL to redirect the the browser to.
-
-            2. Asking the user for additional information to complete
-               the authentication procedure: The second value is
-               another pair.  The pair contains two URLs.  The first
-               is a URL to retry this authentication request.  The
-               second is a URL to redirect the browser to if the user
-               decides to cancel.
-
-               The general plan this supports is to present the user a
-               page asking for additional information, and present the
-               user with 'ok' and 'cancel' buttons.  When the user
-               hits the 'ok' button, process the additional
-               information they gave, and then redirect them to the
-               retry URL.  If they hit the 'cancel' button, send them
-               to the cancel URL.  This is a convenient pattern for
-               dealing with OpenID requests that need additional
-               information for the user.
-
-            3. Showing a page with a short description of OpenID: This
-               is for the case when the user visits the OpenID server
-               URL directly, without making an OpenID request.  In
-               these cases, the best behavior is to show a page with a
-               short description of OpenID, as the user typically
-               found an OpenID server URL in a web page and is curious
-               what it is for.  When this is the case, the second
-               value of the return pair is C{None}.
-
-            4. Showing an error page: If the request contained an
-               error that couldn't be recovered from, the second value
-               will be an error message which may help the user
-               determine what went wrong.  Showing them an error page
-               including the error message is probably the best
-               approach.
-
-        The exact value of the first parameter to select each of those
-        options is covered in the return value documentation.
-
 
         @param authorized: This is a value which indicates whether the
             server is authorized to tell the consumer that the user
@@ -527,11 +641,13 @@ class LowLevelServer(object):
             the server must check that the user making this request is
             the owner of the identity URL in question, and that the
             user has given the consumer permission to learn his or her
-            identity.  The C{L{getAuthenticationData}} method is
-            provided to make extracting the identity url and trust
-            root easy, to aid in the calculation of this value.
+            identity.  The server must determine this value based on
+            information it already has, without interacting with the
+            user.  If it has insufficient information to produce a
+            definite C{True}, it must pass in C{False}.
 
         @type authorized: C{bool}
+
 
         @param args: This should be a C{dict}-like object that
             contains the parsed, unescaped query arguments that were
@@ -542,14 +658,12 @@ class LowLevelServer(object):
         @type args: a C{dict}-like object
 
 
-        @return: A pair indicating what action to take.  The first
-            value is a C{str} object, and the second varies as
-            described above.  The first value will be one of
-            C{L{REDIRECT}}, C{L{DO_AUTH}}, C{L{DO_ABOUT}}, or
-            C{L{ERROR}}.  The action the server should take for each
-            case is described above.
+        @return: See C{L{OpenIDServer.getOpenIDResponse}} for a
+            description of what return status values mean.  This
+            method can return all of the status values except
+            C{L{REMOTE_OK}} and C{L{REMOTE_ERROR}}.
 
-        @rtype: (C{str}, C{str} or C{(str, str)} or C{NoneType})
+        @rtype: (C{str}, depends on the first)
         """
         mode = args.get('openid.mode')
 
@@ -622,6 +736,8 @@ class LowLevelServer(object):
         return REDIRECT, oidutil.appendArgs(return_to, reply)
 
     def associate(self, args):
+        """
+        """
         reply = {}
         assoc_type = args.get('openid.assoc_type', 'HMAC-SHA1')
         assoc = self.createAssociation(assoc_type)
@@ -667,6 +783,8 @@ class LowLevelServer(object):
         return REMOTE_OK, kvform.dictToKV(reply)
 
     def checkAuthentication(self, args):
+        """
+        """
         assoc_handle = args.get('openid.assoc_handle')
 
         if assoc_handle is None:
@@ -712,6 +830,8 @@ class LowLevelServer(object):
         return REMOTE_OK, kvform.dictToKV(reply)
 
     def createAssociation(self, assoc_type):
+        """
+        """
         if assoc_type == 'HMAC-SHA1':
             secret = cryptutil.getBytes(20)
         else:
@@ -726,6 +846,8 @@ class LowLevelServer(object):
         return assoc
 
     def getError(self, args, msg):
+        """
+        """
         return_to = args.get('openid.return_to')
         if return_to:
             err = {
@@ -737,4 +859,6 @@ class LowLevelServer(object):
             return LOCAL_ERROR, msg
 
     def postError(self, msg):
+        """
+        """
         return REMOTE_ERROR, kvform.dictToKV({'error': msg})
