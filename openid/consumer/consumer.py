@@ -612,7 +612,7 @@ class OpenIDConsumer(object):
         whitelist = ['assoc_handle', 'sig', 'signed', 'invalidate_handle']
         signed = signed.split(',') + whitelist
 
-        arg_filter = lambda (k, v): 'openid.' + k in signed
+        arg_filter = lambda (k, v): k[7:] in signed
         check_args = dict(filter(arg_filter, query.iteritems()))
 
         check_args['openid.mode'] = 'check_authentication'
