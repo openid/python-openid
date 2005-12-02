@@ -40,6 +40,10 @@ LIBRARY DESIGN
     contains information on the necessary persistent state mechanisms,
     and several implementations.
 
+    There is also a C{L{LowLevelServer}} class available if you need
+    special handling that isn't available through the
+    C{L{OpenIDServer}} class.
+
 
 STORES
 ======
