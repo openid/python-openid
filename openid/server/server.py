@@ -357,8 +357,8 @@ class OpenIDServer(object):
             in and the trust roots they've already approved.  It is
             important that this callback does not attempt to interact
             with the user.  Doing so would lead to violating the
-            OpenID specification when the server is handling a
-            checkid_immediate request.
+            OpenID specification when the server is handling
+            checkid_immediate requests.
 
         @type is_authorized: A function, taking two C{str} objects and
             returning a C{bool}.

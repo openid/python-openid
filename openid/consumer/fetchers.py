@@ -135,6 +135,10 @@ class UrllibFetcher(OpenIDHTTPFetcher):
         return self._fetch(req)
 
 class OpenIDHTTPError(Exception):
+    """
+    This exception is raised by the C{L{ParanoidHTTPFetcher}} when it
+    encounters an exceptional situation fetching a URL.
+    """
     pass
 
 class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
