@@ -385,7 +385,7 @@ class MySQLStore(SQLStore):
     create_assoc_sql = """
     CREATE TABLE %(associations)s
     (
-        server_url VARCHAR(768),
+        server_url VARCHAR(767),
         handle VARCHAR(255),
         secret BLOB(128),
         issued INTEGER,
