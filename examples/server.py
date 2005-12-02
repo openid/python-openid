@@ -59,7 +59,7 @@ class ServerHandler(BaseHTTPRequestHandler):
                 self.showMainPage()
             elif path == '/openidserver':
                 status, info = self.server.openid.getOpenIDResponse(
-                    'GET', self.query, self.isAuthorized)
+                    self.command, self.query, self.isAuthorized)
 
                 self.doOpenIDResponse(status, info)
 
@@ -92,7 +92,10 @@ class ServerHandler(BaseHTTPRequestHandler):
 
             path = self.parsed_uri[2]
             if path == '/openidserver':
-                self.doOpenID('POST')
+                status, info = self.server.openid.getOpenIDResponse(
+                    self.command, self.query, self.isAuthorized)
+
+                self.doOpenIDResponse(status, info)
 
             elif path == '/allow':
                 auth_info = server.AuthorizationInfo.deserialize(
