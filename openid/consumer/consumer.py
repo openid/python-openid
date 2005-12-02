@@ -530,7 +530,7 @@ class OpenIDConsumer(object):
         elif mode == 'error':
             error = query.get('openid.error')
             if error is not None:
-                pass # XXX: log this
+                oidutil.log(error)
             return FAILURE, None
         elif mode == 'id_res':
             return self._doIdRes(token, query)
