@@ -238,8 +238,6 @@ class OpenIDServer(object):
 
         @type store: An object implementing the
             C{L{openid.store.interface.OpenIDStore}} interface
-
-
         """
         self.low_level = LowLevelServer(server_url, store)
 
@@ -599,9 +597,14 @@ class AuthorizationInfo(object):
 class LowLevelServer(object):
     """
     This class provides direct access to most of the low-level
-    functionality of the OpenID server.  It is currently in need of
-    significantly more documentation.
-    
+    functionality of the OpenID server.
+
+    It is not recommended that you use this class directly if you can
+    avoid it.  Using it requires manually handling dispatching among
+    the methods, which is done automatically in the C{L{OpenIDServer}}
+    class.
+
+
     @cvar SECRET_LIFETIME: This is the lifetime that secrets generated
         by this library are valid for, in seconds.
 
@@ -612,7 +615,29 @@ class LowLevelServer(object):
 
     def __init__(self, server_url, store):
         """
+        This initializes a new C{L{LowLevelServer}} instance.
 
+
+        @param server_url: This is the server's OpenID URL.  It is
+            used whenever the server needs to generate a URL that will
+            cause another OpenID request to be made, which can happen
+            in authentication requests.  It's also used as part of the
+            key for looking up and storing the server's secrets.
+
+        @type server_url: C{str}
+
+
+        @param store: This in an object implementing the
+            C{L{openid.store.interface.OpenIDStore}} interface which
+            the library will use for persistent storage.  See the
+            C{L{OpenIDStore<openid.store.interface.OpenIDStore>}}
+            documentation for more information on stores and various
+            implementations.  Note that the store used for the server
+            must not be a dumb-style store.  It's not possible to be a
+            functional OpenID server without persistent storage.
+
+        @type store: An object implementing the
+            C{L{openid.store.interface.OpenIDStore}} interface
         """
         self.url = server_url
         self.normal_key = server_url + '|normal'
@@ -658,10 +683,11 @@ class LowLevelServer(object):
         @type args: a C{dict}-like object
 
 
-        @return: See C{L{OpenIDServer.getOpenIDResponse}} for a
-            description of what return status values mean.  This
-            method can return all of the status values except
-            C{L{REMOTE_OK}} and C{L{REMOTE_ERROR}}.
+        @return: Returns a pair, C{(status, info)}.  See
+            C{L{OpenIDServer.getOpenIDResponse}} for a description of
+            what return status values mean.  This method can return
+            all of the status values except C{L{REMOTE_OK}} and
+            C{L{REMOTE_ERROR}}.
 
         @rtype: (C{str}, depends on the first)
         """
@@ -737,6 +763,25 @@ class LowLevelServer(object):
 
     def associate(self, args):
         """
+        This method performs the C{openid.mode=associate} action.
+
+
+        @param args: This should be a C{dict}-like object that
+            contains the parsed, unescaped query arguments that were
+            sent with the OpenID request being handled.  The keys and
+            values in the dictionary should both be either C{str} or
+            C{unicode} objects.
+
+        @type args: a C{dict}-like object
+
+
+        @return: Returns a pair, C{(status, info)}.  See
+            C{L{OpenIDServer.getOpenIDResponse}} for a description of
+            what return status values mean.  This method will return
+            only the C{L{REMOTE_OK}} and C{L{REMOTE_ERROR}} status
+            codes.
+
+        @rtype: C{(str, str)}
         """
         reply = {}
         assoc_type = args.get('openid.assoc_type', 'HMAC-SHA1')
@@ -784,6 +829,26 @@ class LowLevelServer(object):
 
     def checkAuthentication(self, args):
         """
+        This method performs the C{openid.mode=check_authentication}
+        action.
+
+
+        @param args: This should be a C{dict}-like object that
+            contains the parsed, unescaped query arguments that were
+            sent with the OpenID request being handled.  The keys and
+            values in the dictionary should both be either C{str} or
+            C{unicode} objects.
+
+        @type args: a C{dict}-like object
+
+
+        @return: Returns a pair, C{(status, info)}.  See
+            C{L{OpenIDServer.getOpenIDResponse}} for a description of
+            what return status values mean.  This method will return
+            only the C{L{REMOTE_OK}} and C{L{REMOTE_ERROR}} status
+            codes.
+
+        @rtype: C{(str, str)}
         """
         assoc_handle = args.get('openid.assoc_handle')
 
@@ -831,6 +896,20 @@ class LowLevelServer(object):
 
     def createAssociation(self, assoc_type):
         """
+        This method is used internally by the OpenID library to create
+        new associations to send to consumers.
+
+
+        @param assoc_type: The type of association to request.  Only
+            C{'HMAC-SHA1'} is currently supported.
+
+        @type assoc_type: C{str}
+
+
+        @return: A new association of the requested type, or C{None}
+            if the requested type isn't recognized.
+
+        @rtype: C{L{openid.association.Association}} or C{NoneType}
         """
         if assoc_type == 'HMAC-SHA1':
             secret = cryptutil.getBytes(20)
@@ -847,6 +926,31 @@ class LowLevelServer(object):
 
     def getError(self, args, msg):
         """
+        This method is used to generate the correct error response if
+        an error occurs during a GET request.
+
+
+        @param args: This should be a C{dict}-like object that
+            contains the parsed, unescaped query arguments that were
+            sent with the OpenID request being handled.  The keys and
+            values in the dictionary should both be either C{str} or
+            C{unicode} objects.
+
+        @type args: a C{dict}-like object
+
+
+        @param msg: The error message to send.
+
+        @type msg: C{str}
+
+
+        @return: Returns a pair, C{(status, info)}.  See
+            C{L{OpenIDServer.getOpenIDResponse}} for a description of
+            what return status values mean.  This method can return
+            all of the status values except C{L{REMOTE_OK}} and
+            C{L{REMOTE_ERROR}}.
+
+        @rtype: (C{str}, depends on the first)
         """
         return_to = args.get('openid.return_to')
         if return_to:
@@ -860,5 +964,21 @@ class LowLevelServer(object):
 
     def postError(self, msg):
         """
+        This method is used to generate the correct error response if
+        an error occurs during a POST request.
+
+
+        @param msg: The error message to send.
+
+        @type msg: C{str}
+
+
+        @return: Returns a pair, C{(status, info)}.  See
+            C{L{OpenIDServer.getOpenIDResponse}} for a description of
+            what return status values mean.  This method will return
+            only the C{L{REMOTE_OK}} and C{L{REMOTE_ERROR}} status
+            codes.
+
+        @rtype: C{(str, str)}
         """
         return REMOTE_ERROR, kvform.dictToKV({'error': msg})
