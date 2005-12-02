@@ -275,7 +275,7 @@ class OpenIDConsumer(object):
         constructRedirect, completeAuth
     """
 
-    TOKEN_LIFETIME = 60 * 2 # two minutes
+    TOKEN_LIFETIME = 60 * 5 # five minutes
     NONCE_LEN = 8
     NONCE_CHRS = string.letters + string.digits
 
