@@ -26,7 +26,7 @@ for module_name in test_modules:
     else:
         try:
             test_mod.test()
-        except (SytemExit, KeyboardInterrupt):
+        except (SystemExit, KeyboardInterrupt):
             raise
         except:
             sys.excepthook(*sys.exc_info())
