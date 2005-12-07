@@ -14,7 +14,7 @@ class Association(object):
     This class represents an association between a server and a
     consumer.  In general, users of this library will never see
     instances of this object.  The only exception is if you implement
-    a custom C{L{openid.store.interface.OpenIDStore}}.
+    a custom C{L{OpenIDStore<openid.store.interface.OpenIDStore>}}.
 
     If you do implement such a store, it will need to store the values
     of the C{L{handle}}, C{L{secret}}, C{L{issued}}, C{L{lifetime}}, and
