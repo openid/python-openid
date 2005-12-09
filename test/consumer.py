@@ -24,11 +24,12 @@ def associate(qs, assoc_secret, assoc_handle):
     """Do the server's half of the associate call, using the given
     secret and handle."""
     q = parse(qs)
-    assert len(q) == 6
+    assert len(q) == 6 or len(q) == 4
     assert q['openid.mode'] == 'associate'
     assert q['openid.assoc_type'] == 'HMAC-SHA1'
     assert q['openid.session_type'] == 'DH-SHA1'
-    d = dh.DiffieHellman.fromBase64(q['openid.dh_modulus'], q['openid.dh_gen'])
+    d = dh.DiffieHellman.fromBase64(
+        q.get('openid.dh_modulus'), q.get('openid.dh_gen'))
 
     composite = cryptutil.base64ToLong(q['openid.dh_consumer_public'])
     enc_mac_key = oidutil.toBase64(d.xorSecret(composite, assoc_secret))

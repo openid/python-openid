@@ -740,8 +740,6 @@ class OpenIDConsumer(object):
             'openid.mode': 'associate',
             'openid.assoc_type':'HMAC-SHA1',
             'openid.session_type':'DH-SHA1',
-            'openid.dh_modulus': cryptutil.longToBase64(dh.modulus),
-            'openid.dh_gen': cryptutil.longToBase64(dh.generator),
             'openid.dh_consumer_public': cpub,
             })
 
