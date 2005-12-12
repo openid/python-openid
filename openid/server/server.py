@@ -964,7 +964,11 @@ class LowLevelServer(object):
                 }
             return REDIRECT, oidutil.appendArgs(return_to, err)
         else:
-            return LOCAL_ERROR, msg
+            for k, _ in args.iteritems():
+                if k.startswith('openid.'):
+                    return LOCAL_ERROR, msg
+
+            return DO_ABOUT, None
 
     def postError(self, msg):
         """
