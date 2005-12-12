@@ -12,7 +12,7 @@ def getLicense():
 
 setup(
     name='python-openid',
-    version='1.0.1',
+    version='1.0.2',
     description='Python OpenID Library',
     url='http://openid.schtuff.com/',
     packages=['openid',
