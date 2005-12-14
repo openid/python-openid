@@ -331,12 +331,14 @@ class FileOpenIDStore(OpenIDStore):
         else:
             association_files = os.listdir(self.association_dir)
             matching_files = []
+            # strip off the path to do the comparison
             name = os.path.basename(filename)
             for association_file in association_files:
                 if association_file.startswith(name):
                     matching_files.append(association_file)
 
             matching_associations = []
+            # read the matching files and sort by time issued
             for name in matching_files:
                 full_name = os.path.join(self.association_dir, name)
                 association = self._getAssociation(full_name)
@@ -345,6 +347,8 @@ class FileOpenIDStore(OpenIDStore):
                         (association.issued, association))
 
             matching_associations.sort()
+
+            # return the most recently issued one.
             if matching_associations:
                 (_, assoc) = matching_associations[-1]
                 return assoc
