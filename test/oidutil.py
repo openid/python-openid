@@ -37,12 +37,42 @@ def test_base64():
         s_prime = oidutil.fromBase64(b64)
         assert s_prime == s, (s, b64, s_prime)
 
+def test_normalizeUrl():
+    n = oidutil.normalizeUrl
+
+    assert 'http://foo.com/' == n('foo.com')
+
+    assert 'http://foo.com/' == n('http://foo.com')
+    assert 'https://foo.com/' == n('https://foo.com')
+    assert 'http://foo.com/bar' == n('foo.com/bar')
+    assert 'http://foo.com/bar' == n('http://foo.com/bar')
+
+    assert 'http://foo.com/' == n('http://foo.com/')
+    assert 'https://foo.com/' == n('https://foo.com/')
+    assert 'https://foo.com/bar'  == n('https://foo.com/bar')
+
+    assert 'http://foo.com/%E8%8D%89' == n(u'foo.com/\u8349')
+    assert 'http://foo.com/%E8%8D%89' == n(u'http://foo.com/\u8349')
+
+    assert 'http://xn--vl1a.com/' == n(u'\u8349.com')
+    assert 'http://xn--vl1a.com/' == n(u'http://\u8349.com')
+    assert 'http://xn--vl1a.com/' == n(u'\u8349.com/')
+    assert 'http://xn--vl1a.com/' == n(u'http://\u8349.com/')
+
+    assert 'http://xn--vl1a.com/%E8%8D%89' == n(u'\u8349.com/\u8349')
+    assert 'http://xn--vl1a.com/%E8%8D%89' == n(u'http://\u8349.com/\u8349')
+
+    assert n(None) is None
+    assert n('') is None
+    assert n('http://') is None
+
 # XXX: there are more functions that could benefit from being better
 # specified and tested in oidutil.py These include, but are not
 # limited to appendArgs
 
 def test():
     test_base64()
+    test_normalizeUrl()
 
 if __name__ == '__main__':
     test()
