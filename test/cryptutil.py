@@ -1,5 +1,6 @@
 import sys
 import random
+import os.path
 
 from openid import cryptutil
 
@@ -111,11 +112,32 @@ def test_binaryLongConvert():
         assert n == n_prime, (s, n, n_prime)
         assert s == s_prime, (n, s, s_prime)
 
+def test_longToBase64():
+    f = file(os.path.join(os.path.dirname(__file__), 'n2b64'))
+    try:
+        for line in f:
+            parts = line.strip().split(' ')
+            assert parts[0] == cryptutil.longToBase64(long(parts[1]))
+    finally:
+        f.close()
+
+def test_base64ToLong():
+    f = file(os.path.join(os.path.dirname(__file__), 'n2b64'))
+    try:
+        for line in f:
+            parts = line.strip().split(' ')
+            assert long(parts[1]) == cryptutil.base64ToLong(parts[0])
+    finally:
+        f.close()
+
+
 def test():
     test_strxor()
     test_reversed()
     test_binaryLongConvert()
     test_cryptrand()
+    test_longToBase64()
+    test_base64ToLong()
 
 if __name__ == '__main__':
     test()
