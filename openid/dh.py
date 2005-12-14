@@ -24,7 +24,11 @@ class DiffieHellman(object):
             generator = self.DEFAULT_GEN
         self.generator = long(generator)
 
-        self.private = cryptutil.randrange(1, modulus - 1)
+        self._setPrivate(cryptutil.randrange(1, modulus - 1))
+
+    def _setPrivate(self, private):
+        """This is here to make testing easier"""
+        self.private = private
         self.public = pow(self.generator, self.private, self.modulus)
 
     def getSharedSecret(self, composite):
