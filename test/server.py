@@ -5,13 +5,19 @@ import urlparse
 import urllib
 
 def test():
-    store = _memstore.MemoryStore()
-    s = server.OpenIDServer('http://id.server.url/', store)
+    sv_url = 'http://id.server.url/'
+    id_url = 'http://foo.com/'
+    rt_url = 'http://return.to/'
 
+    store = _memstore.MemoryStore()
+    s = server.OpenIDServer(sv_url, store)
+
+    # The only thing tested so far is the failure case of
+    # checkid_immediate in dumb mode.
     args = {
         'openid.mode': 'checkid_immediate',
-        'openid.identity': 'http://foo.com/',
-        'openid.return_to': 'http://return.to/',
+        'openid.identity': id_url,
+        'openid.return_to': rt_url,
         }
 
     fail = lambda i, r: 0
@@ -19,17 +25,16 @@ def test():
 
     assert status == server.REDIRECT, status
 
-    expected = 'http://return.to/?openid.mode=id_res&openid.user_setup_url='
+    expected = rt_url + '?openid.mode=id_res&openid.user_setup_url='
     eargs = [
-        ('openid.identity', 'http://foo.com/'),
+        ('openid.identity', id_url),
         ('openid.mode', 'checkid_setup'),
-        ('openid.return_to', 'http://return.to/'),
+        ('openid.return_to', rt_url),
         ]
-    expected += urllib.quote_plus('http://id.server.url/?' + urllib.urlencode(eargs))
-    
+    expected += urllib.quote_plus(sv_url + '?' + urllib.urlencode(eargs))
+
     assert info == expected, (info, expected)
 
-    
 
 if __name__ == '__main__':
     test()
