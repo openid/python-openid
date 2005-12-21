@@ -727,7 +727,12 @@ class LowLevelServer(object):
             if mode == 'checkid_immediate':
                 nargs = dict(args)
                 nargs['openid.mode'] = 'checkid_setup'
-                return REDIRECT, oidutil.appendArgs(self.url, nargs)
+                setup_url = oidutil.appendArgs(self.url, nargs)
+                rargs = {
+                    'openid.mode': 'id_res',
+                    'openid.user_setup_url': setup_url
+                    }
+                return REDIRECT, oidutil.appendArgs(return_to, rargs)
 
             elif mode == 'checkid_setup':
                 return DO_AUTH, AuthorizationInfo(self.url, args)

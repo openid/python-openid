@@ -12,6 +12,7 @@ test_modules = [
     'consumer',
     'fetchers',
     'dh',
+    'server',
     ]
 
 failed = []
