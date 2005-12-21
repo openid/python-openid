@@ -19,7 +19,7 @@ if sys.version < '2.2.3':
 
 setup(
     name='python-openid',
-    version='1.0.2',
+    version='1.0.3',
     description='OpenID support for servers and consumers.',
     long_description='''This is a set of Python packages to support use of
 the OpenID decentralized identity system in your application.  Want to enable
@@ -35,7 +35,7 @@ and support for a variety of storage back-ends.''',
     license=getLicense(),
     author='JanRain',
     author_email='openid@janrain.com',
-    download_url="http://www.openidenabled.com/openid/libraries/python/downloads/python-openid-1-0-2-tar.gz/download",
+    download_url="http://www.openidenabled.com/openid/libraries/python/downloads/python-openid-1-0-3-tar.gz/download",
     classifiers=[
     "Development Status :: 5 - Production/Stable",
     "Environment :: Web Environment",
