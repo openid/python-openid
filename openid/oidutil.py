@@ -11,6 +11,10 @@ def log(message, unused_level=0):
     sys.stderr.write('\n')
 
 def appendArgs(url, args):
+    if hasattr(args, 'items'):
+        args = args.items()
+        args.sort()
+
     if len(args) == 0:
         return url
 
