@@ -33,3 +33,5 @@
 ^doc/
 ^MANIFEST$
 ^dist$
+(^|/)sstore$
+(^|/)cstore$
