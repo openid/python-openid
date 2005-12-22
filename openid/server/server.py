@@ -814,7 +814,11 @@ class LowLevelServer(object):
                 modulus = args.get('openid.dh_modulus')
                 generator = args.get('openid.dh_gen')
 
-                dh = DiffieHellman.fromBase64(modulus, generator)
+                try:
+                    dh = DiffieHellman.fromBase64(modulus, generator)
+                except ValueError:
+                    err = "Please convert to two's complement correctly"
+                    return self.postError(err)
 
                 consumer_public = args.get('openid.dh_consumer_public')
                 if consumer_public is None:
@@ -822,6 +826,10 @@ class LowLevelServer(object):
                     return self.postError(err)
 
                 cpub = cryptutil.base64ToLong(consumer_public)
+                if cpub < 0:
+                    err = "Please convert to two's complement correctly"
+                    return self.postError(err)
+
                 mac_key = dh.xorSecret(cpub, assoc.secret)
 
                 reply.update({
