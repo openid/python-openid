@@ -247,6 +247,96 @@ def test_mysql():
             # failing test, comment out this line.
             conn.query('DROP DATABASE %s;' % db_name)
 
+def test_postgresql():
+    """
+    Tests the PostgreSQLStore on a locally-hosted PostgreSQL database
+    cluster, version 7.4 or later.  To run this test, you must have:
+
+    - The 'psycopg' python module (version 1.1) installed
+
+    - PostgreSQL running locally
+
+    - An 'openid_test' user account in your database cluster, which
+      you can create by running 'createuser -Ad openid_test' as the
+      'postgres' user
+
+    - Trust auth for the 'openid_test' account, which you can activate
+      by adding the following line to your pg_hba.conf file:
+
+      local all openid_test trust
+
+    This test connects to the database cluster three times:
+
+    - To the 'template1' database, to create the 'openid_test'
+      database
+
+    - To the 'openid_test' database, to run the store tests
+
+    - To the 'template1' database once more, to drop the 'openid_test'
+      database
+    """
+    from openid.store import sqlstore
+    try:
+        import psycopg
+    except ImportError:
+        pass
+    else:
+        db_name = 'openid_test'
+        db_user = 'openid_test'
+
+        # Connect once to create the database; reconnect to access the
+        # new database.
+        conn_create = psycopg.connect(database = 'template1', user = db_user)
+        conn_create.autocommit()
+        cursor = conn_create.cursor()
+
+        # Clean up from last time, if the final drop database did not
+        # work.
+        try:
+            cursor = conn_create.cursor()
+            cursor.execute('DROP DATABASE %s;' % (db_name,))
+        except Exception, e:
+            # This is a hack, but we'd do better if psycopg provided
+            # reasonable feedback from Postgres.
+            if str(e).find('exist') == -1:
+                raise
+
+        cursor.close()
+
+        # Create the test database.
+        cursor = conn_create.cursor()
+        cursor.execute('CREATE DATABASE %s;' % (db_name,))
+        conn_create.close()
+
+        # Connect to the test database.
+        conn_test = psycopg.connect(database = db_name, user = db_user)
+
+        # OK, we're in the right environment. Create the store
+        # instance and create the tables.
+        store = sqlstore.PostgreSQLStore(conn_test)
+        store.createTables()
+
+        # At last, we get to run the test.
+        testStore(store)
+
+        # Disconnect.
+        conn_test.close()
+
+        # It takes a little time for the close() call above to take
+        # effect, so we'll wait for a second before trying to remove
+        # the database.  (Maybe this is because we're using a UNIX
+        # socket to connect to postgres rather than TCP?)
+        import time
+        time.sleep(1)
+
+        # Remove the database now that the test is over.
+        conn_remove = psycopg.connect(database = 'template1', user = db_user)
+        conn_remove.autocommit()
+
+        cursor = conn_remove.cursor()
+        cursor.execute('DROP DATABASE %s;' % (db_name,))
+        conn_remove.close()
+
 def test_memcache():
     from openid.store import memcachestore
     try:
@@ -276,6 +366,7 @@ def test():
     test_filestore()
     test_sqlite()
     test_mysql()
+    test_postgresql()
     test_memcache()
     test_dumbstore()
     test_memstore()
