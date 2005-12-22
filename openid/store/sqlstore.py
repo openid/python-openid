@@ -424,3 +424,102 @@ class MySQLStore(SQLStore):
 
     def blobDecode(self, blob):
         return blob.tostring()
+
+class PostgreSQLStore(SQLStore):
+    """
+    This is a PostgreSQL-based specialization of C{L{SQLStore}}.
+
+    To create an instance, see C{L{SQLStore.__init__}}.  To create the
+    tables it will use, see C{L{SQLStore.createTables}}.
+
+    All other methods are implementation details.
+    """
+
+    create_nonce_sql = """
+    CREATE TABLE %(nonces)s
+    (
+        nonce CHAR(8) UNIQUE PRIMARY KEY,
+        expires INTEGER
+    );
+    """
+
+    create_assoc_sql = """
+    CREATE TABLE %(associations)s
+    (
+        server_url VARCHAR(767),
+        handle VARCHAR(255),
+        secret BYTEA,
+        issued INTEGER,
+        lifetime INTEGER,
+        assoc_type VARCHAR(64),
+        PRIMARY KEY (server_url, handle),
+        CONSTRAINT secret_length_constraint CHECK (LENGTH(secret) <= 128)
+    );
+    """
+
+    create_settings_sql = """
+    CREATE TABLE %(settings)s
+    (
+        setting VARCHAR(128) UNIQUE PRIMARY KEY,
+        value BYTEA,
+        CONSTRAINT value_length_constraint CHECK (LENGTH(value) <= 20)
+    );
+    """
+
+    create_auth_sql = "INSERT INTO %(settings)s VALUES ('auth_key', %%s);"
+    get_auth_sql = "SELECT value FROM %(settings)s WHERE setting = 'auth_key';"
+
+    def db_set_assoc(self, server_url, handle, secret, issued, lifetime, assoc_type):
+        """
+        Set an association.  This is implemented as a method because
+        REPLACE INTO is not supported by PostgreSQL (and is not
+        standard SQL).
+        """
+        result = self.db_get_assoc(server_url, handle)
+        rows = self.cur.fetchall()
+        if len(rows):
+            # Update the table since this associations already exists.
+            return self.db_update_assoc(secret, issued, lifetime, assoc_type,
+                                        server_url, handle)
+        else:
+            # Insert a new record because this association wasn't
+            # found.
+            return self.db_new_assoc(server_url, handle, secret, issued,
+                                     lifetime, assoc_type)
+
+    new_assoc_sql = ('INSERT INTO %(associations)s '
+                     'VALUES (%%s, %%s, %%s, %%s, %%s, %%s);')
+    update_assoc_sql = ('UPDATE %(associations)s SET '
+                        'secret = %%s, issued = %%s, '
+                        'lifetime = %%s, assoc_type = %%s '
+                        'WHERE server_url = %%s AND handle = %%s;')
+    get_assocs_sql = ('SELECT handle, secret, issued, lifetime, assoc_type'
+                      ' FROM %(associations)s WHERE server_url = %%s;')
+    get_assoc_sql = (
+        'SELECT handle, secret, issued, lifetime, assoc_type'
+        ' FROM %(associations)s WHERE server_url = %%s AND handle = %%s;')
+    remove_assoc_sql = ('DELETE FROM %(associations)s '
+                        'WHERE server_url = %%s AND handle = %%s;')
+
+    def db_add_nonce(self, nonce, expires):
+        """
+        Set a nonce.  This is implemented as a method because REPLACE
+        INTO is not supported by PostgreSQL (and is not standard SQL).
+        """
+        self.db_get_nonce(nonce)
+        rows = self.cur.fetchall()
+        if len(rows):
+            # Update the table since this nonce already exists.
+            return self.db_update_nonce(expires, nonce)
+        else:
+            # Insert a new record because this nonce wasn't found.
+            return self.db_new_nonce(nonce, expires)
+
+    update_nonce_sql = 'UPDATE %(nonces)s SET expires = %%s WHERE nonce = %%s;'
+    new_nonce_sql = 'INSERT INTO %(nonces)s VALUES (%%s, %%s);'
+    get_nonce_sql = 'SELECT * FROM %(nonces)s WHERE nonce = %%s;'
+    remove_nonce_sql = 'DELETE FROM %(nonces)s WHERE nonce = %%s;'
+
+    def blobEncode(self, blob):
+        import psycopg
+        return psycopg.Binary(blob)
