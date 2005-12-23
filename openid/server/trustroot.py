@@ -40,16 +40,14 @@ def _parseURL(url):
 
     return proto, host, port, path
 
-
-
 class TrustRoot(object):
     """
-    This class represents a valid openid trust root.  The C{L{parse}}
+    This class represents an OpenID trust root.  The C{L{parse}}
     classmethod accepts a trust root string, producing a
     C{L{TrustRoot}} object.  The method OpenID server implementers
     would be most likely to use is the C{L{isSane}} method, which
     checks the trust root for given patterns that indicate that the
-    trust root is too broad.
+    trust root is too broad or points to a local network resource.
 
     @sort: parse, isSane
     """
