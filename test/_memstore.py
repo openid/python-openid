@@ -27,6 +27,10 @@ class ServerAssocs(object):
         return best
 
 class MemoryStore(object):
+    """In-process memory store.
+
+    Use for single long-running processes.
+    """
     AUTH_KEY_LEN = 20
 
     def __init__(self):
