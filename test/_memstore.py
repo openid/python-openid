@@ -20,6 +20,10 @@ class ServerAssocs(object):
             return True
 
     def best(self):
+        """Returns association with the oldest issued date.
+
+        or None if there are no associations.
+        """
         best = None
         for assoc in self.assocs.values():
             if best is None or best.issued < assoc.issued:
