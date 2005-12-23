@@ -73,7 +73,10 @@ def normalizeUrl(url):
         parsed = urlparse.urlparse(url)
 
     if isinstance(url, unicode):
-        authority = parsed[1].encode('idna')
+        try:
+            authority = parsed[1].encode('idna')
+        except LookupError:
+            authority = parsed[1].encode('us-ascii')
     else:
         authority = str(parsed[1])
 
