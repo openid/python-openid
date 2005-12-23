@@ -15,6 +15,12 @@ try:
 except ImportError:
     # Python < 2.3
     import tempfile
+    import warnings
+    warnings.filterwarnings("ignore",
+                            "tempnam is a potential security risk",
+                            RuntimeWarning,
+                            "openid.store.filestore")
+
     def mkstemp(dir):
         for _ in range(5):
             name = os.tempnam(dir)
@@ -266,7 +272,7 @@ class FileOpenIDStore(OpenIDStore):
             handle_hash = _safe64(handle)
         else:
             handle_hash = ''
-        
+
         filename = '%s-%s-%s-%s' % (proto, domain, url_hash, handle_hash)
 
         return os.path.join(self.association_dir, filename)
