@@ -29,7 +29,7 @@ class ServerAssocs(object):
 class MemoryStore(object):
     """In-process memory store.
 
-    Use for single long-running processes.
+    Use for single long-running processes.  No persistence supplied.
     """
     AUTH_KEY_LEN = 20
 
