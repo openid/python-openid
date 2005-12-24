@@ -114,6 +114,7 @@ def buildAppendTests():
          (simple, [('b', 'c'), ('a', 'b')]), simple + '?b=c&a=b'),
         ('two dict (order)',
          (simple, {'b':'c', 'a':'b'}), simple + '?a=b&b=c'),
+        ('escape', (simple, [('=', '=')]), simple + '?%3D=%3D'),
         ]
 
     tests = []
