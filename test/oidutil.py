@@ -1,3 +1,4 @@
+import unittest
 import codecs
 import string
 import random
@@ -85,6 +86,50 @@ def test_normalizeUrl():
     assert n('') is None
     assert n('http://') is None
 
+class AppendArgsTest(unittest.TestCase):
+    def __init__(self, desc, args, expected):
+        unittest.TestCase.__init__(self)
+        self.desc = desc
+        self.args = args
+        self.expected = expected
+
+    def runTest(self):
+        result = oidutil.appendArgs(*self.args)
+        self.assertEqual(self.expected, result, self.args)
+
+    def shortDescription(self):
+        return self.desc
+
+def buildAppendTests():
+    simple = 'http://www.example.com/'
+    cases = [
+        ('empty list', (simple, []), simple),
+        ('empty dict', (simple, {}), simple),
+        ('one list', (simple, [('a', 'b')]), simple + '?a=b'),
+        ('one dict', (simple, {'a':'b'}), simple + '?a=b'),
+        ('two list (same)',
+         (simple, [('a', 'b'), ('a', 'c')]), simple + '?a=b&a=c'),
+        ('two list', (simple, [('a', 'b'), ('b', 'c')]), simple + '?a=b&b=c'),
+        ('two list (order)',
+         (simple, [('b', 'c'), ('a', 'b')]), simple + '?b=c&a=b'),
+        ('two dict (order)',
+         (simple, {'b':'c', 'a':'b'}), simple + '?a=b&b=c'),
+        ]
+
+    tests = []
+
+    for name, args, expected in cases:
+        test = AppendArgsTest(name, args, expected)
+        tests.append(test)
+
+    return unittest.TestSuite(tests)
+
+def test_appendArgs():
+    suite = buildAppendTests()
+    runner = unittest.TextTestRunner()
+    result = runner.run(suite)
+    assert result.wasSuccessful()
+
 # XXX: there are more functions that could benefit from being better
 # specified and tested in oidutil.py These include, but are not
 # limited to appendArgs
@@ -92,6 +137,7 @@ def test_normalizeUrl():
 def test():
     test_base64()
     test_normalizeUrl()
+    test_appendArgs()
 
 if __name__ == '__main__':
     test()
