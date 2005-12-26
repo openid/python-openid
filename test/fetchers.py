@@ -1,8 +1,10 @@
 from openid.consumer import fetchers
 
-def test_fetcher(fetcher, exc):
+def test_fetcher(fetcher, exc, server):
     def geturl(path):
-        return 'http://localhost:9111' + path
+        return 'http://%s:%s%s' % (server.server_name,
+                                   server.socket.getsockname()[1],
+                                   path)
 
     def plain(path, code):
         path = '/' + path
@@ -47,8 +49,8 @@ def test_fetcher(fetcher, exc):
                 raise
         else:
             assert result is None, (fetcher, result)
-        
-def run_fetcher_tests():
+
+def run_fetcher_tests(server):
     exc_fetchers = [fetchers.UrllibFetcher(),]
     try:
         exc_fetchers.append(fetchers.ParanoidHTTPFetcher())
@@ -68,10 +70,10 @@ def run_fetcher_tests():
         non_exc_fetchers.append(fetchers.ExceptionCatchingFetcher(f))
 
     for f in exc_fetchers:
-        test_fetcher(f, True)
+        test_fetcher(f, True, server)
 
     for f in non_exc_fetchers:
-        test_fetcher(f, False)
+        test_fetcher(f, False, server)
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
@@ -153,7 +155,11 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
 
 def test():
     host = 'localhost'
-    port = 9111
+    # When I use port 0 here, it works for the first fetch and the
+    # next one gets connection refused.  Bummer.  So instead, pick a
+    # port that's *probably* not in use.
+    import os
+    port = (os.getpid() % 31000) + 1024
 
     server = HTTPServer((host, port), FetcherTestHandler)
 
@@ -162,7 +168,7 @@ def test():
     server_thread.setDaemon(True)
     server_thread.start()
 
-    run_fetcher_tests()
+    run_fetcher_tests(server)
 
 if __name__ == '__main__':
     test()
