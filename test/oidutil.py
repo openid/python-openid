@@ -184,6 +184,9 @@ def buildAppendTests():
 
     return unittest.TestSuite(tests)
 
+def pyUnitTests():
+    return buildAppendTests()
+
 def test_appendArgs():
     suite = buildAppendTests()
     runner = unittest.TextTestRunner()
@@ -194,10 +197,11 @@ def test_appendArgs():
 # specified and tested in oidutil.py These include, but are not
 # limited to appendArgs
 
-def test():
+def test(skipPyUnit=True):
     test_base64()
     test_normalizeUrl()
-    test_appendArgs()
+    if not skipPyUnit:
+        test_appendArgs()
 
 if __name__ == '__main__':
-    test()
+    test(skipPyUnit=False)

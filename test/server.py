@@ -4,37 +4,39 @@ import cgi
 import urlparse
 import urllib
 
-def test():
-    sv_url = 'http://id.server.url/'
-    id_url = 'http://foo.com/'
-    rt_url = 'http://return.to/'
+import unittest
 
-    store = _memstore.MemoryStore()
-    s = server.OpenIDServer(sv_url, store)
+class TestServer(unittest.TestCase):
+    def setUp(self):
+        self.sv_url = 'http://id.server.url/'
+        self.id_url = 'http://foo.com/'
+        self.rt_url = 'http://return.to/'
 
-    # The only thing tested so far is the failure case of
-    # checkid_immediate in dumb mode.
-    args = {
-        'openid.mode': 'checkid_immediate',
-        'openid.identity': id_url,
-        'openid.return_to': rt_url,
-        }
+        self.store = _memstore.MemoryStore()
+        self.server = server.OpenIDServer(self.sv_url, self.store)
 
-    fail = lambda i, r: 0
-    status, info = s.getOpenIDResponse('GET', args, fail)
+    def test_dumbCheckidImmediateFailure(self):
+        args = {
+            'openid.mode': 'checkid_immediate',
+            'openid.identity': self.id_url,
+            'openid.return_to': self.rt_url,
+            }
 
-    assert status == server.REDIRECT, status
+        fail = lambda i, r: 0
+        status, info = self.server.getOpenIDResponse('GET', args, fail)
 
-    expected = rt_url + '?openid.mode=id_res&openid.user_setup_url='
-    eargs = [
-        ('openid.identity', id_url),
-        ('openid.mode', 'checkid_setup'),
-        ('openid.return_to', rt_url),
-        ]
-    expected += urllib.quote_plus(sv_url + '?' + urllib.urlencode(eargs))
+        self.failUnlessEqual(status, server.REDIRECT)
 
-    assert info == expected, (info, expected)
+        expected = self.rt_url + '?openid.mode=id_res&openid.user_setup_url='
+        eargs = [
+            ('openid.identity', self.id_url),
+            ('openid.mode', 'checkid_setup'),
+            ('openid.return_to', self.rt_url),
+            ]
+        expected += urllib.quote_plus(self.sv_url + '?' +
+                                      urllib.urlencode(eargs))
+        self.failUnlessEqual(info, expected)
 
 
 if __name__ == '__main__':
-    test()
+    unittest.main()

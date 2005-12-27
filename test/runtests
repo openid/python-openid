@@ -12,31 +12,70 @@ test_modules = [
     'consumer',
     'fetchers',
     'dh',
-    'server',
     ]
 
-failed = []
-for module_name in test_modules:
-    print 'Testing %s...' % (module_name,) ,
-    sys.stdout.flush()
-    try:
-        test_mod = __import__(module_name, {}, {}, [None])
-    except ImportError:
-        print 'Failed to import test %r' % (module_name,)
-        failed.append(module_name)
-    else:
+def otherTests():
+    failed = []
+    for module_name in test_modules:
+        print 'Testing %s...' % (module_name,) ,
+        sys.stdout.flush()
         try:
-            test_mod.test()
-        except (SystemExit, KeyboardInterrupt):
-            raise
-        except:
-            sys.excepthook(*sys.exc_info())
+            test_mod = __import__(module_name, {}, {}, [None])
+        except ImportError:
+            print 'Failed to import test %r' % (module_name,)
             failed.append(module_name)
         else:
-            print 'Succeeded.'
+            try:
+                test_mod.test()
+            except (SystemExit, KeyboardInterrupt):
+                raise
+            except:
+                sys.excepthook(*sys.exc_info())
+                failed.append(module_name)
+            else:
+                print 'Succeeded.'
 
-if failed:
-    print 'Failures:', ', '.join(failed)
-    sys.exit(1)
-else:
-    sys.exit(0)
+
+    return failed
+
+def pyunitTests():
+    import unittest
+    import server
+    import oidutil
+
+    pyunit_modules = [
+        server,
+        ]
+    
+    loader = unittest.TestLoader()
+    s = unittest.TestSuite()
+    for m in pyunit_modules:
+        s.addTest(loader.loadTestsFromModule(m))
+
+    # Some modules have data-driven tests, and they use custom methods
+    # to build the test suite:
+    s.addTest(oidutil.pyUnitTests())
+
+    runner = unittest.TextTestRunner() # verbosity=2)
+
+    return runner.run(s)
+
+
+try:
+    bool
+except NameError:
+    def bool(x):
+        return not not x
+
+def main():
+    other_failed = otherTests()
+    pyunit_result = pyunitTests()
+
+    if other_failed:
+        print 'Failures:', ', '.join(other_failed)
+
+    failed = bool(other_failed) or bool(not pyunit_result.wasSuccessful())
+    return failed
+
+if __name__ == '__main__':
+    sys.exit(main() and 1 or 0)
