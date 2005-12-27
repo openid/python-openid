@@ -19,6 +19,15 @@ information on running the examples.
 Library documentation is available in html form in the doc directory.
 
 
+DOCUMENTATION
+=============
+
+The documentation in this library is in Epydoc format, which is
+detailed at:
+
+  http://epydoc.sourceforge.net/
+
+
 CONTACT
 =======
 
