@@ -1,4 +1,5 @@
 from openid.server import server
+from openid import cryptutil, kvform
 import _memstore
 import cgi
 import urlparse
@@ -100,6 +101,54 @@ class TestLowLevel(unittest.TestCase):
         sig = ra['openid.sig'][0]
         sig = sig.decode('base64')
         self.failUnlessEqual(sig, expectSig)
+
+    def test_associatePlain(self):
+        args = {}
+        status, info = self.server.associate(args)
+        self.failUnlessEqual(status, server.REMOTE_OK)
+
+        resultArgs = kvform.kvToDict(info)
+        ra = resultArgs
+        self.failUnlessEqual(ra['assoc_type'], 'HMAC-SHA1')
+        self.failUnlessEqual(ra.get('session_type', None), None)
+        self.failUnless(ra['assoc_handle'])
+        self.failUnless(ra['mac_key'])
+        self.failUnless(int(ra['expires_in']))
+
+    def test_associateDHdefaults(self):
+        from openid.dh import DiffieHellman
+        dh = DiffieHellman()
+        cpub = cryptutil.longToBase64(dh.public)
+        args = {'openid.session_type': 'DH-SHA1',
+                'openid.dh_consumer_public': cpub,
+                }
+        status, info = self.server.associate(args)
+        resultArgs = kvform.kvToDict(info)
+        self.failUnlessEqual(status, server.REMOTE_OK, resultArgs)
+
+        ra = resultArgs
+        self.failUnlessEqual(ra['assoc_type'], 'HMAC-SHA1')
+        self.failUnlessEqual(ra['session_type'], 'DH-SHA1')
+        self.failUnless(ra['assoc_handle'])
+        self.failUnless(ra['dh_server_public'])
+        self.failUnlessEqual(ra.get('mac_key', None), None)
+        self.failUnless(int(ra['expires_in']))
+
+        enc_key = ra['enc_mac_key'].decode('base64')
+        spub = cryptutil.base64ToLong(ra['dh_server_public'])
+        secret = dh.xorSecret(spub, enc_key)
+        self.failUnless(secret)
+
+    def test_associateDHnoKey(self):
+        args = {'openid.session_type': 'DH-SHA1',
+                # Oops, no key.
+                }
+        status, info = self.server.associate(args)
+        self.failUnlessEqual(status, server.REMOTE_ERROR)
+
+        resultArgs = kvform.kvToDict(info)
+        ra = resultArgs
+        self.failUnless(ra['error'])
 
 
 if __name__ == '__main__':
