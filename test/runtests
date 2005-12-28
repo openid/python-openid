@@ -41,10 +41,10 @@ def pyunitTests():
     import unittest
     import server
     import oidutil
-    import linkparse
 
     pyunit_modules = [
         server,
+        test_tools,
         ]
 
     # Some modules have data-driven tests, and they use custom methods
