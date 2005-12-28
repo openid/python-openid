@@ -47,6 +47,34 @@ class TestServerErrors(ServerTestCase):
         self.failUnlessEqual(ra['openid.mode'], ['error'])
         self.failUnless(ra['openid.error'])
 
+    def test_getBadArgs(self):
+        args = {
+            'openid.mode': 'zebradance',
+            'openid.identity': self.id_url,
+            }
+
+        status, info = self.server.getOpenIDResponse('GET', args,
+                                                     lambda a, b: False)
+        self.failUnlessEqual(status, server.LOCAL_ERROR)
+        self.failUnless(info)
+
+    def test_getNoArgs(self):
+        status, info = self.server.getOpenIDResponse('GET', {},
+                                                     lambda a, b: False)
+        self.failUnlessEqual(status, server.DO_ABOUT)
+
+    def test_post(self):
+        args = {
+            'openid.mode': 'pandadance',
+            'openid.identity': self.id_url,
+            }
+
+        status, info = self.server.getOpenIDResponse('POST', args,
+                                                     lambda a, b: False)
+        self.failUnlessEqual(status, server.REMOTE_ERROR)
+        resultArgs = kvform.kvToDict(info)
+        self.failUnless(resultArgs['error'])
+
 
 class TestLowLevel_Associate(LLServerTestCase):
     def test_associatePlain(self):
