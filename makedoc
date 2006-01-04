@@ -16,5 +16,4 @@ epydoc --html --output doc/ --name "Python-OpenID" --top openid \
     openid/store/interface.py \
     openid/store/filestore.py \
     openid/store/dumbstore.py \
-    openid/store/memcachestore.py \
     openid/store/sqlstore.py
