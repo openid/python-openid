@@ -57,8 +57,6 @@ STORES
     flat files on disk, see
     C{L{openid.store.filestore.FileOpenIDStore}}.  For stores based
     on MySQL or SQLite, see the C{L{openid.store.sqlstore}} module.
-    For a store using Danga's memcached caching system, see the
-    C{L{openid.store.memcachestore}} module.
 
 
 USING THIS LIBRARY

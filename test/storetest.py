@@ -337,22 +337,6 @@ def test_postgresql():
         cursor.execute('DROP DATABASE %s;' % (db_name,))
         conn_remove.close()
 
-def test_memcache():
-    from openid.store import memcachestore
-    try:
-        import memcache
-    except ImportError:
-        pass
-    else:
-        import time
-        import memcache
-        cache = memcache.Client(['localhost:11211'], debug=1)
-        cache.flush_all()
-        # let the flush_all take effect
-        time.sleep(1)
-        store = memcachestore.MemCacheOpenIDStore(cache)
-        testStore(store)
-
 def test_dumbstore():
     from openid.store import dumbstore
     store = dumbstore.DumbStore('bad secret; do not use')
@@ -367,7 +351,6 @@ def test():
     test_sqlite()
     test_mysql()
     test_postgresql()
-    test_memcache()
     test_dumbstore()
     test_memstore()
 
