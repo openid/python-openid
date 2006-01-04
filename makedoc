@@ -2,7 +2,7 @@
 
 rm -rf doc/*
 epydoc --html --output doc/ --name "Python-OpenID" --top openid \
-    --url "http://openid.schtuff.com/" --inheritance listed \
+    --url "http://www.openidenabled.com/" --inheritance listed \
     --ignore-param-mismatch --no-private \
     openid/__init__.py \
     openid/association.py \
