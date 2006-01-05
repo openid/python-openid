@@ -252,6 +252,15 @@ class Thing(ApacheView):
     def associate(self, auth_request):
         self.statusMsg("Associating with %s..." % (auth_request.server_url,))
 
+        consu = self.getConsumer()
+        dh = DiffieHellman()
+        body = consu._createAssociateRequest(dh)
+        assoc = consu._fetchAssociation(dh, auth_request.server_url, body)
+        self.record(Event("Association made.  "
+                          "Handle: %s, issued: %s, lifetime: %s hours" % (
+            assoc.handle, time.ctime(assoc.issued), assoc.lifetime / 3600.,)))
+
+
     def getConsumer(self):
         if self.consumer is None:
             # Super-Bogosity!
