@@ -1,4 +1,4 @@
-include COPYING INSTALL CHANGELOG MANIFEST.in makedoc makechangelog
+include COPYING INSTALL CHANGELOG MANIFEST.in makedoc
 recursive-include examples README *.py
 recursive-include test runtests *.py
 recursive-include doc *.css *.html
