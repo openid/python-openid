@@ -91,23 +91,9 @@ XMLCRAP = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/2002/REC-xhtml1-20020801/DTD/xhtml1-transitional.dtd">
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">'''
 
-
-
-class Thing(object):
-    consumer = None
-    store = None
-    
+class ApacheView(object):
     def __init__(self, req):
         self.req = req
-        self.fixed_length = False
-        self._buffer = []
-        storefile = req.get_options().get("OIDDiagStoreFile")
-        if storefile is None:
-            req.log_error("PythonOption OIDDiagStoreFile not found, using "
-                          "in-memory store instead", apache.APLOG_WARNING)
-            self.storefile = ":memory:"
-        else:
-            self.storefile = storefile
 
     def write(self, bytes):
         if self.fixed_length:
@@ -121,17 +107,43 @@ class Thing(object):
             self.req.set_content_length(length)
             self.req.write(''.join(self._buffer))
 
+    def statusMsg(self, msg):
+        self.write('<span class="status">%s</span>\n' % (escape(msg),))
+
     def handle(self, req=None):
         assert (req is None) or (req is self.req)
         req.content_type = "text/html"
+        try:
+            self.go()
+        finally:
+            self.finish()
+        return apache.OK
+
+
+class Thing(ApacheView):
+    # Not really a subclass relationship at all, but for the moment...
+    consumer = None
+    store = None
+
+    def __init__(self, req):
+        ApacheView.__init__(self, req)
+        self.fixed_length = False
+        self._buffer = []
+        storefile = req.get_options().get("OIDDiagStoreFile")
+        if storefile is None:
+            req.log_error("PythonOption OIDDiagStoreFile not found, using "
+                          "in-memory store instead", apache.APLOG_WARNING)
+            self.storefile = ":memory:"
+        else:
+            self.storefile = storefile
+
+    def go(self):
         f = FieldStorage(self.req)
         openid_url = f.getfirst("openid_url")
         if openid_url is None:
             self.openingPage()
         else:
             self.otherStuff(openid_url)
-        self.finish()
-        return apache.OK
 
     def openingPage(self):
         self.fixed_length = True
@@ -185,9 +197,9 @@ class Thing(object):
                 # returned that error, but it might have been after
                 # a redirect.
                 self.write("Server at %s returned error code %s" %
-                           (http_code,))
+                           (openid_url, http_code,))
             return None
-        
+
         elif status is consumer.PARSE_ERROR:
             self.write("Did not find any OpenID information at %s" %
                        (openid_url,))
@@ -197,9 +209,6 @@ class Thing(object):
 
     def associate(self, auth_request):
         self.statusMsg("Associating with %s..." % (auth_request.server_url,))
-
-    def statusMsg(self, msg):
-        self.write('<span class="status">%s</span>\n' % (escape(msg),))
 
     def getConsumer(self):
         if self.consumer is None:
