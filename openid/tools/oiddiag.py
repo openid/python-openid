@@ -91,6 +91,23 @@ XMLCRAP = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/2002/REC-xhtml1-20020801/DTD/xhtml1-transitional.dtd">
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">'''
 
+class Event(object):
+    def __init__(self, text):
+        self.text = text
+
+    def to_html(self):
+        return '<span class="event">%s</span>' % (escape(self.text),)
+
+    def __str__(self):
+        return self.text
+
+class FatalEvent(Event):
+    pass
+
+class Failure(Exception):
+    def event(self):
+        return FatalEvent(self.args[0])
+
 class ApacheView(object):
     def __init__(self, req):
         self.req = req
@@ -108,17 +125,36 @@ class ApacheView(object):
             self.req.write(''.join(self._buffer))
 
     def statusMsg(self, msg):
-        self.write('<span class="status">%s</span>\n' % (escape(msg),))
+        self.write('<span class="status">%s</span><br \>\n' % (escape(msg),))
 
     def handle(self, req=None):
         assert (req is None) or (req is self.req)
         req.content_type = "text/html"
         try:
-            self.go()
+            try:
+                self.go()
+            except Failure, e:
+                self.record(e.event())
         finally:
             self.finish()
         return apache.OK
 
+    def record(self, event):
+        self._record.append(event)
+        self.displayEvent(event)
+
+    def displayEvent(self, event):
+        self.write(event.to_html() + '<br />\n')
+
+    def onCleanup(self, callback):
+        self._cleanupCalls.append(callback)
+
+    def log(self, msg):
+        self.write('<span class="log">%s</span><br />\n' % (escape(msg),))
+
+    def cleanup(self):
+        for c in self._cleanupCalls:
+            c()
 
 class Thing(ApacheView):
     # Not really a subclass relationship at all, but for the moment...
@@ -186,24 +222,24 @@ class Thing(ApacheView):
         status, info = consu.beginAuth(openid_url)
         if status is consumer.SUCCESS:
             auth_request = info
+            self.record(Event("Using OpenID %s at server %s" % (
+                auth_request.server_id, auth_request.server_url)))
             return auth_request
 
         elif status is consumer.HTTP_FAILURE:
             if info is None:
-                self.write("Failed to connect to %s" % (openid_url,))
+                raise Failure("Failed to connect to %s" % (openid_url,))
             else:
                 http_code = info
                 # XXX: That's not quite true - a server *somewhere*
                 # returned that error, but it might have been after
                 # a redirect.
-                self.write("Server at %s returned error code %s" %
-                           (openid_url, http_code,))
-            return None
+                raise Failure("Server at %s returned error code %s" %
+                              (openid_url, http_code,))
 
         elif status is consumer.PARSE_ERROR:
-            self.write("Did not find any OpenID information at %s" %
-                       (openid_url,))
-            return None
+            raise Failure("Did not find any OpenID information at %s" %
+                          (openid_url,))
         else:
             raise AssertionError("status %r not handled" % (status,))
 
