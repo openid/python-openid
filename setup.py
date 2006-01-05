@@ -5,6 +5,7 @@ from distutils.core import setup
 
 if 'sdist' in sys.argv:
     os.system('./makedoc')
+    os.system('./makechangelog')
 
 def getLicense():
     f = open('COPYING', 'r')
