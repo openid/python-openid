@@ -84,8 +84,11 @@ from xml.sax.saxutils import escape, quoteattr
 
 from openid.consumer import consumer
 from openid.store.sqlstore import SQLiteStore
-import pysqlite2.dbapi2
+from openid.dh import DiffieHellman
+from openid import oidutil
 
+import pysqlite2.dbapi2
+import time
 
 XMLCRAP = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/2002/REC-xhtml1-20020801/DTD/xhtml1-transitional.dtd">
@@ -111,6 +114,8 @@ class Failure(Exception):
 class ApacheView(object):
     def __init__(self, req):
         self.req = req
+        self._record = []
+        self._cleanupCalls = []
 
     def write(self, bytes):
         if self.fixed_length:
@@ -137,6 +142,7 @@ class ApacheView(object):
                 self.record(e.event())
         finally:
             self.finish()
+            self.cleanup()
         return apache.OK
 
     def record(self, event):
@@ -248,6 +254,13 @@ class Thing(ApacheView):
 
     def getConsumer(self):
         if self.consumer is None:
+            # Super-Bogosity!
+            self._orig_oidutil_log = oidutil.log
+            def resetLog():
+                oidutil.log = self._orig_oidutil_log
+            self.onCleanup(resetLog)
+            oidutil.log = self.log
+
             if self.store is None:
                 dbconn = pysqlite2.dbapi2.connect(self.storefile)
                 self.store = SQLiteStore(dbconn)
