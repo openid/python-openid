@@ -201,6 +201,7 @@ class Diagnostician(ApacheView):
         if openid_url is None:
             self.openingPage()
         else:
+            self.record(Event("Working on openid_url %s" % (openid_url,)))
             self.otherStuff(openid_url)
 
     def openingPage(self):
