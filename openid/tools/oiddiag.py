@@ -178,7 +178,7 @@ class ApacheView(object):
         for c in self._cleanupCalls:
             c()
 
-class Thing(ApacheView):
+class Diagnostician(ApacheView):
     # Not really a subclass relationship at all, but for the moment...
     consumer = None
     store = None
