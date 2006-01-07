@@ -109,9 +109,13 @@ XMLCRAP = '''<?xml version="1.0" encoding="UTF-8"?>
 class Event(object):
     def __init__(self, text):
         self.text = text
+        self.time = time.time()
 
     def to_html(self):
         return '<span class="event">%s</span>' % (escape(self.text),)
+
+    def __repr__(self):
+        return '<%s %r %s>' % (self.__class__.__name__, self.text, self.time)
 
     def __str__(self):
         return self.text
@@ -126,7 +130,7 @@ class Failure(Exception):
 class ApacheView(object):
     def __init__(self, req):
         self.req = req
-        self._record = []
+        self.event_log = []
         self._cleanupCalls = []
 
     def write(self, bytes):
@@ -158,7 +162,7 @@ class ApacheView(object):
         return apache.OK
 
     def record(self, event):
-        self._record.append(event)
+        self.event_log.append(event)
         self.displayEvent(event)
 
     def displayEvent(self, event):
