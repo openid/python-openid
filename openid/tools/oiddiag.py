@@ -78,8 +78,20 @@
 # or server: [___________________]
 # or [Reset] this page.
 
-from mod_python import apache
-from mod_python.util import FieldStorage
+try:
+    from mod_python import apache
+    from mod_python.util import FieldStorage
+except ImportError, e:
+    # FIXME: If all the Apache stuff were isolated in its own module, there
+    # wouldn't be this grossness.
+    import sys
+    if 'unittest' in sys.modules:
+        # the unittest framework will sneak an 'apache' object in to this
+        # module's namespace.
+        pass
+    else:
+        raise
+
 from xml.sax.saxutils import escape, quoteattr
 
 from openid.consumer import consumer
