@@ -6,7 +6,6 @@ test_modules = [
     'association',
     'storetest',
     'trustroot',
-    'linkparse',
     'oidutil',
     'kvform',
     'consumer',
@@ -42,19 +41,27 @@ def pyunitTests():
     import unittest
     import server
     import oidutil
+    import linkparse
 
     pyunit_modules = [
         server,
         ]
     
+    # Some modules have data-driven tests, and they use custom methods
+    # to build the test suite:
+    custom_modules = [
+        oidutil,
+        linkparse,
+        ]
+
     loader = unittest.TestLoader()
     s = unittest.TestSuite()
+
     for m in pyunit_modules:
         s.addTest(loader.loadTestsFromModule(m))
 
-    # Some modules have data-driven tests, and they use custom methods
-    # to build the test suite:
-    s.addTest(oidutil.pyUnitTests())
+    for m in custom_modules:
+        s.addTest(m.pyUnitTests())
 
     runner = unittest.TextTestRunner() # verbosity=2)
 
