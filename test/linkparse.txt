@@ -1,8 +1,11 @@
+Num Tests: 72
+
 OpenID link parsing test cases
 Copyright (C) 2005-2006, JanRain, Inc.
 See COPYING for license information.
 
-File format:
+File format
+-----------
 
 All text before the first triple-newline (this chunk) should be ignored.
 
@@ -17,6 +20,11 @@ more link headers. The `Link' header consists of whitespace-separated
 attribute pairs. A link header with an empty string as a value
 indicates an empty but present link tag. The attribute pairs are `='
 separated and not quoted.
+
+Optional Links and attributes have a trailing `*'. A compilant
+implementation may produce this as output or may not. A compliant
+implementation will not produce any output that is absent from this
+file.
 
 
 Name: No link tag at all
@@ -139,7 +147,7 @@ Link:
 
 
 Name: Ignore tags in the <script:... > namespace
-Link:
+Link*:
 
 <html>
 <head>
@@ -245,7 +253,7 @@ Link:
 
 
 Name: case-folding
-Link:
+Link*:
 
 <HtMl>
 <hEaD>
@@ -264,7 +272,7 @@ Link:
 
 
 Name: un-closed script tags
-Link:
+Link*:
 
 <html>
 <head>
@@ -272,14 +280,14 @@ Link:
 <link>
 
 
-Name: un-closed script tags (no whitespace
-Link:
+Name: un-closed script tags (no whitespace)
+Link*:
 
 <html><head><script><link>
 
 
 Name: un-closed comment
-Link:
+Link*:
 
 <html>
 <head>
@@ -288,7 +296,7 @@ Link:
 
 
 Name: un-closed CDATA
-Link:
+Link*:
 
 <html>
 <head>
@@ -297,7 +305,7 @@ Link:
 
 
 Name: cdata-like
-Link:
+Link*:
 
 <html>
 <head>
@@ -338,7 +346,7 @@ Link:
 
 Name: case-fold, body ends, two links
 Link:
-Link:
+Link*:
 
 <html>
 <head>
@@ -470,27 +478,27 @@ Link: x=x&"&hellip;>x
 
 
 Name: broken tags
-Link: x=y
+Link*: x=y
 
 <html><head><link x=y<>
 
 
 Name: missing close pointy
-Link: x=y
-Link: x=y
+Link*: x=y
+Link: z=y
 
-<html><head><link x=y<link x=y />
+<html><head><link x=y<link z=y />
 
 
 Name: missing attribute value
-Link: x=y
+Link: x=y y*=
 Link: x=y
 
 <html><head><link x=y y=><link x=y />
 
 
 Name: Missing close pointy (no following)
-Link: x=y
+Link*: x=y
 
 <html><head><link x=y
 
@@ -502,7 +510,7 @@ Link: x=<
 
 
 Name: Should be quoted (2)
-Link: x=>
+Link*: x=>
 
 <html><head><link x=">">
 
