@@ -45,6 +45,15 @@ class MockConsumer(object):
         return consumer.SUCCESS, consumer.OpenIDAuthRequest(
             "token", url, "http://unittest.example/server", "nonce")
 
+    def _findIdentityInfo(self, url):
+        self.url = url
+        return consumer.SUCCESS, (url, "http://delegated.ident.example/",
+                                  "http://unittest.example/server",)
+
+    def _gotIdentityInfo(self, consumer_id, server_id, server_url):
+        return consumer.SUCCESS, consumer.OpenIDAuthRequest(
+            "token7", server_id, server_url, "nonce8")
+
     def _createAssociateRequest(self, dh):
         return "kvform association request blah blah blah"
 
@@ -74,7 +83,7 @@ class Failure(object):
 
 class TestResultRow(unittest.TestCase):
     def setUp(self):
-        r = self.rrow = oiddiag.ResultRow()
+        r = self.rrow = oiddiag.ResultRow(None, None)
         results = [
             Success,
             None,
@@ -112,7 +121,7 @@ class TestResultRowWeb(unittest.TestCase):
 
             def request_try(self, req):
                 self.tryCalled = True
-        self.rrow = SomeTest()
+        self.rrow = SomeTest(None, None)
 
     def test_getURL(self):
         u = self.rrow.getURL()
@@ -128,7 +137,17 @@ class TestResultRowWeb(unittest.TestCase):
 
 class TestCheckidTest(unittest.TestCase):
     def setUp(self):
-        self.rrow = oiddiag.TestCheckidSetup()
+        class MockDiag(object):
+            consumer = MockConsumer()
+            def getConsumer(self):
+                return self.consumer
+        self.diag = MockDiag()
+        self.idinfo = oiddiag.IdentityInfo(
+            self.diag.getConsumer(),
+            "http://shortname.example/",
+            "http://delegated.example/users/long.name",
+            "http://some.example/server",)
+        self.rrow = oiddiag.TestCheckidSetup(self.diag, self.idinfo)
 
     def test_handleRequestTry(self):
         req = DummyRequest()

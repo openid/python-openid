@@ -106,6 +106,18 @@ XMLCRAP = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/2002/REC-xhtml1-20020801/DTD/xhtml1-transitional.dtd">
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">'''
 
+class IdentityInfo(object):
+    def __init__(self, consumer, consumer_id, server_id, server_url):
+        self.consumer = consumer
+        self.consumer_id = consumer_id
+        self.server_id = server_id
+        self.server_url = server_url
+
+    def newAuthRequest(self):
+        unused_status, authreq = self.consumer._gotIdentityInfo(
+            self.consumer_id, self.server_id, self.server_url)
+        return authreq
+
 class Event(object):
     def __init__(self, text):
         self.text = text
@@ -235,20 +247,25 @@ class Diagnostician(ApacheView):
             }
         self.write(s)
         try:
-            auth_request = self.fetchAndParse(openid_url)
-            self.associate(auth_request)
+            identity_info = self.fetchAndParse(openid_url)
+            self.associate(identity_info)
 
         finally:
             self.write('</body></html>')
 
     def fetchAndParse(self, openid_url):
         consu = self.getConsumer()
-        status, info = consu.beginAuth(openid_url)
+        status, info = consu._findIdentityInfo(openid_url)
         if status is consumer.SUCCESS:
-            auth_request = info
-            self.record(Event("Using OpenID %s at server %s" % (
-                auth_request.server_id, auth_request.server_url)))
-            return auth_request
+            identity_info = IdentityInfo(consu, *info)
+            # TODO: Clarify language here.
+            s = ("The supplied identity is %(cid)s, the server is at %(serv)s,"
+                 " identity at the server is %(sid)s" % {
+                'cid': identity_info.consumer_id,
+                'sid': identity_info.server_id,
+                'serv': identity_info.server_url})
+            self.record(Event(s))
+            return identity_info
 
         elif status is consumer.HTTP_FAILURE:
             if info is None:
@@ -267,13 +284,14 @@ class Diagnostician(ApacheView):
         else:
             raise AssertionError("status %r not handled" % (status,))
 
-    def associate(self, auth_request):
-        self.statusMsg("Associating with %s..." % (auth_request.server_url,))
+    def associate(self, identity_info):
+        server_url = identity_info.server_url
+        self.statusMsg("Associating with %s..." % (server_url,))
 
         consu = self.getConsumer()
         dh = DiffieHellman()
         body = consu._createAssociateRequest(dh)
-        assoc = consu._fetchAssociation(dh, auth_request.server_url, body)
+        assoc = consu._fetchAssociation(dh, server_url, body)
         self.record(Event("Association made.  "
                           "Handle: %s, issued: %s, lifetime: %s hours" % (
             assoc.handle, time.ctime(assoc.issued), assoc.lifetime / 3600.,)))
@@ -333,10 +351,12 @@ class ResultRow:
     handler = None
     attemptClass = Attempt
 
-    def __init__(self):
+    def __init__(self, diagnostician, identity_info):
         self._lastAttemptHandle = 0
         self.attempts = []
         self.shortname = self.__class__.__name__
+        self.diagnostician = diagnostician
+        self.identity_info = identity_info
 
     def getAttempt(self, handle):
         for a in self.attempts:
@@ -375,15 +395,12 @@ class ResultRow:
 
 
 class TestCheckidSetup(ResultRow):
+    attemptClass = CheckidAttempt
     def request_try(self, req):
         attempt = self.newAttempt()
-        #status, info = self.consumer.beginAuth(self.openid_url)
-        #if status is not consumer.SUCCESS:
-        #    attempt.setResult(OpenIDFailure(status, info))
-        #    # XXX: What does this return?
-        #    return attempt
-
-        #attempt.authRequest = info
+        consu = self.diagnostician.getConsumer()
+        authRequest = self.identity_info.newAuthRequest()
+        attempt.authRequest = authRequest
 
 
 
