@@ -64,6 +64,74 @@ class TestOidDiag(unittest.TestCase):
         self.diag.go()
         self.failUnlessEqual(len(self.diag.event_log), 3)
 
+class Success(object):
+    def successful(self):
+        return True
+
+class Failure(object):
+    def successful(self):
+        return False
+
+class TestResultRow(unittest.TestCase):
+    def setUp(self):
+        r = self.rrow = oiddiag.ResultRow()
+        results = [
+            Success,
+            None,
+            Failure,
+            Success,
+            None,
+            Failure,
+            None,
+            Failure,
+            None,
+            ]
+        for result in results:
+            a = r.newAttempt()
+            if result is not None:
+                a.setResult(result())
+
+    def test_getFailures(self):
+        f = self.rrow.getFailures()
+        self.failUnlessEqual(len(f), 3)
+
+    def test_getSuccesses(self):
+        s = self.rrow.getSuccesses()
+        self.failUnlessEqual(len(s), 2)
+
+    def test_getIncompletes(self):
+        i = self.rrow.getIncompletes()
+        self.failUnlessEqual(len(i), 4)
+
+    def test_getURL(self):
+        u = self.rrow.getURL()
+        self.failUnlessEqual(u, "ResultRow/?action=try")
+
+    def test_handleTryRequest(self):
+        req = DummyRequest()
+        class SomeTest(oiddiag.ResultRow):
+            name = "Some Unit Test"
+            tryCalled = False
+
+            def request_try(self, req):
+                self.tryCalled = True
+        req.path_info = "SomeTest/"
+        req.fields["action"] = ["try"]
+        rrow = SomeTest()
+        rrow.handleRequest(req)
+        self.failUnless(rrow.tryCalled)
+
+# "Try authenticating with this server now?"
+# - lets this application know that the request has been made
+# - constructs the return_to url
+# - issues the redirect
+# - gets the return value
+# - displays all previous actions, with the addition of this latest result.
+#
+# ResultTable
+#  checkid_setup - try now?
+
+
 
 if __name__ == '__main__':
     unittest.main()

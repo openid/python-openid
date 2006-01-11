@@ -100,7 +100,7 @@ from openid.dh import DiffieHellman
 from openid import oidutil
 
 import pysqlite2.dbapi2
-import time
+import time, urllib
 
 XMLCRAP = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/2002/REC-xhtml1-20020801/DTD/xhtml1-transitional.dtd">
@@ -237,6 +237,7 @@ class Diagnostician(ApacheView):
         try:
             auth_request = self.fetchAndParse(openid_url)
             self.associate(auth_request)
+
         finally:
             self.write('</body></html>')
 
@@ -294,3 +295,83 @@ class Diagnostician(ApacheView):
                     self.store.createTables()
             self.consumer = consumer.OpenIDConsumer(self.store)
         return self.consumer
+
+
+class Attempt:
+    result = None
+
+    def __init__(self, handle):
+        self.handle = handle
+        self.when = time.time()
+
+    def setResult(self, result):
+        self.result = result
+
+    def successful(self):
+        if self.result is not None:
+            return self.result.successful()
+        else:
+            return None
+
+class ResultRow:
+    name = None
+    handler = None
+
+    def __init__(self):
+        self._lastAttemptHandle = 0
+        self.attempts = []
+        self.shortname = self.__class__.__name__
+
+    def getAttempt(self, handle):
+        for a in self.attempts:
+            if a.handle == handle:
+                return a
+
+    def getSuccesses(self):
+        return [r for r in self.attempts if r.successful() is True]
+
+    def getFailures(self):
+        return [r for r in self.attempts if r.successful() is False]
+
+    def getIncompletes(self):
+        return [r for r in self.attempts if r.result is None]
+
+    def newAttempt(self):
+        self._lastAttemptHandle += 1
+        a = Attempt(self._lastAttemptHandle)
+        self.attempts.append(a)
+        return a
+
+    # Webby bits.
+    
+    def getURL(self):
+        return "%s/?action=try" % (urllib.quote(self.shortname, safe=''),)
+
+    def handleRequest(self, req):
+        action = FieldStorage(req).getfirst("action")
+        if action:
+            method = getattr(self, "request_" + action)
+            return method(req)
+
+    def request_try(self, req):
+        pass
+
+
+
+# "Try authenticating with this server now?"
+# - lets this application know that the request has been made
+# - constructs the return_to url
+# - issues the redirect
+# - gets the return value
+# - displays all previous actions, with the addition of this latest result.
+#
+# ResultTable
+#  checkid_setup - try now?
+
+#
+"""
+<table>
+<tr><th> </th><th>Success</th><th>Failure</th><th>Incomplete</th><th> </th>
+<tr><td>foo bar</td><td>1</td><td>2</td><td>3</td><td>Try again?</td></tr>
+
+"""
