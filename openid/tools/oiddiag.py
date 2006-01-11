@@ -308,14 +308,30 @@ class Attempt:
         self.result = result
 
     def successful(self):
-        if self.result is not None:
-            return self.result.successful()
-        else:
+        if self.result is None:
             return None
+        else:
+            return self.result.successful()
+
+class CheckidAttempt(Attempt):
+    authRequest = None
+
+class Result(object):
+    def successful(self):
+        return NotImplementedError
+
+class OpenIDFailure(Result):
+    def __init__(self, code, info):
+        self.code = code
+        self.info = info
+
+    def successful(self):
+        return False
 
 class ResultRow:
     name = None
     handler = None
+    attemptClass = Attempt
 
     def __init__(self):
         self._lastAttemptHandle = 0
@@ -338,12 +354,12 @@ class ResultRow:
 
     def newAttempt(self):
         self._lastAttemptHandle += 1
-        a = Attempt(self._lastAttemptHandle)
+        a = self.attemptClass(self._lastAttemptHandle)
         self.attempts.append(a)
         return a
 
     # Webby bits.
-    
+
     def getURL(self):
         return "%s/?action=try" % (urllib.quote(self.shortname, safe=''),)
 
@@ -351,10 +367,23 @@ class ResultRow:
         action = FieldStorage(req).getfirst("action")
         if action:
             method = getattr(self, "request_" + action)
-            return method(req)
+            if method:
+                return method(req)
+            else:
+                # FIXME: return some status message about broken args
+                return None
 
+
+class TestCheckidSetup(ResultRow):
     def request_try(self, req):
-        pass
+        attempt = self.newAttempt()
+        #status, info = self.consumer.beginAuth(self.openid_url)
+        #if status is not consumer.SUCCESS:
+        #    attempt.setResult(OpenIDFailure(status, info))
+        #    # XXX: What does this return?
+        #    return attempt
+
+        #attempt.authRequest = info
 
 
 

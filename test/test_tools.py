@@ -103,34 +103,41 @@ class TestResultRow(unittest.TestCase):
         i = self.rrow.getIncompletes()
         self.failUnlessEqual(len(i), 4)
 
-    def test_getURL(self):
-        u = self.rrow.getURL()
-        self.failUnlessEqual(u, "ResultRow/?action=try")
 
-    def test_handleTryRequest(self):
-        req = DummyRequest()
+class TestResultRowWeb(unittest.TestCase):
+    def setUp(self):
         class SomeTest(oiddiag.ResultRow):
             name = "Some Unit Test"
             tryCalled = False
 
             def request_try(self, req):
                 self.tryCalled = True
+        self.rrow = SomeTest()
+
+    def test_getURL(self):
+        u = self.rrow.getURL()
+        self.failUnlessEqual(u, "SomeTest/?action=try")
+
+    def test_handleRequest(self):
+        req = DummyRequest()
         req.path_info = "SomeTest/"
         req.fields["action"] = ["try"]
-        rrow = SomeTest()
-        rrow.handleRequest(req)
-        self.failUnless(rrow.tryCalled)
+        self.rrow.handleRequest(req)
+        self.failUnless(self.rrow.tryCalled)
 
-# "Try authenticating with this server now?"
-# - lets this application know that the request has been made
-# - constructs the return_to url
-# - issues the redirect
-# - gets the return value
-# - displays all previous actions, with the addition of this latest result.
-#
-# ResultTable
-#  checkid_setup - try now?
 
+class TestCheckidTest(unittest.TestCase):
+    def setUp(self):
+        self.rrow = oiddiag.TestCheckidSetup()
+
+    def test_handleRequestTry(self):
+        req = DummyRequest()
+        self.rrow.request_try(req)
+        # 1) a new Attempt is logged
+        self.failUnlessEqual(len(self.rrow.attempts), 1)
+        # 2) information about the attempt is stored
+
+        # 3) request gets a redirect
 
 
 if __name__ == '__main__':
