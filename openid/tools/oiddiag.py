@@ -150,6 +150,7 @@ class ApacheView(object):
 
     def handle(self, req=None):
         assert (req is None) or (req is self.req)
+        req.register_cleanup(self.cleanup)
         req.content_type = "text/html"
         try:
             try:
@@ -158,7 +159,6 @@ class ApacheView(object):
                 self.record(e.event())
         finally:
             self.finish()
-            self.cleanup()
         return apache.OK
 
     def record(self, event):
