@@ -41,6 +41,8 @@ def pyunitTests():
     import unittest
     import server
     import oidutil
+    import linkparse
+    import test_tools
 
     pyunit_modules = [
         server,
