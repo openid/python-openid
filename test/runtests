@@ -46,7 +46,7 @@ def pyunitTests():
     pyunit_modules = [
         server,
         ]
-    
+
     # Some modules have data-driven tests, and they use custom methods
     # to build the test suite:
     custom_modules = [
