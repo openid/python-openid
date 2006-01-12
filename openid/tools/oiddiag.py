@@ -80,7 +80,7 @@
 
 try:
     from mod_python import apache
-    from mod_python.util import FieldStorage
+    from mod_python.util import FieldStorage, redirect
 except ImportError, e:
     # FIXME: If all the Apache stuff were isolated in its own module, there
     # wouldn't be this grossness.
@@ -102,9 +102,38 @@ from openid import oidutil
 import pysqlite2.dbapi2
 import time, urllib
 
+SUCCESS = 'success'
+FAILURE = 'failure'
+INCOMPLETE = 'incomplete'
+
 XMLCRAP = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/2002/REC-xhtml1-20020801/DTD/xhtml1-transitional.dtd">
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">'''
+
+def getBaseURL(req):
+    """Return a URL to the root of the server that is serving this
+    request.
+
+    mod_python.Request -> str
+    """
+    host = req.hostname or req.server.server_hostname
+    port = req.connection.local_addr[1]
+
+    # XXX: Do I need to call add_common_vars before checking subprocess_env?
+    # Don't include the default port number in the URL
+    if req.subprocess_env.get('HTTPS', 'off') == 'on':
+        default_port = 443
+        proto = 'https'
+    else:
+        default_port = 80
+        proto = 'http'
+
+    if port == default_port:
+        base_url = '%s://%s/' % (proto, host)
+    else:
+        base_url = '%s://%s:%s/' % (proto, host, port)
+
+    return base_url
 
 class IdentityInfo(object):
     def __init__(self, consumer, consumer_id, server_id, server_url):
@@ -139,6 +168,13 @@ class Failure(Exception):
     def event(self):
         return FatalEvent(self.args[0])
 
+class Instruction(object):
+    pass
+
+class DoRedirect(Instruction):
+    def __init__(self, redirectURL):
+        self.redirectURL = redirectURL
+
 class ApacheView(object):
     def __init__(self, req):
         self.req = req
@@ -150,6 +186,10 @@ class ApacheView(object):
             self._buffer.append(bytes)
         else:
             self.req.write(bytes)
+
+    def redirect(self, url):
+        from apache.util import redirect
+        redirect(self.req, url)
 
     def finish(self):
         if self._buffer:
@@ -186,7 +226,7 @@ class ApacheView(object):
     def log(self, msg):
         self.write('<span class="log">%s</span><br />\n' % (escape(msg),))
 
-    def cleanup(self):
+    def cleanup(self, unused=None):
         for c in self._cleanupCalls:
             c()
 
@@ -316,35 +356,25 @@ class Diagnostician(ApacheView):
 
 
 class Attempt:
-    result = None
-
     def __init__(self, handle):
         self.handle = handle
         self.when = time.time()
+        self.event_log = []
 
-    def setResult(self, result):
-        self.result = result
+    def record(self, event):
+        self.event_log.append(event)
 
-    def successful(self):
-        if self.result is None:
-            return None
-        else:
-            return self.result.successful()
+    def result(self):
+        raise NotImplementedError
 
 class CheckidAttempt(Attempt):
     authRequest = None
+    redirectURL = None
 
-class Result(object):
-    def successful(self):
-        return NotImplementedError
-
-class OpenIDFailure(Result):
+class OpenIDFailure(Event):
     def __init__(self, code, info):
         self.code = code
         self.info = info
-
-    def successful(self):
-        return False
 
 class ResultRow:
     name = None
@@ -364,24 +394,25 @@ class ResultRow:
                 return a
 
     def getSuccesses(self):
-        return [r for r in self.attempts if r.successful() is True]
+        return [r for r in self.attempts if r.result() is SUCCESS]
 
     def getFailures(self):
-        return [r for r in self.attempts if r.successful() is False]
+        return [r for r in self.attempts if r.result() is FAILURE]
 
     def getIncompletes(self):
-        return [r for r in self.attempts if r.result is None]
+        return [r for r in self.attempts if r.result() is INCOMPLETE]
 
     def newAttempt(self):
         self._lastAttemptHandle += 1
-        a = self.attemptClass(self._lastAttemptHandle)
+        a = self.attemptClass(str(self._lastAttemptHandle))
         self.attempts.append(a)
         return a
 
     # Webby bits.
 
-    def getURL(self):
-        return "%s/?action=try" % (urllib.quote(self.shortname, safe=''),)
+    def getURL(self, action="try"):
+        return "%s/?action=%s" % (urllib.quote(self.shortname, safe=''),
+                                  urllib.quote(action, safe=''))
 
     def handleRequest(self, req):
         action = FieldStorage(req).getfirst("action")
@@ -399,8 +430,19 @@ class TestCheckidSetup(ResultRow):
     def request_try(self, req):
         attempt = self.newAttempt()
         consu = self.diagnostician.getConsumer()
-        authRequest = self.identity_info.newAuthRequest()
-        attempt.authRequest = authRequest
+        auth_request = self.identity_info.newAuthRequest()
+        attempt.authRequest = auth_request
+        script_name = req.uri[:-len(req.path_info)]
+        return_to = "%s%s/%s;attempt=%s" % (
+            getBaseURL(req), script_name, self.getURL(action="response"),
+            urllib.quote(attempt.handle, safe=''))
+
+        redirectURL = consu.constructRedirect(auth_request, return_to,
+                                           self.diagnostician.trust_root)
+
+        attempt.redirectURL = redirectURL
+        attempt.record(Event("Redirecting to %s" % redirectURL,))
+        return DoRedirect(redirectURL)
 
 
 
