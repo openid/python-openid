@@ -111,16 +111,24 @@ XMLCRAP = '''<?xml version="1.0" encoding="UTF-8"?>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">'''
 
 def getBaseURL(req):
-    """Return a URL to the root of the server that is serving this
-    request.
+    """Return a URL to the base of this script's URLspace.
+
+    e.g. http://openidenabled.com/resources/oiddiag/
+
+    (note the trailing slash.)
 
     mod_python.Request -> str
     """
+    # This code currently doesn't have unit test coverage.
+    # It looks like any bug in this code would arise from a failure in my
+    # expectations of the attributes of the request object.  However,
+    # I don't have a test harness that allows me to use actual apache request
+    # objects, so I can't test for that with the current test environment.
     host = req.hostname or req.server.server_hostname
     port = req.connection.local_addr[1]
 
-    # XXX: Do I need to call add_common_vars before checking subprocess_env?
     # Don't include the default port number in the URL
+    # XXX: Do I need to call add_common_vars before checking subprocess_env?
     if req.subprocess_env.get('HTTPS', 'off') == 'on':
         default_port = 443
         proto = 'https'
@@ -128,12 +136,18 @@ def getBaseURL(req):
         default_port = 80
         proto = 'http'
 
-    if port == default_port:
-        base_url = '%s://%s/' % (proto, host)
+    if req.path_info:
+        script_name = req.uri[:-len(req.path_info)]
     else:
-        base_url = '%s://%s:%s/' % (proto, host, port)
+        script_name = req.uri
+
+    if port == default_port:
+        base_url = '%s://%s%s/' % (proto, host, script_name)
+    else:
+        base_url = '%s://%s:%s%s/' % (proto, host, port, script_name)
 
     return base_url
+
 
 class IdentityInfo(object):
     def __init__(self, consumer, consumer_id, server_id, server_url):
@@ -452,9 +466,8 @@ class TestCheckidSetup(ResultRow):
         consu = self.diagnostician.getConsumer()
         auth_request = self.identity_info.newAuthRequest()
         attempt.authRequest = auth_request
-        script_name = req.uri[:-len(req.path_info)]
-        return_to = "%s%s/%s;attempt=%s" % (
-            getBaseURL(req), script_name, self.getURL(action="response"),
+        return_to = "%s%s;attempt=%s" % (
+            getBaseURL(req), self.getURL(action="response"),
             urllib.quote(attempt.handle, safe=''))
 
         redirectURL = consu.constructRedirect(auth_request, return_to,
