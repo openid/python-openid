@@ -102,9 +102,9 @@ from openid import oidutil
 import pysqlite2.dbapi2
 import time, urllib
 
-SUCCESS = 'success'
-FAILURE = 'failure'
-INCOMPLETE = 'incomplete'
+SUCCESS = ('success',)
+FAILURE = ('failure',)
+INCOMPLETE = ('incomplete',)
 
 XMLCRAP = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/2002/REC-xhtml1-20020801/DTD/xhtml1-transitional.dtd">
@@ -297,7 +297,6 @@ class Diagnostician(ApacheView):
         try:
             identity_info = self.fetchAndParse(openid_url)
             self.associate(identity_info)
-
         finally:
             self.write('</body></html>')
 
