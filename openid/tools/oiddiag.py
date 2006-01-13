@@ -300,12 +300,14 @@ class Diagnostician(ApacheView):
 <style type="text/css">
    .status { font-size: smaller; }
 </style>
+<base href=%(baseAttrib)s />
 </head>
 <body>
 <p>Checking <a href=%(urlAttrib)s>%(url)s</a>...</p>
 ''' % {
             'url': escape(openid_url),
             'urlAttrib': quoteattr(openid_url),
+            'baseAttrib': quoteattr(getBaseURL(self.req)),
             }
         self.write(s)
         try:

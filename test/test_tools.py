@@ -37,6 +37,8 @@ class DummyRequest(object):
         class DummyConnection(object):
             local_addr = ('127.0.0.1', 80)
         self.connection = DummyConnection()
+        self.hostname = 'unittest.example'
+        self.path_info = ''
 
     def get_options(self):
         return self.options
