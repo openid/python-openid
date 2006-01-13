@@ -412,6 +412,7 @@ class ResultRow:
         for a in self.attempts:
             if a.handle == handle:
                 return a
+        raise KeyError(handle)
 
     def getSuccesses(self):
         return [r for r in self.attempts if r.result() is SUCCESS]
