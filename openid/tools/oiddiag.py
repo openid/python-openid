@@ -313,6 +313,11 @@ class Diagnostician(ApacheView):
         try:
             identity_info = self.fetchAndParse(openid_url)
             self.associate(identity_info)
+            rows = [
+                TestCheckidSetup(self, identity_info),
+                ]
+            result_table = ResultTable(rows)
+            self.write(result_table.to_html())
         finally:
             self.write('</body></html>')
 
@@ -462,6 +467,7 @@ class ResultRow:
 
 
 class TestCheckidSetup(ResultRow):
+    name = "successful checkid_setup"
     attemptClass = CheckidAttempt
     def request_try(self, req):
         attempt = self.newAttempt()
@@ -506,9 +512,60 @@ class TestCheckidSetup(ResultRow):
 #  checkid_setup - try now?
 
 #
-"""
-<table>
-<tr><th> </th><th>Success</th><th>Failure</th><th>Incomplete</th><th> </th>
-<tr><td>foo bar</td><td>1</td><td>2</td><td>3</td><td>Try again?</td></tr>
 
+
+class ResultRowHTMLView(object):
+    t_result_row = (
+        '<tr><td>%(name)s</td><td>%(succ)s</td><td>%(fail)s</td>'
+        '<td>%(incl)s</td><td><a href=%(trylink)s>Try again?</a></td></tr>'
+        '\n')
+
+    t_empty_row = (
+        '<tr><td>%(name)s</td><td colspan="4">'
+        'Not yet attempted -- <a href=%(trylink)s>try now</a>.</td></tr>'
+        '\n')
+
+    def __init__(self, rrow):
+        self.orig = rrow
+
+    def to_html(self):
+        values = {
+            'name': self.orig.name,
+            'succ': len(self.orig.getSuccesses()),
+            'fail': len(self.orig.getFailures()),
+            'incl': len(self.orig.getIncompletes()),
+            'trylink': quoteattr(self.orig.getURL()),
+            }
+        if self.orig.attempts:
+            template = self.t_result_row
+        else:
+            template = self.t_empty_row
+        return template % values
+
+
+t_result_table = """
+<table>
+<thead>
+<tr><th> </th><th>Success</th><th>Failure</th><th>Incomplete</th><th></th></tr>
+</thead>
+<tbody>
+%(rows)s
+</tbody>
+</table>
 """
+
+class ResultTable(object):
+    t_result_table = t_result_table
+
+    def __init__(self, rows):
+        self.rows = rows
+
+    def to_html(self):
+        template = self.t_result_table
+        htmlrows = []
+        for row in self.rows:
+            # IHTMLView(row).to_html()
+            htmlrows.append(ResultRowHTMLView(row).to_html())
+        return template % {
+            'rows': ''.join(htmlrows),
+            }
