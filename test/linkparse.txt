@@ -504,7 +504,7 @@ Link*: x=y
 
 
 Name: Should be quoted
-Link: x=<
+Link*: x=<
 
 <html><head><link x="<">
 
