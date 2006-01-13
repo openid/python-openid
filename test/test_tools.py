@@ -20,6 +20,9 @@ class DummyFieldStorage(object):
         else:
             return l[0]
 
+    def keys(self):
+        return self.req.fields.keys()
+
 oiddiag.apache = DummyApacheModule()
 oiddiag.FieldStorage = DummyFieldStorage
 
@@ -68,6 +71,9 @@ class MockConsumer(object):
     def _fetchAssociation(self, dh, url, body):
         return association.Association.fromExpiresIn(3600, "assoc handle",
                                                      "s3krit", 'HMAC-SHA1')
+
+    def completeAuth(self, token, query):
+        return consumer.SUCCESS, "http://some-guys-id.example"
 
 class TestOidDiag(unittest.TestCase):
     def setUp(self):
@@ -171,6 +177,25 @@ class TestCheckidTest(unittest.TestCase):
         self.failUnless(attempt.redirectURL)
         # 3) request gets a redirect
         self.failUnless(isinstance(result, oiddiag.DoRedirect))
+
+    def test_handleRequestResponse(self):
+        req = DummyRequest()
+        req.uri = "%s/%s" % (req.uri, self.rrow.shortname)
+        req.path_info = '/' + self.rrow.shortname
+        req.hostname = 'unittest.example'
+
+        attempt_handle = 'a76'
+        req.fields = {'attempt': [attempt_handle]}
+        attempt = self.rrow.attemptClass(attempt_handle)
+        attempt.authRequest = consumer.OpenIDAuthRequest('tokken',
+                                                         'server_id',
+                                                         'server_url',
+                                                         'nonny')
+        self.rrow.attempts.append(attempt)
+        result = self.rrow.request_response(req)
+        last_event = attempt.event_log[-1]
+        self.failUnless(isinstance(last_event, oiddiag.IdentityAuthenticated))
+        self.failUnlessEqual(attempt.result(), oiddiag.SUCCESS)
 
 if __name__ == '__main__':
     unittest.main()

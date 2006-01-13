@@ -161,6 +161,14 @@ class Event(object):
     def __str__(self):
         return self.text
 
+class IdentityAuthenticated(Event):
+    def __init__(self, identity):
+        self.identity = identity
+        Event.__init__(self, identity)
+
+    def __str__(self):
+        return "Identity authenticated as %s" % (self.identity,)
+
 class FatalEvent(Event):
     pass
 
@@ -371,6 +379,18 @@ class CheckidAttempt(Attempt):
     authRequest = None
     redirectURL = None
 
+    def result(self):
+        try:
+            last_event = self.event_log[-1]
+        except IndexError:
+            return INCOMPLETE
+        if isinstance(last_event, IdentityAuthenticated):
+            return SUCCESS
+        elif isinstance(last_event, OpenIDFailure):
+            return FAILURE
+        else:
+            return INCOMPLETE
+
 class OpenIDFailure(Event):
     def __init__(self, code, info):
         self.code = code
@@ -444,7 +464,21 @@ class TestCheckidSetup(ResultRow):
         attempt.record(Event("Redirecting to %s" % redirectURL,))
         return DoRedirect(redirectURL)
 
-
+    def request_response(self, req):
+        consu = self.diagnostician.getConsumer()
+        fields = FieldStorage(req)
+        attempt_handle = fields.getfirst("attempt")
+        # FIXME: Handle KeyError here.
+        attempt = self.getAttempt(attempt_handle)
+        token = attempt.authRequest.token
+        query = {}
+        for k in fields.keys():
+            query[k] = fields.getfirst(k)
+        status, info = consu.completeAuth(token, query)
+        if status is not consumer.SUCCESS:
+            attempt.record(OpenIDFailure(status, info))
+        else:
+            attempt.record(IdentityAuthenticated(info))
 
 # "Try authenticating with this server now?"
 # - lets this application know that the request has been made
