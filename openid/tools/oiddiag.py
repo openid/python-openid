@@ -81,6 +81,7 @@
 try:
     from mod_python import apache
     from mod_python.util import FieldStorage, redirect
+    from mod_python.Session import Session
 except ImportError, e:
     # FIXME: If all the Apache stuff were isolated in its own module, there
     # wouldn't be this grossness.
@@ -102,9 +103,14 @@ from openid import oidutil
 import pysqlite2.dbapi2
 import time, urllib
 
+# Sometimes an enum type would be nice.
 SUCCESS = ('success',)
 FAILURE = ('failure',)
 INCOMPLETE = ('incomplete',)
+
+
+PAGE_DONE = ('page_done',)
+RENDER_TABLE = ('Show the table!',)
 
 XMLCRAP = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/2002/REC-xhtml1-20020801/DTD/xhtml1-transitional.dtd">
@@ -150,14 +156,14 @@ def getBaseURL(req):
 
 
 class IdentityInfo(object):
-    def __init__(self, consumer, consumer_id, server_id, server_url):
-        self.consumer = consumer
+    consumer = None
+    def __init__(self, consumer_id, server_id, server_url):
         self.consumer_id = consumer_id
         self.server_id = server_id
         self.server_url = server_url
 
-    def newAuthRequest(self):
-        unused_status, authreq = self.consumer._gotIdentityInfo(
+    def newAuthRequest(self, a_consumer):
+        unused_status, authreq = a_consumer._gotIdentityInfo(
             self.consumer_id, self.server_id, self.server_url)
         return authreq
 
@@ -202,6 +208,7 @@ class ApacheView(object):
         self.req = req
         self.event_log = []
         self._cleanupCalls = []
+        self.session = Session(req)
 
     def write(self, bytes):
         if self.fixed_length:
@@ -210,7 +217,7 @@ class ApacheView(object):
             self.req.write(bytes)
 
     def redirect(self, url):
-        from apache.util import redirect
+        # Will raise apache.SERVER_RETURN
         redirect(self.req, url)
 
     def finish(self):
@@ -224,8 +231,8 @@ class ApacheView(object):
 
     def handle(self, req=None):
         assert (req is None) or (req is self.req)
-        req.register_cleanup(self.cleanup)
-        req.content_type = "text/html"
+        self.req.register_cleanup(self.cleanup)
+        self.req.content_type = "text/html"
         try:
             try:
                 self.go()
@@ -249,6 +256,11 @@ class ApacheView(object):
         self.write('<span class="log">%s</span><br />\n' % (escape(msg),))
 
     def cleanup(self, unused=None):
+        try:
+            self.session.save()
+        except:
+            self.req.log_error("Error saving session: %s" % (self.session,))
+            raise
         for c in self._cleanupCalls:
             c()
 
@@ -269,31 +281,63 @@ class Diagnostician(ApacheView):
         else:
             self.storefile = storefile
 
+        if self.session.is_new():
+            self.session['result_table'] = None
+
+        self.trust_root = getBaseURL(req)
+
     def go(self):
-        f = FieldStorage(self.req)
-        openid_url = f.getfirst("openid_url")
-        if openid_url is None:
-            self.openingPage()
-        else:
-            self.record(Event("Working on openid_url %s" % (openid_url,)))
-            self.otherStuff(openid_url)
+        retval = None
+        if self.req.path_info[1:]:
+            parts = self.req.path_info[1:].split('/')
+            method = getattr(self, 'go_' + parts[0], None)
+            if method is not None:
+                retval = method()
+            elif self.session['result_table'] is not None:
+                result_table = self.session['result_table']
+                result_table.diagnostician = self
+                child = result_table.getChild(parts[0])
+                retval = child.handleRequest(self.req)
+            else:
+                self.req.log_error("Session %s arrived at %s but had no "
+                                   "stored result table." % (self.session.id(),
+                                                             parts))
+                # , apache.APLOG_DEBUG
+
+        if retval is None:
+            retval = self.openingPage()
+
+        if retval is PAGE_DONE:
+            return
+        elif isinstance(retval, DoRedirect):
+            self.redirect(retval.redirectURL)
+        elif retval is RENDER_TABLE:
+            # FIXME: this is in a vacuum without headers or
+            # supporting information or anything
+            self.write(self.session['result_table'].to_html())
 
     def openingPage(self):
         self.fixed_length = True
         s = XMLCRAP + '''
 <head>
 <title>Check your OpenID</title>
+<base href=%(baseAttrib)s />
 </head>
 <body>
-<form name="openidcheck" id="openidcheck" action="" >
+<form name="openidcheck" id="openidcheck" action="start" >
 <p>Check an OpenID:
   <input type="text" name="openid_url" />
   <input type="submit" value="Check" /><br />
 </p>
-</form></body></html>'''
+</form></body></html>''' % {
+            'baseAttrib': quoteattr(getBaseURL(self.req)),
+            }
         self.write(s)
 
-    def otherStuff(self, openid_url):
+    def go_start(self):
+        f = FieldStorage(self.req)
+        openid_url = f.getfirst("openid_url")
+        self.record(Event("Working on openid_url %s" % (openid_url,)))
         s = XMLCRAP + '''
 <head>
 <title>Check your OpenID: %(url)s</title>
@@ -314,18 +358,21 @@ class Diagnostician(ApacheView):
             identity_info = self.fetchAndParse(openid_url)
             self.associate(identity_info)
             rows = [
-                TestCheckidSetup(self, identity_info),
+                TestCheckidSetup,
                 ]
-            result_table = ResultTable(rows)
+            result_table = ResultTable(self, identity_info, rows)
             self.write(result_table.to_html())
+            self.session['result_table'] = result_table
         finally:
             self.write('</body></html>')
+
+        return PAGE_DONE
 
     def fetchAndParse(self, openid_url):
         consu = self.getConsumer()
         status, info = consu._findIdentityInfo(openid_url)
         if status is consumer.SUCCESS:
-            identity_info = IdentityInfo(consu, *info)
+            identity_info = IdentityInfo(*info)
             # TODO: Clarify language here.
             s = ("The supplied identity is %(cid)s, the server is at %(serv)s,"
                  " identity at the server is %(sid)s" % {
@@ -421,11 +468,11 @@ class ResultRow:
     handler = None
     attemptClass = Attempt
 
-    def __init__(self, diagnostician, identity_info):
+    def __init__(self, parent, identity_info):
         self._lastAttemptHandle = 0
         self.attempts = []
         self.shortname = self.__class__.__name__
-        self.diagnostician = diagnostician
+        self.parent_table = parent
         self.identity_info = identity_info
 
     def getAttempt(self, handle):
@@ -465,28 +512,32 @@ class ResultRow:
                 # FIXME: return some status message about broken args
                 return None
 
+    def getConsumer(self):
+        return self.parent_table.diagnostician.getConsumer()
+
 
 class TestCheckidSetup(ResultRow):
     name = "successful checkid_setup"
     attemptClass = CheckidAttempt
     def request_try(self, req):
         attempt = self.newAttempt()
-        consu = self.diagnostician.getConsumer()
-        auth_request = self.identity_info.newAuthRequest()
+        consu = self.getConsumer()
+        auth_request = self.identity_info.newAuthRequest(consu)
         attempt.authRequest = auth_request
         return_to = "%s%s;attempt=%s" % (
             getBaseURL(req), self.getURL(action="response"),
             urllib.quote(attempt.handle, safe=''))
 
-        redirectURL = consu.constructRedirect(auth_request, return_to,
-                                           self.diagnostician.trust_root)
+        redirectURL = consu.constructRedirect(
+            auth_request, return_to,
+            self.parent_table.diagnostician.trust_root)
 
         attempt.redirectURL = redirectURL
         attempt.record(Event("Redirecting to %s" % redirectURL,))
         return DoRedirect(redirectURL)
 
     def request_response(self, req):
-        consu = self.diagnostician.getConsumer()
+        consu = self.getConsumer()
         fields = FieldStorage(req)
         attempt_handle = fields.getfirst("attempt")
         # FIXME: Handle KeyError here.
@@ -500,6 +551,7 @@ class TestCheckidSetup(ResultRow):
             attempt.record(OpenIDFailure(status, info))
         else:
             attempt.record(IdentityAuthenticated(info))
+        return RENDER_TABLE
 
 # "Try authenticating with this server now?"
 # - lets this application know that the request has been made
@@ -557,8 +609,17 @@ t_result_table = """
 class ResultTable(object):
     t_result_table = t_result_table
 
-    def __init__(self, rows):
-        self.rows = rows
+    def __init__(self, diagnostician, identity_info, rows):
+        self.rows = []
+        self.diagnostician = diagnostician
+        for rowclass in rows:
+            self.rows.append(rowclass(self, identity_info))
+
+    def getChild(self, key):
+        for row in self.rows:
+            if row.shortname == key:
+                return row
+        raise KeyError(key)
 
     def to_html(self):
         template = self.t_result_table
@@ -569,3 +630,8 @@ class ResultTable(object):
         return template % {
             'rows': ''.join(htmlrows),
             }
+
+    def __getstate__(self, state=None):
+        s = self.__dict__.copy()
+        del s['diagnostician']
+        return s

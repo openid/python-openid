@@ -23,8 +23,16 @@ class DummyFieldStorage(object):
     def keys(self):
         return self.req.fields.keys()
 
+class MockSession(dict):
+    def __init__(self, unused_req):
+        pass
+
+    def is_new(self):
+        return True
+
 oiddiag.apache = DummyApacheModule()
 oiddiag.FieldStorage = DummyFieldStorage
+oiddiag.Session = MockSession
 
 class DummyRequest(object):
     def __init__(self):
@@ -86,6 +94,7 @@ class TestOidDiag(unittest.TestCase):
 
     def test_supplyOpenID(self):
         self.req.fields["openid_url"] = ["unittest.example/joe"]
+        self.req.path_info = '/start'
         self.diag.go()
         self.failUnlessEqual(len(self.diag.event_log), 3)
 
@@ -159,11 +168,12 @@ class TestCheckidTest(unittest.TestCase):
                 return self.consumer
         self.diag = MockDiag()
         self.idinfo = oiddiag.IdentityInfo(
-            self.diag.getConsumer(),
             "http://shortname.example/",
             "http://delegated.example/users/long.name",
             "http://some.example/server",)
-        self.rrow = oiddiag.TestCheckidSetup(self.diag, self.idinfo)
+        self.rtable = oiddiag.ResultTable(self.diag, self.idinfo,
+                                          [oiddiag.TestCheckidSetup])
+        self.rrow = self.rtable.rows[0]
 
     def test_handleRequestTry(self):
         req = DummyRequest()
