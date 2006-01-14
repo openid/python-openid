@@ -42,12 +42,13 @@ def pyunitTests():
     import server
     import oidutil
     import linkparse
-    import test_tools
 
     pyunit_modules = [
         server,
-        test_tools,
         ]
+    if sys.version_info[:2] > (2, 2):
+        import test_tools
+        pyunit_modules.append(test_tools)
 
     # Some modules have data-driven tests, and they use custom methods
     # to build the test suite:
