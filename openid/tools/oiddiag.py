@@ -1,4 +1,9 @@
-"""OpenID Diagnostic"""
+"""OpenID Diagnostic
+
+@todo: new sessions should check to see if they are new sessions
+    because they are an expired old session, and explain that is
+    the case.
+"""
 
 # Please enter an OpenID URL: [______________]
 # "I fetched ..."
@@ -168,9 +173,21 @@ class IdentityInfo(object):
         return authreq
 
 class Event(object):
-    def __init__(self, text):
-        self.text = text
+    def __init__(self):
         self.time = time.time()
+
+    def to_html(self):
+        return escape(str(self))
+
+class TextEvent(Event):
+    """An event described by a line of text.
+
+    Used for prototyping, these should be phased out.
+    """
+
+    def __init__(self, text):
+        Event.__init__(self)
+        self.text = text
 
     def to_html(self):
         return '<span class="event">%s</span>' % (escape(self.text),)
@@ -183,13 +200,47 @@ class Event(object):
 
 class IdentityAuthenticated(Event):
     def __init__(self, identity):
+        Event.__init__(self)
         self.identity = identity
-        Event.__init__(self, identity)
 
     def __str__(self):
         return "Identity authenticated as %s" % (self.identity,)
 
-class FatalEvent(Event):
+class SetupNeeded(Event):
+    def __init__(self, url):
+        Event.__init__(self)
+        self.url = url
+
+    def __str__(self):
+        return "Server requires setup at %s" % (self.url,)
+
+class OpenIDFailure(Event):
+    def __init__(self, code, info):
+        Event.__init__(self)
+        self.code = code
+        self.info = info
+
+    def to_html(self):
+        return ('<span class="event">Open ID Failure: %s %s</span>'
+                % (self.code, self.info))
+
+
+class OperationCancelled(Event):
+    text = "Operation Cancelled."
+
+
+class ResponseReceived(Event):
+    def __init__(self, raw_uri, query):
+        Event.__init__(self)
+        self.raw_uri = raw_uri
+        self.query = query
+
+    def to_html(self):
+        return ('<span class="event">Response received: %s</span>'
+                % (self.query,))
+
+
+class FatalEvent(TextEvent):
     pass
 
 class Failure(Exception):
@@ -295,9 +346,10 @@ class Diagnostician(ApacheView):
                 retval = method()
             elif self.session['result_table'] is not None:
                 result_table = self.session['result_table']
+                # The table probably lost its reference to me when
+                # it was unserialized.
                 result_table.diagnostician = self
-                child = result_table.getChild(parts[0])
-                retval = child.handleRequest(self.req)
+                retval = result_table.handleRequest(self.req, parts)
             else:
                 self.req.log_error("Session %s arrived at %s but had no "
                                    "stored result table." % (self.session.id(),
@@ -305,16 +357,21 @@ class Diagnostician(ApacheView):
                 # , apache.APLOG_DEBUG
 
         if retval is None:
-            retval = self.openingPage()
+            if (('result_table' not in self.session) or
+                (self.session['result_table'] is None)):
+                retval = self.openingPage()
+            else:
+                result_table.diagnostician = self
+                retval = self.resultPage()
 
         if retval is PAGE_DONE:
             return
         elif isinstance(retval, DoRedirect):
             self.redirect(retval.redirectURL)
-        elif retval is RENDER_TABLE:
+        elif isinstance(retval, Attempt):
             # FIXME: this is in a vacuum without headers or
             # supporting information or anything
-            self.write(self.session['result_table'].to_html())
+            self.resultPage(retval)
 
     def openingPage(self):
         self.fixed_length = True
@@ -337,7 +394,7 @@ class Diagnostician(ApacheView):
     def go_start(self):
         f = FieldStorage(self.req)
         openid_url = f.getfirst("openid_url")
-        self.record(Event("Working on openid_url %s" % (openid_url,)))
+        self.record(TextEvent("Working on openid_url %s" % (openid_url,)))
         s = XMLCRAP + '''
 <head>
 <title>Check your OpenID: %(url)s</title>
@@ -359,6 +416,9 @@ class Diagnostician(ApacheView):
             self.associate(identity_info)
             rows = [
                 TestCheckidSetup,
+                TestCheckidSetupCancel,
+                TestCheckidImmediate,
+                TestCheckidImmediateSetupNeeded,
                 ]
             result_table = ResultTable(self, identity_info, rows)
             self.write(result_table.to_html())
@@ -366,6 +426,45 @@ class Diagnostician(ApacheView):
         finally:
             self.write('</body></html>')
 
+        return PAGE_DONE
+
+    def go_clear(self):
+        self.session.delete()
+        return DoRedirect(getBaseURL(self.req))
+
+    def resultPage(self, recent_attempt=None):
+        result_table = self.session['result_table']
+        identity_info = result_table.identity_info
+        if recent_attempt:
+            attempt_html = recent_attempt.to_html()
+        else:
+            attempt_html = ''
+
+        s = XMLCRAP + '''
+<head>
+<title>Check your OpenID: %(openid)s @ %(server)s</title>
+<style type="text/css">
+   .status { font-size: smaller; }
+   div.attempt {
+       background: #fffa5f;
+       color: black;
+       border: medium dashed black;
+   }
+</style>
+<base href=%(baseAttrib)s />
+</head>
+<body>
+%(attempt)s
+%(result_table)s
+''' % {
+            'openid': identity_info.server_id,
+            'server': identity_info.server_url,
+            'baseAttrib': quoteattr(getBaseURL(self.req)),
+            'attempt': attempt_html,
+            'result_table': result_table.to_html()
+            }
+        self.write(s)
+        self.write('</body></html>')
         return PAGE_DONE
 
     def fetchAndParse(self, openid_url):
@@ -379,7 +478,7 @@ class Diagnostician(ApacheView):
                 'cid': identity_info.consumer_id,
                 'sid': identity_info.server_id,
                 'serv': identity_info.server_url})
-            self.record(Event(s))
+            self.record(TextEvent(s))
             return identity_info
 
         elif status is consumer.HTTP_FAILURE:
@@ -407,8 +506,8 @@ class Diagnostician(ApacheView):
         dh = DiffieHellman()
         body = consu._createAssociateRequest(dh)
         assoc = consu._fetchAssociation(dh, server_url, body)
-        self.record(Event("Association made.  "
-                          "Handle: %s, issued: %s, lifetime: %s hours" % (
+        self.record(TextEvent("Association made.  "
+                              "Handle: %s, issued: %s, lifetime: %s hours" % (
             assoc.handle, time.ctime(assoc.issued), assoc.lifetime / 3600.,)))
 
 
@@ -431,10 +530,21 @@ class Diagnostician(ApacheView):
 
 
 class Attempt:
-    def __init__(self, handle):
+    parent = None
+
+    t_attempt = '''<div class="attempt"><span class="name">%(name)s</span>
+<ul>
+%(event_rows)s
+</ul>
+</div>
+'''
+
+    def __init__(self, handle, parent=None):
         self.handle = handle
         self.when = time.time()
         self.event_log = []
+        if parent is not None:
+            self.parent = parent
 
     def record(self, event):
         self.event_log.append(event)
@@ -442,26 +552,84 @@ class Attempt:
     def result(self):
         raise NotImplementedError
 
-class CheckidAttempt(Attempt):
+    def to_html(self):
+        def fmtEvent(event):
+            return '<li>%s</li>\n' % (event.to_html(),)
+        if self.parent is not None:
+            name = self.parent.name
+        else:
+            name = self.__class__.__name__
+        d = {
+            'name': name,
+            'event_rows': ''.join(map(fmtEvent, self.event_log)),
+            }
+        return self.t_attempt % d
+
+
+class CheckidAttemptBase(Attempt):
     authRequest = None
     redirectURL = None
 
+    _resultMap = NotImplementedError
+
     def result(self):
-        try:
-            last_event = self.event_log[-1]
-        except IndexError:
+        responses = filter(lambda e: isinstance(e, ResponseReceived),
+                           self.event_log)
+        if not responses:
             return INCOMPLETE
-        if isinstance(last_event, IdentityAuthenticated):
-            return SUCCESS
-        elif isinstance(last_event, OpenIDFailure):
+
+        if len(responses) > 1:
+            # This is weird case.  Receiving more than one response to a
+            # query is a sort of error, even though a 'cancel' followed by
+            # an 'id_res' will generally get you logged in.
+            # 'id_res' after 'id_res' is treated as an error though,
+            # to prevent replays.
             return FAILURE
+
+        last_event = self.event_log[-1]
+
+        for event_type, outcome in self._resultMap.iteritems():
+            if isinstance(last_event, event_type):
+                return outcome
         else:
             return INCOMPLETE
 
-class OpenIDFailure(Event):
-    def __init__(self, code, info):
-        self.code = code
-        self.info = info
+
+class CheckidAttempt(CheckidAttemptBase):
+    _resultMap = {
+        IdentityAuthenticated: SUCCESS,
+        OpenIDFailure: FAILURE,
+        OperationCancelled: FAILURE,
+        SetupNeeded: FAILURE,
+        }
+
+
+class CheckidCancelAttempt(CheckidAttemptBase):
+    _resultMap = {
+        IdentityAuthenticated: FAILURE,
+        OpenIDFailure: FAILURE,
+        OperationCancelled: SUCCESS,
+        SetupNeeded: FAILURE,
+        }
+
+
+class CheckidImmediateAttempt(CheckidAttemptBase):
+    _resultMap = {
+        IdentityAuthenticated: SUCCESS,
+        OpenIDFailure: FAILURE,
+        OperationCancelled: FAILURE,
+        SetupNeeded: FAILURE,
+        }
+
+
+class CheckidImmediateSetupNeededAttempt(CheckidAttemptBase):
+    _resultMap = {
+        IdentityAuthenticated: FAILURE,
+        OpenIDFailure: FAILURE,
+        OperationCancelled: FAILURE,
+        SetupNeeded: SUCCESS,
+        }
+
 
 class ResultRow:
     name = None
@@ -492,7 +660,7 @@ class ResultRow:
 
     def newAttempt(self):
         self._lastAttemptHandle += 1
-        a = self.attemptClass(str(self._lastAttemptHandle))
+        a = self.attemptClass(str(self._lastAttemptHandle), parent=self)
         self.attempts.append(a)
         return a
 
@@ -516,9 +684,24 @@ class ResultRow:
         return self.parent_table.diagnostician.getConsumer()
 
 
-class TestCheckidSetup(ResultRow):
-    name = "successful checkid_setup"
-    attemptClass = CheckidAttempt
+def HACK_constructRedirect(consu, auth_request, return_to, trust_root,
+                           immediate_mode=False):
+    """Work around Consumer 1.0.3 API
+
+    "Immediate mode" is a property of the request, not the consumer.
+    consumer.OpenIDConsumer v.1.0.3 is confused, so we have kludge here.
+    """
+    if immediate_mode:
+        consu.mode = 'checkid_immediate'
+    else:
+        consu.mode = 'checkid_setup'
+    consu.immediate = immediate_mode
+    return consu.constructRedirect(auth_request, return_to, trust_root)
+
+
+class TestCheckid(ResultRow):
+    immediate_mode = False
+
     def request_try(self, req):
         attempt = self.newAttempt()
         consu = self.getConsumer()
@@ -528,12 +711,13 @@ class TestCheckidSetup(ResultRow):
             getBaseURL(req), self.getURL(action="response"),
             urllib.quote(attempt.handle, safe=''))
 
-        redirectURL = consu.constructRedirect(
-            auth_request, return_to,
-            self.parent_table.diagnostician.trust_root)
+        redirectURL = HACK_constructRedirect(
+            consu, auth_request, return_to,
+            self.parent_table.diagnostician.trust_root,
+            immediate_mode=self.immediate_mode)
 
         attempt.redirectURL = redirectURL
-        attempt.record(Event("Redirecting to %s" % redirectURL,))
+        attempt.record(TextEvent("Redirecting to %s" % redirectURL,))
         return DoRedirect(redirectURL)
 
     def request_response(self, req):
@@ -542,28 +726,43 @@ class TestCheckidSetup(ResultRow):
         attempt_handle = fields.getfirst("attempt")
         # FIXME: Handle KeyError here.
         attempt = self.getAttempt(attempt_handle)
-        token = attempt.authRequest.token
         query = {}
         for k in fields.keys():
             query[k] = fields.getfirst(k)
-        status, info = consu.completeAuth(token, query)
-        if status is not consumer.SUCCESS:
-            attempt.record(OpenIDFailure(status, info))
+        attempt.record(ResponseReceived(raw_uri=req.unparsed_uri,
+                                        query=query))
+        status, info = consu.completeAuth(attempt.authRequest.token, query)
+        if status is consumer.SUCCESS:
+            if info is not None:
+                attempt.record(IdentityAuthenticated(info))
+            else:
+                attempt.record(OperationCancelled())
+        elif status is consumer.SETUP_NEEDED:
+            attempt.record(SetupNeeded(info))
         else:
-            attempt.record(IdentityAuthenticated(info))
-        return RENDER_TABLE
+            attempt.record(OpenIDFailure(status, info))
+        return attempt
 
-# "Try authenticating with this server now?"
-# - lets this application know that the request has been made
-# - constructs the return_to url
-# - issues the redirect
-# - gets the return value
-# - displays all previous actions, with the addition of this latest result.
-#
-# ResultTable
-#  checkid_setup - try now?
 
-#
+class TestCheckidSetup(TestCheckid):
+    name = "Successful checkid_setup"
+    attemptClass = CheckidAttempt
+    immediate_mode = False
+
+class TestCheckidSetupCancel(TestCheckid):
+    name = "Cancel checkid_setup"
+    attemptClass = CheckidCancelAttempt
+    immediate_mode = False
+
+class TestCheckidImmediate(TestCheckid):
+    name = "Successful checkid_immediate"
+    attemptClass = CheckidImmediateAttempt
+    immediate_mode = True
+
+class TestCheckidImmediateSetupNeeded(TestCheckid):
+    name = "Setup Needed for checkid_immediate"
+    attemptClass = CheckidImmediateSetupNeededAttempt
+    immediate_mode = True
 
 
 class ResultRowHTMLView(object):
@@ -612,6 +811,7 @@ class ResultTable(object):
     def __init__(self, diagnostician, identity_info, rows):
         self.rows = []
         self.diagnostician = diagnostician
+        self.identity_info = identity_info
         for rowclass in rows:
             self.rows.append(rowclass(self, identity_info))
 
@@ -620,6 +820,10 @@ class ResultTable(object):
             if row.shortname == key:
                 return row
         raise KeyError(key)
+
+    def handleRequest(self, req, parts):
+        child = self.getChild(parts[0])
+        return child.handleRequest(req)
 
     def to_html(self):
         template = self.t_result_table

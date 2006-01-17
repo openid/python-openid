@@ -47,6 +47,7 @@ class DummyRequest(object):
         self.connection = DummyConnection()
         self.hostname = 'unittest.example'
         self.path_info = ''
+        self.unparsed_uri = self.uri
 
     def get_options(self):
         return self.options
