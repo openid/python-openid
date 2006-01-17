@@ -39,11 +39,13 @@ def otherTests():
 
 def pyunitTests():
     import unittest
+    import consumer
     import server
     import oidutil
     import linkparse
 
     pyunit_modules = [
+        consumer,
         server,
         ]
     if sys.version_info[:2] > (2, 2):

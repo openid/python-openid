@@ -572,6 +572,10 @@ class OpenIDConsumer(object):
 
         nonce, consumer_id, server_id, server_url = ret
 
+        user_setup_url = query.get('openid.user_setup_url')
+        if user_setup_url is not None:
+            return SETUP_NEEDED, user_setup_url
+
         return_to = query.get('openid.return_to')
         server_id2 = query.get('openid.identity')
         assoc_handle = query.get('openid.assoc_handle')
@@ -581,10 +585,6 @@ class OpenIDConsumer(object):
 
         if server_id != server_id2:
             return FAILURE, consumer_id
-
-        user_setup_url = query.get('openid.user_setup_url')
-        if user_setup_url is not None:
-            return SETUP_NEEDED, user_setup_url
 
         assoc = self.store.getAssociation(server_url)
 

@@ -4,7 +4,7 @@ import cgi
 
 from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.consumer import OpenIDConsumer, SUCCESS, \
-     HTTP_FAILURE, PARSE_ERROR
+     HTTP_FAILURE, PARSE_ERROR, SETUP_NEEDED
 
 import _memstore
 
@@ -225,5 +225,28 @@ def test():
     test_bad_parse()
     test_construct()
 
+
+
+
+import unittest
+
+class TestIdRes(unittest.TestCase):
+    def setUp(self):
+        self.store = _memstore.MemoryStore()
+        self.consumer = OpenIDConsumer(self.store)
+        self.token = self.consumer._genToken("nonny", "consu",
+                                             "sirod", "serlie")
+
+    def test_setupNeeded(self):
+        setup_url = 'http://unittest/setup-here'
+        query = {
+            'openid.mode': 'id_res',
+            'openid.user_setup_url': setup_url,
+            }
+        ret = self.consumer._doIdRes(self.token, query)
+        self.failUnlessEqual(ret[0], SETUP_NEEDED)
+        self.failUnlessEqual(ret[1], setup_url)
+
 if __name__ == '__main__':
     test()
+    unittest.main()
