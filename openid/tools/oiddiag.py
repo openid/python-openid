@@ -361,7 +361,7 @@ class Diagnostician(ApacheView):
                 (self.session['result_table'] is None)):
                 retval = self.openingPage()
             else:
-                result_table.diagnostician = self
+                self.session['result_table'].diagnostician = self
                 retval = self.resultPage()
 
         if retval is PAGE_DONE:
@@ -437,6 +437,7 @@ class Diagnostician(ApacheView):
         identity_info = result_table.identity_info
         if recent_attempt:
             attempt_html = recent_attempt.to_html()
+            attempt_html += '<p><a href="">Clear Message</a></p>'
         else:
             attempt_html = ''
 
