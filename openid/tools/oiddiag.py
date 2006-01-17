@@ -121,6 +121,45 @@ XMLCRAP = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/2002/REC-xhtml1-20020801/DTD/xhtml1-transitional.dtd">
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">'''
 
+STYLESHEET = '''
+table.results {
+    color: black;
+    background: #E3E3E3;
+    border: thin black solid;
+}
+table.results tr.odd {
+    background: #FFFFFF;
+}
+table.results tr.highlight {
+    font-weight: bolder;
+    text-decoration: underline;
+}
+table.results td.highlight, table.results tr.highlight th {
+
+    text-decoration: underline;
+}
+table.results td.highlight {
+    background: #FFFF00;
+}
+table.results td {
+    text-align: center;
+}
+table.results .failed {
+    background: #F86666;
+}
+table.results .success {
+    background: #C0FFC0;
+}
+table.results .incomplete {
+    background: #FFE880;
+}
+div.attempt {
+    background: #fffa5f;
+    color: black;
+    border: medium dashed black;
+}
+'''
+
 def getBaseURL(req):
     """Return a URL to the base of this script's URLspace.
 
@@ -369,8 +408,6 @@ class Diagnostician(ApacheView):
         elif isinstance(retval, DoRedirect):
             self.redirect(retval.redirectURL)
         elif isinstance(retval, Attempt):
-            # FIXME: this is in a vacuum without headers or
-            # supporting information or anything
             self.resultPage(retval)
 
     def openingPage(self):
@@ -398,14 +435,13 @@ class Diagnostician(ApacheView):
         s = XMLCRAP + '''
 <head>
 <title>Check your OpenID: %(url)s</title>
-<style type="text/css">
-   .status { font-size: smaller; }
-</style>
+<style type="text/css">%(stylesheet)s</style>
 <base href=%(baseAttrib)s />
 </head>
 <body>
 <p>Checking <a href=%(urlAttrib)s>%(url)s</a>...</p>
 ''' % {
+            'stylesheet': STYLESHEET,
             'url': escape(openid_url),
             'urlAttrib': quoteattr(openid_url),
             'baseAttrib': quoteattr(getBaseURL(self.req)),
@@ -444,25 +480,21 @@ class Diagnostician(ApacheView):
         s = XMLCRAP + '''
 <head>
 <title>Check your OpenID: %(openid)s @ %(server)s</title>
-<style type="text/css">
-   .status { font-size: smaller; }
-   div.attempt {
-       background: #fffa5f;
-       color: black;
-       border: medium dashed black;
-   }
-</style>
+<style type="text/css">%(stylesheet)s</style>
 <base href=%(baseAttrib)s />
 </head>
 <body>
 %(attempt)s
 %(result_table)s
+%(reset_button)s
 ''' % {
+            'stylesheet': STYLESHEET,
             'openid': identity_info.server_id,
             'server': identity_info.server_url,
             'baseAttrib': quoteattr(getBaseURL(self.req)),
             'attempt': attempt_html,
-            'result_table': result_table.to_html()
+            'result_table': result_table.to_html(highlight=recent_attempt),
+            'reset_button': ResetButton().to_html(),
             }
         self.write(s)
         self.write('</body></html>')
@@ -768,37 +800,76 @@ class TestCheckidImmediateSetupNeeded(TestCheckid):
 
 class ResultRowHTMLView(object):
     t_result_row = (
-        '<tr><td>%(name)s</td><td>%(succ)s</td><td>%(fail)s</td>'
-        '<td>%(incl)s</td><td><a href=%(trylink)s>Try again?</a></td></tr>'
+        '<tr class=%(rowClass)s>'
+        '<th scope="row" class=%(statusClass)s>%(name)s</th>'
+        '<td %(hi_succ)s>%(succ)s</td><td %(hi_fail)s>%(fail)s</td>'
+        '<td %(hi_incl)s>%(incl)s</td>'
+        '<td><a href=%(trylink)s rel="nofollow">Try again?</a></td></tr>'
         '\n')
 
     t_empty_row = (
-        '<tr><td>%(name)s</td><td colspan="4">'
-        'Not yet attempted -- <a href=%(trylink)s>try now</a>.</td></tr>'
+        '<tr class=%(rowClass)s><th scope="row">%(name)s</th><td colspan="4">'
+        'Not yet attempted -- <a href=%(trylink)s rel="nofollow">try now</a>.'
+        '</td></tr>'
         '\n')
 
     def __init__(self, rrow):
         self.orig = rrow
 
-    def to_html(self):
+    def to_html(self, rownum=0, highlight=None):
+        if rownum % 2:
+            rowclass = "odd"
+        else:
+            rowclass = "even"
+        if self.orig.attempts:
+            template = self.t_result_row
+            recent_result = self.orig.attempts[-1].result()
+            recent_status = {
+                FAILURE: 'failed',
+                SUCCESS: 'success',
+                INCOMPLETE: 'incomplete',
+                }[recent_result]
+        else:
+            template = self.t_empty_row
+            recent_status = ''
+
+        cell_highlights = {'hi_succ': '',
+                           'hi_fail': '',
+                           'hi_incl': '',
+                           }
+        if highlight is not None:
+            rowclass += ' highlight'
+            cell = {FAILURE: 'hi_fail',
+                    SUCCESS: 'hi_succ',
+                    INCOMPLETE: 'hi_incl',
+                    }[highlight.result() ]
+            cell_highlights[cell] = 'class=%s' % (quoteattr('highlight'),)
+
         values = {
+            'rowClass': quoteattr(rowclass),
+            'statusClass': quoteattr(recent_status),
             'name': self.orig.name,
             'succ': len(self.orig.getSuccesses()),
             'fail': len(self.orig.getFailures()),
             'incl': len(self.orig.getIncompletes()),
             'trylink': quoteattr(self.orig.getURL()),
             }
-        if self.orig.attempts:
-            template = self.t_result_row
-        else:
-            template = self.t_empty_row
+        values.update(cell_highlights)
         return template % values
 
 
 t_result_table = """
-<table>
+<table class="results">
+<colgroup />
+<colgroup span="3">
+<colgroup />
 <thead>
-<tr><th> </th><th>Success</th><th>Failure</th><th>Incomplete</th><th></th></tr>
+<tr>
+<th scope='col'><!-- test name --></th>
+<th scope='col' id="success">Success</th>
+<th scope='col' id="failure">Failure</th>
+<th scope='col' id="incomplete">Incomplete</th>
+<th scope='col'><!-- retry link --></th></tr>
 </thead>
 <tbody>
 %(rows)s
@@ -826,12 +897,18 @@ class ResultTable(object):
         child = self.getChild(parts[0])
         return child.handleRequest(req)
 
-    def to_html(self):
+    def to_html(self, highlight=None):
         template = self.t_result_table
         htmlrows = []
+        rownum = 0
         for row in self.rows:
+            rownum += 1
             # IHTMLView(row).to_html()
-            htmlrows.append(ResultRowHTMLView(row).to_html())
+            if (highlight is not None) and (highlight.parent == row):
+                htmlrows.append(ResultRowHTMLView(row).to_html(
+                    rownum=rownum, highlight=highlight))
+            else:
+                htmlrows.append(ResultRowHTMLView(row).to_html(rownum=rownum))
         return template % {
             'rows': ''.join(htmlrows),
             }
@@ -840,3 +917,9 @@ class ResultTable(object):
         s = self.__dict__.copy()
         del s['diagnostician']
         return s
+
+
+class ResetButton(object):
+    def to_html(self):
+        return ('<form action="clear">'
+                '<input type="submit" value="Reset"></form>')
