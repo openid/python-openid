@@ -182,6 +182,16 @@ class IdentityInfo(object):
             self.consumer_id, self.server_id, self.server_url)
         return authreq
 
+    def to_html(self):
+        s = ('Querying <a href=%(surl_attr)s class="server_url">%(surl)s</a> '
+             'about <a href=%(sid_attr)s class="server_url">%(sid)s</a>.' %
+             {'sid_attr': quoteattr(self.server_id),
+              'sid': escape(self.server_id),
+              'surl_attr': quoteattr(self.server_url),
+              'surl': escape(self.server_url),
+              })
+        return s
+
 class Event(object):
     def __init__(self):
         self.time = time.time()
@@ -457,6 +467,7 @@ class Diagnostician(ApacheView):
 </head>
 <body>
 %(attempt)s
+<p class="idinfo">%(iinfo)s</p>
 %(result_table)s
 %(reset_button)s
 ''' % {
@@ -465,6 +476,7 @@ class Diagnostician(ApacheView):
             'server': identity_info.server_url,
             'baseAttrib': quoteattr(getBaseURL(self.req)),
             'attempt': attempt_html,
+            'iinfo': identity_info.to_html(),
             'result_table': result_table.to_html(highlight=recent_attempt),
             'reset_button': ResetButton().to_html(),
             }
