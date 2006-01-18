@@ -450,7 +450,6 @@ class Diagnostician(ApacheView):
         self.record(TextEvent("Working on openid_url %s" % (openid_url,)))
 
         identity_info = self.fetchAndParse(openid_url)
-        self.associate(identity_info)
         rows = [
             TestCheckidSetup,
             TestCheckidSetupCancel,
@@ -458,6 +457,8 @@ class Diagnostician(ApacheView):
             TestCheckidImmediateSetupNeeded,
             ]
         result_table = ResultTable(self, identity_info, rows)
+        self.associate(identity_info)
+        self.write('<a href=".">[Clear Message]</a>\n')
         self.write(result_table.to_html())
         self.session['result_table'] = result_table
         self.write(ResetButton().to_html())
