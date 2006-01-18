@@ -861,7 +861,7 @@ class ResultRowHTMLView(object):
 
 
 t_result_table = """
-<table class="results">
+<table class="results" summary=%(summary)s>
 <colgroup />
 <colgroup span="3">
 <colgroup />
@@ -903,6 +903,10 @@ class ResultTable(object):
         template = self.t_result_table
         htmlrows = []
         rownum = 0
+        results = {SUCCESS: 0,
+                   FAILURE: 0,
+                   INCOMPLETE: 0,
+                   None: 0}
         for row in self.rows:
             rownum += 1
             # IHTMLView(row).to_html()
@@ -911,7 +915,24 @@ class ResultTable(object):
                     rownum=rownum, highlight=highlight))
             else:
                 htmlrows.append(ResultRowHTMLView(row).to_html(rownum=rownum))
+
+            if row.attempts:
+                results[row.attempts[-1].result()] += 1
+            else:
+                results[None] += 1
+
+        summary = ["%d tests" % (len(self.rows),)]
+        if results[SUCCESS]:
+            summary.append("%d passing" % (results[SUCCESS],))
+        if results[FAILURE]:
+            summary.append("%d failing" % (results[FAILURE],))
+        if results[INCOMPLETE]:
+            summary.append("%d incomplete" % (results[INCOMPLETE],))
+        if results[None]:
+            summary.append("%d not yet tried" % (results[None],))
+
         return template % {
+            'summary': quoteattr(', '.join(summary) + '.'),
             'rows': ''.join(htmlrows),
             }
 
