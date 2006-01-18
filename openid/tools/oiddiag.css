@@ -1,0 +1,39 @@
+table.results {
+    color: black;
+    background: #E3E3E3;
+    border: thin black solid;
+}
+table.results tr.odd {
+    background: #FFFFFF;
+}
+table.results tr.highlight {
+    font-weight: bolder;
+    text-decoration: underline;
+}
+table.results td.highlight, table.results tr.highlight th {
+    text-decoration: underline;
+}
+table.results td.highlight {
+    background: #FFFF00;
+}
+table.results td {
+    text-align: center;
+}
+table.results .failed {
+    background: #F86666;
+}
+table.results .success {
+    background: #66FF66;
+}
+table.results .incomplete {
+    background: #FFE880;
+}
+div.recent_note {
+    background: #fffa5f;
+    color: black;
+    border: medium dashed black;
+}
+.clearnote { 
+    text-align: right;
+    font-size: smaller;
+}

@@ -123,44 +123,13 @@ XMLCRAP = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/2002/REC-xhtml1-20020801/DTD/xhtml1-transitional.dtd">
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">'''
 
-STYLESHEET = '''
-table.results {
-    color: black;
-    background: #E3E3E3;
-    border: thin black solid;
-}
-table.results tr.odd {
-    background: #FFFFFF;
-}
-table.results tr.highlight {
-    font-weight: bolder;
-    text-decoration: underline;
-}
-table.results td.highlight, table.results tr.highlight th {
+def sibpath(one, other):
+    import os.path
+    if os.path.isabs(other):
+        return other
+    return os.path.join(os.path.dirname(one), other)
 
-    text-decoration: underline;
-}
-table.results td.highlight {
-    background: #FFFF00;
-}
-table.results td {
-    text-align: center;
-}
-table.results .failed {
-    background: #F86666;
-}
-table.results .success {
-    background: #C0FFC0;
-}
-table.results .incomplete {
-    background: #FFE880;
-}
-div.attempt {
-    background: #fffa5f;
-    color: black;
-    border: medium dashed black;
-}
-'''
+STYLESHEET = file(sibpath(__file__, 'oiddiag.css')).read()
 
 def getBaseURL(req):
     """Return a URL to the base of this script's URLspace.
