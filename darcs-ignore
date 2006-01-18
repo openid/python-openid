@@ -36,3 +36,4 @@
 ^dist$
 (^|/)sstore$
 (^|/)cstore$
+^build$
