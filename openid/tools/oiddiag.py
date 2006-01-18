@@ -328,6 +328,7 @@ class ApacheView(object):
                 self.go()
             except Failure, e:
                 self.record(e.event())
+                self.write("</body></html>")
         finally:
             self.finish()
         return apache.OK
@@ -431,7 +432,6 @@ class Diagnostician(ApacheView):
     def go_start(self):
         f = FieldStorage(self.req)
         openid_url = f.getfirst("openid_url")
-        self.record(TextEvent("Working on openid_url %s" % (openid_url,)))
         s = XMLCRAP + '''
 <head>
 <title>Check your OpenID: %(url)s</title>
@@ -447,20 +447,21 @@ class Diagnostician(ApacheView):
             'baseAttrib': quoteattr(getBaseURL(self.req)),
             }
         self.write(s)
-        try:
-            identity_info = self.fetchAndParse(openid_url)
-            self.associate(identity_info)
-            rows = [
-                TestCheckidSetup,
-                TestCheckidSetupCancel,
-                TestCheckidImmediate,
-                TestCheckidImmediateSetupNeeded,
-                ]
-            result_table = ResultTable(self, identity_info, rows)
-            self.write(result_table.to_html())
-            self.session['result_table'] = result_table
-        finally:
-            self.write('</body></html>')
+        self.record(TextEvent("Working on openid_url %s" % (openid_url,)))
+
+        identity_info = self.fetchAndParse(openid_url)
+        self.associate(identity_info)
+        rows = [
+            TestCheckidSetup,
+            TestCheckidSetupCancel,
+            TestCheckidImmediate,
+            TestCheckidImmediateSetupNeeded,
+            ]
+        result_table = ResultTable(self, identity_info, rows)
+        self.write(result_table.to_html())
+        self.session['result_table'] = result_table
+        self.write(ResetButton().to_html())
+        self.write('</body></html>')
 
         return PAGE_DONE
 
