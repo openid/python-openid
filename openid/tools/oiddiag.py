@@ -938,7 +938,8 @@ class ResultTable(object):
 
     def __getstate__(self, state=None):
         s = self.__dict__.copy()
-        del s['diagnostician']
+        if 'diagnostician' in s:
+            del s['diagnostician']
         return s
 
 class RecentNote(object):
