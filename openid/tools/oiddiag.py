@@ -122,6 +122,8 @@ from openid.store.sqlstore import SQLiteStore
 from openid.dh import DiffieHellman
 from openid import oidutil
 
+from openid.tools import events
+
 import pysqlite2.dbapi2
 import time, urllib
 
@@ -209,83 +211,6 @@ class IdentityInfo(object):
               })
         return s
 
-class Event(object):
-    def __init__(self):
-        self.time = time.time()
-
-    def to_html(self):
-        return escape(str(self))
-
-class TextEvent(Event):
-    """An event described by a line of text.
-
-    Used for prototyping, these should be phased out.
-    """
-
-    def __init__(self, text):
-        Event.__init__(self)
-        self.text = text
-
-    def to_html(self):
-        return '<span class="event">%s</span>' % (escape(self.text),)
-
-    def __repr__(self):
-        return '<%s %r %s>' % (self.__class__.__name__, self.text, self.time)
-
-    def __str__(self):
-        return self.text
-
-class IdentityAuthenticated(Event):
-    def __init__(self, identity):
-        Event.__init__(self)
-        self.identity = identity
-
-    def __str__(self):
-        return "Identity authenticated as %s" % (self.identity,)
-
-class SetupNeeded(Event):
-    def __init__(self, url):
-        Event.__init__(self)
-        self.url = url
-
-    def __str__(self):
-        return "Server requires setup at %s" % (self.url,)
-
-class OpenIDFailure(Event):
-    def __init__(self, code, info):
-        Event.__init__(self)
-        self.code = code
-        self.info = info
-
-    def to_html(self):
-        return ('<span class="event">Open ID Failure: %s %s</span>'
-                % (self.code, self.info))
-
-
-class OperationCancelled(TextEvent):
-    text = "Operation Cancelled."
-
-    def __init__(self):
-        TextEvent.__init__(self, self.text)
-
-class ResponseReceived(Event):
-    def __init__(self, raw_uri, query):
-        Event.__init__(self)
-        self.raw_uri = raw_uri
-        self.query = query
-
-    def to_html(self):
-        return ('<span class="event">Response received: %s</span>'
-                % (escape(str(self.query)),))
-
-
-class FatalEvent(TextEvent):
-    pass
-
-class Failure(Exception):
-    def event(self):
-        return FatalEvent(self.args[0])
-
 class Instruction(object):
     pass
 
@@ -326,7 +251,7 @@ class ApacheView(object):
         try:
             try:
                 self.go()
-            except Failure, e:
+            except events.Failure, e:
                 self.record(e.event())
                 self.write("</body></html>")
         finally:
@@ -447,7 +372,7 @@ class Diagnostician(ApacheView):
             'baseAttrib': quoteattr(getBaseURL(self.req)),
             }
         self.write(s)
-        self.record(TextEvent("Working on openid_url %s" % (openid_url,)))
+        self.record(events.TextEvent("Working on openid_url %s" % (openid_url,)))
 
         identity_info = self.fetchAndParse(openid_url)
         rows = [
@@ -514,23 +439,23 @@ class Diagnostician(ApacheView):
                 'cid': identity_info.consumer_id,
                 'sid': identity_info.server_id,
                 'serv': identity_info.server_url})
-            self.record(TextEvent(s))
+            self.record(events.TextEvent(s))
             return identity_info
 
         elif status is consumer.HTTP_FAILURE:
             if info is None:
-                raise Failure("Failed to connect to %s" % (openid_url,))
+                raise events.Failure("Failed to connect to %s" % (openid_url,))
             else:
                 http_code = info
                 # XXX: That's not quite true - a server *somewhere*
                 # returned that error, but it might have been after
                 # a redirect.
-                raise Failure("Server at %s returned error code %s" %
-                              (openid_url, http_code,))
+                raise events.Failure("Server at %s returned error code %s" %
+                                     (openid_url, http_code,))
 
         elif status is consumer.PARSE_ERROR:
-            raise Failure("Did not find any OpenID information at %s" %
-                          (openid_url,))
+            raise events.Failure("Did not find any OpenID information at %s" %
+                                 (openid_url,))
         else:
             raise AssertionError("status %r not handled" % (status,))
 
@@ -542,8 +467,9 @@ class Diagnostician(ApacheView):
         dh = DiffieHellman()
         body = consu._createAssociateRequest(dh)
         assoc = consu._fetchAssociation(dh, server_url, body)
-        self.record(TextEvent("Association made.  "
-                              "Handle: %s, issued: %s, lifetime: %s hours" % (
+        self.record(events.TextEvent("Association made.  "
+                                     "Handle: %s, issued: %s, "
+                                     "lifetime: %s hours" % (
             assoc.handle, time.ctime(assoc.issued), assoc.lifetime / 3600.,)))
 
 
@@ -609,7 +535,7 @@ class CheckidAttemptBase(Attempt):
     _resultMap = NotImplementedError
 
     def result(self):
-        responses = filter(lambda e: isinstance(e, ResponseReceived),
+        responses = filter(lambda e: isinstance(e, events.ResponseReceived),
                            self.event_log)
         if not responses:
             return INCOMPLETE
@@ -633,37 +559,37 @@ class CheckidAttemptBase(Attempt):
 
 class CheckidAttempt(CheckidAttemptBase):
     _resultMap = {
-        IdentityAuthenticated: SUCCESS,
-        OpenIDFailure: FAILURE,
-        OperationCancelled: FAILURE,
-        SetupNeeded: FAILURE,
+        events.IdentityAuthenticated: SUCCESS,
+        events.OpenIDFailure: FAILURE,
+        events.OperationCancelled: FAILURE,
+        events.SetupNeeded: FAILURE,
         }
 
 
 class CheckidCancelAttempt(CheckidAttemptBase):
     _resultMap = {
-        IdentityAuthenticated: FAILURE,
-        OpenIDFailure: FAILURE,
-        OperationCancelled: SUCCESS,
-        SetupNeeded: FAILURE,
+        events.IdentityAuthenticated: FAILURE,
+        events.OpenIDFailure: FAILURE,
+        events.OperationCancelled: SUCCESS,
+        events.SetupNeeded: FAILURE,
         }
 
 
 class CheckidImmediateAttempt(CheckidAttemptBase):
     _resultMap = {
-        IdentityAuthenticated: SUCCESS,
-        OpenIDFailure: FAILURE,
-        OperationCancelled: FAILURE,
-        SetupNeeded: FAILURE,
+        events.IdentityAuthenticated: SUCCESS,
+        events.OpenIDFailure: FAILURE,
+        events.OperationCancelled: FAILURE,
+        events.SetupNeeded: FAILURE,
         }
 
 
 class CheckidImmediateSetupNeededAttempt(CheckidAttemptBase):
     _resultMap = {
-        IdentityAuthenticated: FAILURE,
-        OpenIDFailure: FAILURE,
-        OperationCancelled: FAILURE,
-        SetupNeeded: SUCCESS,
+        events.IdentityAuthenticated: FAILURE,
+        events.OpenIDFailure: FAILURE,
+        events.OperationCancelled: FAILURE,
+        events.SetupNeeded: SUCCESS,
         }
 
 
@@ -753,7 +679,7 @@ class TestCheckid(ResultRow):
             immediate_mode=self.immediate_mode)
 
         attempt.redirectURL = redirectURL
-        attempt.record(TextEvent("Redirecting to %s" % redirectURL,))
+        attempt.record(events.TextEvent("Redirecting to %s" % redirectURL,))
         return DoRedirect(redirectURL)
 
     def request_response(self, req):
@@ -765,18 +691,18 @@ class TestCheckid(ResultRow):
         query = {}
         for k in fields.keys():
             query[k] = fields.getfirst(k)
-        attempt.record(ResponseReceived(raw_uri=req.unparsed_uri,
-                                        query=query))
+        attempt.record(events.ResponseReceived(raw_uri=req.unparsed_uri,
+                                               query=query))
         status, info = consu.completeAuth(attempt.authRequest.token, query)
         if status is consumer.SUCCESS:
             if info is not None:
-                attempt.record(IdentityAuthenticated(info))
+                attempt.record(events.IdentityAuthenticated(info))
             else:
-                attempt.record(OperationCancelled())
+                attempt.record(events.OperationCancelled())
         elif status is consumer.SETUP_NEEDED:
-            attempt.record(SetupNeeded(info))
+            attempt.record(events.SetupNeeded(info))
         else:
-            attempt.record(OpenIDFailure(status, info))
+            attempt.record(events.OpenIDFailure(status, info))
         return attempt
 
 

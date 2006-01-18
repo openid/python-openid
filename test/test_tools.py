@@ -1,7 +1,7 @@
 
 import unittest
 from cStringIO import StringIO
-from openid.tools import oiddiag
+from openid.tools import oiddiag, events
 from openid.consumer import consumer
 from openid import association
 
@@ -207,7 +207,7 @@ class TestCheckidTest(unittest.TestCase):
         self.rrow.attempts.append(attempt)
         result = self.rrow.request_response(req)
         last_event = attempt.event_log[-1]
-        self.failUnless(isinstance(last_event, oiddiag.IdentityAuthenticated))
+        self.failUnless(isinstance(last_event, events.IdentityAuthenticated))
         self.failUnlessEqual(attempt.result(), oiddiag.SUCCESS)
 
 if __name__ == '__main__':
