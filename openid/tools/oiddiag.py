@@ -445,8 +445,7 @@ class Diagnostician(ApacheView):
         result_table = self.session['result_table']
         identity_info = result_table.identity_info
         if recent_attempt:
-            attempt_html = recent_attempt.to_html()
-            attempt_html += '<p><a href="">Clear Message</a></p>'
+            attempt_html = RecentNote(recent_attempt).to_html()
         else:
             attempt_html = ''
 
@@ -890,6 +889,21 @@ class ResultTable(object):
         s = self.__dict__.copy()
         del s['diagnostician']
         return s
+
+class RecentNote(object):
+    t_note = '''<div class="recent_note">Latest response:
+%(content)s
+<p class="clearnote"><a href="">Clear Message</a></p>
+</div>'''
+
+    def __init__(self, content):
+        self.content = content
+
+    def to_html(self):
+        values = {
+            'content': self.content.to_html(),
+            }
+        return self.t_note % values
 
 
 class ResetButton(object):
