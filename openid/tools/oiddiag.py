@@ -276,7 +276,7 @@ class ResponseReceived(Event):
 
     def to_html(self):
         return ('<span class="event">Response received: %s</span>'
-                % (self.query,))
+                % (escape(str(self.query)),))
 
 
 class FatalEvent(TextEvent):
@@ -317,7 +317,7 @@ class ApacheView(object):
             self.req.write(''.join(self._buffer))
 
     def statusMsg(self, msg):
-        self.write('<span class="status">%s</span><br \>\n' % (escape(msg),))
+        self.write('<span class="status">%s</span><br />\n' % (escape(msg),))
 
     def handle(self, req=None):
         assert (req is None) or (req is self.req)
@@ -944,7 +944,7 @@ class ResultTable(object):
 class RecentNote(object):
     t_note = '''<div class="recent_note">Latest response:
 %(content)s
-<p class="clearnote"><a href="">Clear Message</a></p>
+<p class="clearnote"><a href=".">Clear Message</a></p>
 </div>'''
 
     def __init__(self, content):
@@ -960,4 +960,4 @@ class RecentNote(object):
 class ResetButton(object):
     def to_html(self):
         return ('<form action="clear">'
-                '<input type="submit" value="Reset"></form>')
+                '<input type="submit" value="Reset" /></form>')
