@@ -3,6 +3,23 @@
 @todo: new sessions should check to see if they are new sessions
     because they are an expired old session, and explain that is
     the case.
+
+@todo: drill-down views for table rows.
+@todo: convert the fetchAndParse and assosciate methods to use Attempts
+@todo: add dumb-mode tests
+@todo: add more association tests
+@todo: document usage, results
+@todo: end-user wrapper
+@todo: render tables for query args
+@todo: add passed/failed message to end of Attempt rendering.
+@todo: add summary line: All passed, 3 failures, 2 incompletes, 1 untried.
+@todo: keep log of working servers.
+@todo: code documentation and cleanup.
+@todo: more unit and/or functional tests through HTTP interface, since
+    none of the HTML rendering or mod_python-interfacing code is being
+    well tested with the current test harness.  (Selenium or Twill?)
+@todo: write 'about' page
+@todo: document data storage policy.
 """
 
 # Please enter an OpenID URL: [______________]
