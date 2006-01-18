@@ -108,6 +108,8 @@ from openid import oidutil
 import pysqlite2.dbapi2
 import time, urllib
 
+SESSION_TIMEOUT = 3600 * 24 * 4
+
 # Sometimes an enum type would be nice.
 SUCCESS = ('success',)
 FAILURE = ('failure',)
@@ -298,7 +300,7 @@ class ApacheView(object):
         self.req = req
         self.event_log = []
         self._cleanupCalls = []
-        self.session = Session(req)
+        self.session = Session(req, timeout=SESSION_TIMEOUT)
 
     def write(self, bytes):
         if self.fixed_length:

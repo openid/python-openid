@@ -24,7 +24,7 @@ class DummyFieldStorage(object):
         return self.req.fields.keys()
 
 class MockSession(dict):
-    def __init__(self, unused_req):
+    def __init__(self, unused_req, timeout=None):
         pass
 
     def is_new(self):
