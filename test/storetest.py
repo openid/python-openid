@@ -32,7 +32,7 @@ def testStore(store):
     now = int(time.time())
 
     server_url = 'http://www.myopenid.com/openid'
-    def genAssoc(issued=0, lifetime=600):
+    def genAssoc(issued, lifetime=600):
         sec = generateSecret(20)
         hdl = generateHandle(128)
         return Association(hdl, sec, now + issued, lifetime, 'HMAC-SHA1')
@@ -55,7 +55,7 @@ def testStore(store):
         assert ((not expectedPresent and not present) or
                 (expectedPresent and present))
 
-    assoc = genAssoc()
+    assoc = genAssoc(issued=0)
 
     # Make sure that a missing association returns no result
     checkRetrieve(server_url)
@@ -101,7 +101,9 @@ def testStore(store):
     # explicitly
     checkRetrieve(server_url, assoc2.handle, assoc2)
 
-    # More recent, but expires earlier than assoc2 or assoc
+    # More recent, and expires earlier than assoc2 or assoc. Make sure
+    # that we're picking the one with the latest issued date and not
+    # taking into account the expiration.
     assoc3 = genAssoc(issued=2, lifetime=100)
     store.storeAssociation(server_url, assoc3)
 
