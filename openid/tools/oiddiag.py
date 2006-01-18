@@ -235,9 +235,11 @@ class OpenIDFailure(Event):
                 % (self.code, self.info))
 
 
-class OperationCancelled(Event):
+class OperationCancelled(TextEvent):
     text = "Operation Cancelled."
 
+    def __init__(self):
+        TextEvent.__init__(self, self.text)
 
 class ResponseReceived(Event):
     def __init__(self, raw_uri, query):
