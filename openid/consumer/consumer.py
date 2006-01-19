@@ -612,7 +612,6 @@ class OpenIDConsumer(object):
         return SUCCESS, consumer_id
 
     def _checkAuth(self, nonce, query, server_url):
-        # XXX: send only those arguments that were signed?
         signed = query.get('openid.signed')
         if signed is None:
             return FAILURE
