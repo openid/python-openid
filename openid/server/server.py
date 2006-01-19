@@ -741,7 +741,7 @@ class LowLevelServer(object):
                 return DO_AUTH, AuthorizationInfo(self.url, args)
 
             else:
-                raise AssertionError, 'unreachable'
+                raise AssertionError('unreachable')
 
         reply = {
             'openid.mode': 'id_res',
