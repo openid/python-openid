@@ -385,13 +385,13 @@ class MySQLStore(SQLStore):
     create_assoc_sql = """
     CREATE TABLE %(associations)s
     (
-        server_url VARCHAR(767),
+        server_url BLOB,
         handle VARCHAR(255),
-        secret BLOB(128),
+        secret BLOB,
         issued INTEGER,
         lifetime INTEGER,
         assoc_type VARCHAR(64),
-        PRIMARY KEY (server_url, handle)
+        PRIMARY KEY (server_url(255), handle)
     )
     TYPE=InnoDB;
     """
@@ -400,7 +400,7 @@ class MySQLStore(SQLStore):
     CREATE TABLE %(settings)s
     (
         setting VARCHAR(128) UNIQUE PRIMARY KEY,
-        value BLOB(20)
+        value BLOB
     )
     TYPE=InnoDB;
     """
@@ -446,7 +446,7 @@ class PostgreSQLStore(SQLStore):
     create_assoc_sql = """
     CREATE TABLE %(associations)s
     (
-        server_url VARCHAR(767),
+        server_url VARCHAR(2047),
         handle VARCHAR(255),
         secret BYTEA,
         issued INTEGER,
