@@ -651,7 +651,7 @@ class LowLevelServer(object):
         self.dumb_key = server_url + '|dumb'
 
         if store.isDumb():
-            raise ValueError, 'OpenID servers cannot use a dumb store.'
+            raise ValueError('OpenID servers cannot use a dumb store.')
 
         self.store = store
 
