@@ -232,17 +232,6 @@ def test_mysql():
         # Change this connect line to use the right user and password
         conn = MySQLdb.connect(user=db_user, passwd=db_passwd, host = db_host)
 
-        # Clean up from last time, if the final drop database did not work
-        try:
-            conn.query('DROP DATABASE %s;' % db_name)
-        except conn.OperationalError, why:
-            if why[0] == ER.DB_DROP_EXISTS:
-                pass # It's OK that the database did not exist. We're
-                     # just cleaning up from last time in case we
-                     # failed to clean up at the end.
-            else:
-                raise
-
         conn.query('CREATE DATABASE %s;' % db_name)
         try:
             conn.query('USE %s;' % db_name)
@@ -299,20 +288,6 @@ def test_postgresql():
         conn_create = psycopg.connect(database = 'template1', user = db_user,
                                       host = db_host)
         conn_create.autocommit()
-        cursor = conn_create.cursor()
-
-        # Clean up from last time, if the final drop database did not
-        # work.
-        try:
-            cursor = conn_create.cursor()
-            cursor.execute('DROP DATABASE %s;' % (db_name,))
-        except Exception, e:
-            # This is a hack, but we'd do better if psycopg provided
-            # reasonable feedback from Postgres.
-            if str(e).find('exist') == -1:
-                raise
-
-        cursor.close()
 
         # Create the test database.
         cursor = conn_create.cursor()
