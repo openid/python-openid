@@ -727,13 +727,13 @@ class TestCheckidImmediateSetupNeeded(TestCheckid):
 
 
 class ResultRowHTMLView(object):
-    t_result_row = (
-        '<tr class=%(rowClass)s>'
-        '<th scope="row" class=%(statusClass)s>%(name)s</th>'
-        '<td %(hi_succ)s>%(succ)s</td><td %(hi_fail)s>%(fail)s</td>'
-        '<td %(hi_incl)s>%(incl)s</td>'
-        '<td><a href=%(trylink)s rel="nofollow">Try again?</a></td></tr>'
-        '\n')
+    t_result_row = '''<tr class=%(rowClass)s>
+    <th scope="row" class=%(statusClass)s>%(name)s</th>
+    <td headers="success" %(hi_succ)s>%(succ)s</td>
+    <td headers="failure" %(hi_fail)s>%(fail)s</td>
+    <td headers="incomplete" %(hi_incl)s>%(incl)s</td>
+    <td><a href=%(trylink)s rel="nofollow">Try again?</a></td>
+</tr>\n'''
 
     t_empty_row = (
         '<tr class=%(rowClass)s><th scope="row">%(name)s</th><td colspan="4">'
@@ -793,11 +793,11 @@ t_result_table = """
 <colgroup />
 <thead>
 <tr>
-<th scope='col'><!-- test name --></th>
-<th scope='col' id="success">Success</th>
-<th scope='col' id="failure">Failure</th>
-<th scope='col' id="incomplete">Incomplete</th>
-<th scope='col'><!-- retry link --></th></tr>
+    <th scope='col'><!-- test name --></th>
+    <th scope='col' id="success">Success</th>
+    <th scope='col' id="failure">Failure</th>
+    <th scope='col' id="incomplete">Incomplete</th>
+    <th scope='col'><!-- retry link --></th></tr>
 </thead>
 <tbody>
 %(rows)s

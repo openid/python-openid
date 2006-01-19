@@ -8,24 +8,30 @@ table.results tr.odd {
 }
 table.results tr.highlight {
     font-weight: bolder;
-    text-decoration: underline;
 }
 table.results td.highlight, table.results tr.highlight th {
     text-decoration: underline;
 }
-table.results td.highlight {
-    background: #FFFF00;
-}
 table.results td {
     text-align: center;
-}
-table.results .failed {
-    background: #F86666;
 }
 table.results .success {
     background: #66FF66;
 }
+table.results .failed {
+    background: #F86666;
+}
 table.results .incomplete {
+    background: #FFE880;
+}
+/* Fun, but doesn't work in IE 6 */
+table.results td[headers~="success"].highlight {
+    background: #66FF66;
+}
+table.results td[headers~="failure"].highlight {
+    background: #F86666;
+}
+table.results td[headers~="incomplete"].highlight {
     background: #FFE880;
 }
 div.recent_note {
