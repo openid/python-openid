@@ -642,6 +642,11 @@ class LowLevelServer(object):
             C{L{openid.store.interface.OpenIDStore}} interface
         """
         self.url = server_url
+
+        # These keys are used in the store as server URLs to
+        # differentiate between associations used in dumb mode (the
+        # secret is not shared) and those in normal mode (the secret
+        # *is* shared).
         self.normal_key = server_url + '|normal'
         self.dumb_key = server_url + '|dumb'
 
