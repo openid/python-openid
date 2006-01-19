@@ -668,7 +668,7 @@ class TestCheckid(ResultRow):
         consu = self.getConsumer()
         auth_request = self.identity_info.newAuthRequest(consu)
         attempt.authRequest = auth_request
-        return_to = "%s%s;attempt=%s" % (
+        return_to = "%s%s&attempt=%s" % (
             getBaseURL(req), self.getURL(action="response"),
             urllib.quote(attempt.handle, safe=''))
 
