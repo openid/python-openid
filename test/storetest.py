@@ -3,6 +3,9 @@ from openid.cryptutil import randomString
 
 import string
 import time
+import socket
+import random
+import os
 
 db_host = 'dbtest'
 
@@ -20,6 +23,11 @@ generateSecret = randomString
 allowed_nonce = string.letters + string.digits
 def generateNonce():
     return randomString(8, allowed_nonce)
+
+def getTmpDbName():
+    return "%s_%d_%s_openid_test" % \
+           (socket.gethostname(), os.getpid(), \
+            random.randrange(1, int(time.time())))
 
 def testStore(store):
     """Make sure a given store has a minimum of API compliance. Call
@@ -217,7 +225,7 @@ def test_mysql():
     else:
         db_user = 'openid_test'
         db_passwd = ''
-        db_name = 'openid_test'
+        db_name = getTmpDbName()
 
         from MySQLdb.constants import ER
 
@@ -271,13 +279,11 @@ def test_postgresql():
 
     This test connects to the database cluster three times:
 
-    - To the 'template1' database, to create the 'openid_test'
-      database
+    - To the 'template1' database, to create the test database
 
-    - To the 'openid_test' database, to run the store tests
+    - To the test database, to run the store tests
 
-    - To the 'template1' database once more, to drop the 'openid_test'
-      database
+    - To the 'template1' database once more, to drop the test database
     """
     from openid.store import sqlstore
     try:
@@ -285,7 +291,7 @@ def test_postgresql():
     except ImportError:
         pass
     else:
-        db_name = 'openid_test'
+        db_name = getTmpDbName()
         db_user = 'openid_test'
 
         # Connect once to create the database; reconnect to access the
