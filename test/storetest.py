@@ -4,6 +4,8 @@ from openid.cryptutil import randomString
 import string
 import time
 
+db_host = 'dbtest'
+
 allowed_handle = []
 for c in string.printable:
     if c not in string.whitespace:
@@ -220,7 +222,7 @@ def test_mysql():
         from MySQLdb.constants import ER
 
         # Change this connect line to use the right user and password
-        conn = MySQLdb.connect(user=db_user, passwd=db_passwd)
+        conn = MySQLdb.connect(user=db_user, passwd=db_passwd, host = db_host)
 
         # Clean up from last time, if the final drop database did not work
         try:
@@ -288,7 +290,8 @@ def test_postgresql():
 
         # Connect once to create the database; reconnect to access the
         # new database.
-        conn_create = psycopg.connect(database = 'template1', user = db_user)
+        conn_create = psycopg.connect(database = 'template1', user = db_user,
+                                      host = db_host)
         conn_create.autocommit()
         cursor = conn_create.cursor()
 
@@ -311,7 +314,8 @@ def test_postgresql():
         conn_create.close()
 
         # Connect to the test database.
-        conn_test = psycopg.connect(database = db_name, user = db_user)
+        conn_test = psycopg.connect(database = db_name, user = db_user,
+                                    host = db_host)
 
         # OK, we're in the right environment. Create the store
         # instance and create the tables.
@@ -332,7 +336,8 @@ def test_postgresql():
         time.sleep(1)
 
         # Remove the database now that the test is over.
-        conn_remove = psycopg.connect(database = 'template1', user = db_user)
+        conn_remove = psycopg.connect(database = 'template1', user = db_user,
+                                      host = db_host)
         conn_remove.autocommit()
 
         cursor = conn_remove.cursor()
