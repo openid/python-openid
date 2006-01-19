@@ -25,8 +25,10 @@ def generateNonce():
     return randomString(8, allowed_nonce)
 
 def getTmpDbName():
+    hostname = socket.gethostname()
+    hostname.replace('.', '_')
     return "%s_%d_%s_openid_test" % \
-           (socket.gethostname(), os.getpid(), \
+           (hostname, os.getpid(), \
             random.randrange(1, int(time.time())))
 
 def testStore(store):
