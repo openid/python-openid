@@ -129,12 +129,6 @@ import time, urllib
 
 SESSION_TIMEOUT = 3600 * 24 * 4
 
-# Sometimes an enum type would be nice.
-SUCCESS = ('success',)
-FAILURE = ('failure',)
-INCOMPLETE = ('incomplete',)
-
-
 PAGE_DONE = ('page_done',)
 RENDER_TABLE = ('Show the table!',)
 
@@ -501,6 +495,11 @@ class Attempt:
 </div>
 '''
 
+    # Sometimes an enum type would be nice.
+    SUCCESS = ('success',)
+    FAILURE = ('failure',)
+    INCOMPLETE = ('incomplete',)
+
     def __init__(self, handle, parent=None):
         self.handle = handle
         self.when = time.time()
@@ -538,7 +537,7 @@ class CheckidAttemptBase(Attempt):
         responses = filter(lambda e: isinstance(e, events.ResponseReceived),
                            self.event_log)
         if not responses:
-            return INCOMPLETE
+            return Attempt.INCOMPLETE
 
         if len(responses) > 1:
             # This is weird case.  Receiving more than one response to a
@@ -546,7 +545,7 @@ class CheckidAttemptBase(Attempt):
             # an 'id_res' will generally get you logged in.
             # 'id_res' after 'id_res' is treated as an error though,
             # to prevent replays.
-            return FAILURE
+            return Attempt.FAILURE
 
         last_event = self.event_log[-1]
 
@@ -554,42 +553,42 @@ class CheckidAttemptBase(Attempt):
             if isinstance(last_event, event_type):
                 return outcome
         else:
-            return INCOMPLETE
+            return Attempt.INCOMPLETE
 
 
 class CheckidAttempt(CheckidAttemptBase):
     _resultMap = {
-        events.IdentityAuthenticated: SUCCESS,
-        events.OpenIDFailure: FAILURE,
-        events.OperationCancelled: FAILURE,
-        events.SetupNeeded: FAILURE,
+        events.IdentityAuthenticated: Attempt.SUCCESS,
+        events.OpenIDFailure: Attempt.FAILURE,
+        events.OperationCancelled: Attempt.FAILURE,
+        events.SetupNeeded: Attempt.FAILURE,
         }
 
 
 class CheckidCancelAttempt(CheckidAttemptBase):
     _resultMap = {
-        events.IdentityAuthenticated: FAILURE,
-        events.OpenIDFailure: FAILURE,
-        events.OperationCancelled: SUCCESS,
-        events.SetupNeeded: FAILURE,
+        events.IdentityAuthenticated: Attempt.FAILURE,
+        events.OpenIDFailure: Attempt.FAILURE,
+        events.OperationCancelled: Attempt.SUCCESS,
+        events.SetupNeeded: Attempt.FAILURE,
         }
 
 
 class CheckidImmediateAttempt(CheckidAttemptBase):
     _resultMap = {
-        events.IdentityAuthenticated: SUCCESS,
-        events.OpenIDFailure: FAILURE,
-        events.OperationCancelled: FAILURE,
-        events.SetupNeeded: FAILURE,
+        events.IdentityAuthenticated: Attempt.SUCCESS,
+        events.OpenIDFailure: Attempt.FAILURE,
+        events.OperationCancelled: Attempt.FAILURE,
+        events.SetupNeeded: Attempt.FAILURE,
         }
 
 
 class CheckidImmediateSetupNeededAttempt(CheckidAttemptBase):
     _resultMap = {
-        events.IdentityAuthenticated: FAILURE,
-        events.OpenIDFailure: FAILURE,
-        events.OperationCancelled: FAILURE,
-        events.SetupNeeded: SUCCESS,
+        events.IdentityAuthenticated: Attempt.FAILURE,
+        events.OpenIDFailure: Attempt.FAILURE,
+        events.OperationCancelled: Attempt.FAILURE,
+        events.SetupNeeded: Attempt.SUCCESS,
         }
 
 
@@ -612,13 +611,13 @@ class ResultRow:
         raise KeyError(handle)
 
     def getSuccesses(self):
-        return [r for r in self.attempts if r.result() is SUCCESS]
+        return [r for r in self.attempts if r.result() is Attempt.SUCCESS]
 
     def getFailures(self):
-        return [r for r in self.attempts if r.result() is FAILURE]
+        return [r for r in self.attempts if r.result() is Attempt.FAILURE]
 
     def getIncompletes(self):
-        return [r for r in self.attempts if r.result() is INCOMPLETE]
+        return [r for r in self.attempts if r.result() is Attempt.INCOMPLETE]
 
     def newAttempt(self):
         self._lastAttemptHandle += 1
@@ -754,9 +753,9 @@ class ResultRowHTMLView(object):
             template = self.t_result_row
             recent_result = self.orig.attempts[-1].result()
             recent_status = {
-                FAILURE: 'failed',
-                SUCCESS: 'success',
-                INCOMPLETE: 'incomplete',
+                Attempt.FAILURE: 'failed',
+                Attempt.SUCCESS: 'success',
+                Attempt.INCOMPLETE: 'incomplete',
                 }[recent_result]
         else:
             template = self.t_empty_row
@@ -768,9 +767,9 @@ class ResultRowHTMLView(object):
                            }
         if highlight is not None:
             rowclass += ' highlight'
-            cell = {FAILURE: 'hi_fail',
-                    SUCCESS: 'hi_succ',
-                    INCOMPLETE: 'hi_incl',
+            cell = {Attempt.FAILURE: 'hi_fail',
+                    Attempt.SUCCESS: 'hi_succ',
+                    Attempt.INCOMPLETE: 'hi_incl',
                     }[highlight.result() ]
             cell_highlights[cell] = 'class=%s' % (quoteattr('highlight'),)
 
@@ -830,9 +829,9 @@ class ResultTable(object):
         template = self.t_result_table
         htmlrows = []
         rownum = 0
-        results = {SUCCESS: 0,
-                   FAILURE: 0,
-                   INCOMPLETE: 0,
+        results = {Attempt.SUCCESS: 0,
+                   Attempt.FAILURE: 0,
+                   Attempt.INCOMPLETE: 0,
                    None: 0}
         for row in self.rows:
             rownum += 1
@@ -849,12 +848,12 @@ class ResultTable(object):
                 results[None] += 1
 
         summary = ["%d tests" % (len(self.rows),)]
-        if results[SUCCESS]:
-            summary.append("%d passing" % (results[SUCCESS],))
-        if results[FAILURE]:
-            summary.append("%d failing" % (results[FAILURE],))
-        if results[INCOMPLETE]:
-            summary.append("%d incomplete" % (results[INCOMPLETE],))
+        if results[Attempt.SUCCESS]:
+            summary.append("%d passing" % (results[Attempt.SUCCESS],))
+        if results[Attempt.FAILURE]:
+            summary.append("%d failing" % (results[Attempt.FAILURE],))
+        if results[Attempt.INCOMPLETE]:
+            summary.append("%d incomplete" % (results[Attempt.INCOMPLETE],))
         if results[None]:
             summary.append("%d not yet tried" % (results[None],))
 

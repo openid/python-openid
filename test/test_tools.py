@@ -111,15 +111,15 @@ class TestResultRow(unittest.TestCase):
     def setUp(self):
         r = self.rrow = SuccessOrFailureRow(None, None)
         results = [
-            oiddiag.SUCCESS,
-            oiddiag.INCOMPLETE,
-            oiddiag.FAILURE,
-            oiddiag.SUCCESS,
-            oiddiag.INCOMPLETE,
-            oiddiag.FAILURE,
-            oiddiag.INCOMPLETE,
-            oiddiag.FAILURE,
-            oiddiag.INCOMPLETE,
+            oiddiag.Attempt.SUCCESS,
+            oiddiag.Attempt.INCOMPLETE,
+            oiddiag.Attempt.FAILURE,
+            oiddiag.Attempt.SUCCESS,
+            oiddiag.Attempt.INCOMPLETE,
+            oiddiag.Attempt.FAILURE,
+            oiddiag.Attempt.INCOMPLETE,
+            oiddiag.Attempt.FAILURE,
+            oiddiag.Attempt.INCOMPLETE,
             ]
         for result in results:
             a = r.newAttempt()
@@ -208,7 +208,7 @@ class TestCheckidTest(unittest.TestCase):
         result = self.rrow.request_response(req)
         last_event = attempt.event_log[-1]
         self.failUnless(isinstance(last_event, events.IdentityAuthenticated))
-        self.failUnlessEqual(attempt.result(), oiddiag.SUCCESS)
+        self.failUnlessEqual(attempt.result(), oiddiag.Attempt.SUCCESS)
 
 if __name__ == '__main__':
     unittest.main()
