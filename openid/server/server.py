@@ -655,6 +655,25 @@ class LowLevelServer(object):
 
         self.store = store
 
+    def _checkTrustRoot(self, args):
+        """Make sure that the return_to is acceptable given the trust
+        root.
+        """
+        return_to = args.get('openid.return_to')
+        if return_to is None:
+            raise ValueError('No return_to URL specified')
+
+        trust_root = args.get('openid.trust_root')
+        if trust_root is not None:
+            tr = TrustRoot.parse(trust_root)
+            if tr is None:
+                raise ValueError('Malformed trust_root: %r' % (trust_root,))
+
+            if not tr.validateURL(return_to):
+                fmt = 'return_to(%s) not valid against trust_root(%s)'
+                raise ValueError(fmt % (return_to, trust_root))
+
+        return return_to
 
     def getAuthResponse(self, authorized, args):
         """
@@ -708,23 +727,10 @@ class LowLevelServer(object):
         if identity is None:
             return self.getError(args, 'No identity specified')
 
-        trust_root = args.get('openid.trust_root')
-        if trust_root is None:
-            trust_root = args.get('openid.return_to')
-
-        tr = TrustRoot.parse(trust_root)
-        if tr is None:
-            err = 'Malformed trust_root: %r' % (trust_root,)
-            return self.getError(args, err)
-
-        return_to = args.get('openid.return_to')
-        if return_to is None:
-            return self.getError(args, 'No return_to URL specified')
-
-        if not tr.validateURL(return_to):
-            err = 'return_to(%s) not valid against trust_root(%s)' % \
-                  (return_to, trust_root)
-            return self.getError(args, err)
+        try:
+            return_to = self._checkTrustRoot(args)
+        except ValueError, why:
+            return self.getError(args, why[0])
 
         if not authorized:
             if mode == 'checkid_immediate':
