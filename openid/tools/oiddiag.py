@@ -147,7 +147,6 @@ class EventRecorderMixin(object):
             self.webface.displayEvent(event)
 
 class Diagnostician(EventRecorderMixin):
-    # Not really a subclass relationship at all, but for the moment...
     consumer = None
     store = None
 

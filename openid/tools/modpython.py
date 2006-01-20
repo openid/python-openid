@@ -5,8 +5,6 @@ from mod_python.Session import Session
 
 from xml.sax.saxutils import escape
 
-from openid.tools import events
-
 SESSION_TIMEOUT = 3600 * 24 * 4
 
 class IWebFace:
