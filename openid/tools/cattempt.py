@@ -1,9 +1,48 @@
 import urllib
 
+from xml.sax.saxutils import escape, quoteattr
+
 from openid.tools.attempt import Attempt, ResultRow
 from openid.tools import events
 
 from openid.consumer import consumer
+
+class IdentityInfo(object):
+    consumer = None
+    def __init__(self, consumer_id, server_id, server_url):
+        self.consumer_id = consumer_id
+        self.server_id = server_id
+        self.server_url = server_url
+
+    def newAuthRequest(self, a_consumer):
+        unused_status, authreq = a_consumer._gotIdentityInfo(
+            self.consumer_id, self.server_id, self.server_url)
+        return authreq
+
+    def to_html(self):
+        s = ('Querying <a href=%(surl_attr)s class="server_url">%(surl)s</a> '
+             'about <a href=%(sid_attr)s class="server_url">%(sid)s</a>.' %
+             {'sid_attr': quoteattr(self.server_id),
+              'sid': escape(self.server_id),
+              'surl_attr': quoteattr(self.server_url),
+              'surl': escape(self.server_url),
+              })
+        return s
+
+
+class IConsumerInfo:
+    def getConsumer():
+        """
+        @returntype: openid.consumer.consumer.OpenIDConsumer
+        """
+        pass
+
+    def getBaseURL():
+        pass
+
+    def getTrustRoot():
+        pass
+
 
 class CheckidAttemptBase(Attempt):
     authRequest = None

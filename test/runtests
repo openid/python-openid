@@ -43,10 +43,14 @@ def pyunitTests():
     import server
     import oidutil
     import linkparse
+    import test_attempt
+    import test_cattempt
 
     pyunit_modules = [
         consumer,
         server,
+        test_attempt,
+        test_cattempt,
         ]
     if sys.version_info[:2] > (2, 2):
         import test_tools

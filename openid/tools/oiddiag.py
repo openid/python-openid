@@ -107,7 +107,7 @@ from openid.store.sqlstore import SQLiteStore
 from openid.dh import DiffieHellman
 from openid import oidutil
 
-from openid.tools import events, cattempt
+from openid.tools import events, attempt, cattempt
 from openid.tools.attempt import Attempt
 
 import pysqlite2.dbapi2
@@ -127,31 +127,6 @@ def sibpath(one, other):
     return os.path.join(os.path.dirname(one), other)
 
 STYLESHEET = file(sibpath(__file__, 'oiddiag.css')).read()
-
-
-
-class IdentityInfo(object):
-    consumer = None
-    def __init__(self, consumer_id, server_id, server_url):
-        self.consumer_id = consumer_id
-        self.server_id = server_id
-        self.server_url = server_url
-
-    def newAuthRequest(self, a_consumer):
-        unused_status, authreq = a_consumer._gotIdentityInfo(
-            self.consumer_id, self.server_id, self.server_url)
-        return authreq
-
-    def to_html(self):
-        s = ('Querying <a href=%(surl_attr)s class="server_url">%(surl)s</a> '
-             'about <a href=%(sid_attr)s class="server_url">%(sid)s</a>.' %
-             {'sid_attr': quoteattr(self.server_id),
-              'sid': escape(self.server_id),
-              'surl_attr': quoteattr(self.server_url),
-              'surl': escape(self.server_url),
-              })
-        return s
-
 
 def apacheHandler(req):
     from mod_python import apache
@@ -325,7 +300,7 @@ class Diagnostician(EventRecorderMixin):
         consu = self.getConsumer()
         status, info = consu._findIdentityInfo(openid_url)
         if status is consumer.SUCCESS:
-            identity_info = IdentityInfo(*info)
+            identity_info = cattempt.IdentityInfo(*info)
             # TODO: Clarify language here.
             s = ("The supplied identity is %(cid)s, the server is at %(serv)s,"
                  " identity at the server is %(sid)s" % {
@@ -406,25 +381,8 @@ t_result_table = """
 </table>
 """
 
-class ResultTable(object):
+class ResultTable(attempt.ResultTable):
     t_result_table = t_result_table
-
-    def __init__(self, diagnostician, identity_info, rows):
-        self.rows = []
-        self.diagnostician = diagnostician
-        self.identity_info = identity_info
-        for rowclass in rows:
-            self.rows.append(rowclass(self, identity_info))
-
-    def getChild(self, key):
-        for row in self.rows:
-            if row.shortname == key:
-                return row
-        raise KeyError(key)
-
-    def handleRequest(self, req, parts):
-        child = self.getChild(parts[0])
-        return child.handleRequest(req)
 
     def to_html(self, highlight=None):
         template = self.t_result_table
@@ -462,11 +420,6 @@ class ResultTable(object):
             'rows': ''.join(htmlrows),
             }
 
-    def __getstate__(self, state=None):
-        s = self.__dict__.copy()
-        if 'diagnostician' in s:
-            del s['diagnostician']
-        return s
 
 class RecentNote(object):
     t_note = '''<div class="recent_note">Latest response:

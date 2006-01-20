@@ -151,3 +151,29 @@ class ResultRow:
             }
         values.update(cell_highlights)
         return template % values
+
+
+class ResultTable(object):
+
+    def __init__(self, diagnostician, identity_info, rows):
+        self.rows = []
+        self.diagnostician = diagnostician
+        self.identity_info = identity_info
+        for rowclass in rows:
+            self.rows.append(rowclass(self, identity_info))
+
+    def getChild(self, key):
+        for row in self.rows:
+            if row.shortname == key:
+                return row
+        raise KeyError(key)
+
+    def handleRequest(self, req, parts):
+        child = self.getChild(parts[0])
+        return child.handleRequest(req)
+
+    def __getstate__(self, state=None):
+        s = self.__dict__.copy()
+        if 'diagnostician' in s:
+            del s['diagnostician']
+        return s
