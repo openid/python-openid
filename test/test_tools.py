@@ -1,7 +1,7 @@
 
 import unittest
 from cStringIO import StringIO
-from openid.tools import oiddiag, events
+from openid.tools import oiddiag, events, attempt, cattempt
 from openid.consumer import consumer
 from openid import association
 
@@ -14,14 +14,17 @@ class DummyFieldStorage(object):
         self.req = req
 
     def getfirst(self, key):
-        l = self.req.fields.get(key)
+        l = self.req._fields.get(key)
         if not l:
             return None
         else:
             return l[0]
 
+    def get(self, key, defvalue=None):
+        return self.req._fields.get(key, defvalue)
+
     def keys(self):
-        return self.req.fields.keys()
+        return self.req._fields.keys()
 
 class MockSession(dict):
     def __init__(self, unused_req, timeout=None):
@@ -30,15 +33,42 @@ class MockSession(dict):
     def is_new(self):
         return True
 
-oiddiag.apache = DummyApacheModule()
-oiddiag.FieldStorage = DummyFieldStorage
-oiddiag.Session = MockSession
+class SERVER_RETURN(Exception):
+    pass
+
+class TestingWebface(object):
+    def __init__(self, req):
+        self.req = req
+        self.session = MockSession(self.req)
+
+    def getBaseURL(self):
+        return "http://monkey.innabox/%d/" % (id(self),)
+
+    def log_error(self, message, priority=None):
+        import sys
+        sys.stderr.write(message)
+
+    def fixedLength(self, fixed):
+        pass
+
+    def write(self, bytes):
+        pass
+
+    def redirect(self, url):
+        raise SERVER_RETURN
+
+    def displayEvent(self, event):
+        pass
+
+    def statusMsg(self, msg):
+        pass
 
 class DummyRequest(object):
     def __init__(self):
         self.options = {}
         self.logmsgs = []
-        self.fields = {}
+        self._fields = {}
+        self.fields = DummyFieldStorage(self)
         self.output = StringIO()
         self.uri = "http://unittest.example/myapp"
         self.subprocess_env = {}
@@ -89,22 +119,23 @@ class MockConsumer(object):
 class TestOidDiag(unittest.TestCase):
     def setUp(self):
         self.req = DummyRequest()
-        self.diag = oiddiag.Diagnostician(self.req)
+        self.webface = TestingWebface(self.req)
+        self.diag = oiddiag.Diagnostician(self.webface, storefile=":memory:")
         self.consumer = MockConsumer()
         self.diag.getConsumer = lambda : self.consumer
 
     def test_supplyOpenID(self):
-        self.req.fields["openid_url"] = ["unittest.example/joe"]
+        self.req._fields["openid_url"] = ["unittest.example/joe"]
         self.req.path_info = '/start'
-        self.diag.go()
+        self.diag.go(self.req)
         self.failUnlessEqual(len(self.diag.event_log), 3)
 
 
-class SuccessOrFailureAttempt(oiddiag.Attempt):
+class SuccessOrFailureAttempt(attempt.Attempt):
     def result(self):
         return self.code
 
-class SuccessOrFailureRow(oiddiag.ResultRow):
+class SuccessOrFailureRow(attempt.ResultRow):
     attemptClass = SuccessOrFailureAttempt
 
 class TestResultRow(unittest.TestCase):
@@ -140,7 +171,7 @@ class TestResultRow(unittest.TestCase):
 
 class TestResultRowWeb(unittest.TestCase):
     def setUp(self):
-        class SomeTest(oiddiag.ResultRow):
+        class SomeTest(attempt.ResultRow):
             name = "Some Unit Test"
             tryCalled = False
 
@@ -155,7 +186,7 @@ class TestResultRowWeb(unittest.TestCase):
     def test_handleRequest(self):
         req = DummyRequest()
         req.path_info = "SomeTest/"
-        req.fields["action"] = ["try"]
+        req._fields["action"] = ["try"]
         self.rrow.handleRequest(req)
         self.failUnless(self.rrow.tryCalled)
 
@@ -167,13 +198,15 @@ class TestCheckidTest(unittest.TestCase):
             trust_root = "http://unittest.example/"
             def getConsumer(self):
                 return self.consumer
+            def getBaseURL(self):
+                return self.trust_root + 'base/'
         self.diag = MockDiag()
         self.idinfo = oiddiag.IdentityInfo(
             "http://shortname.example/",
             "http://delegated.example/users/long.name",
             "http://some.example/server",)
         self.rtable = oiddiag.ResultTable(self.diag, self.idinfo,
-                                          [oiddiag.TestCheckidSetup])
+                                          [cattempt.TestCheckidSetup])
         self.rrow = self.rtable.rows[0]
 
     def test_handleRequestTry(self):
@@ -189,7 +222,7 @@ class TestCheckidTest(unittest.TestCase):
         self.failUnless(attempt.authRequest)
         self.failUnless(attempt.redirectURL)
         # 3) request gets a redirect
-        self.failUnless(isinstance(result, oiddiag.DoRedirect))
+        self.failUnless(isinstance(result, events.DoRedirect))
 
     def test_handleRequestResponse(self):
         req = DummyRequest()
@@ -198,7 +231,7 @@ class TestCheckidTest(unittest.TestCase):
         req.hostname = 'unittest.example'
 
         attempt_handle = 'a76'
-        req.fields = {'attempt': [attempt_handle]}
+        req._fields = {'attempt': [attempt_handle]}
         attempt = self.rrow.attemptClass(attempt_handle)
         attempt.authRequest = consumer.OpenIDAuthRequest('tokken',
                                                          'server_id',

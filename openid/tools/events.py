@@ -80,3 +80,14 @@ class FatalEvent(TextEvent):
 class Failure(Exception):
     def event(self):
         return FatalEvent(self.args[0])
+
+
+
+# Not an event at all, but creating a new module for it seemed silly at
+# this stage.
+class Instruction(object):
+    pass
+
+class DoRedirect(Instruction):
+    def __init__(self, redirectURL):
+        self.redirectURL = redirectURL

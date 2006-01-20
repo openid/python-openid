@@ -100,21 +100,6 @@
 # or server: [___________________]
 # or [Reset] this page.
 
-try:
-    from mod_python import apache
-    from mod_python.util import FieldStorage, redirect
-    from mod_python.Session import Session
-except ImportError, e:
-    # FIXME: If all the Apache stuff were isolated in its own module, there
-    # wouldn't be this grossness.
-    import sys
-    if 'unittest' in sys.modules:
-        # the unittest framework will sneak an 'apache' object in to this
-        # module's namespace.
-        pass
-    else:
-        raise
-
 from xml.sax.saxutils import escape, quoteattr
 
 from openid.consumer import consumer
@@ -122,12 +107,11 @@ from openid.store.sqlstore import SQLiteStore
 from openid.dh import DiffieHellman
 from openid import oidutil
 
-from openid.tools import events
+from openid.tools import events, cattempt
+from openid.tools.attempt import Attempt
 
 import pysqlite2.dbapi2
-import time, urllib
-
-SESSION_TIMEOUT = 3600 * 24 * 4
+import time
 
 PAGE_DONE = ('page_done',)
 RENDER_TABLE = ('Show the table!',)
@@ -144,43 +128,6 @@ def sibpath(one, other):
 
 STYLESHEET = file(sibpath(__file__, 'oiddiag.css')).read()
 
-def getBaseURL(req):
-    """Return a URL to the base of this script's URLspace.
-
-    e.g. http://openidenabled.com/resources/oiddiag/
-
-    (note the trailing slash.)
-
-    mod_python.Request -> str
-    """
-    # This code currently doesn't have unit test coverage.
-    # It looks like any bug in this code would arise from a failure in my
-    # expectations of the attributes of the request object.  However,
-    # I don't have a test harness that allows me to use actual apache request
-    # objects, so I can't test for that with the current test environment.
-    host = req.hostname or req.server.server_hostname
-    port = req.connection.local_addr[1]
-
-    # Don't include the default port number in the URL
-    # XXX: Do I need to call add_common_vars before checking subprocess_env?
-    if req.subprocess_env.get('HTTPS', 'off') == 'on':
-        default_port = 443
-        proto = 'https'
-    else:
-        default_port = 80
-        proto = 'http'
-
-    if req.path_info:
-        script_name = req.uri[:-len(req.path_info)]
-    else:
-        script_name = req.uri
-
-    if port == default_port:
-        base_url = '%s://%s%s/' % (proto, host, script_name)
-    else:
-        base_url = '%s://%s:%s%s/' % (proto, host, port, script_name)
-
-    return base_url
 
 
 class IdentityInfo(object):
@@ -205,133 +152,86 @@ class IdentityInfo(object):
               })
         return s
 
-class Instruction(object):
-    pass
 
-class DoRedirect(Instruction):
-    def __init__(self, redirectURL):
-        self.redirectURL = redirectURL
+def apacheHandler(req):
+    from mod_python import apache
+    modpython = apache.import_module("openid.tools.modpython")
+    storefile = req.get_options().get("OIDDiagStoreFile")
+    face = modpython.ApacheFace(req)
+    diag = Diagnostician(face, storefile)
+    return face.handle(rendermethod=diag.go)
 
-class ApacheView(object):
-    def __init__(self, req):
-        self.req = req
+class EventRecorderMixin(object):
+    def __init__(self):
         self.event_log = []
-        self._cleanupCalls = []
-        self.session = Session(req, timeout=SESSION_TIMEOUT)
-
-    def write(self, bytes):
-        if self.fixed_length:
-            self._buffer.append(bytes)
-        else:
-            self.req.write(bytes)
-
-    def redirect(self, url):
-        # Will raise apache.SERVER_RETURN
-        redirect(self.req, url)
-
-    def finish(self):
-        if self._buffer:
-            length = reduce(int.__add__, map(len, self._buffer))
-            self.req.set_content_length(length)
-            self.req.write(''.join(self._buffer))
-
-    def statusMsg(self, msg):
-        self.write('<span class="status">%s</span><br />\n' % (escape(msg),))
-
-    def handle(self, req=None):
-        assert (req is None) or (req is self.req)
-        self.req.register_cleanup(self.cleanup)
-        self.req.content_type = "text/html"
-        try:
-            try:
-                self.go()
-            except events.Failure, e:
-                self.record(e.event())
-                self.write("</body></html>")
-        finally:
-            self.finish()
-        return apache.OK
 
     def record(self, event):
         self.event_log.append(event)
-        self.displayEvent(event)
+        # XXX: IWebFace(self).displayEvent(event) or something
+        if self.webface:
+            self.webface.displayEvent(event)
 
-    def displayEvent(self, event):
-        self.write(event.to_html() + '<br />\n')
-
-    def onCleanup(self, callback):
-        self._cleanupCalls.append(callback)
-
-    def log(self, msg):
-        self.write('<span class="log">%s</span><br />\n' % (escape(msg),))
-
-    def cleanup(self, unused=None):
-        try:
-            self.session.save()
-        except:
-            self.req.log_error("Error saving session: %s" % (self.session,))
-            raise
-        for c in self._cleanupCalls:
-            c()
-
-class Diagnostician(ApacheView):
+class Diagnostician(EventRecorderMixin):
     # Not really a subclass relationship at all, but for the moment...
     consumer = None
     store = None
 
-    def __init__(self, req):
-        ApacheView.__init__(self, req)
-        self.fixed_length = False
-        self._buffer = []
-        storefile = req.get_options().get("OIDDiagStoreFile")
+    def __init__(self, webface, storefile=None):
+        EventRecorderMixin.__init__(self)
+        self.webface = webface
         if storefile is None:
-            req.log_error("PythonOption OIDDiagStoreFile not found, using "
-                          "in-memory store instead", apache.APLOG_WARNING)
+            self.webface.log_error("PythonOption OIDDiagStoreFile not found, "
+                                   "using in-memory store instead.")
             self.storefile = ":memory:"
         else:
             self.storefile = storefile
 
-        if self.session.is_new():
-            self.session['result_table'] = None
+        if 'result_table' not in self.webface.session:
+            self.webface.session['result_table'] = None
 
-        self.trust_root = getBaseURL(req)
+        self.result_table = self.webface.session['result_table']
+        if self.result_table is not None:
+            self.result_table.diagnostician = self
 
-    def go(self):
+        self.trust_root = self.webface.getBaseURL()
+
+    def go(self, req):
         retval = None
-        if self.req.path_info[1:]:
-            parts = self.req.path_info[1:].split('/')
+        fields = req.fields
+        path_info = req.path_info
+        if path_info[1:]:
+            parts = path_info[1:].split('/')
             method = getattr(self, 'go_' + parts[0], None)
             if method is not None:
-                retval = method()
-            elif self.session['result_table'] is not None:
-                result_table = self.session['result_table']
-                # The table probably lost its reference to me when
-                # it was unserialized.
-                result_table.diagnostician = self
-                retval = result_table.handleRequest(self.req, parts)
+                try:
+                    retval = method(req)
+                except events.Failure, e:
+                    # FIXME: This is too high to handle most errors, I think.
+                    self.record(e.event())
+                    self.webface.write("</body></html>")
+                    retval = PAGE_DONE
+            elif self.result_table is not None:
+                retval = self.result_table.handleRequest(req, parts)
             else:
-                self.req.log_error("Session %s arrived at %s but had no "
-                                   "stored result table." % (self.session.id(),
-                                                             parts))
-                # , apache.APLOG_DEBUG
+                self.webface.log_error("Session %s arrived at %s but had no "
+                                       "stored result table." %
+                                       (self.session.id(), parts))
 
         if retval is None:
-            if (('result_table' not in self.session) or
-                (self.session['result_table'] is None)):
+            if self.result_table is None:
                 retval = self.openingPage()
             else:
-                self.session['result_table'].diagnostician = self
                 retval = self.resultPage()
 
         if retval is PAGE_DONE:
             return
-        elif isinstance(retval, DoRedirect):
-            self.redirect(retval.redirectURL)
+        elif isinstance(retval, events.DoRedirect):
+            self.webface.redirect(retval.redirectURL)
         elif isinstance(retval, Attempt):
             self.resultPage(retval)
 
     def openingPage(self):
-        self.fixed_length = True
+        self.webface.fixedLength(True)
         s = XMLCRAP + '''
 <head>
 <title>Check your OpenID</title>
@@ -344,13 +244,12 @@ class Diagnostician(ApacheView):
   <input type="submit" value="Check" /><br />
 </p>
 </form></body></html>''' % {
-            'baseAttrib': quoteattr(getBaseURL(self.req)),
+            'baseAttrib': quoteattr(self.webface.getBaseURL()),
             }
-        self.write(s)
+        self.webface.write(s)
 
-    def go_start(self):
-        f = FieldStorage(self.req)
-        openid_url = f.getfirst("openid_url")
+    def go_start(self, req):
+        openid_url = req.fields.getfirst("openid_url")
         s = XMLCRAP + '''
 <head>
 <title>Check your OpenID: %(url)s</title>
@@ -363,35 +262,35 @@ class Diagnostician(ApacheView):
             'stylesheet': STYLESHEET,
             'url': escape(openid_url),
             'urlAttrib': quoteattr(openid_url),
-            'baseAttrib': quoteattr(getBaseURL(self.req)),
+            'baseAttrib': quoteattr(self.webface.getBaseURL()),
             }
-        self.write(s)
+        self.webface.write(s)
         self.record(events.TextEvent("Working on openid_url %s" % (openid_url,)))
 
         identity_info = self.fetchAndParse(openid_url)
         rows = [
-            TestCheckidSetup,
-            TestCheckidSetupCancel,
-            TestCheckidImmediate,
-            TestCheckidImmediateSetupNeeded,
+            cattempt.TestCheckidSetup,
+            cattempt.TestCheckidSetupCancel,
+            cattempt.TestCheckidImmediate,
+            cattempt.TestCheckidImmediateSetupNeeded,
             ]
-        result_table = ResultTable(self, identity_info, rows)
+        self.result_table = ResultTable(self, identity_info, rows)
+        self.webface.session['result_table'] = self.result_table
         self.associate(identity_info)
-        self.write('<a href=".">[Clear Message]</a>\n')
-        self.write(result_table.to_html())
-        self.session['result_table'] = result_table
-        self.write(ResetButton().to_html())
-        self.write('</body></html>')
+        self.webface.write('<a href=".">[Clear Message]</a>\n')
+        self.webface.write(self.result_table.to_html())
+        self.webface.write(ResetButton().to_html())
+        self.webface.write('</body></html>')
 
         return PAGE_DONE
 
-    def go_clear(self):
-        self.session.delete()
-        return DoRedirect(getBaseURL(self.req))
+    def go_clear(self, req):
+        self.webface.session.delete()
+        return events.DoRedirect(self.webface.getBaseURL())
 
     def resultPage(self, recent_attempt=None):
-        result_table = self.session['result_table']
-        identity_info = result_table.identity_info
+        self.webface.fixedLength(True)
+        identity_info = self.result_table.identity_info
         if recent_attempt:
             attempt_html = RecentNote(recent_attempt).to_html()
         else:
@@ -408,18 +307,18 @@ class Diagnostician(ApacheView):
 <p class="idinfo">%(iinfo)s</p>
 %(result_table)s
 %(reset_button)s
+</body></html>
 ''' % {
             'stylesheet': STYLESHEET,
             'openid': identity_info.server_id,
             'server': identity_info.server_url,
-            'baseAttrib': quoteattr(getBaseURL(self.req)),
+            'baseAttrib': quoteattr(self.webface.getBaseURL()),
             'attempt': attempt_html,
             'iinfo': identity_info.to_html(),
-            'result_table': result_table.to_html(highlight=recent_attempt),
+            'result_table': self.result_table.to_html(highlight=recent_attempt),
             'reset_button': ResetButton().to_html(),
             }
-        self.write(s)
-        self.write('</body></html>')
+        self.webface.write(s)
         return PAGE_DONE
 
     def fetchAndParse(self, openid_url):
@@ -455,7 +354,7 @@ class Diagnostician(ApacheView):
 
     def associate(self, identity_info):
         server_url = identity_info.server_url
-        self.statusMsg("Associating with %s..." % (server_url,))
+        self.webface.statusMsg("Associating with %s..." % (server_url,))
 
         consu = self.getConsumer()
         dh = DiffieHellman()
@@ -473,8 +372,8 @@ class Diagnostician(ApacheView):
             self._orig_oidutil_log = oidutil.log
             def resetLog():
                 oidutil.log = self._orig_oidutil_log
-            self.onCleanup(resetLog)
-            oidutil.log = self.log
+            self.webface.onCleanup(resetLog)
+            oidutil.log = self.webface.log
 
             if self.store is None:
                 dbconn = pysqlite2.dbapi2.connect(self.storefile)
@@ -485,306 +384,8 @@ class Diagnostician(ApacheView):
         return self.consumer
 
 
-class Attempt:
-    parent = None
-
-    t_attempt = '''<div class="attempt"><span class="name">%(name)s</span>
-<ul>
-%(event_rows)s
-</ul>
-</div>
-'''
-
-    # Sometimes an enum type would be nice.
-    SUCCESS = ('success',)
-    FAILURE = ('failure',)
-    INCOMPLETE = ('incomplete',)
-
-    def __init__(self, handle, parent=None):
-        self.handle = handle
-        self.when = time.time()
-        self.event_log = []
-        if parent is not None:
-            self.parent = parent
-
-    def record(self, event):
-        self.event_log.append(event)
-
-    def result(self):
-        raise NotImplementedError
-
-    def to_html(self):
-        def fmtEvent(event):
-            return '<li>%s</li>\n' % (event.to_html(),)
-        if self.parent is not None:
-            name = self.parent.name
-        else:
-            name = self.__class__.__name__
-        d = {
-            'name': name,
-            'event_rows': ''.join(map(fmtEvent, self.event_log)),
-            }
-        return self.t_attempt % d
-
-
-class CheckidAttemptBase(Attempt):
-    authRequest = None
-    redirectURL = None
-
-    _resultMap = NotImplementedError
-
-    def result(self):
-        responses = filter(lambda e: isinstance(e, events.ResponseReceived),
-                           self.event_log)
-        if not responses:
-            return Attempt.INCOMPLETE
-
-        if len(responses) > 1:
-            # This is weird case.  Receiving more than one response to a
-            # query is a sort of error, even though a 'cancel' followed by
-            # an 'id_res' will generally get you logged in.
-            # 'id_res' after 'id_res' is treated as an error though,
-            # to prevent replays.
-            return Attempt.FAILURE
-
-        last_event = self.event_log[-1]
-
-        for event_type, outcome in self._resultMap.iteritems():
-            if isinstance(last_event, event_type):
-                return outcome
-        else:
-            return Attempt.INCOMPLETE
-
-
-class CheckidAttempt(CheckidAttemptBase):
-    _resultMap = {
-        events.IdentityAuthenticated: Attempt.SUCCESS,
-        events.OpenIDFailure: Attempt.FAILURE,
-        events.OperationCancelled: Attempt.FAILURE,
-        events.SetupNeeded: Attempt.FAILURE,
-        }
-
-
-class CheckidCancelAttempt(CheckidAttemptBase):
-    _resultMap = {
-        events.IdentityAuthenticated: Attempt.FAILURE,
-        events.OpenIDFailure: Attempt.FAILURE,
-        events.OperationCancelled: Attempt.SUCCESS,
-        events.SetupNeeded: Attempt.FAILURE,
-        }
-
-
-class CheckidImmediateAttempt(CheckidAttemptBase):
-    _resultMap = {
-        events.IdentityAuthenticated: Attempt.SUCCESS,
-        events.OpenIDFailure: Attempt.FAILURE,
-        events.OperationCancelled: Attempt.FAILURE,
-        events.SetupNeeded: Attempt.FAILURE,
-        }
-
-
-class CheckidImmediateSetupNeededAttempt(CheckidAttemptBase):
-    _resultMap = {
-        events.IdentityAuthenticated: Attempt.FAILURE,
-        events.OpenIDFailure: Attempt.FAILURE,
-        events.OperationCancelled: Attempt.FAILURE,
-        events.SetupNeeded: Attempt.SUCCESS,
-        }
-
-
-class ResultRow:
-    name = None
-    handler = None
-    attemptClass = Attempt
-
-    def __init__(self, parent, identity_info):
-        self._lastAttemptHandle = 0
-        self.attempts = []
-        self.shortname = self.__class__.__name__
-        self.parent_table = parent
-        self.identity_info = identity_info
-
-    def getAttempt(self, handle):
-        for a in self.attempts:
-            if a.handle == handle:
-                return a
-        raise KeyError(handle)
-
-    def getSuccesses(self):
-        return [r for r in self.attempts if r.result() is Attempt.SUCCESS]
-
-    def getFailures(self):
-        return [r for r in self.attempts if r.result() is Attempt.FAILURE]
-
-    def getIncompletes(self):
-        return [r for r in self.attempts if r.result() is Attempt.INCOMPLETE]
-
-    def newAttempt(self):
-        self._lastAttemptHandle += 1
-        a = self.attemptClass(str(self._lastAttemptHandle), parent=self)
-        self.attempts.append(a)
-        return a
-
-    # Webby bits.
-
-    def getURL(self, action="try"):
-        return "%s/?action=%s" % (urllib.quote(self.shortname, safe=''),
-                                  urllib.quote(action, safe=''))
-
-    def handleRequest(self, req):
-        action = FieldStorage(req).getfirst("action")
-        if action:
-            method = getattr(self, "request_" + action)
-            if method:
-                return method(req)
-            else:
-                # FIXME: return some status message about broken args
-                return None
-
-    def getConsumer(self):
-        return self.parent_table.diagnostician.getConsumer()
-
-
-def HACK_constructRedirect(consu, auth_request, return_to, trust_root,
-                           immediate_mode=False):
-    """Work around Consumer 1.0.3 API
-
-    "Immediate mode" is a property of the request, not the consumer.
-    consumer.OpenIDConsumer v.1.0.3 is confused, so we have kludge here.
-    """
-    if immediate_mode:
-        consu.mode = 'checkid_immediate'
-    else:
-        consu.mode = 'checkid_setup'
-    consu.immediate = immediate_mode
-    return consu.constructRedirect(auth_request, return_to, trust_root)
-
-
-class TestCheckid(ResultRow):
-    immediate_mode = False
-
-    def request_try(self, req):
-        attempt = self.newAttempt()
-        consu = self.getConsumer()
-        auth_request = self.identity_info.newAuthRequest(consu)
-        attempt.authRequest = auth_request
-        return_to = "%s%s&attempt=%s" % (
-            getBaseURL(req), self.getURL(action="response"),
-            urllib.quote(attempt.handle, safe=''))
-
-        redirectURL = HACK_constructRedirect(
-            consu, auth_request, return_to,
-            self.parent_table.diagnostician.trust_root,
-            immediate_mode=self.immediate_mode)
-
-        attempt.redirectURL = redirectURL
-        attempt.record(events.TextEvent("Redirecting to %s" % redirectURL,))
-        return DoRedirect(redirectURL)
-
-    def request_response(self, req):
-        consu = self.getConsumer()
-        fields = FieldStorage(req)
-        attempt_handle = fields.getfirst("attempt")
-        # FIXME: Handle KeyError here.
-        attempt = self.getAttempt(attempt_handle)
-        query = {}
-        for k in fields.keys():
-            query[k] = fields.getfirst(k)
-        attempt.record(events.ResponseReceived(raw_uri=req.unparsed_uri,
-                                               query=query))
-        status, info = consu.completeAuth(attempt.authRequest.token, query)
-        if status is consumer.SUCCESS:
-            if info is not None:
-                attempt.record(events.IdentityAuthenticated(info))
-            else:
-                attempt.record(events.OperationCancelled())
-        elif status is consumer.SETUP_NEEDED:
-            attempt.record(events.SetupNeeded(info))
-        else:
-            attempt.record(events.OpenIDFailure(status, info))
-        return attempt
-
-
-class TestCheckidSetup(TestCheckid):
-    name = "Successful checkid_setup"
-    attemptClass = CheckidAttempt
-    immediate_mode = False
-
-class TestCheckidSetupCancel(TestCheckid):
-    name = "Cancel checkid_setup"
-    attemptClass = CheckidCancelAttempt
-    immediate_mode = False
-
-class TestCheckidImmediate(TestCheckid):
-    name = "Successful checkid_immediate"
-    attemptClass = CheckidImmediateAttempt
-    immediate_mode = True
-
-class TestCheckidImmediateSetupNeeded(TestCheckid):
-    name = "Setup Needed for checkid_immediate"
-    attemptClass = CheckidImmediateSetupNeededAttempt
-    immediate_mode = True
-
-
-class ResultRowHTMLView(object):
-    t_result_row = '''<tr class=%(rowClass)s>
-    <th scope="row" class=%(statusClass)s>%(name)s</th>
-    <td headers="success" %(hi_succ)s>%(succ)s</td>
-    <td headers="failure" %(hi_fail)s>%(fail)s</td>
-    <td headers="incomplete" %(hi_incl)s>%(incl)s</td>
-    <td><a href=%(trylink)s rel="nofollow">Try again?</a></td>
-</tr>\n'''
-
-    t_empty_row = (
-        '<tr class=%(rowClass)s><th scope="row">%(name)s</th><td colspan="4">'
-        'Not yet attempted -- <a href=%(trylink)s rel="nofollow">try now</a>.'
-        '</td></tr>'
-        '\n')
-
-    def __init__(self, rrow):
-        self.orig = rrow
-
-    def to_html(self, rownum=0, highlight=None):
-        if rownum % 2:
-            rowclass = "odd"
-        else:
-            rowclass = "even"
-        if self.orig.attempts:
-            template = self.t_result_row
-            recent_result = self.orig.attempts[-1].result()
-            recent_status = {
-                Attempt.FAILURE: 'failed',
-                Attempt.SUCCESS: 'success',
-                Attempt.INCOMPLETE: 'incomplete',
-                }[recent_result]
-        else:
-            template = self.t_empty_row
-            recent_status = ''
-
-        cell_highlights = {'hi_succ': '',
-                           'hi_fail': '',
-                           'hi_incl': '',
-                           }
-        if highlight is not None:
-            rowclass += ' highlight'
-            cell = {Attempt.FAILURE: 'hi_fail',
-                    Attempt.SUCCESS: 'hi_succ',
-                    Attempt.INCOMPLETE: 'hi_incl',
-                    }[highlight.result() ]
-            cell_highlights[cell] = 'class=%s' % (quoteattr('highlight'),)
-
-        values = {
-            'rowClass': quoteattr(rowclass),
-            'statusClass': quoteattr(recent_status),
-            'name': self.orig.name,
-            'succ': len(self.orig.getSuccesses()),
-            'fail': len(self.orig.getFailures()),
-            'incl': len(self.orig.getIncompletes()),
-            'trylink': quoteattr(self.orig.getURL()),
-            }
-        values.update(cell_highlights)
-        return template % values
-
+    def getBaseURL(self):
+        return self.webface.getBaseURL()
 
 t_result_table = """
 <table class="results" summary=%(summary)s>
@@ -837,10 +438,9 @@ class ResultTable(object):
             rownum += 1
             # IHTMLView(row).to_html()
             if (highlight is not None) and (highlight.parent == row):
-                htmlrows.append(ResultRowHTMLView(row).to_html(
-                    rownum=rownum, highlight=highlight))
+                htmlrows.append(row.to_html(rownum=rownum, highlight=highlight))
             else:
-                htmlrows.append(ResultRowHTMLView(row).to_html(rownum=rownum))
+                htmlrows.append(row.to_html(rownum=rownum))
 
             if row.attempts:
                 results[row.attempts[-1].result()] += 1
