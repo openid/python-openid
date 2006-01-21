@@ -47,14 +47,21 @@ class SetupNeeded(Event):
         return "Server requires setup at %s" % (self.url,)
 
 class OpenIDFailure(Event):
-    def __init__(self, code, info):
+    explanation = None
+    def __init__(self, code, info, explanation=None):
         Event.__init__(self)
         self.code = code
         self.info = info
+        if explanation is not None:
+            self.explanation = explanation
 
     def to_html(self):
-        return ('<span class="event">Open ID Failure: %s %s</span>'
-                % (self.code, self.info))
+        if self.explanation:
+            text = self.explanation
+        else:
+            text = "Open ID Failure: %s %s" % (self.code, self.info)
+        return ('<span class="event">%s</span>'
+                % (escape(text),))
 
 
 class OperationCancelled(TextEvent):
