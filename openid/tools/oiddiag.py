@@ -189,7 +189,7 @@ class Diagnostician(EventRecorderMixin):
             else:
                 self.webface.log_error("Session %s arrived at %s but had no "
                                        "stored result table." %
-                                       (self.session.id(), parts))
+                                       (self.webface.session.id(), parts))
 
         if retval is None:
             if self.result_table is None:
@@ -239,9 +239,21 @@ class Diagnostician(EventRecorderMixin):
             'baseAttrib': quoteattr(self.webface.getBaseURL()),
             }
         self.webface.write(s)
-        self.record(events.TextEvent("Working on openid_url %s" % (openid_url,)))
 
-        identity_info = self.fetchAndParse(openid_url)
+        throwaway_table = ResultTable(
+            self, cattempt.IdentityInfo(openid_url, None, None),
+            [cattempt.TestIdentityPage])
+        fetch_attempt = throwaway_table.rows[0].fetchAndParse(
+            subscriber=self.record)
+        if fetch_attempt.result() is Attempt.SUCCESS:
+            identity_info = fetch_attempt.identity_info
+        else:
+            self.webface.write('<!-- result is %s -->' %
+                               (fetch_attempt.result(),))
+            self.webface.write(ResetButton().to_html())
+            self.webface.write('</body></html>')
+            return PAGE_DONE
+
         rows = [
             cattempt.TestCheckidSetup,
             cattempt.TestCheckidSetupCancel,
@@ -294,37 +306,6 @@ class Diagnostician(EventRecorderMixin):
             }
         self.webface.write(s)
         return PAGE_DONE
-
-    def fetchAndParse(self, openid_url):
-        consu = self.getConsumer()
-        status, info = consu._findIdentityInfo(openid_url)
-        if status is consumer.SUCCESS:
-            identity_info = cattempt.IdentityInfo(*info)
-            # TODO: Clarify language here.
-            s = ("The supplied identity is %(cid)s, the server is at %(serv)s,"
-                 " identity at the server is %(sid)s" % {
-                'cid': identity_info.consumer_id,
-                'sid': identity_info.server_id,
-                'serv': identity_info.server_url})
-            self.record(events.TextEvent(s))
-            return identity_info
-
-        elif status is consumer.HTTP_FAILURE:
-            if info is None:
-                raise events.Failure("Failed to connect to %s" % (openid_url,))
-            else:
-                http_code = info
-                # XXX: That's not quite true - a server *somewhere*
-                # returned that error, but it might have been after
-                # a redirect.
-                raise events.Failure("Server at %s returned error code %s" %
-                                     (openid_url, http_code,))
-
-        elif status is consumer.PARSE_ERROR:
-            raise events.Failure("Did not find any OpenID information at %s" %
-                                 (openid_url,))
-        else:
-            raise AssertionError("status %r not handled" % (status,))
 
     def associate(self, identity_info):
         server_url = identity_info.server_url
