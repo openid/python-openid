@@ -189,3 +189,72 @@ class TestCheckidImmediateSetupNeeded(TestCheckid):
     name = "Setup Needed for checkid_immediate"
     attemptClass = CheckidImmediateSetupNeededAttempt
     immediate_mode = True
+
+
+class FetchAttempt(Attempt):
+    openid_url = None
+    identity_info = None
+
+    def result(self):
+        if not self.event_log:
+            outcome= Attempt.INCOMPLETE
+        else:
+            last_event = self.event_log[-1]
+            if isinstance(last_event, events.GotIdentityInfo):
+                outcome = Attempt.SUCCESS
+            elif isinstance(last_event, events.OpenIDFailure):
+                outcome = Attempt.FAILURE
+            else:
+                outcome = Attempt.INCOMPLETE
+        return outcome
+
+
+class TestIdentityPage(ResultRow):
+    attemptClass = FetchAttempt
+
+    def __init__(self, *a, **kw):
+        ResultRow.__init__(self, *a, **kw)
+        # FIXME: Kludge.  This operation is where the identity_info object
+        # is created, so taking one as input is misleading.
+        self.openid_url = self.identity_info.consumer_id
+
+    def request_try(self, req):
+        return self.fetchAndParse()
+
+    def fetchAndParse(self):
+        attempt = self.newAttempt()
+        attempt.openid_url = self.openid_url
+        consu = self.getConsumer()
+        attempt.record(events.TextEvent("Fetching %s" % (self.openid_url,)))
+        status, info = consu._findIdentityInfo(self.openid_url)
+        if status is consumer.SUCCESS:
+            identity_info = IdentityInfo(*info)
+            attempt.record(events.GotIdentityInfo(identity_info))
+            attempt.identity_info = identity_info
+
+        elif status is consumer.HTTP_FAILURE:
+            if info is None:
+                attempt.record(
+                    events.OpenIDFailure(status, info,
+                                         "Failed to connect to %s" %
+                                         (self.openid_url,)))
+            else:
+                http_code = info
+                # XXX: That's not quite true - a server *somewhere*
+                # returned that error, but it might have been after
+                # a redirect.
+                attempt.record(
+                    events.OpenIDFailure(status, info,
+                                         "Server at %s returned error code %s" %
+                                         (self.openid_url, http_code,)))
+
+        elif status is consumer.PARSE_ERROR:
+            attempt.record(
+                events.OpenIDFailure(status, info,
+                                     "Did not find any OpenID information "
+                                     "at %s" % (self.openid_url,)))
+
+        else:
+            attempt.record(events.OpenIDFailure(status, info))
+
+        return attempt

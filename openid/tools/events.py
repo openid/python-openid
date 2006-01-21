@@ -81,6 +81,21 @@ class ResponseReceived(Event):
                 % (escape(str(self.query)),))
 
 
+class GotIdentityInfo(Event):
+    def __init__(self, identity_info):
+        Event.__init__(self)
+        self.identity_info = identity_info
+
+    def __str__(self):
+        # TODO: Clarify language here.
+        s = ("The supplied identity is %(cid)s, the server is at %(serv)s,"
+             " identity at the server is %(sid)s" % {
+            'cid': self.identity_info.consumer_id,
+            'sid': self.identity_info.server_id,
+            'serv': self.identity_info.server_url})
+        return s
+
+
 class FatalEvent(TextEvent):
     pass
 

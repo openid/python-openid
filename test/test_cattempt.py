@@ -33,15 +33,17 @@ class MockConsumer(object):
         return consumer.SUCCESS, "http://some-guys-id.example"
 
 
+class MockDiag(object):
+    consumer = MockConsumer()
+    trust_root = "http://unittest.example/"
+    def getConsumer(self):
+        return self.consumer
+    def getBaseURL(self):
+        return self.trust_root + 'base/'
+
+
 class TestCheckidTest(unittest.TestCase):
     def setUp(self):
-        class MockDiag(object):
-            consumer = MockConsumer()
-            trust_root = "http://unittest.example/"
-            def getConsumer(self):
-                return self.consumer
-            def getBaseURL(self):
-                return self.trust_root + 'base/'
         self.diag = MockDiag()
         self.idinfo = cattempt.IdentityInfo(
             "http://shortname.example/",
@@ -84,6 +86,22 @@ class TestCheckidTest(unittest.TestCase):
         last_event = myattempt.event_log[-1]
         self.failUnless(isinstance(last_event, events.IdentityAuthenticated))
         self.failUnlessEqual(myattempt.result(), attempt.Attempt.SUCCESS)
+
+
+
+class TestIdentityPageTest(unittest.TestCase):
+    def setUp(self):
+        self.diag = MockDiag()
+        # encoding the userinput in IdentityInfo is a kludge.
+        self.idinfo = cattempt.IdentityInfo("myid.testdomain", None, None)
+        self.rtable = attempt.ResultTable(self.diag, self.idinfo,
+                                          [cattempt.TestIdentityPage])
+        self.rrow = self.rtable.rows[0]
+
+    def test_fetchAndParse(self):
+        myattempt = self.rrow.fetchAndParse()
+        self.failUnlessEqual(myattempt.result(), attempt.Attempt.SUCCESS)
+        self.failUnless(myattempt.identity_info)
 
 
 if __name__ == '__main__':
