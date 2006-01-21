@@ -1,6 +1,6 @@
 
 import unittest
-from openid.tools import attempt
+from openid.tools import attempt, events
 
 from tools import DummyRequest
 
@@ -10,6 +10,17 @@ class SuccessOrFailureAttempt(attempt.Attempt):
 
 class SuccessOrFailureRow(attempt.ResultRow):
     attemptClass = SuccessOrFailureAttempt
+
+class TestAttempt(unittest.TestCase):
+    def test_subscribe(self):
+        eventlist = []
+        def subscriber(event):
+            eventlist.append(event)
+        a = attempt.Attempt("zing")
+        a.subscribe(subscriber)
+        a.record(events.TextEvent("event1"))
+        a.record(events.TextEvent("event2"))
+        self.failUnlessEqual(len(eventlist), 2)
 
 class TestResultRow(unittest.TestCase):
     def setUp(self):

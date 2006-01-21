@@ -221,8 +221,13 @@ class TestIdentityPage(ResultRow):
     def request_try(self, req):
         return self.fetchAndParse()
 
-    def fetchAndParse(self):
+    def fetchAndParse(self, subscriber=None):
         attempt = self.newAttempt()
+        if subscriber:
+            # Oh how the gods of consistent interface are unhappy about this.
+            attempt.subscribe(subscriber)
+        # I'm starting to wonder if this method doesn't really belong in
+        # the Attempt...
         attempt.openid_url = self.openid_url
         consu = self.getConsumer()
         attempt.record(events.TextEvent("Fetching %s" % (self.openid_url,)))

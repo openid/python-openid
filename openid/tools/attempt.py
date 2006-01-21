@@ -2,7 +2,7 @@ import time
 import urllib
 from xml.sax.saxutils import quoteattr
 
-class Attempt:
+class Attempt(object):
     parent = None
 
     t_attempt = '''<div class="attempt"><span class="name">%(name)s</span>
@@ -21,11 +21,17 @@ class Attempt:
         self.handle = handle
         self.when = time.time()
         self.event_log = []
+        self.subscribers = []
         if parent is not None:
             self.parent = parent
 
+    def subscribe(self, subscriber):
+        self.subscribers.append(subscriber)
+
     def record(self, event):
         self.event_log.append(event)
+        for subscriber in self.subscribers:
+            subscriber(event)
 
     def result(self):
         raise NotImplementedError
@@ -42,6 +48,20 @@ class Attempt:
             'event_rows': ''.join(map(fmtEvent, self.event_log)),
             }
         return self.t_attempt % d
+
+    def __setstate__(self, state):
+        self.__dict__.clear()
+        self.__dict__.update(state)
+        # super(Attempt, self).__setstate__(state)
+        if not hasattr(self, 'subscribers'):
+            self.subscribers = []
+
+    def __getstate__(self, state=None):
+        if state is None:
+            state = self.__dict__.copy()
+        if 'subscribers' in state:
+            del state['subscribers']
+        return state
 
 
 class ResultRow:
@@ -173,7 +193,8 @@ class ResultTable(object):
         return child.handleRequest(req)
 
     def __getstate__(self, state=None):
-        s = self.__dict__.copy()
-        if 'diagnostician' in s:
-            del s['diagnostician']
-        return s
+        if state is None:
+            state = self.__dict__.copy()
+        if 'diagnostician' in state:
+            del state['diagnostician']
+        return state
