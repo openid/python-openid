@@ -343,6 +343,9 @@ class Diagnostician(EventRecorderMixin):
     def getBaseURL(self):
         return self.webface.getBaseURL()
 
+    def getTrustRoot(self):
+        return self.trust_root
+
 t_result_table = """
 <table class="results" summary=%(summary)s>
 <colgroup />

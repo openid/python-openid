@@ -117,6 +117,10 @@ class ResultRow:
                 # FIXME: return some status message about broken args
                 return None
 
+    def getTrustRoot(self):
+        return (self.parent_table.diagnostician.getTrustRoot() +
+                self.getURL(action=None))
+
     def getConsumer(self):
         return self.parent_table.diagnostician.getConsumer()
 
@@ -137,7 +141,9 @@ class ResultRow:
 
     t_doc = (
         '<dt id=%(id)s>%(name)s</dt>\n'
-        '<dd>%(body)s</dd>\n'
+        '<dd>%(body)s\n'
+        '<p>Trust root: <span class="troot">%(trust_root)s</span></p>\n'
+        '</dd>\n'
         )
 
     def to_html(self, rownum=0, highlight=None):
@@ -191,6 +197,7 @@ class ResultRow:
             'id': quoteattr('doc-' + self.shortname),
             'name': self.name,
             'body': htmldoc,
+            'trust_root': self.getTrustRoot()
             }
 
 

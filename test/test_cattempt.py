@@ -36,6 +36,8 @@ class MockConsumer(object):
 class MockDiag(object):
     consumer = MockConsumer()
     trust_root = "http://unittest.example/"
+    def getTrustRoot(self):
+        return self.trust_root
     def getConsumer(self):
         return self.consumer
     def getBaseURL(self):

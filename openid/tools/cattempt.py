@@ -145,8 +145,7 @@ class TestCheckid(ResultRow):
             urllib.quote(attempt.handle, safe=''))
 
         redirectURL = HACK_constructRedirect(
-            consu, auth_request, return_to,
-            self.parent_table.diagnostician.trust_root,
+            consu, auth_request, return_to, self.getTrustRoot(),
             immediate_mode=self.immediate_mode)
 
         attempt.redirectURL = redirectURL
