@@ -2,7 +2,7 @@
 """
 
 import time
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import quoteattr, escape
 
 class Event(object):
     def __init__(self):
@@ -42,6 +42,10 @@ class SetupNeeded(Event):
     def __init__(self, url):
         Event.__init__(self)
         self.url = url
+
+    def to_html(self):
+        return ('<span class="event">Server says setup is needed at '
+                '<a href=%s>%s</a></span>' % (quoteattr(self.url), self.url))
 
     def __str__(self):
         return "Server requires setup at %s" % (self.url,)
