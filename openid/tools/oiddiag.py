@@ -359,6 +359,12 @@ t_result_table = """
 %(rows)s
 </tbody>
 </table>
+
+<div class="results-doc">
+<dl>
+%(testdocs)s
+</dl>
+</div>
 """
 
 class ResultTable(attempt.ResultTable):
@@ -367,6 +373,7 @@ class ResultTable(attempt.ResultTable):
     def to_html(self, highlight=None):
         template = self.t_result_table
         htmlrows = []
+        docs = []
         rownum = 0
         results = {Attempt.SUCCESS: 0,
                    Attempt.FAILURE: 0,
@@ -385,6 +392,9 @@ class ResultTable(attempt.ResultTable):
             else:
                 results[None] += 1
 
+            docs.append(row.doc_to_html())
+        docs = filter(None, docs)
+
         summary = ["%d tests" % (len(self.rows),)]
         if results[Attempt.SUCCESS]:
             summary.append("%d passing" % (results[Attempt.SUCCESS],))
@@ -398,6 +408,7 @@ class ResultTable(attempt.ResultTable):
         return template % {
             'summary': quoteattr(', '.join(summary) + '.'),
             'rows': ''.join(htmlrows),
+            'testdocs': ''.join(docs),
             }
 
 
