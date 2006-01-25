@@ -177,11 +177,31 @@ class TestCheckid(ResultRow):
 
 
 class TestCheckidSetup(TestCheckid):
+    """I check the server's positive response to a checkid_setup query.
+
+    You will be directed to your OpenID server.  For this test to
+    succeed, you should log in and tell the server to allow this site
+    to know your identity.
+
+    Specification: checkid_setup_.
+
+    .. _checkid_setup: http://openid.net/specs.bml#mode-checkid_setup
+    """
     name = "Successful checkid_setup"
     attemptClass = CheckidAttempt
     immediate_mode = False
 
 class TestCheckidSetupCancel(TestCheckid):
+    """I check the server's negative response to a checkid_setup query.
+
+    You will be directed to your OpenID server.  For this test to
+    succeed, you should cancel the login, typically by pressing a
+    "Canel" or "Do Not Trust" button.
+
+    Specification: checkid_setup_.
+
+    .. _checkid_setup: http://openid.net/specs.bml#mode-checkid_setup
+    """
     name = "Cancel checkid_setup"
     attemptClass = CheckidCancelAttempt
     immediate_mode = False
@@ -203,6 +223,17 @@ class TestCheckidImmediate(TestCheckid):
     immediate_mode = True
 
 class TestCheckidImmediateSetupNeeded(TestCheckid):
+    """I check the server's negative response to a checkid_immediate query.
+
+    Prerequisites: I expect an immediate negative response from the server.
+    You should not have to take any special action or sever configuration.
+    If this test unexpectedly gets a positive authentication response, your
+    server is perhaps applying an "always trust" preference to my trust_root.
+
+    Specification: checkid_immediate_.
+
+    .. _checkid_immediate: http://openid.net/specs.bml#mode-checkid_immediate
+    """
     name = "Setup Needed for checkid_immediate"
     attemptClass = CheckidImmediateSetupNeededAttempt
     immediate_mode = True
