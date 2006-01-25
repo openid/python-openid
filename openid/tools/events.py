@@ -9,7 +9,7 @@ class Event(object):
         self.time = time.time()
 
     def to_html(self):
-        return escape(str(self))
+        return '<span class="event">%s</span>' % (escape(str(self)),)
 
 class TextEvent(Event):
     """An event described by a line of text.
