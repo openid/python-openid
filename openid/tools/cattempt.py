@@ -176,7 +176,7 @@ class TestCheckid(ResultRow):
 
 
 class TestCheckidSetup(TestCheckid):
-    """I check the server's positive response to a checkid_setup query.
+    """I check the server's positive response to a `checkid_setup` query.
 
     You will be directed to your OpenID server.  For this test to
     succeed, you should log in and tell the server to allow this site
@@ -191,7 +191,7 @@ class TestCheckidSetup(TestCheckid):
     immediate_mode = False
 
 class TestCheckidSetupCancel(TestCheckid):
-    """I check the server's negative response to a checkid_setup query.
+    """I check the server's negative response to a `checkid_setup` query.
 
     You will be directed to your OpenID server.  For this test to
     succeed, you should cancel the login, typically by pressing a
@@ -206,12 +206,14 @@ class TestCheckidSetupCancel(TestCheckid):
     immediate_mode = False
 
 class TestCheckidImmediate(TestCheckid):
-    """I check the server's positive response to a checkid_immediate query.
+    """I check the server's positive response to a `checkid_immediate` query.
 
     Prerequisites: I expect an immediate positive response from the server,
     which typically means your user agent must already be authenticated with
     your server with the given OpenID, and your server must be configured to
-    always allow this site to know your identity.
+    always allow this site to know your identity.  If the test fails with a
+    "setup needed" message, follow that link, configure the server,
+    and re-run the test.
 
     Specification: checkid_immediate_.
 
@@ -222,12 +224,13 @@ class TestCheckidImmediate(TestCheckid):
     immediate_mode = True
 
 class TestCheckidImmediateSetupNeeded(TestCheckid):
-    """I check the server's negative response to a checkid_immediate query.
+    """I check the server's negative response to a `checkid_immediate` query.
 
-    Prerequisites: I expect an immediate negative response from the server.
-    You should not have to take any special action or sever configuration.
-    If this test unexpectedly gets a positive authentication response, your
-    server is perhaps applying an "always trust" preference to my trust_root.
+    I expect an immediate negative response from the server.  You
+    should not have to take any special action or sever configuration.
+    If this test unexpectedly gets a positive authentication response,
+    your server is perhaps applying an "always trust" preference to my
+    `trust_root`.
 
     Specification: checkid_immediate_.
 
