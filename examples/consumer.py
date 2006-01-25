@@ -99,9 +99,9 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         oidconsumer = self.server.openid_consumer
 
         # Then, ask the library to begin the authorization.
-	# Here we find out the identity server that will verify the
-	# user's identity, and get a token that allows us to
-	# communicate securely with the identity server.
+        # Here we find out the identity server that will verify the
+        # user's identity, and get a token that allows us to
+        # communicate securely with the identity server.
         status, info = oidconsumer.beginAuth(openid_url)
 
         # If the URL was unusable (either because of network
@@ -121,8 +121,8 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # that will get us to process the server response. We will
             # need the token from the beginAuth call when processing
             # the response. A cookie or a session object could be used
-	    # to accomplish this, but for simplicity here we just add
-	    # it as a query parameter of the return-to URL.
+        # to accomplish this, but for simplicity here we just add
+        # it as a query parameter of the return-to URL.
             return_to = self.buildURL('process', token=info.token)
 
             # Now ask the library for the URL to redirect the user to
@@ -132,7 +132,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             redirect_url = oidconsumer.constructRedirect(
                 info, return_to, trust_root=self.server.base_url)
 
-            # Send the redirect response 
+            # Send the redirect response
             self.redirect(redirect_url)
         else:
             assert False, 'Not reached'
@@ -150,7 +150,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         # either None or a string containing more information about
         # the return type.
         status, info = oidconsumer.completeAuth(token, self.query)
-        
+
         css_class = 'error'
         openid_url = None
         if status == consumer.FAILURE and info:
