@@ -1,3 +1,9 @@
+"""Attempting to do things as an OpenID consumer might.
+"""
+
+# Docs are in ReStructuredText to facilitate inline help in the application.
+__docformat__ = "restructuredtext en"
+
 import urllib
 
 from xml.sax.saxutils import escape, quoteattr
@@ -181,6 +187,17 @@ class TestCheckidSetupCancel(TestCheckid):
     immediate_mode = False
 
 class TestCheckidImmediate(TestCheckid):
+    """I check the server's positive response to a checkid_immediate query.
+
+    Prerequisites: I expect an immediate positive response from the server,
+    which typically means your user agent must already be authenticated with
+    your server with the given OpenID, and your server must be configured to
+    always allow this site to know your identity.
+
+    Specification: checkid_immediate_.
+
+    .. _checkid_immediate: http://openid.net/specs.bml#mode-checkid_immediate
+    """
     name = "Successful checkid_immediate"
     attemptClass = CheckidImmediateAttempt
     immediate_mode = True

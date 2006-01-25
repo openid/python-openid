@@ -1,6 +1,7 @@
-import time
-import urllib
+import inspect, time, urllib
 from xml.sax.saxutils import quoteattr
+import docutils.core
+
 
 class Attempt(object):
     parent = None
@@ -100,8 +101,11 @@ class ResultRow:
     # Webby bits.
 
     def getURL(self, action="try"):
-        return "%s/?action=%s" % (urllib.quote(self.shortname, safe=''),
-                                  urllib.quote(action, safe=''))
+        if action is not None:
+            return "%s/?action=%s" % (urllib.quote(self.shortname, safe=''),
+                                      urllib.quote(action, safe=''))
+        else:
+            return urllib.quote(self.shortname, safe='') + '/'
 
     def handleRequest(self, req):
         action = req.fields.getfirst("action")
@@ -130,6 +134,11 @@ class ResultRow:
         'Not yet attempted -- <a href=%(trylink)s rel="nofollow">try now</a>.'
         '</td></tr>'
         '\n')
+
+    t_doc = (
+        '<dt id=%(id)s>%(name)s</dt>\n'
+        '<dd>%(body)s</dd>\n'
+        )
 
     def to_html(self, rownum=0, highlight=None):
         if rownum % 2:
@@ -171,6 +180,18 @@ class ResultRow:
             }
         values.update(cell_highlights)
         return template % values
+
+    def doc_to_html(self):
+        doc = inspect.getdoc(self)
+        if doc is None:
+            return None
+        htmldoc = docutils.core.publish_parts(
+            doc, writer_name='html')['fragment']
+        return self.t_doc % {
+            'id': quoteattr('doc-' + self.shortname),
+            'name': self.name,
+            'body': htmldoc,
+            }
 
 
 class ResultTable(object):
