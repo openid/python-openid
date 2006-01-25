@@ -5,8 +5,9 @@
     the case.
 
 @todo: drill-down views for table rows.
-@todo: convert the fetchAndParse and assosciate methods to use Attempts
-@todo: add dumb-mode tests
+@todo: convert the assosciate methods to use Attempts
+@todo: * add dumb-mode tests
+@todo: Test out-of-protocol cases such as empty GET to the server URL.
 @todo: add more association tests
 @todo: document usage, results
 @todo: end-user wrapper
