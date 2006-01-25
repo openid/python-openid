@@ -267,6 +267,7 @@ class Diagnostician(EventRecorderMixin):
         self.webface.write('<a href=".">[Clear Message]</a>\n')
         self.webface.write(self.result_table.to_html())
         self.webface.write(ResetButton().to_html())
+        self.webface.write(self.result_table.doc_to_html())
         self.webface.write('</body></html>')
 
         return PAGE_DONE
@@ -294,6 +295,7 @@ class Diagnostician(EventRecorderMixin):
 <p class="idinfo">%(iinfo)s</p>
 %(result_table)s
 %(reset_button)s
+%(docs)s
 </body></html>
 ''' % {
             'stylesheet': STYLESHEET,
@@ -304,6 +306,7 @@ class Diagnostician(EventRecorderMixin):
             'iinfo': identity_info.to_html(),
             'result_table': self.result_table.to_html(highlight=recent_attempt),
             'reset_button': ResetButton().to_html(),
+            'docs': self.result_table.doc_to_html(),
             }
         self.webface.write(s)
         return PAGE_DONE
@@ -363,21 +366,21 @@ t_result_table = """
 %(rows)s
 </tbody>
 </table>
+"""
 
-<div class="results-doc">
+class ResultTable(attempt.ResultTable):
+    t_result_table = t_result_table
+
+    t_doc = """<div class="results-doc">
 <dl>
 %(testdocs)s
 </dl>
 </div>
 """
 
-class ResultTable(attempt.ResultTable):
-    t_result_table = t_result_table
-
     def to_html(self, highlight=None):
         template = self.t_result_table
         htmlrows = []
-        docs = []
         rownum = 0
         results = {Attempt.SUCCESS: 0,
                    Attempt.FAILURE: 0,
@@ -396,9 +399,6 @@ class ResultTable(attempt.ResultTable):
             else:
                 results[None] += 1
 
-            docs.append(row.doc_to_html())
-        docs = filter(None, docs)
-
         summary = ["%d tests" % (len(self.rows),)]
         if results[Attempt.SUCCESS]:
             summary.append("%d passing" % (results[Attempt.SUCCESS],))
@@ -412,6 +412,14 @@ class ResultTable(attempt.ResultTable):
         return template % {
             'summary': quoteattr(', '.join(summary) + '.'),
             'rows': ''.join(htmlrows),
+            }
+
+    def doc_to_html(self):
+        docs = []
+        for row in self.rows:
+            docs.append(row.doc_to_html())
+        docs = filter(None, docs)
+        return self.t_doc % {
             'testdocs': ''.join(docs),
             }
 
