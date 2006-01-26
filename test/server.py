@@ -145,14 +145,15 @@ class TestLowLevelGetAuthResponse_Dumb(LLServerTestCase):
 
         self.failUnlessEqual(status, server.REDIRECT)
 
-        expected = self.rt_url + '?openid.mode=id_res&openid.user_setup_url='
         eargs = [
             ('openid.identity', self.id_url),
             ('openid.mode', 'checkid_setup'),
             ('openid.return_to', self.rt_url),
             ]
-        expected += urllib.quote_plus(self.sv_url + '?' +
-                                      urllib.urlencode(eargs))
+        setup_url = self.sv_url + '?' + urllib.urlencode(eargs)
+        expected_pat = '%s?openid.mode=id_res&openid.user_setup_url=%s'
+        expected = expected_pat % (self.rt_url, urllib.quote_plus(setup_url))
+
         self.failUnlessEqual(info, expected)
 
     def test_checkidImmediate(self):
