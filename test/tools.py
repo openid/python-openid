@@ -11,6 +11,9 @@ class DummyFieldStorage(object):
         else:
             return l[0]
 
+    def getlist(self, key):
+        return self.req._fields.get(key)
+
     def get(self, key, defvalue=None):
         return self.req._fields.get(key, defvalue)
 
@@ -35,5 +38,3 @@ class DummyRequest(object):
 
     def log_error(self, msg, priority):
         self.logmsgs.append((priority, msg))
-
-

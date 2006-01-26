@@ -4,6 +4,8 @@
 import time
 from xml.sax.saxutils import quoteattr, escape
 
+from openid.tools.htmlutil import renderQuery, renderURLQuery
+
 class Event(object):
     def __init__(self):
         self.time = time.time()
@@ -45,7 +47,8 @@ class SetupNeeded(Event):
 
     def to_html(self):
         return ('<span class="event">Server says setup is needed at '
-                '<a href=%s>%s</a></span>' % (quoteattr(self.url), self.url))
+                '<a href=%s>%s</a></span>' % (quoteattr(self.url),
+                                              escape(self.url)))
 
     def __str__(self):
         return "Server requires setup at %s" % (self.url,)
@@ -74,6 +77,17 @@ class OperationCancelled(TextEvent):
     def __init__(self):
         TextEvent.__init__(self, self.text)
 
+
+class SentRedirect(Event):
+    def __init__(self, url):
+        Event.__init__(self)
+        self.url = url
+
+    def to_html(self):
+        return ('<div class="event">Redirecting to %s %s</div>'
+                % (escape(self.url), renderURLQuery(self.url),))
+
+
 class ResponseReceived(Event):
     def __init__(self, raw_uri, query):
         Event.__init__(self)
@@ -81,8 +95,8 @@ class ResponseReceived(Event):
         self.query = query
 
     def to_html(self):
-        return ('<span class="event">Response received: %s</span>'
-                % (escape(str(self.query)),))
+        return ('<div class="event">Response received: %s</div>'
+                % (renderQuery(self.query),))
 
 
 class GotIdentityInfo(Event):

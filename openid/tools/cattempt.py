@@ -150,7 +150,7 @@ class TestCheckid(ResultRow):
             immediate_mode=self.immediate_mode)
 
         attempt.redirectURL = redirectURL
-        attempt.record(events.TextEvent("Redirecting to %s" % redirectURL,))
+        attempt.record(events.SentRedirect(redirectURL))
         return events.DoRedirect(redirectURL)
 
     def request_response(self, req):
@@ -159,10 +159,12 @@ class TestCheckid(ResultRow):
         # FIXME: Handle KeyError here.
         attempt = self.getAttempt(attempt_handle)
         query = {}
+        query_lists = {}
         for k in req.fields.keys():
             query[k] = req.fields.getfirst(k)
+            query_lists[k] = req.fields.getlist(k)
         attempt.record(events.ResponseReceived(raw_uri=req.unparsed_uri,
-                                               query=query))
+                                               query=query_lists))
         status, info = consu.completeAuth(attempt.authRequest.token, query)
         if status is consumer.SUCCESS:
             if info is not None:
