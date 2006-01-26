@@ -47,12 +47,14 @@ def getTests(t, grps, head, dat):
     gdat = map(str.strip, dat.split('-' * 40 + '\n'))
     assert not gdat[0]
     assert len(gdat) == (len(grps) * 2 + 1), (gdat, grps)
-    for (i, x) in enumerate(grps):
-        n, desc = gdat[i * 2 + 1].split(': ')
-        cases = gdat[i * 2 + 2].split('\n')
+    i = 1
+    for x in grps:
+        n, desc = gdat[i].split(': ')
+        cases = gdat[i + 1].split('\n')
         assert len(cases) == int(n)
         for case in cases:
             tests.append(t(x, top + ' - ' + desc, case))
+        i += 2
     return tests
 
 def parseTests(data):
@@ -62,7 +64,7 @@ def parseTests(data):
 
     tests = []
     tests.extend(getTests(_ParseTest, ['bad', 'insane', 'sane'], ph, pdat))
-    tests.extend(getTests(_MatchTest, [True, False], mh, mdat))
+    tests.extend(getTests(_MatchTest, [1, 0], mh, mdat))
     return tests
 
 def pyUnitTests():
