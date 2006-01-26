@@ -10,6 +10,7 @@ class Attempt(object):
 <ul>
 %(event_rows)s
 </ul>
+<p>This attempt is <strong class="result">%(result)s</strong>.</p>
 </div>
 '''
 
@@ -44,9 +45,14 @@ class Attempt(object):
             name = self.parent.name
         else:
             name = self.__class__.__name__
+        result = {Attempt.SUCCESS: "successful",
+                  Attempt.FAILURE: "failing",
+                  Attempt.INCOMPLETE: "incomplete",
+                  }[self.result()]
         d = {
             'name': name,
             'event_rows': ''.join(map(fmtEvent, self.event_log)),
+            'result': result,
             }
         return self.t_attempt % d
 

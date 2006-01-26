@@ -12,7 +12,6 @@
 @todo: document usage, results
 @todo: end-user wrapper
 @todo: render tables for query args
-@todo: add passed/failed message to end of Attempt rendering.
 @todo: add summary line: All passed, 3 failures, 2 incompletes, 1 untried.
 @todo: keep log of working servers.
 @todo: code documentation and cleanup.
