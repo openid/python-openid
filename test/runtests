@@ -42,24 +42,16 @@ def pyunitTests():
     import server
     import oidutil
     import linkparse
-    import trustroot
 
     pyunit_modules = [
         consumer,
         server,
+        test_attempt,
+        test_cattempt,
         ]
-
-    maybe_tests = ['test_attempt', 'test_cattempt']
     if sys.version_info[:2] > (2, 2):
-        maybe_tests.append('test_tools')
-
-    for name in maybe_tests:
-        try:
-            module = __import__(name, None, None, [])
-        except ImportError, why:
-            print 'Skipping %s because: %s' % (name, why)
-        else:
-            pyunit_modules.append(module)
+        import test_tools
+        pyunit_modules.append(test_tools)
 
     # Some modules have data-driven tests, and they use custom methods
     # to build the test suite:
