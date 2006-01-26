@@ -38,6 +38,10 @@ def _parseURL(url):
         host = netloc
         port = ''
 
+    host = host.lower()
+    if not path:
+        path = '/'
+
     return proto, host, port, path
 
 class TrustRoot(object):
