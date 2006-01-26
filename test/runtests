@@ -5,7 +5,6 @@ test_modules = [
     'cryptutil',
     'association',
     'storetest',
-    'trustroot',
     'oidutil',
     'kvform',
     'consumer',
@@ -43,8 +42,6 @@ def pyunitTests():
     import server
     import oidutil
     import linkparse
-    import test_attempt
-    import test_cattempt
 
     pyunit_modules = [
         consumer,
@@ -61,6 +58,7 @@ def pyunitTests():
     custom_modules = [
         oidutil,
         linkparse,
+        trustroot,
         ]
 
     loader = unittest.TestLoader()

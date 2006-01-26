@@ -1,98 +1,81 @@
+import os
+import unittest
 from openid.server.trustroot import TrustRoot
 
-def test():
-    # test invalid trust root strings
-    def assertBad(s):
-        tr = TrustRoot.parse(s)
-        assert tr is None, repr(tr)
+class _ParseTest(unittest.TestCase):
+    def __init__(self, sanity, desc, case):
+        unittest.TestCase.__init__(self)
+        self.desc = desc + ': ' + repr(case)
+        self.case = case
+        self.sanity = sanity
 
-    assertBad('baz.org')
-    assertBad('*.foo.com')
-    assertBad('http://*.schtuff.*/')
-    assertBad('ftp://foo.com')
-    assertBad('ftp://*.foo.com')
-    assertBad('http://*.foo.com:80:90/')
-    assertBad('foo.*.com')
-    assertBad('http://foo.*.com')
-    assertBad('http://www.*')
-    assertBad('')
-    assertBad(' ')
-    assertBad(' \t\n ')
-    assertBad(None)
-    assertBad(5)
+    def shortDescription(self):
+        return self.desc
 
-    # test valid trust root string
-    def assertGood(s):
-        tr = TrustRoot.parse(s)
-        assert tr is not None
+    def runTest(self):
+        tr = TrustRoot.parse(self.case)
+        if self.sanity == 'sane':
+            assert tr.isSane(), self.case
+        elif self.sanity == 'insane':
+            assert not tr.isSane(), self.case
+        else:
+            assert tr is None
 
-    assertGood('http://*/')
-    assertGood('http://*.schtuff.com/')
-    assertGood('http://*.schtuff.com')
-    assertGood('http://www.schtuff.com/')
-    assertGood('http://www.schtuff.com')
-    assertGood('http://*.this.that.schtuff.com/')
-    assertGood('http://*.com/')
-    assertGood('http://*.com')
-    assertGood('http://*.foo.com/path')
-    assertGood('http://x.foo.com/path?action=foo2')
-    assertGood('http://*.foo.com/path?action=foo2')
-    assertGood('http://localhost:8081/')
+class _MatchTest(unittest.TestCase):
+    def __init__(self, match, desc, line):
+        unittest.TestCase.__init__(self)
+        tr, rt = line.split()
+        self.desc = desc + ': ' + repr(tr) + ' ' + repr(rt)
+        self.tr = tr
+        self.rt = rt
+        self.match = match
 
-    # test trust root sanity
-    def assertSane(s, truth):
-        tr = TrustRoot.parse(s)
-        assert tr.isSane() == truth, (tr.isSane(), truth)
+    def shortDescription(self):
+        return self.desc
 
-    assertSane('http://*.schtuff.com/', True)
-    assertSane('http://*.foo.schtuff.com/', True)
-    assertSane('http://*/', False)
-    assertSane('http://*.com/', False)
-    assertSane('http://*.com.au/', False)
-    assertSane('http://*.co.uk/', False)
-    assertSane('http://localhost:8082/?action=openid', True)
-    assertSane('http://*.foo.notatld', False)
-    assertSane('http://*.museum/', False)
+    def runTest(self):
+        tr = TrustRoot.parse(self.tr)
+        match = tr.validateURL(self.rt)
+        if self.match:
+            assert match
+        else:
+            assert not match
 
-    # XXX: what exactly is a sane trust root?
-    #assertSane('http://*.k12.va.us/', False)
+def getTests(t, grps, head, dat):
+    tests = []
+    top = head.strip()
+    gdat = map(str.strip, dat.split('-' * 40 + '\n'))
+    assert not gdat[0]
+    assert len(gdat) == (len(grps) * 2 + 1), (gdat, grps)
+    for (i, x) in enumerate(grps):
+        n, desc = gdat[i * 2 + 1].split(': ')
+        cases = gdat[i * 2 + 2].split('\n')
+        assert len(cases) == int(n)
+        for case in cases:
+            tests.append(t(x, top + ' - ' + desc, case))
+    return tests
 
-    # validate a url against a trust root
-    def assertValid(trust_root, url, truth):
-        tr = TrustRoot.parse(trust_root)
-        assert tr.isSane()
-        assert tr.validateURL(url) == truth, (tr.validateURL(url), truth)
+def parseTests(data):
+    parts = map(str.strip, data.split('=' * 40 + '\n'))
+    assert not parts[0]
+    _, ph, pdat, mh, mdat = parts
 
-    assertValid('http://*.foo.com', 'http://b.foo.com', True)
-    assertValid('http://*.foo.com', 'http://b.foo.com/', True)
-    assertValid('http://*.foo.com', 'http://b.foo.com/', True)
-    assertValid('http://*.foo.com', 'http://b.foo.com', True)
-    assertValid('http://*.b.foo.com', 'http://b.foo.com', True)
-    assertValid('http://*.b.foo.com', 'http://x.b.foo.com', True)
-    assertValid('http://*.bar.co.uk', 'http://www.bar.co.uk', True)
-    assertValid('http://*.uoregon.edu', 'http://x.cs.uoregon.edu', True)
+    tests = []
+    tests.extend(getTests(_ParseTest, ['bad', 'insane', 'sane'], ph, pdat))
+    tests.extend(getTests(_MatchTest, [True, False], mh, mdat))
+    return tests
 
-    assertValid('http://*.cs.uoregon.edu', 'http://x.uoregon.edu', False)
-    assertValid('http://*.foo.com', 'http://bar.com', False)
-    assertValid('http://*.foo.com', 'http://www.bar.com', False)
-    assertValid('http://*.bar.co.uk', 'http://xxx.co.uk', False)
+def pyUnitTests():
+    here = os.path.dirname(os.path.abspath(__file__))
+    test_data_file_name = os.path.join(here, 'trustroot.txt')
+    test_data_file = file(test_data_file_name)
+    test_data = test_data_file.read()
+    test_data_file.close()
 
-    # path validity
-    assertValid('http://x.com/abc', 'http://x.com/', False)
-    assertValid('http://x.com/abc', 'http://x.com/a', False)
-    assertValid('http://*.x.com/abc', 'http://foo.x.com/abc', True)
-    assertValid('http://*.x.com/abc', 'http://foo.x.com', False)
-    assertValid('http://*.x.com', 'http://foo.x.com/gallery', True)
-    assertValid('http://foo.x.com', 'http://foo.x.com/gallery', True)
-    assertValid('http://foo.x.com/gallery', 'http://foo.x.com/gallery/xxx', True)
-    assertValid('http://localhost:8081/x?action=openid',
-                'http://localhost:8081/x?action=openid', True)
-    assertValid('http://*.x.com/gallery', 'http://foo.x.com/gallery', True)
-
-    assertValid('http://localhost:8082/?action=openid',
-                'http://localhost:8082/?action=openid', True)
-    assertValid('http://goathack.livejournal.org:8020/',
-                'http://goathack.livejournal.org:8020/openid/login.bml', True)
+    tests = parseTests(test_data)
+    return unittest.TestSuite(tests)
 
 if __name__ == '__main__':
-    test()
+    suite = pyUnitTests()
+    runner = unittest.TextTestRunner()
+    runner.run(suite)
