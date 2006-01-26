@@ -6,7 +6,7 @@
 
 @todo: drill-down views for table rows.
 @todo: convert the assosciate methods to use Attempts
-@todo: * add dumb-mode tests
+@todo: Make sure dumb mode tests give readable results when check_auth fails
 @todo: Test out-of-protocol cases such as empty GET to the server URL.
 @todo: add more association tests
 @todo: document usage, results
@@ -260,6 +260,11 @@ class Diagnostician(EventRecorderMixin):
             cattempt.TestCheckidSetupCancel,
             cattempt.TestCheckidImmediate,
             cattempt.TestCheckidImmediateSetupNeeded,
+            # dumb mode tests
+            cattempt.TestDumbCheckidSetup,
+            cattempt.TestDumbCheckidSetupCancel,
+            cattempt.TestDumbCheckidImmediate,
+            cattempt.TestDumbCheckidImmediateSetupNeeded,
             ]
         self.result_table = ResultTable(self, identity_info, rows)
         self.webface.session['result_table'] = self.result_table

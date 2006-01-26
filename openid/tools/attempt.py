@@ -65,7 +65,7 @@ class Attempt(object):
         return state
 
 
-class ResultRow:
+class ResultRow(object):
     name = None
     handler = None
     attemptClass = Attempt

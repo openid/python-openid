@@ -12,6 +12,7 @@ from openid.tools.attempt import Attempt, ResultRow
 from openid.tools import events
 
 from openid.consumer import consumer
+from openid.store import dumbstore
 
 class IdentityInfo(object):
     consumer = None
@@ -175,6 +176,19 @@ class TestCheckid(ResultRow):
         return attempt
 
 
+class DumbModeMixin(object):
+
+    def getConsumer(self):
+        """You get a dumb consumer."""
+        # Don't follow this example and hard-code your secret in the code.
+        # I'm only doing it that way here because the consequences of a
+        # conversation with the testing program being cracked are pretty
+        # minimal.  What are you going to do, inject false positives into
+        # the test results for a dumb-mode consumer?
+        store = dumbstore.DumbStore("a secret")
+        return consumer.OpenIDConsumer(store)
+
+
 class TestCheckidSetup(TestCheckid):
     """I check the server's positive response to a `checkid_setup` query.
 
@@ -239,6 +253,20 @@ class TestCheckidImmediateSetupNeeded(TestCheckid):
     name = "Setup Needed for checkid_immediate"
     attemptClass = CheckidImmediateSetupNeededAttempt
     immediate_mode = True
+
+
+class TestDumbCheckidSetup(DumbModeMixin, TestCheckidSetup):
+    name = TestCheckidSetup.name + ' (dumb mode)'
+
+class TestDumbCheckidSetupCancel(DumbModeMixin, TestCheckidSetupCancel):
+    name = TestCheckidSetupCancel.name + ' (dumb mode)'
+
+class TestDumbCheckidImmediate(DumbModeMixin, TestCheckidImmediate):
+    name = TestCheckidImmediate.name + ' (dumb mode)'
+
+class TestDumbCheckidImmediateSetupNeeded(DumbModeMixin,
+                                          TestCheckidImmediateSetupNeeded):
+    name = TestCheckidImmediateSetupNeeded.name + ' (dumb mode)'
 
 
 class FetchAttempt(Attempt):
