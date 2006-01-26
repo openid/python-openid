@@ -9,6 +9,7 @@
 @todo: Make sure dumb mode tests give readable results when check_auth fails
 @todo: Test out-of-protocol cases such as empty GET to the server URL.
 @todo: add more association tests
+@todo: test when return_to.startswith(trust_root) is False
 @todo: document usage, results
 @todo: end-user wrapper
 @todo: add summary line: All passed, 3 failures, 2 incompletes, 1 untried.
