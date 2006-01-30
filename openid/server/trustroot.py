@@ -84,7 +84,12 @@ class TrustRoot(object):
         if self.host == 'localhost':
             return True
 
+        if self.host == '':
+            return False
+
         host_parts = self.host.split('.')
+        if self.wildcard:
+            del host_parts[0]
 
         ends_in_tld = False
         for tld in _top_level_domains:
@@ -132,13 +137,27 @@ class TrustRoot(object):
         if port != self.port:
             return False
 
-        if not path.split('?', 1)[0].startswith(self.path.split('?', 1)[0]):
+        if path != self.path:
+            if '?' in self.path:
+                sep = '&'
+            else:
+                sep = '/'
+
+            if not self.path.endswith(sep):
+                spath = self.path + sep
+            else:
+                spath = self.path
+
+            if not path.startswith(spath):
+                return False
+
+        if '*' in host:
             return False
 
         if not self.wildcard:
             return host == self.host
         else:
-            return host.endswith(self.host)
+            return host.endswith(self.host) or ('.' + host) == self.host
 
     def parse(cls, trust_root):
         """
@@ -181,7 +200,7 @@ class TrustRoot(object):
             if len(host) > 1 and host[1] != '.':
                 return None
 
-            host = host[2:]
+            host = host[1:]
             wilcard = True
         else:
             wilcard = False
