@@ -268,6 +268,27 @@ class TestLowLevelCheckAuthentication(LLServerTestCase):
         resultArgs = kvform.kvToDict(info)
         self.failUnlessEqual(resultArgs['is_valid'], 'true')
 
+    def test_checkAuthenticationPreventReplay(self):
+        # Perform an initial dumb-mode request to make sure an association
+        # exists.
+        uncheckedArgs = self.dumbRequest()
+        args = {}
+        for k, v in uncheckedArgs.iteritems():
+            args[k] = v[0]
+        args['openid.mode'] = 'check_authentication'
+
+        status, info = self.server.checkAuthentication(args)
+        self.failUnlessEqual(status, server.REMOTE_OK)
+
+        resultArgs = kvform.kvToDict(info)
+        self.failUnlessEqual(resultArgs['is_valid'], 'true')
+
+        status, info = self.server.checkAuthentication(args)
+        self.failUnlessEqual(status, server.REMOTE_OK)
+
+        resultArgs = kvform.kvToDict(info)
+        self.failUnlessEqual(resultArgs['is_valid'], 'false')
+
     def test_checkAuthenticationFailSig(self):
         # Perform an initial dumb-mode request to make sure an association
         # exists.
