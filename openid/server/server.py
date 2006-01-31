@@ -612,7 +612,7 @@ class LowLevelServer(object):
 
     @type SECRET_LIFETIME: C{int}
     """
-    
+
     SECRET_LIFETIME = 14 * 24 * 60 * 60 # 14 days, in seconds
 
     def __init__(self, server_url, store):
