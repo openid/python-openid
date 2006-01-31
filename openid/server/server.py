@@ -900,7 +900,7 @@ class LowLevelServer(object):
             tv_sig = assoc.signDict(signed_fields, to_verify)
 
             if tv_sig == sig:
-                self.store.removeAssociation(self.normal_key, assoc_handle)
+                self.store.removeAssociation(self.dumb_key, assoc_handle)
                 is_valid = 'true'
 
                 invalidate_handle = args.get('openid.invalidate_handle')
