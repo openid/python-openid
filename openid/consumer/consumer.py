@@ -568,6 +568,7 @@ class OpenIDConsumer(object):
     def _doIdRes(self, token, query):
         ret = self._splitToken(token)
         if ret is None:
+            oidutil.log('Bad token')
             return FAILURE, None
 
         nonce, consumer_id, server_id, server_url = ret
@@ -581,9 +582,11 @@ class OpenIDConsumer(object):
         assoc_handle = query.get('openid.assoc_handle')
 
         if return_to is None or server_id is None or assoc_handle is None:
+            oidutil.log('Missing required field')
             return FAILURE, consumer_id
 
         if server_id != server_id2:
+            oidutil.log('Server ID mismatch')
             return FAILURE, consumer_id
 
         assoc = self.store.getAssociation(server_url)
@@ -598,15 +601,18 @@ class OpenIDConsumer(object):
         sig = query.get('openid.sig')
         signed = query.get('openid.signed')
         if sig is None or signed is None:
+            oidutil.log('Missing argument signature')
             return FAILURE, consumer_id
 
         signed_list = signed.split(',')
         v_sig = assoc.signDict(signed_list, query)
 
         if v_sig != sig:
+            oidutil.log('Bad argument signature')
             return FAILURE, consumer_id
 
         if not self.store.useNonce(nonce):
+            oidutil.log('Nonce not present')
             return FAILURE, consumer_id
 
         return SUCCESS, consumer_id
@@ -674,22 +680,27 @@ class OpenIDConsumer(object):
     def _splitToken(self, token):
         token = oidutil.fromBase64(token)
         if len(token) < 20:
+            oidutil.log('Bad token length: %d' % len(token))
             return None
 
         sig, joined = token[:20], token[20:]
         if cryptutil.hmacSha1(self.store.getAuthKey(), joined) != sig:
+            oidutil.log('Bad token signature')
             return None
 
         split = joined.split('\x00')
         if len(split) != 5:
+            oidutil.log('Bad token contents (not enough fields)')
             return None
 
         try:
             ts = int(split[0])
         except ValueError:
+            oidutil.log('Bad token contents (timestamp bad)')
             return None
 
         if ts + self.TOKEN_LIFETIME < time.time():
+            oidutil.log('Token expired')
             return None
 
         return tuple(split[1:])
