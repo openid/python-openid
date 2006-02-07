@@ -468,8 +468,8 @@ class OpenIDConsumer(object):
             It raises no exceptions itself.
         """
         assoc = self._getAssociation(auth_request.server_url, replace=1)
-        # Because _getAssociation is asynchronous if the association
-        # is not already in the store.
+        # Because _getAssociation could be asynchronous if the
+        # association is not already in the store.
         return self._constructRedirect(assoc, auth_request,
                                        return_to, trust_root)
 
