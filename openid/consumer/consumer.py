@@ -620,6 +620,7 @@ class OpenIDConsumer(object):
     def _checkAuth(self, nonce, query, server_url):
         signed = query.get('openid.signed')
         if signed is None:
+            oidutil.log('No signature present; checkAuth aborted')
             return FAILURE
 
         whitelist = ['assoc_handle', 'sig', 'signed', 'invalidate_handle']
@@ -633,6 +634,7 @@ class OpenIDConsumer(object):
 
         ret = self.fetcher.post(server_url, post_data)
         if ret is None:
+            oidutil.log('Failure making check_auth post to server')
             return FAILURE
 
         results = kvform.kvToDict(ret[2])
@@ -644,6 +646,7 @@ class OpenIDConsumer(object):
                 self.store.removeAssociation(server_url, invalidate_handle)
 
             if not self.store.useNonce(nonce):
+                oidutil.log('Nonce already used')
                 return FAILURE
 
             return SUCCESS
@@ -652,6 +655,9 @@ class OpenIDConsumer(object):
         if error is not None:
             oidutil.log('Error message from server during '
                         'check_authentication: %r' % (error,))
+        else:
+            oidutil.log('Server responds that checkAuth call is not valid')
+
 
         return FAILURE
 
