@@ -743,8 +743,8 @@ class OpenIDConsumer(object):
         else:
             server_id = consumer_id
 
-        urls = (consumer_id, server_id, server)
-        return SUCCESS, tuple(map(oidutil.normalizeUrl, urls))
+        urls = consumer_id, server_id, server
+        return SUCCESS, urls
 
     def _createAssociateRequest(self, dh, args=None):
         if args is None:
