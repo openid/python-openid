@@ -811,8 +811,8 @@ class OpenIDConsumer(object):
             if session_type is None:
                 secret = oidutil.fromBase64(results['mac_key'])
             else:
-                fmt = 'Unsupported session_type returned from server %s: %s'
                 if session_type != 'DH-SHA1':
+                    fmt = 'Unsupported session_type from server %s: %s'
                     oidutil.log(fmt % (server_url, session_type))
                     return None
 
