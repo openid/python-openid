@@ -810,7 +810,7 @@ class OpenIDConsumer(object):
             assoc_handle = results['assoc_handle']
             try:
                 expires_in = int(results.get('expires_in', '0'))
-            except ValueError:
+            except ValueError, e:
                 fmt = 'Getting Association: invalid expires_in field: %s'
                 oidutil.log(fmt % (e[0],))
                 return None
