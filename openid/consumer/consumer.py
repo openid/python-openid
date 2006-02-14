@@ -589,13 +589,21 @@ class OpenIDConsumer(object):
             oidutil.log('Server ID mismatch')
             return FAILURE, consumer_id
 
-        assoc = self.store.getAssociation(server_url)
+        assoc = self.store.getAssociation(server_url, assoc_handle)
 
-        if (assoc is None or assoc.handle != assoc_handle or
-            assoc.expiresIn <= 0):
+        if assoc is None:
             # It's not an association we know about.  Dumb mode is our
             # only possible path for recovery.
             return self._checkAuth(nonce, query, server_url), consumer_id
+
+        if assoc.expiresIn <= 0:
+            # XXX: It might be a good idea sometimes to re-start the
+            # authentication with a new association. Doing it
+            # automatically opens the possibility for
+            # denial-of-service by a server that just returns expired
+            # associations (or really short-lived associations)
+            oidutil.log('Association with %s expired' % (server_url,))
+            return FAILURE, consumer_id
 
         # Check the signature
         sig = query.get('openid.sig')

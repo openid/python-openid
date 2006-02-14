@@ -1,10 +1,12 @@
 import urlparse
 import urllib
 import cgi
+import time
 
 from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.consumer import OpenIDConsumer, SUCCESS, \
-     HTTP_FAILURE, PARSE_ERROR, SETUP_NEEDED
+     HTTP_FAILURE, PARSE_ERROR, SETUP_NEEDED, FAILURE
+from openid import association
 
 import _memstore
 
@@ -231,12 +233,21 @@ def test():
 import unittest
 
 class TestIdRes(unittest.TestCase):
+    consumer_class = OpenIDConsumer
+
     def setUp(self):
         self.store = _memstore.MemoryStore()
-        self.consumer = OpenIDConsumer(self.store)
-        self.token = self.consumer._genToken("nonny", "consu",
-                                             "sirod", "serlie")
+        self.consumer = self.consumer_class(self.store)
+        self.return_to = "nonny"
+        self.server_id = "sirod"
+        self.server_url = "serlie"
+        self.consumer_id = "consu"
+        self.token = self.consumer._genToken(self.return_to,
+                                             self.consumer_id,
+                                             self.server_id,
+                                             self.server_url)
 
+class TestSetupNeeded(TestIdRes):
     def test_setupNeeded(self):
         setup_url = 'http://unittest/setup-here'
         query = {
@@ -246,6 +257,115 @@ class TestIdRes(unittest.TestCase):
         ret = self.consumer._doIdRes(self.token, query)
         self.failUnlessEqual(ret[0], SETUP_NEEDED)
         self.failUnlessEqual(ret[1], setup_url)
+
+class CheckAuthHappened(Exception): pass
+
+class CheckAuthDetectingConsumer(OpenIDConsumer):
+    def _checkAuth(self, *args):
+        raise CheckAuthHappened(args)
+
+class TestCheckAuthTriggered(TestIdRes):
+    consumer_class = CheckAuthDetectingConsumer
+
+    def setUp(self):
+        TestIdRes.setUp(self)
+        self.old_logger = oidutil.log
+        oidutil.log = self.gotLogMessage
+        self.messages = []
+
+    def tearDown(self):
+        oidutil.log = self.old_logger
+
+    def gotLogMessage(self, message):
+        self.messages.append(message)
+
+    def test_checkAuthTriggered(self):
+        query = {
+            'openid.return_to':self.return_to,
+            'openid.identity':self.server_id,
+            'openid.assoc_handle':'not_found',
+            }
+        try:
+            result = self.consumer._doIdRes(self.token, query)
+        except CheckAuthHappened:
+            pass
+        else:
+            self.fail('_checkAuth did not happen. Result was: %r' % result)
+
+    def test_checkAuthTriggeredWithAssoc(self):
+        # Store an association for this server that does not match the
+        # handle that is in the query
+        issued = time.time()
+        lifetime = 1000
+        assoc = association.Association(
+            'handle', 'secret', issued, lifetime, 'HMAC-SHA1')
+        self.store.storeAssociation(self.server_url, assoc)
+
+        query = {
+            'openid.return_to':self.return_to,
+            'openid.identity':self.server_id,
+            'openid.assoc_handle':'not_found',
+            }
+        try:
+            result = self.consumer._doIdRes(self.token, query)
+        except CheckAuthHappened:
+            pass
+        else:
+            self.fail('_checkAuth did not happen. Result was: %r' % result)
+
+    def test_expiredAssoc(self):
+        # Store an expired association for the server with the handle
+        # that is in the query
+        issued = time.time() - 10
+        lifetime = 0
+        handle = 'handle'
+        assoc = association.Association(
+            handle, 'secret', issued, lifetime, 'HMAC-SHA1')
+        self.failUnless(assoc.expiresIn <= 0)
+        self.store.storeAssociation(self.server_url, assoc)
+
+        query = {
+            'openid.return_to':self.return_to,
+            'openid.identity':self.server_id,
+            'openid.assoc_handle':handle,
+            }
+        status, info = self.consumer._doIdRes(self.token, query)
+        self.failUnlessEqual(FAILURE, status)
+        self.failUnlessEqual(self.consumer_id, info)
+        self.failUnlessEqual(1, len(self.messages), self.messages)
+        self.failUnless('expired' in self.messages[0].lower(), self.messages)
+
+    def test_newerAssoc(self):
+        # Store an expired association for the server with the handle
+        # that is in the query
+        lifetime = 1000
+
+        good_issued = time.time() - 10
+        good_handle = 'handle'
+        good_assoc = association.Association(
+            good_handle, 'secret', good_issued, lifetime, 'HMAC-SHA1')
+        self.store.storeAssociation(self.server_url, good_assoc)
+
+        bad_issued = time.time() - 5
+        bad_handle = 'handle2'
+        bad_assoc = association.Association(
+            bad_handle, 'secret', bad_issued, lifetime, 'HMAC-SHA1')
+        self.store.storeAssociation(self.server_url, bad_assoc)
+
+        nonce = self.consumer._splitToken(self.token)[0]
+        self.store.storeNonce(nonce)
+
+        query = {
+            'openid.return_to':self.return_to,
+            'openid.identity':self.server_id,
+            'openid.assoc_handle':good_handle,
+            }
+
+        good_assoc.addSignature(['return_to', 'identity'], query)
+        status, info = self.consumer._doIdRes(self.token, query)
+
+        self.failUnlessEqual(SUCCESS, status)
+        self.failUnlessEqual(self.consumer_id, info)
 
 if __name__ == '__main__':
     test()
