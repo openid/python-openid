@@ -73,7 +73,7 @@ class TestFetcher(object):
             response = associate(body, self.assoc_secret, self.assoc_handle)
             self.num_assocs += 1
             return self.response(url, response)
-        
+
 user_page_pat = '''\
 <html>
   <head>
@@ -208,7 +208,7 @@ def test_construct():
     assert oidc.store is store_sentinel
     assert oidc.fetcher is fetcher_sentinel
     assert oidc.immediate
-    
+
     oidc = OpenIDConsumer(store_sentinel, fetcher=None)
     f = oidc.fetcher
     assert hasattr(f, 'get')
