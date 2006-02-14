@@ -333,7 +333,8 @@ class TestCheckAuthTriggered(TestIdRes):
         self.failUnlessEqual(FAILURE, status)
         self.failUnlessEqual(self.consumer_id, info)
         self.failUnlessEqual(1, len(self.messages), self.messages)
-        self.failUnless('expired' in self.messages[0].lower(), self.messages)
+        message = self.messages[0].lower()
+        message.index('expired') # raises an exception if it's not there
 
     def test_newerAssoc(self):
         # Store an expired association for the server with the handle
