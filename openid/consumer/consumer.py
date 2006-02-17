@@ -416,7 +416,7 @@ class OpenIDConsumer(object):
             return status, info
 
         consumer_id, server_id, server_url = info
-        return self._gotIdentityInfo(consumer_id, server_id, server_url)
+        return self._newAuthRequest(consumer_id, server_id, server_url)
 
     def constructRedirect(self, auth_request, return_to, trust_root):
         """
@@ -545,7 +545,7 @@ class OpenIDConsumer(object):
         else:
             return FAILURE, None
 
-    def _gotIdentityInfo(self, consumer_id, server_id, server_url):
+    def _newAuthRequest(self, consumer_id, server_id, server_url):
         nonce = cryptutil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
 
         token = self._genToken(nonce, consumer_id, server_id, server_url)
