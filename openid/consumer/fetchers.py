@@ -88,7 +88,7 @@ class ExceptionCatchingFetcher(OpenIDHTTPFetcher):
             raise
         except:
             return None
-        
+
     def post(self, url, body):
         return self._fetch(self.fetcher.post, url, body)
 
@@ -118,7 +118,7 @@ class UrllibFetcher(OpenIDHTTPFetcher):
                 code = f.code
             else:
                 code = 200
-            
+
             return (code, f.geturl(), data)
 
     def get(self, url):
@@ -175,7 +175,7 @@ class ParanoidHTTPFetcher(OpenIDHTTPFetcher):
                 if not self._checkURL(url):
                     raise OpenIDHTTPError(
                         "Fetching URL not allowed: %r" % (url,))
-                
+
                 data = cStringIO.StringIO()
                 headers = cStringIO.StringIO()
                 c.setopt(pycurl.WRITEFUNCTION, data.write)
