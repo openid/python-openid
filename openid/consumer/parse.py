@@ -209,7 +209,7 @@ def parseLinkAttrs(html):
             attr_val = ent_replace.sub(replaceEnt, unq_val or q_val)
 
             link_attrs[attr_name] = attr_val
-            
+
         matches.append(link_attrs)
 
     return matches
@@ -230,7 +230,7 @@ def linkHasRel(link_attrs, target_rel):
     # XXX: TESTME
     rel_attr = link_attrs.get('rel')
     return rel_attr and relMatches(rel_attr, target_rel)
-    
+
 def findLinksRel(link_attrs_list, target_rel):
     """Filter the list of link attributes on whether it has target_rel
     as a relationship."""
