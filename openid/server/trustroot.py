@@ -55,7 +55,7 @@ class TrustRoot(object):
 
     @sort: parse, isSane
     """
-    
+
     def __init__(self, unparsed, proto, wildcard, host, port, path):
         self.unparsed = unparsed
         self.proto = proto
