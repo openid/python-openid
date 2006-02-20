@@ -247,3 +247,26 @@ def findFirstHref(link_attrs_list, target_rel):
         return None
     first = matches[0]
     return first.get('href')
+
+class ParseError(ValueError):
+    """Exception for errors in parsing the HTML text for OpenID
+    settings"""
+
+def openIDDiscover(canonical_url, html_text):
+    """Parse OpenID settings out of the gived HTML text
+
+    @raises: ParseError
+    # XXX: document interface
+    # XXX: TESTME
+    """
+    link_attrs = parseLinkAttrs(html_text)
+
+    server_url = findFirstHref(link_attrs, 'openid.server')
+    if server_url is None:
+        raise ParseError('No openid.server found')
+
+    delegate_url = findFirstHref(link_attrs, 'openid.delegate')
+    if delegate_url is None:
+        delegate_url = canonical_url
+
+    return canonical_url, delegate_url, server_url
