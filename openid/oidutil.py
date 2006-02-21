@@ -45,7 +45,7 @@ def quoteMinimal(s):
     sequence, according to the encoding of the HTTP POST or GET.
 
     Do not escape anything that is already 7-bit safe, so we do the
-    minimal transform on the identity URL
+    minimal transform on the input
     """
     res = []
     for c in s:
