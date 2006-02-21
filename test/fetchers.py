@@ -1,21 +1,36 @@
 from openid.consumer import fetchers
 
+def failUnlessResponseExpected(expected, actual):
+    assert expected.final_url == actual.final_url
+    assert expected.status == actual.status
+    assert expected.body == actual.body
+    got_headers = dict(actual.headers)
+    del got_headers['date']
+    del got_headers['server']
+    assert expected.headers == got_headers
+
 def test_fetcher(fetcher, exc, server):
     def geturl(path):
         return 'http://%s:%s%s' % (server.server_name,
                                    server.socket.getsockname()[1],
                                    path)
 
+    expected_headers = {'content-type':'text/plain'}
+
     def plain(path, code):
         path = '/' + path
-        return (path, (code, geturl(path), path))
+        expected = fetchers.HTTPResponse(
+            geturl(path), code, expected_headers, path)
+        return (path, expected)
 
+    expect_success = fetchers.HTTPResponse(
+        geturl('/success'), 200, expected_headers, '/success')
     cases = [
-        plain('success', 200),
-        ('/301redirect', (200, geturl('/success'), '/success')),
-        ('/302redirect', (200, geturl('/success'), '/success')),
-        ('/303redirect', (200, geturl('/success'), '/success')),
-        ('/307redirect', (200, geturl('/success'), '/success')),
+        ('/success', expect_success),
+        ('/301redirect', expect_success),
+        ('/302redirect', expect_success),
+        ('/303redirect', expect_success),
+        ('/307redirect', expect_success),
         plain('notfound', 404),
         plain('badreq', 400),
         plain('forbidden', 403),
@@ -26,21 +41,21 @@ def test_fetcher(fetcher, exc, server):
     for path, expected in cases:
         fetch_url = geturl(path)
         try:
-            actual = fetcher.get(fetch_url)
+            actual = fetcher.fetch(fetch_url)
         except (SystemExit, KeyboardInterrupt):
             pass
         except:
             print fetcher, fetch_url
             raise
         else:
-            assert actual == expected, (fetcher, actual, expected)
+            failUnlessResponseExpected(expected, actual)
 
     for err_url in [geturl('/closed'),
                     'http://invalid.janrain.com/',
                     'not:a/url',
                     'ftp://janrain.com/pub/']:
         try:
-            result = fetcher.get(err_url)
+            result = fetcher.fetch(err_url)
         except (KeyboardInterrupt, SystemExit):
             raise
         except:
@@ -53,7 +68,7 @@ def test_fetcher(fetcher, exc, server):
 def run_fetcher_tests(server):
     exc_fetchers = [fetchers.UrllibFetcher(),]
     try:
-        exc_fetchers.append(fetchers.ParanoidHTTPFetcher())
+        exc_fetchers.append(fetchers.CurlHTTPFetcher())
     except RuntimeError, why:
         if why[0] == 'Cannot find pycurl library':
             try:

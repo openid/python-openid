@@ -640,12 +640,18 @@ class OpenIDConsumer(object):
         check_args['openid.mode'] = 'check_authentication'
         post_data = urllib.urlencode(check_args)
 
-        ret = self.fetcher.post(server_url, post_data)
-        if ret is None:
-            oidutil.log('Failure making check_auth post to server')
+        resp = self.fetcher.fetch(server_url, body=post_data)
+        if resp is None:
+            oidutil.log('HTTP failure making check_auth post to server')
             return FAILURE
 
-        results = kvform.kvToDict(ret[2])
+        if resp.status == 400 or 'error' in results:
+            server_error = results.get('error', '<no message from server>')
+            fmt = 'check_authentication: error returned from server %s: %s'
+            oidutil.log(fmt % (server_url, server_error))
+            return FAILURE
+
+        results = kvform.kvToDict(resp.body)
         is_valid = results.get('is_valid', 'false')
 
         if is_valid == 'true':
@@ -659,14 +665,7 @@ class OpenIDConsumer(object):
 
             return SUCCESS
 
-        error = results.get('error')
-        if error is not None:
-            oidutil.log('Error message from server during '
-                        'check_authentication: %r' % (error,))
-        else:
-            oidutil.log('Server responds that checkAuth call is not valid')
-
-
+        oidutil.log('Server responds that checkAuth call is not valid')
         return FAILURE
 
     def _getAssociation(self, server_url, replace=0):
@@ -721,17 +720,16 @@ class OpenIDConsumer(object):
 
     def _findIdentityInfo(self, identity_url):
         url = oidutil.normalizeUrl(identity_url)
-        ret = self.fetcher.get(url)
-        if ret is None:
+        resp = self.fetcher.fetch(url)
+        if resp is None:
             return HTTP_FAILURE, None
 
-        http_code, consumer_id, data = ret
-        if http_code != 200:
-            return HTTP_FAILURE, http_code
+        if resp.status != 200:
+            return HTTP_FAILURE, resp.status
 
         # This method is split in two this way to allow for
         # asynchronous implementations of _findIdentityInfo.
-        return self._parseIdentityInfo(data, consumer_id)
+        return self._parseIdentityInfo(resp.body, resp.final_url)
 
     def _parseIdentityInfo(self, data, consumer_id):
         """Extract the identity server address from the user's HTML.
@@ -767,25 +765,22 @@ class OpenIDConsumer(object):
         return urllib.urlencode(args)
 
     def _fetchAssociation(self, dh, server_url, body):
-        ret = self.fetcher.post(server_url, body)
-        if ret is None:
+        resp = self.fetcher.fetch(server_url, body=body)
+        if resp is None:
             fmt = 'Getting association: failed to fetch URL: %s'
             oidutil.log(fmt % server_url)
             return None
 
-        http_code, url, data = ret
-        results = kvform.kvToDict(data)
-        if http_code == 400:
+        results = kvform.kvToDict(resp.body)
+        if resp.status == 400:
             server_error = results.get('error', '<no message from server>')
             fmt = 'Getting association: error returned from server %s: %s'
             oidutil.log(fmt % (server_url, server_error))
             return None
-        elif http_code != 200:
+        elif resp.status != 200:
             fmt = 'Getting association: bad status code from server %s: %s'
             oidutil.log(fmt % (server_url, http_code))
             return None
-
-        results = kvform.kvToDict(data)
 
         return self._parseAssociation(results, dh, server_url)
 

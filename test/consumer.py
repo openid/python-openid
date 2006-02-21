@@ -3,6 +3,7 @@ import urllib
 import cgi
 import time
 
+from openid.consumer.fetchers import HTTPResponse
 from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.consumer import OpenIDConsumer, SUCCESS, \
      HTTP_FAILURE, PARSE_ERROR, SETUP_NEEDED, FAILURE
@@ -47,32 +48,31 @@ def associate(qs, assoc_secret, assoc_handle):
 
 class TestFetcher(object):
     def __init__(self, user_url, user_page, (assoc_secret, assoc_handle)):
-        self.get_responses = {user_url:(200, user_url, user_page)}
+        self.get_responses = {user_url:self.response(user_url, 200, user_page)}
         self.assoc_secret = assoc_secret
         self.assoc_handle = assoc_handle
         self.num_assocs = 0
 
-    def response(self, url, body):
+    def response(self, url, status, body):
+        return HTTPResponse(
+            final_url=url, status=status, headers={}, body=body)
+
+    def fetch(self, url, body=None, headers=None):
         if body is None:
-            return (404, url, 'Not found')
+            if url in self.get_responses:
+                return self.get_responses[url]
         else:
-            return (200, url, body)
+            try:
+                body.index('openid.mode=associate')
+            except ValueError:
+                pass # fall through
+            else:
+                response = associate(
+                    body, self.assoc_secret, self.assoc_handle)
+                self.num_assocs += 1
+                return self.response(url, 200, response)
 
-    def get(self, url):
-        try:
-            return self.get_responses[url]
-        except KeyError:
-            return self.response(url, None)
-
-    def post(self, url, body):
-        try:
-            body.index('openid.mode=associate')
-        except ValueError:
-            return self.response(url, None)
-        else:
-            response = associate(body, self.assoc_secret, self.assoc_handle)
-            self.num_assocs += 1
-            return self.response(url, response)
+        return self.response(url, 404, 'Not found')
 
 user_page_pat = '''\
 <html>
@@ -176,7 +176,7 @@ def test_bad_fetch():
         (500, 'http://server.error/'),
         ]
     for error_code, url in cases:
-        fetcher.get_responses[url] = (error_code, url, None)
+        fetcher.get_responses[url] = fetcher.response(url, error_code, None)
         (status, info) = consumer.beginAuth(url)
         assert status == HTTP_FAILURE, status
         assert info == error_code, (url, info)
@@ -211,8 +211,7 @@ def test_construct():
 
     oidc = OpenIDConsumer(store_sentinel, fetcher=None)
     f = oidc.fetcher
-    assert hasattr(f, 'get')
-    assert hasattr(f, 'post')
+    assert hasattr(f, 'fetch')
 
     try:
         oidc = OpenIDConsumer(fetcher=fetcher_sentinel)
