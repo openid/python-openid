@@ -1,4 +1,4 @@
-__all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64']
+__all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'normalizeUrl']
 
 import binascii
 import sys
