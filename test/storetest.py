@@ -64,8 +64,7 @@ def testStore(store):
     def checkRemove(url, handle, expected):
         present = store.removeAssociation(url, handle)
         expectedPresent = (not store.isDumb()) and expected
-        assert ((not expectedPresent and not present) or
-                (expectedPresent and present))
+        assert expectedPresent == present
 
     assoc = genAssoc(issued=0)
 
