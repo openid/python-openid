@@ -1,5 +1,4 @@
 import urlparse
-import urllib
 import cgi
 import time
 
@@ -263,20 +262,24 @@ class CheckAuthDetectingConsumer(OpenIDConsumer):
     def _checkAuth(self, *args):
         raise CheckAuthHappened(args)
 
-class TestCheckAuthTriggered(TestIdRes):
-    consumer_class = CheckAuthDetectingConsumer
-
+class CatchLogs(object):
     def setUp(self):
-        TestIdRes.setUp(self)
         self.old_logger = oidutil.log
         oidutil.log = self.gotLogMessage
         self.messages = []
 
+    def gotLogMessage(self, message):
+        self.messages.append(message)
+
     def tearDown(self):
         oidutil.log = self.old_logger
 
-    def gotLogMessage(self, message):
-        self.messages.append(message)
+class TestCheckAuthTriggered(TestIdRes, CatchLogs):
+    consumer_class = CheckAuthDetectingConsumer
+
+    def setUp(self):
+        TestIdRes.setUp(self)
+        CatchLogs.setUp(self)
 
     def test_checkAuthTriggered(self):
         query = {
@@ -366,6 +369,53 @@ class TestCheckAuthTriggered(TestIdRes):
 
         self.failUnlessEqual(SUCCESS, status)
         self.failUnlessEqual(self.consumer_id, info)
+
+
+class MockFetcher(object):
+    def __init__(self, response=None):
+        self.response = response or HTTPResponse()
+        self.fetches = []
+
+    def fetch(self, url, body=None, headers=None):
+        self.fetches.append((url, body, headers))
+        return self.response
+
+class TestCheckAuth(unittest.TestCase, CatchLogs):
+    consumer_class = OpenIDConsumer
+
+    def setUp(self):
+        CatchLogs.setUp(self)
+        self.store = _memstore.MemoryStore()
+        self.fetcher = MockFetcher()
+
+        self.consumer = self.consumer_class(self.store, self.fetcher)
+
+    def test_error(self):
+        self.fetcher.response = HTTPResponse(
+            "http://some_url", 404, {'Hea': 'der'}, 'blah:blah\n')
+        nonce = "nonce"
+        query = {'openid.signed': 'stuff, things'}
+        r = self.consumer._checkAuth(nonce, query, server_url)
+        self.failUnlessEqual(r, FAILURE)
+        self.failUnless(self.messages)
+
+class TestFetchAssoc(unittest.TestCase, CatchLogs):
+    consumer_class = OpenIDConsumer
+
+    def setUp(self):
+        CatchLogs.setUp(self)
+        self.store = _memstore.MemoryStore()
+        self.fetcher = MockFetcher()
+        self.consumer = self.consumer_class(self.store, self.fetcher)
+
+    def test_error(self):
+        self.fetcher.response = HTTPResponse(
+            "http://some_url", 404, {'Hea': 'der'}, 'blah:blah\n')
+        r = self.consumer._fetchAssociation("dh",
+                                            "http://server_url", "postbody")
+        self.failUnlessEqual(r, None)
+        self.failUnless(self.messages)
+
 
 if __name__ == '__main__':
     test()

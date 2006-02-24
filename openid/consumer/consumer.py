@@ -645,13 +645,14 @@ class OpenIDConsumer(object):
             oidutil.log('HTTP failure making check_auth post to server')
             return FAILURE
 
+        results = kvform.kvToDict(resp.body)
+
         if resp.status == 400 or 'error' in results:
             server_error = results.get('error', '<no message from server>')
             fmt = 'check_authentication: error returned from server %s: %s'
             oidutil.log(fmt % (server_url, server_error))
             return FAILURE
 
-        results = kvform.kvToDict(resp.body)
         is_valid = results.get('is_valid', 'false')
 
         if is_valid == 'true':
@@ -779,7 +780,7 @@ class OpenIDConsumer(object):
             return None
         elif resp.status != 200:
             fmt = 'Getting association: bad status code from server %s: %s'
-            oidutil.log(fmt % (server_url, http_code))
+            oidutil.log(fmt % (server_url, resp.status))
             return None
 
         return self._parseAssociation(results, dh, server_url)
