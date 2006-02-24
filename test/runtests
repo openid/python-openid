@@ -12,6 +12,17 @@ test_modules = [
     'dh',
     ]
 
+def fixpath():
+    import os.path
+    try:
+        d = os.path.dirname(__file__)
+    except NameError:
+        d = os.path.dirname(sys.argv[0])
+    parent = os.path.normpath(os.path.join(d, '..'))
+    if parent not in sys.path:
+        print "putting %s in sys.path" % (parent,)
+        sys.path.insert(0, parent)
+
 def otherTests():
     failed = []
     for module_name in test_modules:
@@ -78,6 +89,7 @@ except NameError:
         return not not x
 
 def main():
+    fixpath()
     other_failed = otherTests()
     pyunit_result = pyunitTests()
 
