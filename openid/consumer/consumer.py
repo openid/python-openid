@@ -232,7 +232,7 @@ from openid import oidutil
 from openid.association import Association
 from openid.dh import DiffieHellman
 from openid.consumer.parse import openIDDiscover, ParseError
-from openid.consumer.fetchers import _getHTTPFetcher
+from urljr.fetchers import _getHTTPFetcher
 
 __all__ = ['SUCCESS', 'FAILURE', 'SETUP_NEEDED', 'HTTP_FAILURE', 'PARSE_ERROR',
            'OpenIDAuthRequest', 'OpenIDConsumer']

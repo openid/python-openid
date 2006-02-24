@@ -2,11 +2,12 @@ import urlparse
 import cgi
 import time
 
-from openid.consumer.fetchers import HTTPResponse
 from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.consumer import OpenIDConsumer, SUCCESS, \
      HTTP_FAILURE, PARSE_ERROR, SETUP_NEEDED, FAILURE
 from openid import association
+
+from urljr.fetchers import HTTPResponse
 
 import _memstore
 
