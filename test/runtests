@@ -8,7 +8,6 @@ test_modules = [
     'oidutil',
     'kvform',
     'consumer',
-    'fetchers',
     'dh',
     ]
 
