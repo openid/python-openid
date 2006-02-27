@@ -102,13 +102,13 @@ def testStore(store):
     store.storeAssociation(server_url, assoc2)
 
     # After storing an association with a different handle, but the
-    # same server_url, the handle with the later expiration is returned.
+    # same server_url, the handle with the later issue date is returned.
     checkRetrieve(server_url, None, assoc2)
 
     # We can still retrieve the older association
     checkRetrieve(server_url, assoc.handle, assoc)
 
-    # Plus we can retrieve the association with the later expiration
+    # Plus we can retrieve the association with the later issue date
     # explicitly
     checkRetrieve(server_url, assoc2.handle, assoc2)
 
