@@ -64,7 +64,7 @@ def testStore(store):
     def checkRemove(url, handle, expected):
         present = store.removeAssociation(url, handle)
         expectedPresent = (not store.isDumb()) and expected
-        assert expectedPresent == present
+        assert bool(expectedPresent) == bool(present)
 
     assoc = genAssoc(issued=0)
 
@@ -153,28 +153,28 @@ def testStore(store):
 
     ### Nonce functions
 
-    def testUseNonce(nonce, expected):
+    def checkUseNonce(nonce, expected):
         actual = store.useNonce(nonce)
         expected = store.isDumb() or expected
-        assert (actual and expected) or (not actual and not expected)
+        assert bool(actual) == bool(expected)
 
     # Random nonce (not in store)
     nonce1 = generateNonce()
 
     # A nonce is not present by default
-    testUseNonce(nonce1, False)
+    checkUseNonce(nonce1, False)
 
     # Storing once causes useNonce to return True the first, and only
     # the first, time it is called after the store.
     store.storeNonce(nonce1)
-    testUseNonce(nonce1, True)
-    testUseNonce(nonce1, False)
+    checkUseNonce(nonce1, True)
+    checkUseNonce(nonce1, False)
 
     # Storing twice has the same effect as storing once.
     store.storeNonce(nonce1)
     store.storeNonce(nonce1)
-    testUseNonce(nonce1, True)
-    testUseNonce(nonce1, False)
+    checkUseNonce(nonce1, True)
+    checkUseNonce(nonce1, False)
 
     ### Auth key functions
 
