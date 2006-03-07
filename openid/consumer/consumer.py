@@ -225,6 +225,7 @@ USING THIS LIBRARY
 import string
 import time
 import urllib
+from urlparse import urlparse
 
 from openid import cryptutil
 from openid import kvform
@@ -677,9 +678,14 @@ class OpenIDConsumer(object):
 
         if assoc is None or \
                (replace and assoc.expiresIn < self.TOKEN_LIFETIME):
-            dh = DiffieHellman()
-            body = self._createAssociateRequest(dh)
-            assoc = self._fetchAssociation(dh, server_url, body)
+            proto = urlparse(server_url)[0] 
+            if proto == 'https':
+                body = self._createAssociateRequest()
+                assoc = self._fetchAssociation(server_url, body)
+            else:
+                dh = DiffieHellman()
+                body = self._createAssociateRequest(dh=dh)
+                assoc = self._fetchAssociation(server_url, body, dh=dh)
 
         return assoc
 
@@ -743,29 +749,33 @@ class OpenIDConsumer(object):
         except ParseError:
             return PARSE_ERROR, None
 
-    def _createAssociateRequest(self, dh, args=None):
+    def _createAssociateRequest(self, dh=None, args=None):
         if args is None:
             args = {}
-
-        cpub = cryptutil.longToBase64(dh.public)
 
         args.update({
             'openid.mode': 'associate',
             'openid.assoc_type':'HMAC-SHA1',
-            'openid.session_type':'DH-SHA1',
-            'openid.dh_consumer_public': cpub,
             })
 
-        if (dh.modulus != DiffieHellman.DEFAULT_MOD or
-            dh.generator != DiffieHellman.DEFAULT_GEN):
+        if dh:
+            cpub = cryptutil.longToBase64(dh.public)
+
             args.update({
-                'openid.dh_modulus': cryptutil.longToBase64(dh.modulus),
-                'openid.dh_gen': cryptutil.longToBase64(dh.generator),
+                'openid.session_type':'DH-SHA1',
+                'openid.dh_consumer_public': cpub,
                 })
 
+            if (dh.modulus != DiffieHellman.DEFAULT_MOD or
+                dh.generator != DiffieHellman.DEFAULT_GEN):
+                args.update({
+                    'openid.dh_modulus': cryptutil.longToBase64(dh.modulus),
+                    'openid.dh_gen': cryptutil.longToBase64(dh.generator),
+                    })
+ 
         return urllib.urlencode(args)
 
-    def _fetchAssociation(self, dh, server_url, body):
+    def _fetchAssociation(self, server_url, body, dh=None):
         resp = self.fetcher.fetch(server_url, body=body)
         if resp is None:
             fmt = 'Getting association: failed to fetch URL: %s'
@@ -809,7 +819,11 @@ class OpenIDConsumer(object):
                     fmt = 'Unsupported session_type from server %s: %s'
                     oidutil.log(fmt % (server_url, session_type))
                     return None
-
+                if dh is None:
+                    fmt = 'Not expecting a DH-SHA1 session from server %s'
+                    oidutil.log(fmt % (server_url))
+                    return None
+   
                 spub = cryptutil.base64ToLong(results['dh_server_public'])
                 enc_mac_key = oidutil.fromBase64(results['enc_mac_key'])
                 secret = dh.xorSecret(spub, enc_mac_key)

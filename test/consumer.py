@@ -27,23 +27,33 @@ def associate(qs, assoc_secret, assoc_handle):
     """Do the server's half of the associate call, using the given
     secret and handle."""
     q = parse(qs)
-    assert len(q) == 6 or len(q) == 4
     assert q['openid.mode'] == 'associate'
     assert q['openid.assoc_type'] == 'HMAC-SHA1'
-    assert q['openid.session_type'] == 'DH-SHA1'
-    d = dh.DiffieHellman.fromBase64(
-        q.get('openid.dh_modulus'), q.get('openid.dh_gen'))
+    if q['openid.session_type'] == 'DH-SHA1':
+        assert len(q) == 6 or len(q) == 4
+        d = dh.DiffieHellman.fromBase64(
+            q.get('openid.dh_modulus'), q.get('openid.dh_gen'))
 
-    composite = cryptutil.base64ToLong(q['openid.dh_consumer_public'])
-    enc_mac_key = oidutil.toBase64(d.xorSecret(composite, assoc_secret))
-    reply_dict = {
-        'assoc_type':'HMAC-SHA1',
-        'assoc_handle':assoc_handle,
-        'expires_in':'600',
-        'session_type':'DH-SHA1',
-        'dh_server_public':cryptutil.longToBase64(d.public),
-        'enc_mac_key':enc_mac_key,
-        }
+        composite = cryptutil.base64ToLong(q['openid.dh_consumer_public'])
+        enc_mac_key = oidutil.toBase64(d.xorSecret(composite, assoc_secret))
+        reply_dict = {
+            'assoc_type':'HMAC-SHA1',
+            'assoc_handle':assoc_handle,
+            'expires_in':'600',
+            'session_type':'DH-SHA1',
+            'dh_server_public':cryptutil.longToBase64(d.public),
+            'enc_mac_key':enc_mac_key,
+            }
+    else:
+        assert len(q) == 2
+        mac_key = oidutil.toBase64(assoc_secret)
+        reply_dict = {
+            'assoc_type':'HMAC-SHA1',
+            'assoc_handle':assoc_handle,
+            'expires_in':'600',
+            'mac_key':mac_key,
+            }
+   
     return kvform.dictToKV(reply_dict)
 
 class TestFetcher(object):
@@ -67,6 +77,10 @@ class TestFetcher(object):
             except ValueError:
                 pass # fall through
             else:
+                if urlparse.urlparse(url)[0] == 'https':
+                    assert not 'DH-SHA1' in body
+                else:
+                    assert 'DH-SHA1' in body
                 response = associate(
                     body, self.assoc_secret, self.assoc_handle)
                 self.num_assocs += 1
