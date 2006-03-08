@@ -53,7 +53,7 @@ def associate(qs, assoc_secret, assoc_handle):
             'expires_in':'600',
             'mac_key':mac_key,
             }
-   
+
     return kvform.dictToKV(reply_dict)
 
 class TestFetcher(object):
@@ -78,9 +78,10 @@ class TestFetcher(object):
                 pass # fall through
             else:
                 if urlparse.urlparse(url)[0] == 'https':
-                    assert not 'DH-SHA1' in body
+                    # Should not be doing DH-SHA1 when using HTTPS.
+                    assert body.find('DH-SHA1') == -1
                 else:
-                    assert 'DH-SHA1' in body
+                    assert body.find('DH-SHA1') != -1
                 response = associate(
                     body, self.assoc_secret, self.assoc_handle)
                 self.num_assocs += 1
