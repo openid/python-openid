@@ -29,7 +29,7 @@ def associate(qs, assoc_secret, assoc_handle):
     q = parse(qs)
     assert q['openid.mode'] == 'associate'
     assert q['openid.assoc_type'] == 'HMAC-SHA1'
-    if q['openid.session_type'] == 'DH-SHA1':
+    if q.get('openid.session_type') == 'DH-SHA1':
         assert len(q) == 6 or len(q) == 4
         d = dh.DiffieHellman.fromBase64(
             q.get('openid.dh_modulus'), q.get('openid.dh_gen'))
@@ -99,10 +99,11 @@ user_page_pat = '''\
   </body>
 </html>
 '''
-server_url = 'http://server.example.com/'
+http_server_url = 'http://server.example.com/'
 consumer_url = 'http://consumer.example.com/'
+https_server_url = 'https://server.example.com/'
 
-def _test_success(user_url, delegate_url, links, immediate=False):
+def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     store = _memstore.MemoryStore()
     if immediate:
         mode = 'checkid_immediate'
@@ -165,7 +166,7 @@ def _test_success(user_url, delegate_url, links, immediate=False):
     run()
     assert fetcher.num_assocs == 2
 
-def test_success():
+def test_success(server_url):
     user_url = 'http://www.example.com/user.html'
     links = '<link rel="openid.server" href="%s" />' % (server_url,)
 
@@ -174,10 +175,10 @@ def test_success():
              '<link rel="openid.delegate" href="%s" />') % (
         server_url, delegate_url)
 
-    _test_success(user_url, user_url, links)
-    _test_success(user_url, user_url, links, True)
-    _test_success(user_url, delegate_url, delegate_links)
-    _test_success(user_url, delegate_url, delegate_links, True)
+    _test_success(server_url, user_url, user_url, links)
+    _test_success(server_url, user_url, user_url, links, True)
+    _test_success(server_url, user_url, delegate_url, delegate_links)
+    _test_success(server_url, user_url, delegate_url, delegate_links, True)
 
 def test_bad_fetch():
     store = _memstore.MemoryStore()
@@ -235,7 +236,8 @@ def test_construct():
         raise AssertionError('Instantiated a consumer without a store')
 
 def test():
-    test_success()
+    test_success(http_server_url)
+    test_success(https_server_url)
     test_bad_fetch()
     test_bad_parse()
     test_construct()
@@ -410,7 +412,7 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
             "http://some_url", 404, {'Hea': 'der'}, 'blah:blah\n')
         nonce = "nonce"
         query = {'openid.signed': 'stuff, things'}
-        r = self.consumer._checkAuth(nonce, query, server_url)
+        r = self.consumer._checkAuth(nonce, query, http_server_url)
         self.failUnlessEqual(r, FAILURE)
         self.failUnless(self.messages)
 
