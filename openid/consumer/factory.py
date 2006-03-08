@@ -89,7 +89,9 @@ class DiscoveryVersion1(object):
             # No, really, can we have exceptions back, please?
             return status, info
 
-        return consumer.SUCCESS, self.consumer.makeRequest(*info)
+        openidRequest = self.consumer.makeRequest(*info)
+        openidRequest.consumer = self.consumer
+        return consumer.SUCCESS, openidRequest
 
 
 ################################
