@@ -80,3 +80,11 @@ class MemoryStore(object):
 
     def getAuthKey(self):
         return self.auth_key
+
+    def __eq__(self, other):
+        return ((self.server_assocs == other.server_assocs) and
+                (self.nonces == other.nonces) and
+                (self.auth_key == other.auth_key))
+
+    def __ne__(self, other):
+        return not (self == other)

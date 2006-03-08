@@ -32,6 +32,7 @@ class OpenIDRequest(object):
     _authreq = None
     delegate = None
     uri = None
+    consumer = None
 
     def constructRedirect(self, return_to):
         # Right now we're calling out to the implementation as it exists
@@ -62,6 +63,23 @@ class OpenIDRequest(object):
 
         return self._authreq
 
+    def __eq__(self, other):
+        # XXX: Must the consumer attributes be equal?
+        # That really means "must the store attributes be equal,"
+        # which means defining equivalancy for stores, which is probably
+        # hard.
+        return ((self.uri == other.uri) and
+                (self.delegate == other.delegate) and
+                (self._authreq == other._authreq) and
+                (self.consumer == other.consumer))
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __repr__(self):
+        return '<%s.%s uri:%s delegate:%s consumer@0x%x>' % (
+            __name__, self.__class__.__name__, self.uri, self.delegate,
+            id(self.consumer))
 
 class OpenIDConsumer(object):
 
@@ -103,6 +121,13 @@ class OpenIDConsumer(object):
 
     def _newAuthRequest(self, consumer_id, server_id, server_url):
         return self.orig._newAuthRequest(consumer_id, server_id, server_url)
+
+    def __eq__(self, other):
+        return ((self.orig == other.orig) and
+                (self.trust_root == other.trust_root))
+
+    def __ne__(self, other):
+        return not (self == other)
 
 class DiscoveryVersion1(object):
     """OpenID v1.0 discovery.

@@ -839,6 +839,12 @@ class OpenIDConsumer(object):
             oidutil.log(fmt % (server_url, e[0]))
             return None
 
+    def __eq__(self, other):
+        return (self.store == other.store)
+
+    def __ne__(self, other):
+        return not (self == other)
+
 
 class OpenIDAuthRequest(object):
     """
@@ -879,3 +885,12 @@ class OpenIDAuthRequest(object):
         self.server_id = server_id
         self.server_url = server_url
         self.nonce = nonce
+
+    def __eq__(self, other):
+        return ((self.token == other.token) and
+                (self.server_id == other.server_id) and
+                (self.server_url == other.server_url) and
+                (self.nonce == other.nonce))
+
+    def __ne__(self, other):
+        return not (self == other)
