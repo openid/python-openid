@@ -84,7 +84,7 @@ class DiscoveryVersion1(object):
         self.consumer = oid_consumer
 
     def discover(self, url):
-        status, info = self.consumer._findIdentityInfo(self.url)
+        status, info = self.consumer._findIdentityInfo(url)
         if status is not consumer.SUCCESS:
             # No, really, can we have exceptions back, please?
             return status, info
@@ -116,7 +116,7 @@ class OpenIDConsumerParser(OpenIDParser):
         self.consumer = oid_consumer
 
     def parse(self, service):
-        descriptor = super(OpenIDConsumer, self).parse(service)
+        descriptor = super(OpenIDConsumerParser, self).parse(service)
         descriptor.consumer = self.consumer
         return descriptor
 
