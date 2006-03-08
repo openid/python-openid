@@ -464,6 +464,7 @@ class TestOpenidRequest(unittest.TestCase):
         req2 = self.consumer.makeRequestFromToken(token)
         token2 = req2.getToken()
         self.failUnlessEqual(token2, token)
+        self.failUnlessEqual(req2, self.oidrequest)
 
     def test_getToken(self):
         token1 = self.oidrequest.getToken()
