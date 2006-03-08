@@ -7,7 +7,6 @@ test_modules = [
     'storetest',
     'oidutil',
     'kvform',
-    'consumer',
     'dh',
     ]
 
@@ -55,13 +54,13 @@ def pyunitTests():
     import trustroot
 
     pyunit_modules = [
-        consumer,
         server,
         ]
 
     # Some modules have data-driven tests, and they use custom methods
     # to build the test suite:
     custom_modules = [
+        consumer,
         oidutil,
         linkparse,
         trustroot,

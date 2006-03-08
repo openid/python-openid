@@ -236,17 +236,28 @@ def test_construct():
     else:
         raise AssertionError('Instantiated a consumer without a store')
 
-def test():
-    test_success(http_server_url)
-    test_success(https_server_url)
-    test_bad_fetch()
-    test_bad_parse()
-    test_construct()
-
-
-
 
 import unittest
+
+def pyUnitTests():
+    import sys
+    tests = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
+    def test_success_http():
+        return test_success(http_server_url)
+    def test_success_https():
+        return test_success(https_server_url)
+
+    oldtests = [
+        test_success_http,
+        test_success_https,
+        test_bad_fetch,
+        test_bad_parse,
+        test_construct,
+        ]
+
+    for t in oldtests:
+        tests.addTest(unittest.FunctionTestCase(t))
+    return tests
 
 class TestIdRes(unittest.TestCase):
     consumer_class = OpenIDConsumer
@@ -460,5 +471,6 @@ class TestOpenidRequest(unittest.TestCase):
         self.failUnlessEqual(token1, token2)
 
 if __name__ == '__main__':
-    test()
-    unittest.main()
+    suite = pyUnitTests()
+    runner = unittest.TextTestRunner(verbosity=2)
+    runner.run(suite)
