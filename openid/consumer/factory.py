@@ -29,7 +29,7 @@ class OpenIDRequest(object):
     #    that until we really want to.)
     #
 
-    authreq = None
+    _authreq = None
     delegate = None
     uri = None
 
@@ -47,6 +47,21 @@ class OpenIDRequest(object):
     def complete(self, args):
         return self.consumer._complete(self, args)
 
+    def getToken(self):
+        return self.getAuthRequest().token
+
+    def getAuthRequest(self):
+        if self._authreq is None:
+            status, info = self.consumer._newAuthRequest('-unused-',
+                                                         self.delegate,
+                                                         self.uri)
+            # heck, that method doesn't even have a path where it
+            # returns anything but SUCCESS.
+            assert status is consumer.SUCCESS
+            self._authreq = info
+
+        return self._authreq
+
 
 class OpenIDConsumer(object):
 
@@ -63,17 +78,31 @@ class OpenIDConsumer(object):
         descriptor.uri = server_url
         return descriptor
 
+    def makeRequestFromToken(self, token):
+        fields = self.orig._splitToken(token)
+        descriptor = self.requestClass()
+        nonce, consumer_id, descriptor.delegate, descriptor.uri = fields
+        descriptor._authreq = consumer.OpenIDAuthRequest(token,
+                                                         descriptor.delegate,
+                                                         descriptor.uri,
+                                                         nonce)
+        descriptor.consumer = self
+        return descriptor
+
     def _constructRedirect(self, idreq, return_to):
         if not idreq.delegate:
             raise NotImplementedError # XXX FIXME
-        authreq = self.orig._newAuthRequest("-unused-", idreq.delegate,
-                                            idreq.uri)
-        idreq.authreq = authreq
+        authreq = idreq.getAuthRequest()
         return self.orig.constructRedirect(authreq, return_to, self.trust_root)
 
     def _completeAuth(self, idreq, args):
-        return self.orig.completeAuth(idreq.authreq.token, args)
+        return self.orig.completeAuth(idreq.getToken(), args)
 
+    def _findIdentityInfo(self, url):
+        return self.orig._findIdentityInfo(url)
+
+    def _newAuthRequest(self, consumer_id, server_id, server_url):
+        return self.orig._newAuthRequest(consumer_id, server_id, server_url)
 
 class DiscoveryVersion1(object):
     """OpenID v1.0 discovery.

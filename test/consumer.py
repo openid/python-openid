@@ -435,6 +435,30 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         self.failUnless(self.messages)
 
 
+from openid.consumer import factory
+
+class TestOpenidRequest(unittest.TestCase):
+    def setUp(self):
+        self.store = _memstore.MemoryStore()
+        self.trust_root = 'http://trustme.unittest/'
+        self.consumer = factory.OpenIDConsumer(self.store, self.trust_root)
+
+        self.oidrequest = factory.OpenIDRequest()
+        self.oidrequest.delegate = 'http://delegate.unittest/'
+        self.oidrequest.uri = 'http://some.unittest/server'
+        self.oidrequest.consumer = self.consumer
+
+    def test_fromToken(self):
+        token = self.oidrequest.getToken()
+        req2 = self.consumer.makeRequestFromToken(token)
+        token2 = req2.getToken()
+        self.failUnlessEqual(token2, token)
+
+    def test_getToken(self):
+        token1 = self.oidrequest.getToken()
+        token2 = self.oidrequest.getToken()
+        self.failUnlessEqual(token1, token2)
+
 if __name__ == '__main__':
     test()
     unittest.main()
