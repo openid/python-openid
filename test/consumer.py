@@ -16,7 +16,7 @@ assocs = [
     ('\x00' * 20, 'Zeros'),
     ]
 
-def parse(qs):
+def parseQuery(qs):
     q = {}
     for (k, v) in cgi.parse_qsl(qs):
         assert not q.has_key(k)
@@ -26,7 +26,7 @@ def parse(qs):
 def associate(qs, assoc_secret, assoc_handle):
     """Do the server's half of the associate call, using the given
     secret and handle."""
-    q = parse(qs)
+    q = parseQuery(qs)
     assert q['openid.mode'] == 'associate'
     assert q['openid.assoc_type'] == 'HMAC-SHA1'
     if q.get('openid.session_type') == 'DH-SHA1':
@@ -125,7 +125,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
 
         parsed = urlparse.urlparse(redirect_url)
         qs = parsed[4]
-        q = parse(qs)
+        q = parseQuery(qs)
         assert q == {
             'openid.mode':mode,
             'openid.identity':delegate_url,
