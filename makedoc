@@ -8,7 +8,6 @@ epydoc --html --output doc/ --name "Python-OpenID" --top openid \
     openid/association.py \
     openid/consumer/__init__.py \
     openid/consumer/consumer.py \
-    openid/consumer/fetchers.py \
     openid/server/__init__.py \
     openid/server/server.py \
     openid/server/trustroot.py \
