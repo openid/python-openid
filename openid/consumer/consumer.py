@@ -305,14 +305,14 @@ class OpenIDConsumer(object):
 
 
         @param fetcher: This is an optional instance of
-            C{L{openid.consumer.fetchers.OpenIDHTTPFetcher}}.  If
+            C{L{urljr.fetchers.HTTPFetcher}}.  If
             present, the provided fetcher is used by the library to
             fetch user's identity pages and make direct requests to
             the identity server.  If it is not present, a default
             fetcher is used.  The default fetcher uses curl if the
             pycurl bindings are available, and uses urllib if not.
 
-        @type fetcher: C{L{openid.consumer.fetchers.OpenIDHTTPFetcher}}
+        @type fetcher: C{L{urljr.fetchers.HTTPFetcher}}
 
 
         @param immediate: This is an optional boolean value.  It
