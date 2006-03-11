@@ -7,7 +7,11 @@ from openid.consumer.consumer import OpenIDConsumer, SUCCESS, \
      HTTP_FAILURE, PARSE_ERROR, SETUP_NEEDED, FAILURE
 from openid import association
 
+from openid.consumer import parse
+
 from urljr.fetchers import HTTPResponse
+
+from yadis.discover import DiscoveryFailure
 
 import _memstore
 
@@ -452,7 +456,7 @@ class TestOpenidRequest(unittest.TestCase):
     def setUp(self):
         self.store = _memstore.MemoryStore()
         self.trust_root = 'http://trustme.unittest/'
-        self.consumer = factory.OpenIDConsumer(self.store, self.trust_root)
+        self.consumer = factory.OpenIDConsumer(self.trust_root, self.store)
 
         self.oidrequest = factory.OpenIDRequest()
         self.oidrequest.delegate = 'http://delegate.unittest/'
@@ -470,6 +474,151 @@ class TestOpenidRequest(unittest.TestCase):
         token1 = self.oidrequest.getToken()
         token2 = self.oidrequest.getToken()
         self.failUnlessEqual(token1, token2)
+
+
+class DiscoveryMockFetcher(object):
+    def __init__(self, documents):
+        self.documents = documents
+        self.fetchlog = []
+
+    def fetch(self, url, body=None, headers=None):
+        self.fetchlog.append((url, body, headers))
+        try:
+            ctype, body = self.documents[url]
+            return HTTPResponse(url, 200, {'content-type': ctype},
+                                         body)
+        except KeyError:
+            return HTTPResponse(url, 404, {}, '')
+
+
+# from twisted.trial import unittest as trialtest
+
+class BaseTestDiscovery(unittest.TestCase):
+    id_url = "http://someuser.unittest/"
+
+    documents = {}
+
+    def setUp(self):
+        self.fetcher = DiscoveryMockFetcher(self.documents)
+        self.store = _memstore.MemoryStore()
+        self.trust_root = 'http://trustme.unittest/'
+        self.session = {}
+        self.consumer = factory.OpenIDConsumer(self.trust_root,
+                                               self.store,
+                                               self.session,
+                                               fetcher=self.fetcher)
+
+
+yadis_2entries = '''<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds"
+           xmlns="xri://$xrd*($v*2.0)"
+           xmlns:openid="http://openid.net/xmlns/1.0"
+           >
+  <XRD>
+
+    <Service priority="10">
+      <Type>http://openid.net/signon/1.0</Type>
+      <URI>http://www.myopenid.com/server</URI>
+      <openid:Delegate>http://smoker.myopenid.com/</openid:Delegate>
+    </Service>
+
+    <Service priority="20">
+      <Type>http://openid.net/signon/1.0</Type>
+      <URI>http://www.livejournal.com/openid/server.bml</URI>
+      <openid:Delegate>http://frank.livejournal.com/</openid:Delegate>
+    </Service>
+
+  </XRD>
+</xrds:XRDS>
+'''
+
+class TestYadisFallback(BaseTestDiscovery):
+
+    documents = {
+        BaseTestDiscovery.id_url: ('application/xrds+xml', yadis_2entries),
+        }
+
+    servers = [
+        "http://www.myopenid.com/server",
+        "http://www.livejournal.com/openid/server.bml",
+        ]
+
+    def test_yadis(self):
+        """trying one Yadis service."""
+        status, info = self.consumer.beginAuth(self.id_url)
+        self.failUnlessEqual(status, SUCCESS)
+        self.failUnlessEqual(info.server_url, self.servers[0])
+
+    def test_yadisFallback(self):
+        """fallback to second Yadis service."""
+        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url)
+        self.failUnlessEqual(status, SUCCESS)
+        self.failUnlessEqual(info.server_url, self.servers[1])
+
+    def test_yadisRetryAfterCancel(self):
+        """Re-try same service after receiving cancel."""
+        status, info = self.consumer.beginAuth(self.id_url)
+        self.failUnlessEqual(status, SUCCESS)
+        self.consumer.completeAuth(info.token, {'openid.mode': 'cancel'})
+        status, info = self.consumer.beginAuth(self.id_url)
+        self.failUnlessEqual(info.server_url, self.servers[0])
+
+    def test_yadisExhausted(self):
+        """Trying all services plus one."""
+        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url)
+        # there were only two services
+        status, info = self.consumer.beginAuth(self.id_url)
+        self.failUnlessEqual(status, SUCCESS)
+        self.failUnlessEqual(info.server_url, self.servers[0])
+
+
+openid_html = """
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+  <head>
+    <title>Identity Page for Smoker</title>
+<link rel="openid.server" href="http://www.myopenid.com/server" />
+  </head><body><p>foo</p></body></html>
+"""
+
+class TestYadisDiscovery(BaseTestDiscovery):
+    def test_404(self):
+        self.failUnlessRaises(DiscoveryFailure,
+                              self.consumer.discover, self.id_url + '/404')
+
+
+    def test_noYadis(self):
+        self.fetcher.documents = {
+            self.id_url: ('text/html', openid_html),
+        }
+        services = self.consumer.discover(self.id_url)
+        self.failUnlessEqual(len(services), 1,
+                             "More than one service in %r" % (services,))
+        self.failUnlessEqual(services[0].uri,
+                             "http://www.myopenid.com/server")
+
+    def test_noOpenID(self):
+        self.fetcher.documents = {
+            self.id_url: ('text/plain', "junk"),
+        }
+        self.failUnlessRaises(parse.ParseError,
+                              self.consumer.discover, self.id_url)
+
+    def test_yadis(self):
+        self.fetcher.documents = {
+            BaseTestDiscovery.id_url: ('application/xrds+xml', yadis_2entries),
+            }
+
+        services = self.consumer.discover(self.id_url)
+        self.failUnlessEqual(len(services), 2,
+                             "Not 2 services in %r" % (services,))
+        self.failUnlessEqual(services[0].uri,
+                             "http://www.myopenid.com/server")
+        self.failUnlessEqual(services[1].uri,
+                             "http://www.livejournal.com/openid/server.bml")
+
 
 if __name__ == '__main__':
     suite = pyUnitTests()

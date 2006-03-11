@@ -6,6 +6,11 @@ For use with alternate discovery methods such as YADIS.
 
 from openid.consumer import consumer
 
+from yadis.discover import discover as yadisDiscover
+from yadis.discover import DiscoveryFailure
+from yadis import xrd
+from yadis.servicetypes.openid import OPENID_1_0, OpenIDParser, OpenIDDescriptor
+import parse
 
 class OpenIDRequest(object):
     """I want log in to an OpenID Server.
@@ -85,9 +90,55 @@ class OpenIDConsumer(object):
 
     requestClass = OpenIDRequest
 
-    def __init__(self, store, trust_root):
-        self.orig = consumer.OpenIDConsumer(store)
+    sessionKeyPrefix = "_openid_consumer_"
+
+    def __init__(self, trust_root, store, session, fetcher=None):
+        self.orig = consumer.OpenIDConsumer(store, fetcher=fetcher)
+        self.fetcher = fetcher
+        self.session = session
         self.trust_root = trust_root
+
+        # XXX: Will want multiple service parsers if we support more than one
+        # value of XRDS/Service/Type
+        service_parsers = [
+            OpenIDParser(),
+            ]
+        self.xrd_parser = xrd.ServiceParser(service_parsers)
+
+    def beginAuth(self, user_url):
+        try:
+            openid_servers = self.discover(user_url)
+        except DiscoveryFailure, e:
+            return consumer.HTTP_FAILURE, e.http_response.status
+        except parse.ParseError, e:
+            return consumer.PARSE_ERROR, str(e)
+
+        return self.orig.beginAuth(user_url)
+
+    def discover(self, uri):
+        # Might raise a yadis.discover.DiscoveryFailure if no document
+        # came back for that URI at all.  I don't think falling back
+        # to OpenID 1.0 discovery on the same URL will help, so don't bother
+        # to catch it.
+        final_uri, xrd_doc = yadisDiscover(self.fetcher, uri)
+
+        try:
+            yadis_services = self.xrd_parser.parse(xrd_doc)
+        except xrd.XrdsError, xrd_err:
+            # might raise parse.ParseError
+            unused, delegate_url, server_url = \
+                    parse.openIDDiscover(final_uri, xrd_doc)
+            service = OpenIDDescriptor()
+            service.delegate = delegate_url
+            service.uri = server_url
+            service.type = OPENID_1_0
+            openid_services = [service]
+        else:
+            openid_services = yadis_services.getServices(OPENID_1_0)
+        return openid_services
+
+    def completeAuth(self, token, query):
+        return self.orig.completeAuth(token, query)
 
     def makeRequest(self, consumer_id, server_id, server_url):
         descriptor = self.requestClass()
@@ -152,9 +203,6 @@ class DiscoveryVersion1(object):
 #
 # Adaptage for use with YADIS:
 #
-
-from yadis.servicetypes.openid import OpenIDParser, OpenIDDescriptor
-from yadis.servicetypes.base import IParser
 
 class OpenIDRequestDescriptor(OpenIDDescriptor, OpenIDRequest):
     """See the comments in the source for L{OpenIDRequest} about confusion.
