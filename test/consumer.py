@@ -456,7 +456,8 @@ class TestOpenidRequest(unittest.TestCase):
     def setUp(self):
         self.store = _memstore.MemoryStore()
         self.trust_root = 'http://trustme.unittest/'
-        self.consumer = factory.OpenIDConsumer(self.trust_root, self.store)
+        self.consumer = factory.OpenIDConsumer(self.trust_root, self.store,
+                                               {})
 
         self.oidrequest = factory.OpenIDRequest()
         self.oidrequest.delegate = 'http://delegate.unittest/'
