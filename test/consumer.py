@@ -506,6 +506,7 @@ class BaseTestDiscovery(unittest.TestCase):
     documents = {}
 
     def setUp(self):
+        self.documents = self.documents.copy()
         self.fetcher = DiscoveryMockFetcher(self.documents)
         self.store = _memstore.MemoryStore()
         self.trust_root = 'http://trustme.unittest/'
