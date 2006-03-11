@@ -478,18 +478,24 @@ class TestOpenidRequest(unittest.TestCase):
 
 
 class DiscoveryMockFetcher(object):
+    redirect = None
+
     def __init__(self, documents):
         self.documents = documents
         self.fetchlog = []
 
     def fetch(self, url, body=None, headers=None):
         self.fetchlog.append((url, body, headers))
+        if self.redirect:
+            final_url = self.redirect
+        else:
+            final_url = url
         try:
             ctype, body = self.documents[url]
-            return HTTPResponse(url, 200, {'content-type': ctype},
+            return HTTPResponse(final_url, 200, {'content-type': ctype},
                                          body)
         except KeyError:
-            return HTTPResponse(url, 404, {}, '')
+            return HTTPResponse(final_url, 404, {}, '')
 
 
 # from twisted.trial import unittest as trialtest
@@ -584,7 +590,7 @@ openid_html = """
   </head><body><p>foo</p></body></html>
 """
 
-class TestYadisDiscovery(BaseTestDiscovery):
+class TestDiscovery(BaseTestDiscovery):
     def test_404(self):
         self.failUnlessRaises(DiscoveryFailure,
                               self.consumer.discover, self.id_url + '/404')
@@ -594,7 +600,7 @@ class TestYadisDiscovery(BaseTestDiscovery):
         self.fetcher.documents = {
             self.id_url: ('text/html', openid_html),
         }
-        services = self.consumer.discover(self.id_url)
+        final_url, services = self.consumer.discover(self.id_url)
         self.failUnlessEqual(len(services), 1,
                              "More than one service in %r" % (services,))
         self.failUnlessEqual(services[0].uri,
@@ -612,7 +618,7 @@ class TestYadisDiscovery(BaseTestDiscovery):
             BaseTestDiscovery.id_url: ('application/xrds+xml', yadis_2entries),
             }
 
-        services = self.consumer.discover(self.id_url)
+        final_url, services = self.consumer.discover(self.id_url)
         self.failUnlessEqual(len(services), 2,
                              "Not 2 services in %r" % (services,))
         self.failUnlessEqual(services[0].uri,
@@ -620,6 +626,14 @@ class TestYadisDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(services[1].uri,
                              "http://www.livejournal.com/openid/server.bml")
 
+
+    def test_redirect(self):
+        self.fetcher.redirect = "http://elsewhere.unittest/"
+        self.fetcher.documents = {
+            self.id_url: ('text/html', openid_html),
+        }
+        final_url, services = self.consumer.discover(self.id_url)
+        self.failUnlessEqual(final_url, "http://elsewhere.unittest/")
 
 if __name__ == '__main__':
     suite = pyUnitTests()

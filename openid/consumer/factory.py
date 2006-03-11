@@ -107,7 +107,7 @@ class OpenIDConsumer(object):
 
     def beginAuth(self, user_url):
         try:
-            openid_servers = self.discover(user_url)
+            identity_url, openid_servers = self.discover(user_url)
         except DiscoveryFailure, e:
             return consumer.HTTP_FAILURE, e.http_response.status
         except parse.ParseError, e:
@@ -135,7 +135,7 @@ class OpenIDConsumer(object):
             openid_services = [service]
         else:
             openid_services = yadis_services.getServices(OPENID_1_0)
-        return openid_services
+        return final_uri, openid_services
 
     def completeAuth(self, token, query):
         return self.orig.completeAuth(token, query)
