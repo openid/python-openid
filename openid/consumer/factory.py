@@ -93,6 +93,10 @@ class OpenIDConsumer(object):
 
     sessionKeyPrefix = "_openid_consumer_"
 
+    _server_list = 'servers'
+    _visited_list = 'visited'
+    _last_uri = 'last_uri'
+
     def __init__(self, trust_root, store, session, fetcher=None):
         self.orig = consumer.OpenIDConsumer(store, fetcher=fetcher)
         self.fetcher = fetcher
@@ -107,19 +111,78 @@ class OpenIDConsumer(object):
         self.xrd_parser = xrd.ServiceParser(service_parsers)
 
     def beginAuth(self, user_url):
+        uri = oidutil.normalizeUrl(user_url)
+
         try:
-            identity_url, openid_servers = self.discover(user_url)
+            identity_url, next_server = self._popNextServer(uri)
         except DiscoveryFailure, e:
             return consumer.HTTP_FAILURE, e.http_response.status
         except parse.ParseError, e:
             return consumer.PARSE_ERROR, str(e)
-
-        if not openid_servers:
+        if not next_server:
             return consumer.PARSE_ERROR, "No supported OpenID services found."
 
+
         return self.orig._newAuthRequest(identity_url,
-                                         openid_servers[0].delegate,
-                                         openid_servers[0].uri)
+                                         next_server.delegate,
+                                         next_server.uri)
+
+    def _popNextServer(self, uri):
+        identity_url, server_list, visited_list = self._getServerList(uri)
+        if not server_list:
+            return identity_url, None
+        next_server = None
+        for server in server_list:
+            if server in visited_list:
+                continue
+            next_server = server
+            visited_list.append(next_server)
+            break
+        else:
+            # TODO: refersh server list
+            next_server = server_list[0]
+            visited_list[:] = [next_server]
+
+        return identity_url, next_server
+
+    def _getServerList(self, uri):
+        previous_uri = self.session.get(
+            self.sessionKeyPrefix + self._last_uri, None)
+        if (not previous_uri) or (uri != previous_uri[0]):
+            server_list = self._resetServerList()
+            visited_list = self._resetVisitedList()
+            identity_url = None
+        else:
+            identity_url = previous_uri[1]
+            server_list = self.session.get(
+                self.sessionKeyPrefix + self._server_list, None)
+            if server_list is None:
+                server_list = self._resetServerList()
+                visited_list = self._resetVisitedList()
+            else:
+                visited_list = self.session.get(
+                    self.sessionKeyPrefix + self._visited_list, None)
+                if visited_list is None:
+                    visited_list = self._resetVisitedList()
+
+        if (not server_list) or (not identity_url):
+            identity_url, openid_servers = self.discover(uri)
+            visited_list = self._resetVisitedList()
+            server_list[:] = openid_servers
+            self.session[self.sessionKeyPrefix + self._last_uri] = (
+                uri, identity_url)
+
+        return identity_url, server_list, visited_list
+
+    def _resetServerList(self):
+        return self._resetSessionThing(self._server_list, [])
+
+    def _resetVisitedList(self):
+        return self._resetSessionThing(self._visited_list, [])
+
+    def _resetSessionThing(self, key, value):
+        self.session[self.sessionKeyPrefix + key] = value
+        return self.session[self.sessionKeyPrefix + key]
 
     def discover(self, uri):
         # Might raise a yadis.discover.DiscoveryFailure if no document
@@ -209,7 +272,6 @@ def discoveryVersion1FromString(uri, doc):
     return service
 
 def discoveryVersion1(uri, fetcher):
-    uri = oidutil.normalizeUrl(uri)
     resp = fetcher.fetch(uri)
     if resp.status != 200:
         raise DiscoveryFailure(

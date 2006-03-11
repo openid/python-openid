@@ -539,6 +539,23 @@ yadis_2entries = '''<?xml version="1.0" encoding="UTF-8"?>
 </xrds:XRDS>
 '''
 
+yadis_another = '''<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds"
+           xmlns="xri://$xrd*($v*2.0)"
+           xmlns:openid="http://openid.net/xmlns/1.0"
+           >
+  <XRD>
+
+    <Service priority="10">
+      <Type>http://openid.net/signon/1.0</Type>
+      <URI>http://vroom.unittest/server</URI>
+      <openid:Delegate>http://smoker.myopenid.com/</openid:Delegate>
+    </Service>
+  </XRD>
+</xrds:XRDS>
+'''
+
+
 yadis_0entries = '''<?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
@@ -604,6 +621,7 @@ class TestYadisFallback(BaseTestDiscovery):
         status, info = self.consumer.beginAuth(self.id_url)
         status, info = self.consumer.beginAuth(self.id_url)
         # there were only two services
+        # XXX - test here to make sure the yadis doc got re-fetched.
         status, info = self.consumer.beginAuth(self.id_url)
         self.failUnlessEqual(status, SUCCESS)
         self.failUnlessEqual(info.server_url, self.servers[0])
@@ -615,6 +633,34 @@ class TestYadisFallback(BaseTestDiscovery):
         # XXX - this is a bit of a stretch.  The page parsed fine, it's just
         # that there isn't any OpenID stuff in it.
         self.failUnlessEqual(status, PARSE_ERROR)
+
+    def test_cPickleability(self):
+        import cPickle
+        status, info = self.consumer.beginAuth(self.id_url)
+        pickled = cPickle.dumps(self.consumer.session)
+        self.consumer.session = cPickle.loads(pickled)
+        status, info = self.consumer.beginAuth(self.id_url)
+        self.failUnlessEqual(status, SUCCESS)
+        self.failUnlessEqual(info.server_url, self.servers[1])
+
+    def test_pickleability(self):
+        import pickle
+        status, info = self.consumer.beginAuth(self.id_url)
+        pickled = pickle.dumps(self.consumer.session)
+        self.consumer.session = pickle.loads(pickled)
+        status, info = self.consumer.beginAuth(self.id_url)
+        self.failUnlessEqual(status, SUCCESS)
+        self.failUnlessEqual(info.server_url, self.servers[1])
+
+    def test_yadisFallback(self):
+        """user supplies new URL"""
+        self.documents[self.id_url + 'other'] = ('application/xrds+xml',
+                                                 yadis_another)
+        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url + 'other')
+        self.failUnlessEqual(status, SUCCESS)
+        self.failUnlessEqual(info.server_url, "http://vroom.unittest/server")
+
 
 openid_html = """
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
