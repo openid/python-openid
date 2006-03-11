@@ -184,6 +184,15 @@ class OpenIDConsumer(object):
         self.session[self.sessionKeyPrefix + key] = value
         return self.session[self.sessionKeyPrefix + key]
 
+    def _unVisit(self, server_uri, delegate):
+        visited_list = self.session.get(
+            self.sessionKeyPrefix + self._visited_list, None)
+        if not visited_list:
+            return
+        for server in visited_list[:]:
+            if (server.uri == server_uri) and (server.delegate == delegate):
+                visited_list.remove(server)
+
     def discover(self, uri):
         # Might raise a yadis.discover.DiscoveryFailure if no document
         # came back for that URI at all.  I don't think falling back
@@ -217,7 +226,14 @@ class OpenIDConsumer(object):
         return final_uri, openid_services
 
     def completeAuth(self, token, query):
-        return self.orig.completeAuth(token, query)
+        status, info = self.orig.completeAuth(token, query)
+        if (status is consumer.SUCCESS) and (info is None):
+            # That spells 'Cancel', in which case we remove the server from
+            # the visited list.
+            self.orig._splitToken(token)
+            fields = self.orig._splitToken(token)
+            self._unVisit(fields[3], fields[2])
+        return status, info
 
     def makeRequest(self, consumer_id, server_id, server_url):
         descriptor = self.requestClass()
