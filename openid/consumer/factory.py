@@ -5,6 +5,7 @@ For use with alternate discovery methods such as YADIS.
 """
 
 from openid.consumer import consumer
+from openid import oidutil
 
 from yadis.discover import discover as yadisDiscover
 from yadis.discover import DiscoveryFailure
@@ -130,16 +131,26 @@ class OpenIDConsumer(object):
         try:
             yadis_services = self.xrd_parser.parse(xrd_doc)
         except xrd.XrdsError, xrd_err:
-            # might raise parse.ParseError
-            unused, delegate_url, server_url = \
-                    parse.openIDDiscover(final_uri, xrd_doc)
-            service = OpenIDDescriptor()
-            service.delegate = delegate_url
-            service.uri = server_url
-            service.type = OPENID_1_0
-            openid_services = [service]
+            # This next might raise parse.ParseError.
+            openid_services = [
+                discoveryVersion1FromString(final_uri, xrd_doc),
+                ]
         else:
             openid_services = yadis_services.getServices(OPENID_1_0)
+
+            if not openid_services:
+                # If we're here, we found an XRD that didn't blow up,
+                # but it didn't contain any recognized services
+                # either.  We should re-start with old style discovery
+                # (no following headers or content-negotiation tricks)
+                # and see if we get HTML with some links.
+                try:
+                    openid_services = [discoveryVersion1(uri, self.fetcher)]
+                except parse.ParseError:
+                    # It *did* successfully parse for Yadis...
+                    # (the logic here is questionable.)
+                    pass
+
         return final_uri, openid_services
 
     def completeAuth(self, token, query):
@@ -184,6 +195,28 @@ class OpenIDConsumer(object):
 
     def __ne__(self, other):
         return not (self == other)
+
+
+def discoveryVersion1FromString(uri, doc):
+    # XXX - parse.openIDDiscover probably doesn't need to take the URI
+    # or return it.
+    unused, delegate_url, server_url = \
+            parse.openIDDiscover(uri, doc)
+    service = OpenIDDescriptor()
+    service.delegate = delegate_url
+    service.uri = server_url
+    service.type = OPENID_1_0
+    return service
+
+def discoveryVersion1(uri, fetcher):
+    uri = oidutil.normalizeUrl(uri)
+    resp = fetcher.fetch(uri)
+    if resp.status != 200:
+        raise DiscoveryFailure(
+            'HTTP Response status from identity URL host is not 200. '
+            'Got status %r' % (resp.status,), resp)
+
+    return discoveryVersion1FromString(resp.final_url, resp.body)
 
 class DiscoveryVersion1(object):
     """OpenID v1.0 discovery.

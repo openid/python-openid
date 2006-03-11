@@ -539,6 +539,33 @@ yadis_2entries = '''<?xml version="1.0" encoding="UTF-8"?>
 </xrds:XRDS>
 '''
 
+yadis_0entries = '''<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds"
+           xmlns="xri://$xrd*($v*2.0)"
+           xmlns:openid="http://openid.net/xmlns/1.0"
+           >
+  <XRD>
+    <Service >
+      <Type>http://is-not-openid.unittest/</Type>
+      <URI>http://noffing.unittest./</URI>
+    </Service>
+  </XRD>
+</xrds:XRDS>
+'''
+
+yadis_no_delegate = '''<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds"
+           xmlns="xri://$xrd*($v*2.0)"
+           >
+  <XRD>
+    <Service priority="10">
+      <Type>http://openid.net/signon/1.0</Type>
+      <URI>http://www.myopenid.com/server</URI>
+    </Service>
+  </XRD>
+</xrds:XRDS>
+'''
+
 class TestYadisFallback(BaseTestDiscovery):
 
     documents = {
@@ -566,10 +593,11 @@ class TestYadisFallback(BaseTestDiscovery):
     def test_yadisRetryAfterCancel(self):
         """Re-try same service after receiving cancel."""
         status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url)
         self.failUnlessEqual(status, SUCCESS)
         self.consumer.completeAuth(info.token, {'openid.mode': 'cancel'})
         status, info = self.consumer.beginAuth(self.id_url)
-        self.failUnlessEqual(info.server_url, self.servers[0])
+        self.failUnlessEqual(info.server_url, self.servers[1])
 
     def test_yadisExhausted(self):
         """Trying all services plus one."""
@@ -580,6 +608,13 @@ class TestYadisFallback(BaseTestDiscovery):
         self.failUnlessEqual(status, SUCCESS)
         self.failUnlessEqual(info.server_url, self.servers[0])
 
+    def test_zerolength(self):
+        self.documents[self.id_url] = ('application/xrds+xml',
+                                       yadis_0entries)
+        status, info = self.consumer.beginAuth(self.id_url)
+        # XXX - this is a bit of a stretch.  The page parsed fine, it's just
+        # that there isn't any OpenID stuff in it.
+        self.failUnlessEqual(status, PARSE_ERROR)
 
 openid_html = """
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -587,6 +622,27 @@ openid_html = """
   <head>
     <title>Identity Page for Smoker</title>
 <link rel="openid.server" href="http://www.myopenid.com/server" />
+<link rel="openid.delegate" href="http://smoker.myopenid.com/" />
+  </head><body><p>foo</p></body></html>
+"""
+
+openid_html_no_delegate = """
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+  <head>
+    <title>Identity Page for Smoker</title>
+<link rel="openid.server" href="http://www.myopenid.com/server" />
+  </head><body><p>foo</p></body></html>
+"""
+
+openid_and_yadis_html = """
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+  <head>
+    <title>Identity Page for Smoker</title>
+<meta http-equiv="X-XRDS-Location" content="http://someuser.unittest/xrds" />
+<link rel="openid.server" href="http://www.myopenid.com/server" />
+<link rel="openid.delegate" href="http://smoker.myopenid.com/" />
   </head><body><p>foo</p></body></html>
 """
 
@@ -605,6 +661,9 @@ class TestDiscovery(BaseTestDiscovery):
                              "More than one service in %r" % (services,))
         self.failUnlessEqual(services[0].uri,
                              "http://www.myopenid.com/server")
+        self.failUnlessEqual(services[0].delegate,
+                             "http://smoker.myopenid.com/")
+        self.failUnlessEqual(final_url, self.id_url)
 
     def test_noOpenID(self):
         self.fetcher.documents = {
@@ -634,6 +693,44 @@ class TestDiscovery(BaseTestDiscovery):
         }
         final_url, services = self.consumer.discover(self.id_url)
         self.failUnlessEqual(final_url, "http://elsewhere.unittest/")
+
+    def test_emptyList(self):
+        self.fetcher.documents = {
+            self.id_url: ('application/xrds+xml', yadis_0entries),
+        }
+        final_url, services = self.consumer.discover(self.id_url)
+        self.failIf(services)
+
+    def test_emptyListWithLegacy(self):
+        self.fetcher.documents = {
+            self.id_url: ('text/html', openid_and_yadis_html),
+            self.id_url + 'xrds': ('application/xrds+xml', yadis_0entries),
+        }
+        final_url, services = self.consumer.discover(self.id_url)
+        self.failUnlessEqual(len(services), 1,
+                             "Not one service in %r" % (services,))
+        self.failUnlessEqual(services[0].uri,
+                             "http://www.myopenid.com/server")
+        self.failUnlessEqual(final_url, self.id_url)
+
+    def test_yadisNoDelegate(self):
+        self.fetcher.documents = {
+            self.id_url: ('application/xrds+xml', yadis_no_delegate),
+        }
+        final_url, services = self.consumer.discover(self.id_url)
+        self.failUnlessEqual(len(services), 1,
+                             "Not 1 service in %r" % (services,))
+        self.failUnlessEqual(services[0].uri,
+                             "http://www.myopenid.com/server")
+
+    def test_openidNoDelegate(self):
+        self.fetcher.documents = {
+            self.id_url: ('text/html', openid_html_no_delegate),
+        }
+        final_url, services = self.consumer.discover(self.id_url)
+        self.failUnlessEqual(services[0].uri,
+                             "http://www.myopenid.com/server")
+        self.failUnlessEqual(final_url, self.id_url)
 
 if __name__ == '__main__':
     suite = pyUnitTests()
