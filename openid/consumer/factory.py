@@ -113,7 +113,12 @@ class OpenIDConsumer(object):
         except parse.ParseError, e:
             return consumer.PARSE_ERROR, str(e)
 
-        return self.orig.beginAuth(user_url)
+        if not openid_servers:
+            return consumer.PARSE_ERROR, "No supported OpenID services found."
+
+        return self.orig._newAuthRequest(identity_url,
+                                         openid_servers[0].delegate,
+                                         openid_servers[0].uri)
 
     def discover(self, uri):
         # Might raise a yadis.discover.DiscoveryFailure if no document
