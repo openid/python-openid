@@ -3,7 +3,8 @@ import cgi
 import time
 
 from openid import cryptutil, dh, oidutil, kvform
-from openid.consumer.consumer import OpenIDConsumer, SUCCESS, \
+from openid.consumer.factory import OpenIDConsumer
+from openid.consumer.consumer import SUCCESS, \
      HTTP_FAILURE, PARSE_ERROR, SETUP_NEEDED, FAILURE
 from openid import association
 
@@ -118,14 +119,16 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     user_page = user_page_pat % (links,)
     fetcher = TestFetcher(user_url, user_page, assocs[0])
 
-    consumer = OpenIDConsumer(store, fetcher, immediate)
     def run():
+        trust_root = consumer_url
+        session = {}
+
+        consumer = OpenIDConsumer(trust_root, store, session, fetcher)
         (status, info) = consumer.beginAuth(user_url)
         assert status == SUCCESS, status
 
         return_to = consumer_url
-        trust_root = consumer_url
-        redirect_url = consumer.constructRedirect(info, return_to, trust_root)
+        redirect_url = consumer.constructRedirect(info, return_to, immediate)
 
         parsed = urlparse.urlparse(redirect_url)
         qs = parsed[4]
@@ -211,7 +214,9 @@ class TestFetch(unittest.TestCase):
     def test_badFetch(self):
         store = _memstore.MemoryStore()
         fetcher = TestFetcher(None, None, (None, None))
-        consumer = OpenIDConsumer(store, fetcher)
+        session = {}
+        consumer = OpenIDConsumer("http://tru.st.unittest/",
+                                  store, session, fetcher)
         cases = [
             (None, 'http://network.error/'),
             (404, 'http://not.found/'),
@@ -236,31 +241,39 @@ class TestParse(unittest.TestCase):
             ]
         for user_page in cases:
             fetcher = TestFetcher(user_url, user_page, (None, None))
-            consumer = OpenIDConsumer(store, fetcher)
+            session = {}
+            consumer = OpenIDConsumer("http://trust.unittest/", store, session,
+                                      fetcher)
             status, info = consumer.beginAuth(user_url)
             self.failUnlessEqual(status, PARSE_ERROR)
-            self.failUnlessEqual(info, None)
 
 
 class TestConstruct(unittest.TestCase):
     def setUp(self):
         self.store_sentinel = object()
         self.fetcher_sentinel = object()
+        self.session_sentinel = object()
+        self.trust_root = "http://construct.unittest/"
 
     def test_construct(self):
-        oidc = OpenIDConsumer(self.store_sentinel, self.fetcher_sentinel)
-        assert oidc.store is self.store_sentinel
-        assert oidc.fetcher is self.fetcher_sentinel
+        oidc = OpenIDConsumer(self.trust_root, self.store_sentinel,
+                              self.session_sentinel, self.fetcher_sentinel)
+        self.failUnless(oidc.store is self.store_sentinel)
+        self.failUnless(oidc.session is self.session_sentinel)
+        self.failUnless(oidc.fetcher is self.fetcher_sentinel)
+        self.failUnlessEqual(oidc.trust_root, self.trust_root)
 
     def test_defaultFetcher(self):
-        oidc = OpenIDConsumer(self.store_sentinel, fetcher=None)
+        oidc = OpenIDConsumer(self.trust_root, self.store_sentinel,
+                              self.session_sentinel, fetcher=None)
         f = oidc.fetcher
         self.failUnless(hasattr(f, 'fetch'), "oidc.fetcher is %r, which "
-                        "does not match the fetcher interface.")
+                        "does not match the fetcher interface." % (f,))
 
     def test_nostore(self):
         self.failUnlessRaises(TypeError,
-                              OpenIDConsumer, fetcher=self.fetcher_sentinel)
+                              OpenIDConsumer, self.trust_root,
+                              fetcher=self.fetcher_sentinel)
 
 
 class TestIdRes(unittest.TestCase):
@@ -268,7 +281,10 @@ class TestIdRes(unittest.TestCase):
 
     def setUp(self):
         self.store = _memstore.MemoryStore()
-        self.consumer = self.consumer_class(self.store)
+        self.trust_root = "http://trustworthy.unittest"
+        self.session = {}
+        self.consumer = self.consumer_class(self.trust_root, self.store,
+                                            self.session)
         self.return_to = "nonny"
         self.server_id = "sirod"
         self.server_url = "serlie"
@@ -292,6 +308,12 @@ class TestSetupNeeded(TestIdRes):
 class CheckAuthHappened(Exception): pass
 
 class CheckAuthDetectingConsumer(OpenIDConsumer):
+    def __init__(self, *a, **kw):
+        OpenIDConsumer.__init__(self, *a, **kw)
+        # hack while factory.OpenIDConsumer delegates
+        # to consumer.OpenIDConsumer
+        self.orig._checkAuth = self._checkAuth
+        
     def _checkAuth(self, *args):
         raise CheckAuthHappened(args)
 
@@ -325,7 +347,8 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         except CheckAuthHappened:
             pass
         else:
-            self.fail('_checkAuth did not happen. Result was: %r' % result)
+            self.fail('_checkAuth did not happen. Result was: %r %s' %
+                      (result, self.messages))
 
     def test_checkAuthTriggeredWithAssoc(self):
         # Store an association for this server that does not match the
@@ -346,7 +369,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         except CheckAuthHappened:
             pass
         else:
-            self.fail('_checkAuth did not happen. Result was: %r' % result)
+            self.fail('_checkAuth did not happen. Result was: %r' % (result,))
 
     def test_expiredAssoc(self):
         # Store an expired association for the server with the handle
@@ -420,8 +443,12 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
         CatchLogs.setUp(self)
         self.store = _memstore.MemoryStore()
         self.fetcher = MockFetcher()
+        self.session = {}
+        self.trust_root = "http://ca.unittest/"
 
-        self.consumer = self.consumer_class(self.store, self.fetcher)
+        self.consumer = self.consumer_class(self.trust_root,
+                                            self.store, self.session,
+                                            self.fetcher)
 
     def test_error(self):
         self.fetcher.response = HTTPResponse(
@@ -439,7 +466,10 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         CatchLogs.setUp(self)
         self.store = _memstore.MemoryStore()
         self.fetcher = MockFetcher()
-        self.consumer = self.consumer_class(self.store, self.fetcher)
+        self.session = {}
+        self.consumer = self.consumer_class("http://trust.root.unittest/",
+                                            self.store, self.session,
+                                            self.fetcher)
 
     def test_error(self):
         self.fetcher.response = HTTPResponse(
@@ -448,33 +478,6 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
                                             "http://server_url", "postbody")
         self.failUnlessEqual(r, None)
         self.failUnless(self.messages)
-
-
-from openid.consumer import factory
-
-class TestOpenidRequest(unittest.TestCase):
-    def setUp(self):
-        self.store = _memstore.MemoryStore()
-        self.trust_root = 'http://trustme.unittest/'
-        self.consumer = factory.OpenIDConsumer(self.trust_root, self.store,
-                                               {})
-
-        self.oidrequest = factory.OpenIDRequest()
-        self.oidrequest.delegate = 'http://delegate.unittest/'
-        self.oidrequest.uri = 'http://some.unittest/server'
-        self.oidrequest.consumer = self.consumer
-
-    def test_fromToken(self):
-        token = self.oidrequest.getToken()
-        req2 = self.consumer.makeRequestFromToken(token)
-        token2 = req2.getToken()
-        self.failUnlessEqual(token2, token)
-        self.failUnlessEqual(req2, self.oidrequest)
-
-    def test_getToken(self):
-        token1 = self.oidrequest.getToken()
-        token2 = self.oidrequest.getToken()
-        self.failUnlessEqual(token1, token2)
 
 
 class DiscoveryMockFetcher(object):
@@ -511,10 +514,10 @@ class BaseTestDiscovery(unittest.TestCase):
         self.store = _memstore.MemoryStore()
         self.trust_root = 'http://trustme.unittest/'
         self.session = {}
-        self.consumer = factory.OpenIDConsumer(self.trust_root,
-                                               self.store,
-                                               self.session,
-                                               fetcher=self.fetcher)
+        self.consumer = OpenIDConsumer(self.trust_root,
+                                       self.store,
+                                       self.session,
+                                       fetcher=self.fetcher)
 
 
 yadis_2entries = '''<?xml version="1.0" encoding="UTF-8"?>

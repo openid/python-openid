@@ -99,7 +99,8 @@ class OpenIDConsumer(object):
 
     def __init__(self, trust_root, store, session, fetcher=None):
         self.orig = consumer.OpenIDConsumer(store, fetcher=fetcher)
-        self.fetcher = fetcher
+        self.store = self.orig.store
+        self.fetcher = self.orig.fetcher
         self.session = session
         self.trust_root = trust_root
 
@@ -255,11 +256,9 @@ class OpenIDConsumer(object):
         descriptor.consumer = self
         return descriptor
 
-    def _constructRedirect(self, idreq, return_to):
-        if not idreq.delegate:
-            raise NotImplementedError # XXX FIXME
-        authreq = idreq.getAuthRequest()
-        return self.orig.constructRedirect(authreq, return_to, self.trust_root)
+    def constructRedirect(self, authreq, return_to, immediate=False):
+        return self.orig.constructRedirect(authreq, return_to,
+                                           self.trust_root, immediate)
 
     def _completeAuth(self, idreq, args):
         return self.orig.completeAuth(idreq.getToken(), args)
@@ -269,6 +268,21 @@ class OpenIDConsumer(object):
 
     def _newAuthRequest(self, consumer_id, server_id, server_url):
         return self.orig._newAuthRequest(consumer_id, server_id, server_url)
+
+    def _genToken(self, *a, **kw):
+        return self.orig._genToken(*a, **kw)
+
+    def _splitToken(self, *a, **kw):
+        return self.orig._splitToken(*a, **kw)
+
+    def _doIdRes(self, *a, **kw):
+        return self.orig._doIdRes(*a, **kw)
+
+    def _fetchAssociation(self, *a, **kw):
+        return self.orig._fetchAssociation(*a, **kw)
+
+    def _checkAuth(self, *a, **kw):
+        return self.orig._checkAuth(*a, **kw)
 
     def __eq__(self, other):
         return ((self.orig == other.orig) and
