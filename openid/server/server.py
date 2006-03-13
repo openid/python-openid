@@ -197,6 +197,32 @@ REMOTE_ERROR = 'exact_error'
 
 LOCAL_ERROR  = 'local_error'
 
+class AppIface(object):
+    """Object that serves as the interface between the OpenID server
+    object and the application.
+
+    XXX: this should really be the request object, which should have
+    accessors for the HTTP method, args, etc.
+    """
+
+    def isAuthorized(self, identity_url, trust_root):
+        """Return whether the user has authorized the OpenID transaction"""
+        raise NotImplementedError
+
+    def additionalFields(self):
+        """Return any additional fields that should be added to the URL
+
+        These fields will get prefixed by 'openid.'
+
+        These fields must be in a namespace (have a '.' character)
+        """
+        return {}
+
+    def signedFields(self):
+        """Return which of the additional fields should be added to
+        the OpenID signature."""
+        return self.additionalFields().keys()
+
 class OpenIDServer(object):
     """
     This class is the interface to the OpenID server logic.  Instances
@@ -243,7 +269,7 @@ class OpenIDServer(object):
         """
         self.low_level = LowLevelServer(server_url, store)
 
-    def getOpenIDResponse(self, http_method, args, is_authorized):
+    def getOpenIDResponse(self, http_method, args, app_iface):
         """
         This method processes an OpenID request, and determines the
         proper response to it.  It then communicates what that
@@ -312,6 +338,7 @@ class OpenIDServer(object):
         @type args: a C{dict}-like object
 
 
+        # XXX: update documentation
         @param is_authorized: This is a callback function which this
             C{L{OpenIDServer}} instance will use to determine the
             result of an authentication request.  The function will be
@@ -372,17 +399,7 @@ class OpenIDServer(object):
         @rtype: (C{str}, depends on the first)
         """
         if http_method.upper() == 'GET':
-            trust_root = args.get('openid.trust_root')
-            if not trust_root:
-                trust_root = args.get('openid.return_to')
-
-            identity_url = args.get('openid.identity')
-            if identity_url is None or trust_root is None:
-                authorized = 0 # not False for 2.2 compatibility
-            else:
-                authorized = is_authorized(identity_url, trust_root)
-
-            return self.low_level.getAuthResponse(authorized, args)
+            return self.low_level.getAuthResponse(args, app_iface)
 
         elif http_method.upper() == 'POST':
             mode = args.get('openid.mode')
@@ -664,7 +681,9 @@ class LowLevelServer(object):
             raise ValueError('No return_to URL specified')
 
         trust_root = args.get('openid.trust_root')
-        if trust_root is not None:
+        if trust_root is None:
+            trust_root = return_to
+        else:
             tr = TrustRoot.parse(trust_root)
             if tr is None:
                 raise ValueError('Malformed trust_root: %r' % (trust_root,))
@@ -673,9 +692,9 @@ class LowLevelServer(object):
                 fmt = 'return_to(%s) not valid against trust_root(%s)'
                 raise ValueError(fmt % (return_to, trust_root))
 
-        return return_to
+        return return_to, trust_root
 
-    def getAuthResponse(self, authorized, args):
+    def getAuthResponse(self, args, app_iface):
         """
         This method determines the correct response to make to an
         authentication request.
@@ -686,6 +705,7 @@ class LowLevelServer(object):
         to use when taking that action.
 
 
+        # XXX: fix documentation for authorized
         @param authorized: This is a value which indicates whether the
             server is authorized to tell the consumer that the user
             owns the identity URL in question.  For this to be true,
@@ -695,9 +715,9 @@ class LowLevelServer(object):
             identity.  The server must determine this value based on
             information it already has, without interacting with the
             user.  If it has insufficient information to produce a
-            definite C{True}, it must pass in C{False}.
+            definite , it must pass in C{False}.
 
-        @type authorized: C{bool}
+        @type authorized: C{dict}
 
 
         @param args: This should be a C{dict}-like object that
@@ -728,11 +748,11 @@ class LowLevelServer(object):
             return self.getError(args, 'No identity specified')
 
         try:
-            return_to = self._checkTrustRoot(args)
+            return_to, trust_root = self._checkTrustRoot(args)
         except ValueError, why:
             return self.getError(args, why[0])
 
-        if not authorized:
+        if not app_iface.isAuthorized(identity, trust_root):
             if mode == 'checkid_immediate':
                 nargs = dict(args)
                 nargs['openid.mode'] = 'checkid_setup'
@@ -775,6 +795,13 @@ class LowLevelServer(object):
 
         reply['openid.assoc_handle'] = assoc.handle
 
+        for k, v in app_iface.additionalFields().items():
+            if '.' not in k:
+                return self.getError(
+                    'Server error: bad additional field %r specified' % (k,))
+            reply['openid.' + k] = v
+
+        signed_fields = _signed_fields + app_iface.signedFields()
         assoc.addSignature(_signed_fields, reply)
 
         return REDIRECT, oidutil.appendArgs(return_to, reply)

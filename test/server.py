@@ -13,6 +13,16 @@ import unittest
 # of testing smaller units.  For testing the external interfaces, we'll be
 # developing an implementation-agnostic testing suite.
 
+class ConstReturningApp(server.AppIface):
+    def __init__(self, truth):
+        self.truth = truth
+
+    def isAuthorized(self, unused, unused_):
+        return self.truth
+
+true_app = ConstReturningApp(1)
+false_app = ConstReturningApp(0)
+
 class ServerTestCase(unittest.TestCase):
     oidServerClass = server.OpenIDServer
     def setUp(self):
@@ -37,8 +47,7 @@ class TestServerErrors(ServerTestCase):
             'openid.return_to': self.rt_url,
             }
 
-        status, info = self.server.getOpenIDResponse('GET', args,
-                                                     lambda a, b: False)
+        status, info = self.server.getOpenIDResponse('GET', args, false_app)
         self.failUnlessEqual(status, server.REDIRECT)
         rt_base, resultArgs = info.split('?', 1)
         resultArgs = cgi.parse_qs(resultArgs)
@@ -53,14 +62,12 @@ class TestServerErrors(ServerTestCase):
             'openid.identity': self.id_url,
             }
 
-        status, info = self.server.getOpenIDResponse('GET', args,
-                                                     lambda a, b: False)
+        status, info = self.server.getOpenIDResponse('GET', args, false_app)
         self.failUnlessEqual(status, server.LOCAL_ERROR)
         self.failUnless(info)
 
     def test_getNoArgs(self):
-        status, info = self.server.getOpenIDResponse('GET', {},
-                                                     lambda a, b: False)
+        status, info = self.server.getOpenIDResponse('GET', {}, false_app)
         self.failUnlessEqual(status, server.DO_ABOUT)
 
     def test_post(self):
@@ -69,8 +76,7 @@ class TestServerErrors(ServerTestCase):
             'openid.identity': self.id_url,
             }
 
-        status, info = self.server.getOpenIDResponse('POST', args,
-                                                     lambda a, b: False)
+        status, info = self.server.getOpenIDResponse('POST', args, false_app)
         self.failUnlessEqual(status, server.REMOTE_ERROR)
         resultArgs = kvform.kvToDict(info)
         self.failUnless(resultArgs['error'])
@@ -141,7 +147,7 @@ class TestLowLevelGetAuthResponse_Dumb(LLServerTestCase):
             'openid.return_to': self.rt_url,
             }
 
-        status, info = self.server.getAuthResponse(False, args)
+        status, info = self.server.getAuthResponse(args, false_app)
 
         self.failUnlessEqual(status, server.REDIRECT)
 
@@ -163,7 +169,7 @@ class TestLowLevelGetAuthResponse_Dumb(LLServerTestCase):
             'openid.return_to': self.rt_url,
             }
 
-        status, info = self.server.getAuthResponse(True, args)
+        status, info = self.server.getAuthResponse(args, true_app)
 
         self.failUnlessEqual(status, server.REDIRECT)
 
@@ -193,7 +199,7 @@ class TestLowLevelGetAuthResponse_Dumb(LLServerTestCase):
             'openid.return_to': self.rt_url,
             }
 
-        status, info = self.server.getAuthResponse(True, args)
+        status, info = self.server.getAuthResponse(args, true_app)
 
         self.failUnlessEqual(status, server.REDIRECT)
 
@@ -225,7 +231,7 @@ class TestLowLevelGetAuthResponse_Dumb(LLServerTestCase):
             'openid.trust_root': self.tr_url,
             }
 
-        status, info = self.server.getAuthResponse(False, args)
+        status, info = self.server.getAuthResponse(args, false_app)
 
         self.failUnlessEqual(status, server.DO_AUTH)
         self.failUnlessEqual(info.getTrustRoot(), self.tr_url)
@@ -238,7 +244,7 @@ class TestLowLevelGetAuthResponse_Dumb(LLServerTestCase):
             'openid.return_to': self.rt_url,
             }
 
-        status, info = self.server.getAuthResponse(False, args)
+        status, info = self.server.getAuthResponse(args, false_app)
 
         self.failUnlessEqual(status, server.DO_AUTH)
         status, info = info.cancel()
@@ -329,7 +335,7 @@ class TestLowLevelCheckAuthentication(LLServerTestCase):
             'openid.return_to': self.rt_url,
             }
 
-        status, info = self.server.getAuthResponse(True, args)
+        status, info = self.server.getAuthResponse(args, true_app)
 
         self.failUnlessEqual(status, server.REDIRECT)
 
