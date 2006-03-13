@@ -139,13 +139,15 @@ class OpenIDConsumer(object):
             visited_list.append(next_server)
             break
         else:
+            identity_url, server_list, visited_list = self._getServerList(
+                uri, rediscover=True)
             # TODO: refersh server list
             next_server = server_list[0]
             visited_list[:] = [next_server]
 
         return identity_url, next_server
 
-    def _getServerList(self, uri):
+    def _getServerList(self, uri, rediscover=False):
         previous_uri = self.session.get(
             self.sessionKeyPrefix + self._last_uri, None)
         if (not previous_uri) or (uri != previous_uri[0]):
@@ -165,7 +167,7 @@ class OpenIDConsumer(object):
                 if visited_list is None:
                     visited_list = self._resetVisitedList()
 
-        if (not server_list) or (not identity_url):
+        if rediscover or (not server_list) or (not identity_url):
             identity_url, openid_servers = self.discover(uri)
             visited_list = self._resetVisitedList()
             server_list[:] = openid_servers

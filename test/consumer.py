@@ -621,11 +621,13 @@ class TestYadisFallback(BaseTestDiscovery):
         """Trying all services plus one."""
         status, info = self.consumer.beginAuth(self.id_url)
         status, info = self.consumer.beginAuth(self.id_url)
-        # there were only two services
-        # XXX - test here to make sure the yadis doc got re-fetched.
+        # there were only two services, they were both broken but the
+        # yadis doc changed in the meantime.
+        self.documents[self.id_url] = ('application/xrds+xml',
+                                       yadis_another)
         status, info = self.consumer.beginAuth(self.id_url)
         self.failUnlessEqual(status, SUCCESS)
-        self.failUnlessEqual(info.server_url, self.servers[0])
+        self.failUnlessEqual(info.server_url, "http://vroom.unittest/server")
 
     def test_zerolength(self):
         self.documents[self.id_url] = ('application/xrds+xml',
