@@ -802,7 +802,8 @@ class LowLevelServer(object):
             reply['openid.' + k] = v
 
         signed_fields = _signed_fields + app_iface.signedFields()
-        assoc.addSignature(_signed_fields, reply)
+        signed_fields.sort()
+        assoc.addSignature(signed_fields, reply)
 
         return REDIRECT, oidutil.appendArgs(return_to, reply)
 

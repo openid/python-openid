@@ -14,11 +14,25 @@ import unittest
 # developing an implementation-agnostic testing suite.
 
 class ConstReturningApp(server.AppIface):
-    def __init__(self, truth):
+    def __init__(self, truth, additional_args=None, signed=None):
         self.truth = truth
+        if additional_args:
+            self.additional_args = additional_args
+        else:
+            self.additional_args = {}
+        self.signed = signed
 
     def isAuthorized(self, unused, unused_):
         return self.truth
+
+    def additionalFields(self):
+        return self.additional_args
+
+    def signedFields(self):
+        if self.signed is None:
+            return server.AppIface.signedFields(self)
+        else:
+            return self.signed
 
 true_app = ConstReturningApp(1)
 false_app = ConstReturningApp(0)
@@ -162,14 +176,16 @@ class TestLowLevelGetAuthResponse_Dumb(LLServerTestCase):
 
         self.failUnlessEqual(info, expected)
 
-    def test_checkidImmediate(self):
+    def _test_checkidImmediate(self, additional):
         args = {
             'openid.mode': 'checkid_immediate',
             'openid.identity': self.id_url,
             'openid.return_to': self.rt_url,
             }
 
-        status, info = self.server.getAuthResponse(args, true_app)
+        app = ConstReturningApp(True, additional)
+
+        status, info = self.server.getAuthResponse(args, app)
 
         self.failUnlessEqual(status, server.REDIRECT)
 
@@ -180,17 +196,32 @@ class TestLowLevelGetAuthResponse_Dumb(LLServerTestCase):
         self.failUnlessEqual(ra['openid.mode'], ['id_res'])
         self.failUnlessEqual(ra['openid.identity'], [self.id_url])
         self.failUnlessEqual(ra['openid.return_to'], [self.rt_url])
-        self.failUnlessEqual(ra['openid.signed'], ['mode,identity,return_to'])
+        signed_fields = ['mode', 'identity', 'return_to']
+        if additional:
+            signed_fields.extend(additional.keys())
+        signed_fields.sort()
+        expected_signed = [','.join(signed_fields)]
+        self.failUnlessEqual(expected_signed, ra['openid.signed'])
 
         assoc = self.store.getAssociation(self.server.dumb_key,
                                           ra['openid.assoc_handle'][0])
         self.failUnless(assoc)
-        expectSig = assoc.sign([('mode', 'id_res'),
-                                ('identity', self.id_url),
-                                ('return_to', self.rt_url)])
+        to_sign = [('identity', self.id_url),
+                   ('mode', 'id_res'),
+                   ('return_to', self.rt_url)]
+        if additional:
+            to_sign.extend(additional.items())
+        to_sign.sort()
+        expectSig = assoc.sign(to_sign)
         sig = ra['openid.sig'][0]
         sig = sig.decode('base64')
         self.failUnlessEqual(sig, expectSig)
+
+    def test_checkIdImmediate(self):
+        self._test_checkidImmediate(None)
+
+    def test_checkIdImmediateData(self):
+        self._test_checkidImmediate({'foo.blah':'bar'})
 
     def test_checkIdSetup(self):
         args = {
@@ -210,13 +241,13 @@ class TestLowLevelGetAuthResponse_Dumb(LLServerTestCase):
         self.failUnlessEqual(ra['openid.mode'], ['id_res'])
         self.failUnlessEqual(ra['openid.identity'], [self.id_url])
         self.failUnlessEqual(ra['openid.return_to'], [self.rt_url])
-        self.failUnlessEqual(ra['openid.signed'], ['mode,identity,return_to'])
+        self.failUnlessEqual(ra['openid.signed'], ['identity,mode,return_to'])
 
         assoc = self.store.getAssociation(self.server.dumb_key,
                                           ra['openid.assoc_handle'][0])
         self.failUnless(assoc)
-        expectSig = assoc.sign([('mode', 'id_res'),
-                                ('identity', self.id_url),
+        expectSig = assoc.sign([('identity', self.id_url),
+                                ('mode', 'id_res'),
                                 ('return_to', self.rt_url)])
         sig = ra['openid.sig'][0]
         sig = sig.decode('base64')
