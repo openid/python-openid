@@ -55,12 +55,12 @@ def pyunitTests():
 
     pyunit_modules = [
         server,
+        consumer,
         ]
 
     # Some modules have data-driven tests, and they use custom methods
     # to build the test suite:
     custom_modules = [
-        consumer,
         oidutil,
         linkparse,
         trustroot,

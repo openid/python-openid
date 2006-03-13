@@ -171,97 +171,97 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     run()
     assert fetcher.num_assocs == 2
 
-def test_success(server_url):
-    user_url = 'http://www.example.com/user.html'
-    links = '<link rel="openid.server" href="%s" />' % (server_url,)
-
-    delegate_url = 'http://consumer.example.com/user'
-    delegate_links = ('<link rel="openid.server" href="%s" />'
-             '<link rel="openid.delegate" href="%s" />') % (
-        server_url, delegate_url)
-
-    _test_success(server_url, user_url, user_url, links)
-    _test_success(server_url, user_url, user_url, links, True)
-    _test_success(server_url, user_url, delegate_url, delegate_links)
-    _test_success(server_url, user_url, delegate_url, delegate_links, True)
-
-def test_bad_fetch():
-    store = _memstore.MemoryStore()
-    fetcher = TestFetcher(None, None, (None, None))
-    consumer = OpenIDConsumer(store, fetcher)
-    cases = [
-        (None, 'http://network.error/'),
-        (404, 'http://not.found/'),
-        (400, 'http://bad.request/'),
-        (500, 'http://server.error/'),
-        ]
-    for error_code, url in cases:
-        fetcher.get_responses[url] = fetcher.response(url, error_code, None)
-        (status, info) = consumer.beginAuth(url)
-        assert status == HTTP_FAILURE, status
-        assert info == error_code, (url, info)
-
-def test_bad_parse():
-    store = _memstore.MemoryStore()
-    user_url = 'http://user.example.com/'
-    cases = [
-        '',
-        "http://not.in.a.link.tag/",
-        '<link rel="openid.server" href="not.in.html.or.head" />',
-        ]
-    for user_page in cases:
-        fetcher = TestFetcher(user_url, user_page, (None, None))
-        consumer = OpenIDConsumer(store, fetcher)
-        status, info = consumer.beginAuth(user_url)
-        assert status == PARSE_ERROR
-        assert info is None
-
-def test_construct():
-    store_sentinel = object()
-    fetcher_sentinel = object()
-    oidc = OpenIDConsumer(store_sentinel, fetcher_sentinel)
-    assert oidc.store is store_sentinel
-    assert oidc.fetcher is fetcher_sentinel
-    assert not oidc.immediate
-
-    oidc = OpenIDConsumer(store_sentinel, fetcher_sentinel, immediate=1)
-    assert oidc.store is store_sentinel
-    assert oidc.fetcher is fetcher_sentinel
-    assert oidc.immediate
-
-    oidc = OpenIDConsumer(store_sentinel, fetcher=None)
-    f = oidc.fetcher
-    assert hasattr(f, 'fetch')
-
-    try:
-        oidc = OpenIDConsumer(fetcher=fetcher_sentinel)
-    except TypeError:
-        pass
-    else:
-        raise AssertionError('Instantiated a consumer without a store')
-
-
 import unittest
 
-def pyUnitTests():
-    import sys
-    tests = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
-    def test_success_http():
-        return test_success(http_server_url)
-    def test_success_https():
-        return test_success(https_server_url)
+class TestSuccess(unittest.TestCase):
+    server_url = http_server_url
+    user_url = 'http://www.example.com/user.html'
+    delegate_url = 'http://consumer.example.com/user'
 
-    oldtests = [
-        test_success_http,
-        test_success_https,
-        test_bad_fetch,
-        test_bad_parse,
-        test_construct,
-        ]
+    def setUp(self):
+        self.links = '<link rel="openid.server" href="%s" />' % (
+            self.server_url,)
 
-    for t in oldtests:
-        tests.addTest(unittest.FunctionTestCase(t))
-    return tests
+        self.delegate_links = ('<link rel="openid.server" href="%s" />'
+                               '<link rel="openid.delegate" href="%s" />') % (
+            self.server_url, self.delegate_url)
+
+    def test_nodelegate(self):
+        _test_success(self.server_url, self.user_url,
+                      self.user_url, self.links)
+        
+    def test_nodelegateImmediate(self):
+        _test_success(self.server_url, self.user_url,
+                      self.user_url, self.links, True)
+
+    def test_delegate(self):
+        _test_success(self.server_url, self.user_url,
+                      self.delegate_url, self.delegate_links)
+
+    def test_delegateImmediate(self):
+        _test_success(self.server_url, self.user_url,
+                      self.delegate_url, self.delegate_links, True)
+
+
+class TestSuccessHTTPS(TestSuccess):
+    server_url = https_server_url
+    
+
+class TestFetch(unittest.TestCase):
+    def test_badFetch(self):
+        store = _memstore.MemoryStore()
+        fetcher = TestFetcher(None, None, (None, None))
+        consumer = OpenIDConsumer(store, fetcher)
+        cases = [
+            (None, 'http://network.error/'),
+            (404, 'http://not.found/'),
+            (400, 'http://bad.request/'),
+            (500, 'http://server.error/'),
+            ]
+        for error_code, url in cases:
+            fetcher.get_responses[url] = fetcher.response(url, error_code, None)
+            (status, info) = consumer.beginAuth(url)
+            self.failUnlessEqual(status, HTTP_FAILURE)
+            self.failUnlessEqual(info, error_code)
+
+
+class TestParse(unittest.TestCase):
+    def test_badParse(self):
+        store = _memstore.MemoryStore()
+        user_url = 'http://user.example.com/'
+        cases = [
+            '',
+            "http://not.in.a.link.tag/",
+            '<link rel="openid.server" href="not.in.html.or.head" />',
+            ]
+        for user_page in cases:
+            fetcher = TestFetcher(user_url, user_page, (None, None))
+            consumer = OpenIDConsumer(store, fetcher)
+            status, info = consumer.beginAuth(user_url)
+            self.failUnlessEqual(status, PARSE_ERROR)
+            self.failUnlessEqual(info, None)
+
+
+class TestConstruct(unittest.TestCase):
+    def setUp(self):
+        self.store_sentinel = object()
+        self.fetcher_sentinel = object()
+
+    def test_construct(self):
+        oidc = OpenIDConsumer(self.store_sentinel, self.fetcher_sentinel)
+        assert oidc.store is self.store_sentinel
+        assert oidc.fetcher is self.fetcher_sentinel
+
+    def test_defaultFetcher(self):
+        oidc = OpenIDConsumer(self.store_sentinel, fetcher=None)
+        f = oidc.fetcher
+        self.failUnless(hasattr(f, 'fetch'), "oidc.fetcher is %r, which "
+                        "does not match the fetcher interface.")
+
+    def test_nostore(self):
+        self.failUnlessRaises(TypeError,
+                              OpenIDConsumer, fetcher=self.fetcher_sentinel)
+
 
 class TestIdRes(unittest.TestCase):
     consumer_class = OpenIDConsumer
@@ -782,6 +782,4 @@ class TestDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(final_url, self.id_url)
 
 if __name__ == '__main__':
-    suite = pyUnitTests()
-    runner = unittest.TextTestRunner(verbosity=2)
-    runner.run(suite)
+    unittest.main()
