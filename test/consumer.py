@@ -3,7 +3,7 @@ import cgi
 import time
 
 from openid import cryptutil, dh, oidutil, kvform
-from openid.consumer.factory import OpenIDConsumer
+from openid.consumer.consumer import OpenIDConsumer
 from openid.consumer.consumer import SUCCESS, \
      HTTP_FAILURE, PARSE_ERROR, SETUP_NEEDED, FAILURE
 from openid import association
@@ -124,11 +124,11 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         session = {}
 
         consumer = OpenIDConsumer(trust_root, store, session, fetcher)
-        (status, info) = consumer.beginAuth(user_url)
+        return_to = consumer_url
+        (status, info) = consumer.beginAuth(user_url, return_to, immediate)
         assert status == SUCCESS, status
 
-        return_to = consumer_url
-        redirect_url = consumer.constructRedirect(info, return_to, immediate)
+        redirect_url = info.redirect_url
 
         parsed = urlparse.urlparse(redirect_url)
         qs = parsed[4]
@@ -192,7 +192,7 @@ class TestSuccess(unittest.TestCase):
     def test_nodelegate(self):
         _test_success(self.server_url, self.user_url,
                       self.user_url, self.links)
-        
+
     def test_nodelegateImmediate(self):
         _test_success(self.server_url, self.user_url,
                       self.user_url, self.links, True)
@@ -208,15 +208,16 @@ class TestSuccess(unittest.TestCase):
 
 class TestSuccessHTTPS(TestSuccess):
     server_url = https_server_url
-    
+
 
 class TestFetch(unittest.TestCase):
     def test_badFetch(self):
         store = _memstore.MemoryStore()
         fetcher = TestFetcher(None, None, (None, None))
         session = {}
-        consumer = OpenIDConsumer("http://tru.st.unittest/",
-                                  store, session, fetcher)
+        trust_root = "http://tru.st.unittest/"
+        return_to = trust_root + 'login'
+        consumer = OpenIDConsumer(trust_root, store, session, fetcher)
         cases = [
             (None, 'http://network.error/'),
             (404, 'http://not.found/'),
@@ -225,7 +226,7 @@ class TestFetch(unittest.TestCase):
             ]
         for error_code, url in cases:
             fetcher.get_responses[url] = fetcher.response(url, error_code, None)
-            (status, info) = consumer.beginAuth(url)
+            (status, info) = consumer.beginAuth(url, return_to)
             self.failUnlessEqual(status, HTTP_FAILURE)
             self.failUnlessEqual(info, error_code)
 
@@ -234,6 +235,8 @@ class TestParse(unittest.TestCase):
     def test_badParse(self):
         store = _memstore.MemoryStore()
         user_url = 'http://user.example.com/'
+        trust_root = "http://trust.unittest/"
+        return_to = trust_root + 'sign-in/'
         cases = [
             '',
             "http://not.in.a.link.tag/",
@@ -242,9 +245,8 @@ class TestParse(unittest.TestCase):
         for user_page in cases:
             fetcher = TestFetcher(user_url, user_page, (None, None))
             session = {}
-            consumer = OpenIDConsumer("http://trust.unittest/", store, session,
-                                      fetcher)
-            status, info = consumer.beginAuth(user_url)
+            consumer = OpenIDConsumer(trust_root, store, session, fetcher)
+            status, info = consumer.beginAuth(user_url, return_to)
             self.failUnlessEqual(status, PARSE_ERROR)
 
 
@@ -308,12 +310,6 @@ class TestSetupNeeded(TestIdRes):
 class CheckAuthHappened(Exception): pass
 
 class CheckAuthDetectingConsumer(OpenIDConsumer):
-    def __init__(self, *a, **kw):
-        OpenIDConsumer.__init__(self, *a, **kw)
-        # hack while factory.OpenIDConsumer delegates
-        # to consumer.OpenIDConsumer
-        self.orig._checkAuth = self._checkAuth
-        
     def _checkAuth(self, *args):
         raise CheckAuthHappened(args)
 
@@ -513,6 +509,7 @@ class BaseTestDiscovery(unittest.TestCase):
         self.fetcher = DiscoveryMockFetcher(self.documents)
         self.store = _memstore.MemoryStore()
         self.trust_root = 'http://trustme.unittest/'
+        self.return_to = 'http://trustme.unittest/login'
         self.session = {}
         self.consumer = OpenIDConsumer(self.trust_root,
                                        self.store,
@@ -600,61 +597,61 @@ class TestYadisFallback(BaseTestDiscovery):
 
     def test_yadis(self):
         """trying one Yadis service."""
-        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         self.failUnlessEqual(status, SUCCESS)
         self.failUnlessEqual(info.server_url, self.servers[0])
 
     def test_yadisFallback(self):
         """fallback to second Yadis service."""
-        status, info = self.consumer.beginAuth(self.id_url)
-        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         self.failUnlessEqual(status, SUCCESS)
         self.failUnlessEqual(info.server_url, self.servers[1])
 
     def test_yadisRetryAfterCancel(self):
         """Re-try same service after receiving cancel."""
-        status, info = self.consumer.beginAuth(self.id_url)
-        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         self.failUnlessEqual(status, SUCCESS)
         self.consumer.completeAuth(info.token, {'openid.mode': 'cancel'})
-        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         self.failUnlessEqual(info.server_url, self.servers[1])
 
     def test_yadisExhausted(self):
         """Trying all services plus one."""
-        status, info = self.consumer.beginAuth(self.id_url)
-        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         # there were only two services, they were both broken but the
         # yadis doc changed in the meantime.
         self.documents[self.id_url] = ('application/xrds+xml',
                                        yadis_another)
-        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         self.failUnlessEqual(status, SUCCESS)
         self.failUnlessEqual(info.server_url, "http://vroom.unittest/server")
 
     def test_zerolength(self):
         self.documents[self.id_url] = ('application/xrds+xml',
                                        yadis_0entries)
-        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         # XXX - this is a bit of a stretch.  The page parsed fine, it's just
         # that there isn't any OpenID stuff in it.
         self.failUnlessEqual(status, PARSE_ERROR)
 
     def test_cPickleability(self):
         import cPickle
-        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         pickled = cPickle.dumps(self.consumer.session)
         self.consumer.session = cPickle.loads(pickled)
-        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         self.failUnlessEqual(status, SUCCESS)
         self.failUnlessEqual(info.server_url, self.servers[1])
 
     def test_pickleability(self):
         import pickle
-        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         pickled = pickle.dumps(self.consumer.session)
         self.consumer.session = pickle.loads(pickled)
-        status, info = self.consumer.beginAuth(self.id_url)
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         self.failUnlessEqual(status, SUCCESS)
         self.failUnlessEqual(info.server_url, self.servers[1])
 
@@ -662,8 +659,9 @@ class TestYadisFallback(BaseTestDiscovery):
         """user supplies new URL"""
         self.documents[self.id_url + 'other'] = ('application/xrds+xml',
                                                  yadis_another)
-        status, info = self.consumer.beginAuth(self.id_url)
-        status, info = self.consumer.beginAuth(self.id_url + 'other')
+        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
+        status, info = self.consumer.beginAuth(self.id_url + 'other',
+                                               self.return_to)
         self.failUnlessEqual(status, SUCCESS)
         self.failUnlessEqual(info.server_url, "http://vroom.unittest/server")
 

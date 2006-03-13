@@ -235,6 +235,12 @@ from openid.dh import DiffieHellman
 from openid.consumer.parse import openIDDiscover, ParseError
 from urljr.fetchers import _getHTTPFetcher
 
+from yadis.discover import discover as yadisDiscover
+from yadis.discover import DiscoveryFailure
+from yadis import xrd
+from yadis.servicetypes.openid import OPENID_1_0, OpenIDParser, OpenIDDescriptor
+
+
 __all__ = ['SUCCESS', 'FAILURE', 'SETUP_NEEDED', 'HTTP_FAILURE', 'PARSE_ERROR',
            'OpenIDAuthRequest', 'OpenIDConsumer']
 
@@ -280,10 +286,30 @@ class OpenIDConsumer(object):
     NONCE_LEN = 8
     NONCE_CHRS = string.letters + string.digits
 
-    def __init__(self, store, fetcher=None):
+    sessionKeyPrefix = "_openid_consumer_"
+
+    _server_list = 'servers'
+    _visited_list = 'visited'
+    _last_uri = 'last_uri'
+
+    def __init__(self, trust_root, store, session, fetcher=None):
         """
         This method initializes a new C{L{OpenIDConsumer}} instance to
         access the library.
+
+
+        @param trust_root: This is a URL that will be sent to the
+            server to identify this site.  U{The OpenID
+            spec<http://www.openid.net/specs.bml#mode-checkid_immediate>}
+            has more information on what the trust_root value is for
+            and what its form can be.  While the trust root is
+            officially optional in the OpenID specification, this
+            implementation requires that it be set.  Nothing is
+            actually gained by leaving out the trust root, as you can
+            get identical behavior by specifying the return_to URL as
+            the trust root.
+
+        @type trust_root: C{str}
 
 
         @param store: This must be an object that implements the
@@ -304,6 +330,8 @@ class OpenIDConsumer(object):
         @type store: C{L{openid.store.interface.OpenIDStore}}
 
 
+        @param session: FIXME - to be documented
+
         @param fetcher: This is an optional instance of
             C{L{urljr.fetchers.HTTPFetcher}}.  If
             present, the provided fetcher is used by the library to
@@ -314,14 +342,23 @@ class OpenIDConsumer(object):
 
         @type fetcher: C{L{urljr.fetchers.HTTPFetcher}}
         """
+        self.trust_root = trust_root
         self.store = store
+        self.session = session
 
         if fetcher is None:
             self.fetcher = _getHTTPFetcher()
         else:
             self.fetcher = fetcher
 
-    def beginAuth(self, user_url):
+        # XXX: Will want multiple service parsers if we support more than one
+        # value of XRDS/Service/Type
+        service_parsers = [
+            OpenIDParser(),
+            ]
+        self.xrd_parser = xrd.ServiceParser(service_parsers)
+
+    def beginAuth(self, user_url, return_to, immediate=False):
         """
         This method is called to start the OpenID login process.
 
@@ -362,6 +399,21 @@ class OpenIDConsumer(object):
             C{unicode}.
 
 
+        @param return_to: This is the URL that will be included in the
+            generated redirect as the URL the OpenID server will send
+            its response to.  The URL passed in must handle OpenID
+            authentication responses.
+
+        @type return_to: C{str}
+
+
+        @param immediate: This is an optional boolean value.  It
+            controls whether the library uses immediate mode, as
+            explained in the module description.  The default value is
+            False, which disables immediate mode.
+
+        @type immediate: C{bool}
+
         @return: This method returns a status code and additional
             information about the code.
 
@@ -397,15 +449,28 @@ class OpenIDConsumer(object):
 
             It raises no exceptions itself.
         """
-        status, info = self._findIdentityInfo(user_url)
-        if status != SUCCESS:
-            return status, info
+        uri = oidutil.normalizeUrl(user_url)
 
-        consumer_id, server_id, server_url = info
-        return self._newAuthRequest(consumer_id, server_id, server_url)
+        try:
+            identity_url, next_server = self._popNextServer(uri)
+        except DiscoveryFailure, e:
+            return HTTP_FAILURE, e.http_response.status
+        except ParseError, e:
+            return PARSE_ERROR, str(e)
+        if not next_server:
+            return PARSE_ERROR, "No supported OpenID services found."
 
-    def constructRedirect(self, auth_request, return_to, trust_root,
-                          immediate=False):
+
+        status, info = self._newAuthRequest(identity_url,
+                                            next_server.delegate,
+                                            next_server.uri)
+        if status is SUCCESS:
+            info.redirect_url = self.constructRedirect(info,
+                                                       return_to,
+                                                       immediate)
+        return status, info
+
+    def constructRedirect(self, auth_request, return_to, immediate=False):
         """
         This method is called to construct the redirect URL sent to
         the browser to ask the server to verify its identity.  This is
@@ -427,20 +492,6 @@ class OpenIDConsumer(object):
             authentication responses.
 
         @type return_to: C{str}
-
-
-        @param trust_root: This is a URL that will be sent to the
-            server to identify this site.  U{The OpenID
-            spec<http://www.openid.net/specs.bml#mode-checkid_immediate>}
-            has more information on what the trust_root value is for
-            and what its form can be.  While the trust root is
-            officially optional in the OpenID specification, this
-            implementation requires that it be set.  Nothing is
-            actually gained by leaving out the trust root, as you can
-            get identical behavior by specifying the return_to URL as
-            the trust root.
-
-        @type trust_root: C{str}
 
 
         @param immediate: This is an optional boolean value.  It
@@ -465,7 +516,7 @@ class OpenIDConsumer(object):
         # Because _getAssociation could be asynchronous if the
         # association is not already in the store.
         return self._constructRedirect(assoc, auth_request,
-                                       return_to, trust_root, immediate)
+                                       return_to, self.trust_root, immediate)
 
     def completeAuth(self, token, query):
         """
@@ -528,6 +579,10 @@ class OpenIDConsumer(object):
         """
         mode = query.get('openid.mode', '')
         if mode == 'cancel':
+            # Remove the server from the visited list.
+            self._splitToken(token)
+            fields = self._splitToken(token)
+            self._unVisit(fields[3], fields[2])
             return SUCCESS, None
         elif mode == 'error':
             error = query.get('openid.error')
@@ -539,11 +594,122 @@ class OpenIDConsumer(object):
         else:
             return FAILURE, None
 
+
+    def discover(self, uri):
+        """Discover OpenID services for a URI.
+
+        @param uri:
+        @type uri: str
+
+        @returns: uri, services
+        @returntype: (str, list(IOpenIDDescriptor))
+        """
+        # Might raise a yadis.discover.DiscoveryFailure if no document
+        # came back for that URI at all.  I don't think falling back
+        # to OpenID 1.0 discovery on the same URL will help, so don't bother
+        # to catch it.
+        final_uri, xrd_doc = yadisDiscover(self.fetcher, uri)
+
+        try:
+            yadis_services = self.xrd_parser.parse(xrd_doc)
+        except xrd.XrdsError, xrd_err:
+            # This next might raise parse.ParseError.
+            openid_services = [
+                discoveryVersion1FromString(final_uri, xrd_doc),
+                ]
+        else:
+            openid_services = yadis_services.getServices(OPENID_1_0)
+
+            if not openid_services:
+                # If we're here, we found an XRD that didn't blow up,
+                # but it didn't contain any recognized services
+                # either.  We should re-start with old style discovery
+                # (no following headers or content-negotiation tricks)
+                # and see if we get HTML with some links.
+                try:
+                    openid_services = [discoveryVersion1(uri, self.fetcher)]
+                except ParseError:
+                    # It *did* successfully parse for Yadis...
+                    # (the logic here is questionable.)
+                    pass
+
+        return final_uri, openid_services
+
+
+    def _popNextServer(self, uri):
+        identity_url, server_list, visited_list = self._getServerList(uri)
+        if not server_list:
+            return identity_url, None
+        next_server = None
+        for server in server_list:
+            if server in visited_list:
+                continue
+            next_server = server
+            visited_list.append(next_server)
+            break
+        else:
+            identity_url, server_list, visited_list = self._getServerList(
+                uri, rediscover=True)
+            # TODO: refersh server list
+            next_server = server_list[0]
+            visited_list[:] = [next_server]
+
+        return identity_url, next_server
+
+    def _getServerList(self, uri, rediscover=False):
+        previous_uri = self.session.get(
+            self.sessionKeyPrefix + self._last_uri, None)
+        if (not previous_uri) or (uri != previous_uri[0]):
+            server_list = self._resetServerList()
+            visited_list = self._resetVisitedList()
+            identity_url = None
+        else:
+            identity_url = previous_uri[1]
+            server_list = self.session.get(
+                self.sessionKeyPrefix + self._server_list, None)
+            if server_list is None:
+                server_list = self._resetServerList()
+                visited_list = self._resetVisitedList()
+            else:
+                visited_list = self.session.get(
+                    self.sessionKeyPrefix + self._visited_list, None)
+                if visited_list is None:
+                    visited_list = self._resetVisitedList()
+
+        if rediscover or (not server_list) or (not identity_url):
+            identity_url, openid_servers = self.discover(uri)
+            visited_list = self._resetVisitedList()
+            server_list[:] = openid_servers
+            self.session[self.sessionKeyPrefix + self._last_uri] = (
+                uri, identity_url)
+
+        return identity_url, server_list, visited_list
+
+    def _unVisit(self, server_uri, delegate):
+        visited_list = self.session.get(
+            self.sessionKeyPrefix + self._visited_list, None)
+        if not visited_list:
+            return
+        for server in visited_list[:]:
+            if (server.uri == server_uri) and (server.delegate == delegate):
+                visited_list.remove(server)
+
+    def _resetServerList(self):
+        return self._resetSessionThing(self._server_list, [])
+
+    def _resetVisitedList(self):
+        return self._resetSessionThing(self._visited_list, [])
+
+    def _resetSessionThing(self, key, value):
+        self.session[self.sessionKeyPrefix + key] = value
+        return self.session[self.sessionKeyPrefix + key]
+
     def _newAuthRequest(self, consumer_id, server_id, server_url):
         nonce = cryptutil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
 
         token = self._genToken(nonce, consumer_id, server_id, server_url)
-        return SUCCESS, OpenIDAuthRequest(token, server_id, server_url, nonce)
+        return SUCCESS, OpenIDAuthRequest(token, consumer_id,
+                                          server_id, server_url, nonce)
 
     def _constructRedirect(self, assoc, auth_req, return_to, trust_root,
                            immediate=False):
@@ -678,7 +844,7 @@ class OpenIDConsumer(object):
 
         if assoc is None or \
                (replace and assoc.expiresIn < self.TOKEN_LIFETIME):
-            proto = urlparse(server_url)[0] 
+            proto = urlparse(server_url)[0]
             if proto == 'https':
                 body = self._createAssociateRequest()
                 assoc = self._fetchAssociation(server_url, body)
@@ -772,7 +938,7 @@ class OpenIDConsumer(object):
                     'openid.dh_modulus': cryptutil.longToBase64(dh.modulus),
                     'openid.dh_gen': cryptutil.longToBase64(dh.generator),
                     })
- 
+
         return urllib.urlencode(args)
 
     def _fetchAssociation(self, server_url, body, dh=None):
@@ -823,7 +989,7 @@ class OpenIDConsumer(object):
                     fmt = 'Not expecting a DH-SHA1 session from server %s'
                     oidutil.log(fmt % (server_url))
                     return None
-   
+
                 spub = cryptutil.base64ToLong(results['dh_server_public'])
                 enc_mac_key = oidutil.fromBase64(results['enc_mac_key'])
                 secret = dh.xorSecret(spub, enc_mac_key)
@@ -872,7 +1038,10 @@ class OpenIDAuthRequest(object):
 
     @sort: token, server_url
     """
-    def __init__(self, token, server_id, server_url, nonce):
+
+    redirect_url = None
+
+    def __init__(self, token, identity_url, server_id, server_url, nonce):
         """
         Creates a new OpenIDAuthRequest object.  This just stores each
         argument in an appropriately named field.
@@ -882,6 +1051,7 @@ class OpenIDAuthRequest(object):
         when needed.
         """
         self.token = token
+        self.identity_url = identity_url
         self.server_id = server_id
         self.server_url = server_url
         self.nonce = nonce
@@ -890,7 +1060,29 @@ class OpenIDAuthRequest(object):
         return ((self.token == other.token) and
                 (self.server_id == other.server_id) and
                 (self.server_url == other.server_url) and
-                (self.nonce == other.nonce))
+                (self.nonce == other.nonce) and
+                (self.identity_url == other.identity_url) and
+                (self.redirect_url == other.redirect_url))
 
     def __ne__(self, other):
         return not (self == other)
+
+
+def discoveryVersion1FromString(uri, doc):
+    # XXX - parse.openIDDiscover probably doesn't need to take the URI
+    # or return it.
+    unused, delegate_url, server_url = openIDDiscover(uri, doc)
+    service = OpenIDDescriptor()
+    service.delegate = delegate_url
+    service.uri = server_url
+    service.type = OPENID_1_0
+    return service
+
+def discoveryVersion1(uri, fetcher):
+    resp = fetcher.fetch(uri)
+    if resp.status != 200:
+        raise DiscoveryFailure(
+            'HTTP Response status from identity URL host is not 200. '
+            'Got status %r' % (resp.status,), resp)
+
+    return discoveryVersion1FromString(resp.final_url, resp.body)
