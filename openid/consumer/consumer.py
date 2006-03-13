@@ -280,7 +280,7 @@ class OpenIDConsumer(object):
     NONCE_LEN = 8
     NONCE_CHRS = string.letters + string.digits
 
-    def __init__(self, store, fetcher=None, immediate=False):
+    def __init__(self, store, fetcher=None):
         """
         This method initializes a new C{L{OpenIDConsumer}} instance to
         access the library.
@@ -313,14 +313,6 @@ class OpenIDConsumer(object):
             pycurl bindings are available, and uses urllib if not.
 
         @type fetcher: C{L{urljr.fetchers.HTTPFetcher}}
-
-
-        @param immediate: This is an optional boolean value.  It
-            controls whether the library uses immediate mode, as
-            explained in the module description.  The default value is
-            False, which disables immediate mode.
-
-        @type immediate: C{bool}
         """
         self.store = store
 
@@ -328,13 +320,6 @@ class OpenIDConsumer(object):
             self.fetcher = _getHTTPFetcher()
         else:
             self.fetcher = fetcher
-
-        if immediate:
-            self.mode = 'checkid_immediate'
-        else:
-            self.mode = 'checkid_setup'
-
-        self.immediate = immediate
 
     def beginAuth(self, user_url):
         """
@@ -419,7 +404,8 @@ class OpenIDConsumer(object):
         consumer_id, server_id, server_url = info
         return self._newAuthRequest(consumer_id, server_id, server_url)
 
-    def constructRedirect(self, auth_request, return_to, trust_root):
+    def constructRedirect(self, auth_request, return_to, trust_root,
+                          immediate=False):
         """
         This method is called to construct the redirect URL sent to
         the browser to ask the server to verify its identity.  This is
@@ -457,6 +443,13 @@ class OpenIDConsumer(object):
         @type trust_root: C{str}
 
 
+        @param immediate: This is an optional boolean value.  It
+            controls whether the library uses immediate mode, as
+            explained in the module description.  The default value is
+            False, which disables immediate mode.
+
+        @type immediate: C{bool}
+
         @return: This method returns a string containing the URL to
             redirect to when such a URL is successfully constructed.
 
@@ -472,7 +465,7 @@ class OpenIDConsumer(object):
         # Because _getAssociation could be asynchronous if the
         # association is not already in the store.
         return self._constructRedirect(assoc, auth_request,
-                                       return_to, trust_root)
+                                       return_to, trust_root, immediate)
 
     def completeAuth(self, token, query):
         """
@@ -552,12 +545,19 @@ class OpenIDConsumer(object):
         token = self._genToken(nonce, consumer_id, server_id, server_url)
         return SUCCESS, OpenIDAuthRequest(token, server_id, server_url, nonce)
 
-    def _constructRedirect(self, assoc, auth_req, return_to, trust_root):
+    def _constructRedirect(self, assoc, auth_req, return_to, trust_root,
+                           immediate=False):
+
+        if immediate:
+            mode = 'checkid_immediate'
+        else:
+            mode = 'checkid_setup'
+
         redir_args = {
             'openid.identity': auth_req.server_id,
             'openid.return_to': return_to,
             'openid.trust_root': trust_root,
-            'openid.mode': self.mode,
+            'openid.mode': mode,
             }
 
         if assoc is not None:
