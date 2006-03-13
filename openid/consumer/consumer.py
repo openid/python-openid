@@ -291,6 +291,7 @@ class OpenIDConsumer(object):
     _server_list = 'servers'
     _visited_list = 'visited'
     _last_uri = 'last_uri'
+    _token = 'last_token'
 
     def __init__(self, trust_root, store, session, fetcher=None):
         """
@@ -468,6 +469,7 @@ class OpenIDConsumer(object):
             info.redirect_url = self.constructRedirect(info,
                                                        return_to,
                                                        immediate)
+            self.session[self.sessionKeyPrefix + self._token] = info.token
         return status, info
 
     def constructRedirect(self, auth_request, return_to, immediate=False):
@@ -518,7 +520,7 @@ class OpenIDConsumer(object):
         return self._constructRedirect(assoc, auth_request,
                                        return_to, self.trust_root, immediate)
 
-    def completeAuth(self, token, query):
+    def completeAuth(self, query):
         """
         This method is called to interpret the server's response to an
         OpenID request.  It is called in L{step
@@ -580,9 +582,15 @@ class OpenIDConsumer(object):
         mode = query.get('openid.mode', '')
         if mode == 'cancel':
             # Remove the server from the visited list.
-            self._splitToken(token)
-            fields = self._splitToken(token)
-            self._unVisit(fields[3], fields[2])
+            token = self.session.get(self.sessionKeyPrefix + self._token,
+                                     None)
+            if token:
+                self._splitToken(token)
+                fields = self._splitToken(token)
+                self._unVisit(fields[3], fields[2])
+            else:
+                oidutil.log("Failed to retrieve token from session.")
+                self._resetVisitedList()
             return SUCCESS, None
         elif mode == 'error':
             error = query.get('openid.error')
@@ -590,6 +598,11 @@ class OpenIDConsumer(object):
                 oidutil.log(error)
             return FAILURE, None
         elif mode == 'id_res':
+            token = self.session.get(self.sessionKeyPrefix + self._token,
+                                     None)
+            if not token:
+                oidutil.log("Failed to retrieve token from session.")
+                return FAILURE, None
             return self._doIdRes(token, query)
         else:
             return FAILURE, None

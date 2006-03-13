@@ -153,7 +153,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         assoc = store.getAssociation(server_url, fetcher.assoc_handle)
         assoc.addSignature(['mode', 'return_to', 'identity'], query)
 
-        (status, info) = consumer.completeAuth(info.token, query)
+        (status, info) = consumer.completeAuth(query)
         assert status == 'success'
         assert info == user_url
 
@@ -613,7 +613,7 @@ class TestYadisFallback(BaseTestDiscovery):
         status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         self.failUnlessEqual(status, SUCCESS)
-        self.consumer.completeAuth(info.token, {'openid.mode': 'cancel'})
+        self.consumer.completeAuth({'openid.mode': 'cancel'})
         status, info = self.consumer.beginAuth(self.id_url, self.return_to)
         self.failUnlessEqual(info.server_url, self.servers[1])
 
