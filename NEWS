@@ -1,0 +1,50 @@
+What's New in Python OpenID 1.2.0
+=================================
+
+Yadis Support
+-------------
+
+XXX: yeah yeah
+
+Extension Support
+-----------------
+
+XXX: ???
+
+Dependencies
+------------
+
+ * urljr
+
+ * yadis
+
+Consumer API
+------------
+
+ * OpenIDConsumer(store, [fetcher], [immediate]) is now
+   OpenIDConsumer(trust_root, store, session, [fetcher])
+
+  - construct on every request
+  - XXX: describe session object, key prefix
+
+ * OpenIDConsumer.beginAuth(user_url) is now
+   OpenIDConsumer.beginAuth(user_url, return_to, [immediate])
+
+ * OpenIDConsumer.constructRedirect(authreq, return_to, trust_root) is
+   no longer used -- the redirect_url is an attribute of the return value
+   from beginAuth.
+
+ * OpenIDConsumer.completeAuth(token, query) is now
+   OpenIDConsumer.completeAuth(query)
+
+Fetcher API
+-----------
+
+ * fetcher was openid.consumer.fetchers.OpenIDHTTPFetcher, is now
+   urljr.fetchers.HTTPFetcher.  get() and post() have been replaced by
+   fetch(), see urljr.fetchers for details.
+
+Store API
+---------
+
+ * XXX: nonce storage simplified
