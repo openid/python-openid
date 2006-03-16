@@ -164,7 +164,8 @@ class TestLowLevelGetAuthResponse_Dumb(LLServerTestCase):
             'openid.return_to': 'not a url',
             }
 
-        status, info = self.server.getAuthResponse(args, false_app)
+        status, info = self.server.getAuthResponse(
+            ConstReturningApp(False, None, args))
 
         self.failUnlessEqual(status, server.LOCAL_ERROR, info)
 
