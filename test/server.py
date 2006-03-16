@@ -157,6 +157,17 @@ class TestLowLevel_Associate(LLServerTestCase):
 
 class TestLowLevelGetAuthResponse_Dumb(LLServerTestCase):
 
+    def test_insaneReturnTo(self):
+        args = {
+            'openid.mode': 'checkid_immediate',
+            'openid.identity': self.id_url,
+            'openid.return_to': 'not a url',
+            }
+
+        status, info = self.server.getAuthResponse(False, args)
+
+        self.failUnlessEqual(status, server.LOCAL_ERROR, info)
+
     def test_checkidImmediateFailure(self):
         args = {
             'openid.mode': 'checkid_immediate',

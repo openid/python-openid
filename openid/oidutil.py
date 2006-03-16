@@ -88,3 +88,15 @@ def normalizeUrl(url):
     assert type(url) is str
 
     return url
+
+def isAbsoluteHTTPURL(url):
+    """Does this URL look like a http or https URL that has a host?
+
+    @param url: The url to check
+    @type url: str
+
+    @return: Whether the URL looks OK
+    @rtype: bool
+    """
+    parts = urlparse.urlparse(url)
+    return parts[0] in ['http', 'https'] and parts[1]
