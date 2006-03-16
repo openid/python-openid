@@ -4,7 +4,6 @@ from openid.server import server
 from openid import cryptutil, kvform
 import _memstore
 import cgi
-import urlparse
 import urllib
 
 import unittest
