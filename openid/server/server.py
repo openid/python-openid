@@ -684,11 +684,10 @@ class LowLevelServer(object):
         if return_to is None:
             raise ValueError('No return_to URL specified')
 
-        trust_root = args.get('openid.trust_root')
-        if trust_root is not None:
-            tr = TrustRoot.parse(trust_root)
-            if tr is None:
-                raise ValueError('Malformed trust_root: %r' % (trust_root,))
+        trust_root = args.get('openid.trust_root', return_to)
+        tr = TrustRoot.parse(trust_root)
+        if tr is None:
+            raise ValueError('Malformed trust_root: %r' % (trust_root,))
 
         if not tr.validateURL(return_to):
             fmt = 'return_to(%s) not valid against trust_root(%s)'
