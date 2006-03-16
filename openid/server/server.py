@@ -203,10 +203,86 @@ class AppIface(object):
 
     XXX: this should really be the request object, which should have
     accessors for the HTTP method, args, etc.
+
+    @ivar http_method: This is a string describing the HTTP
+        method used to make the current request.  The only
+        expected values are C{'GET'} and C{'POST'}, though
+        capitalization will be ignored.  Any value other than one
+        of the expected ones will result in a LOCAL_ERROR return
+        code.
+
+    @type http_method: C{str}
+
+
+    @ivar args: This should be a C{dict}-like object that
+        contains the parsed, unescaped arguments that were sent
+        with the OpenID request being handled.  The keys and
+        values in the dictionary should both be either C{str} or
+        C{unicode} objects.
+
+    @type args: a C{dict}-like object
+
+
+    
     """
 
+    def __init__(self, http_method, args):
+        self.http_method = http_method
+        self.args = args
+
     def isAuthorized(self, identity_url, trust_root):
-        """Return whether the user has authorized the OpenID transaction"""
+        """Return whether the user has authorized the OpenID transaction
+
+        This is a callback function which this
+        C{L{OpenIDServer}} instance will use to determine the
+        result of an authentication request.  The function will be
+        called with two C{str} arguments, C{identity_url} and
+        C{trust_root}.  It should return a C{bool} value
+        indicating whether this identity request is authorized to
+        succeed.
+
+        The function needs to perform two seperate tasks, and
+        return C{True} only if it gets a positive result from
+        each.
+
+        The first task is to determine the user making this
+        request, and if they are authorized to claim the identity
+        URL passed to the function.  If the user making this
+        request isn't authorized to claim the identity URL, the
+        callback should return C{False}.
+
+        The second task is to determine if the user will allow the
+        trust root in question to determine his or her identity.
+        If they have not previously authorized the trust root to
+        know they're identity the callback should return C{False}.
+
+        If neither of those returned C{False}, the callback should
+        return C{True}.  An example callback might look like this::
+
+            def is_authorized(identity_url, trust_root):
+                user = getUserName()
+                if user is None:
+                    return False
+
+                if identity_url != getIdentityUrl(user):
+                    return False
+
+                if trust_root not in getTrustRoots(user):
+                    return False
+
+                return True
+
+        That's obviously a pseudocode-ish example, but it conveys
+        the important steps.  This callback should work only with
+        information already submitted, ie. the user already logged
+        in and the trust roots they've already approved.  It is
+        important that this callback does not attempt to interact
+        with the user.  Doing so would lead to violating the
+        OpenID specification when the server is handling
+        checkid_immediate requests.
+
+        @returntype: bool
+        """
         raise NotImplementedError
 
     def additionalFields(self):
@@ -269,7 +345,7 @@ class OpenIDServer(object):
         """
         self.low_level = LowLevelServer(server_url, store)
 
-    def getOpenIDResponse(self, http_method, args, app_iface):
+    def getOpenIDResponse(self, app_iface):
         """
         This method processes an OpenID request, and determines the
         proper response to it.  It then communicates what that
@@ -318,79 +394,6 @@ class OpenIDServer(object):
                 has occured as it sees fit.  In this case, C{info} is
                 a short description of the error.
 
-
-        @param http_method: This is a string describing the HTTP
-            method used to make the current request.  The only
-            expected values are C{'GET'} and C{'POST'}, though
-            capitalization will be ignored.  Any value other than one
-            of the expected ones will result in a LOCAL_ERROR return
-            code.
-
-        @type http_method: C{str}
-
-
-        @param args: This should be a C{dict}-like object that
-            contains the parsed, unescaped arguments that were sent
-            with the OpenID request being handled.  The keys and
-            values in the dictionary should both be either C{str} or
-            C{unicode} objects.
-
-        @type args: a C{dict}-like object
-
-
-        # XXX: update documentation
-        @param is_authorized: This is a callback function which this
-            C{L{OpenIDServer}} instance will use to determine the
-            result of an authentication request.  The function will be
-            called with two C{str} arguments, C{identity_url} and
-            C{trust_root}.  It should return a C{bool} value
-            indicating whether this identity request is authorized to
-            succeed.
-
-            The function needs to perform two seperate tasks, and
-            return C{True} only if it gets a positive result from
-            each.
-
-            The first task is to determine the user making this
-            request, and if they are authorized to claim the identity
-            URL passed to the function.  If the user making this
-            request isn't authorized to claim the identity URL, the
-            callback should return C{False}.
-
-            The second task is to determine if the user will allow the
-            trust root in question to determine his or her identity.
-            If they have not previously authorized the trust root to
-            know they're identity the callback should return C{False}.
-
-            If neither of those returned C{False}, the callback should
-            return C{True}.  An example callback might look like this::
-
-                def is_authorized(identity_url, trust_root):
-                    user = getUserName()
-                    if user is None:
-                        return False
-
-                    if identity_url != getIdentityUrl(user):
-                        return False
-
-                    if trust_root not in getTrustRoots(user):
-                        return False
-
-                    return True
-
-            That's obviously a pseudocode-ish example, but it conveys
-            the important steps.  This callback should work only with
-            information already submitted, ie. the user already logged
-            in and the trust roots they've already approved.  It is
-            important that this callback does not attempt to interact
-            with the user.  Doing so would lead to violating the
-            OpenID specification when the server is handling
-            checkid_immediate requests.
-
-        @type is_authorized: A function, taking two C{str} objects and
-            returning a C{bool}.
-
-
         @return: A pair, C{(status, value)} which describes the
             appropriate response to an OpenID request, as above.  The
             first value will always be one of the constants defined in
@@ -398,23 +401,24 @@ class OpenIDServer(object):
 
         @rtype: (C{str}, depends on the first)
         """
-        if http_method.upper() == 'GET':
-            return self.low_level.getAuthResponse(args, app_iface)
+        if app_iface.http_method.upper() == 'GET':
+            return self.low_level.getAuthResponse(app_iface)
 
-        elif http_method.upper() == 'POST':
-            mode = args.get('openid.mode')
+        elif app_iface.http_method.upper() == 'POST':
+            mode = app_iface.args.get('openid.mode')
             if mode == 'associate':
-                return self.low_level.associate(args)
+                return self.low_level.associate(app_iface.args)
 
             elif mode == 'check_authentication':
-                return self.low_level.checkAuthentication(args)
+                return self.low_level.checkAuthentication(app_iface.args)
 
             else:
                 err = 'Invalid openid.mode (%r) for POST requests' % mode
                 return self.low_level.postError(err)
 
         else:
-            err = 'HTTP method %r is not valid with OpenID' % (http_method,)
+            err = 'HTTP method %r is not valid with OpenID' % (
+                app_iface.http_method,)
             return LOCAL_ERROR, err
 
 
@@ -694,7 +698,7 @@ class LowLevelServer(object):
 
         return return_to, trust_root
 
-    def getAuthResponse(self, args, app_iface):
+    def getAuthResponse(self, app_iface):
         """
         This method determines the correct response to make to an
         authentication request.
@@ -737,24 +741,24 @@ class LowLevelServer(object):
 
         @rtype: (C{str}, depends on the first)
         """
-        mode = args.get('openid.mode')
+        mode = app_iface.args.get('openid.mode')
 
         if mode not in ['checkid_immediate', 'checkid_setup']:
             err = 'invalid openid.mode (%r) for GET requests' % mode
-            return self.getError(args, err)
+            return self.getError(app_iface.args, err)
 
-        identity = args.get('openid.identity')
+        identity = app_iface.args.get('openid.identity')
         if identity is None:
-            return self.getError(args, 'No identity specified')
+            return self.getError(app_iface.args, 'No identity specified')
 
         try:
-            return_to, trust_root = self._checkTrustRoot(args)
+            return_to, trust_root = self._checkTrustRoot(app_iface.args)
         except ValueError, why:
-            return self.getError(args, why[0])
+            return self.getError(app_iface.args, why[0])
 
         if not app_iface.isAuthorized(identity, trust_root):
             if mode == 'checkid_immediate':
-                nargs = dict(args)
+                nargs = dict(app_iface.args)
                 nargs['openid.mode'] = 'checkid_setup'
                 setup_url = oidutil.appendArgs(self.url, nargs)
                 rargs = {
@@ -764,7 +768,7 @@ class LowLevelServer(object):
                 return REDIRECT, oidutil.appendArgs(return_to, rargs)
 
             elif mode == 'checkid_setup':
-                return DO_AUTH, AuthorizationInfo(self.url, args)
+                return DO_AUTH, AuthorizationInfo(self.url, app_iface.args)
 
             else:
                 raise AssertionError('unreachable')
@@ -776,7 +780,7 @@ class LowLevelServer(object):
             }
 
         store = self.store
-        assoc_handle = args.get('openid.assoc_handle')
+        assoc_handle = app_iface.args.get('openid.assoc_handle')
         if assoc_handle:
             assoc = store.getAssociation(self.normal_key, assoc_handle)
 
