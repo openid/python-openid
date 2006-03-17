@@ -74,6 +74,11 @@ def kvToSeq(data, strict=False):
     line_num = 0
     for line in lines:
         line_num += 1
+
+        # Ignore blank lines
+        if not line.strip():
+            continue
+
         pair = line.split(':', 1)
         if len(pair) == 2:
             k, v = pair

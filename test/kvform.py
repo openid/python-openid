@@ -20,8 +20,11 @@ def test_kvform():
               'invalidate_handle':'{HMAC-SHA1:2398410938412093}'}, 0),
 
             # Warnings from lines with no colon:
-            ('\n', {}, 1),
-            ('\n\n', {}, 2),
+            ('x\n', {}, 1),
+            ('x\nx\n', {}, 2),
+
+            # But not from blank lines (because LJ generates them)
+            ('x\n\n', {}, 1),
             ('East is least\n', {}, 1),
 
             # Warning from empty key
