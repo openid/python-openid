@@ -223,7 +223,7 @@ class AppIface(object):
     @type args: a C{dict}-like object
 
 
-    
+
     """
 
     def __init__(self, http_method, args):
@@ -1042,3 +1042,58 @@ class LowLevelServer(object):
         @rtype: C{(str, str)}
         """
         return REMOTE_ERROR, kvform.dictToKV({'error': msg})
+
+class OpenIDRequest(object):
+    mode = None
+
+class CheckAuthRequest(OpenIDRequest):
+    mode = "check_auth"
+    # XXX: stuff
+
+class AssociateRequest(OpenIDRequest):
+    mode = "associate"
+    # XXX: things
+
+class CheckIDRequest(OpenIDRequest):
+    """A CheckID Request.
+
+    @type mode: str
+    @type immediate: bool
+    @type identity_url: str
+    @type trust_root: str
+    @type return_to: str
+    @type assoc_handle: str
+    """
+    mode = "checkid_setup" or "checkid_immediate"
+
+    immediate = False
+
+    assoc_handle = None
+
+    def trustRootValid(self):
+        """Is my return_to under my trust_root?
+
+        @returntype: bool
+        """
+
+    def respond(self, allow=False):
+        raise NotImplementedError
+
+class OpenIDResponse(object):
+    """
+    @type request: L{OpenIDRequest}
+    @type fields: dict
+    """
+    def __init__(self, request):
+        self.request = request
+        self.fields = {}
+
+class CheckIDResponse(OpenIDResponse):
+    """
+    @type signed: list
+    """
+
+class WebResponse(object):
+    code = 200
+    headers = {}
+    body = ""
