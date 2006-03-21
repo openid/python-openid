@@ -1048,7 +1048,32 @@ class OpenIDRequest(object):
 
 class CheckAuthRequest(OpenIDRequest):
     mode = "check_authentication"
-    # XXX: stuff
+    def fromQuery(klass, query):
+        self = klass()
+        prefix = 'openid.'
+        try:
+            self.assoc_handle = query[prefix + 'assoc_handle']
+            self.sig = query[prefix + 'sig']
+            signed_list = query['openid.signed']
+        except KeyError, e:
+            raise ProtocolError("%s request missing required parameter %s"
+                                " from query %s" %
+                                (self.mode, e.args[0], query))
+        signed_list = signed_list.split(',')
+        signed_pairs = []
+        for field in signed_list:
+            try:
+                value = query[prefix + field]
+            except KeyError, e:
+                raise ProtocolError("Couldn't find signed field %r in query %s"
+                                    % (field, query))
+            else:
+                signed_pairs.append((field, value))
+
+        self.signed = signed_pairs
+        return self
+
+    fromQuery = classmethod(fromQuery)
 
 class AssociateRequest(OpenIDRequest):
     mode = "associate"
@@ -1166,7 +1191,7 @@ class Decoder(object):
         return self.decodeCheckId(query, immediate=True)
 
     def openid_check_authentication(self, query):
-        return CheckAuthRequest()
+        return CheckAuthRequest.fromQuery(query)
 
     def openid_associate(self, query):
         return AssociateRequest()

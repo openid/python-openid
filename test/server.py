@@ -693,7 +693,7 @@ class TestServer(unittest.TestCase):
         response = self.server.openid_associate(request)
 
     def test_checkAuth(self):
-        request = server.CheckIDRequest('id', 'rt')
+        request = server.CheckAuthRequest()
         response = self.server.openid_check_authentication(request)
 
 class TestSignatory(unittest.TestCase):
