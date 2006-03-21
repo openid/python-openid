@@ -1108,9 +1108,10 @@ class CheckIDRequest(OpenIDRequest):
             self.immediate = False
             self.mode = "checkid_setup"
 
-    def fromQuery(klass, query, immediate):
+    def fromQuery(klass, query):
         self = klass.__new__(klass)
-        if immediate:
+        mode = query['openid.mode']
+        if mode == "checkid_immediate":
             self.immediate = True
             self.mode = "checkid_immediate"
         else:
@@ -1201,29 +1202,27 @@ class Encoder(object):
         return WebResponse()
 
 class Decoder(object):
-    prefix = 'openid'
-    separator = '.'
+    prefix = 'openid.'
     def decode(self, query):
         if not query:
             return None
-        beginning = self.prefix + self.separator
-        myquery = dict(filter(lambda (k, v): k.startswith(beginning),
+        myquery = dict(filter(lambda (k, v): k.startswith(self.prefix),
                               query.iteritems()))
         if not myquery:
             return None
 
-        mode = myquery.get(self.separator.join([self.prefix, 'mode']))
+        mode = myquery.get(self.prefix + 'mode')
         if not mode:
-            raise ProtocolError("No %s%smode value in query %r" % (
-                self.prefix, self.separator, query))
+            raise ProtocolError("No %smode value in query %r" % (
+                self.prefix, query))
         handler = getattr(self, 'openid_' + mode, self.defaultDecoder)
         return handler(query)
 
     def openid_checkid_setup(self, query):
-        return CheckIDRequest.fromQuery(query, immediate=False)
+        return CheckIDRequest.fromQuery(query)
 
     def openid_checkid_immediate(self, query):
-        return CheckIDRequest.fromQuery(query, immediate=True)
+        return CheckIDRequest.fromQuery(query)
 
     def openid_check_authentication(self, query):
         return CheckAuthRequest.fromQuery(query)
@@ -1232,7 +1231,7 @@ class Decoder(object):
         return AssociateRequest()
 
     def defaultDecoder(self, query):
-        mode = query.get(self.separator.join([self.prefix, 'mode']))
+        mode = query[self.prefix + 'mode']
         raise ProtocolError("No decoder for mode %r" % (mode,))
 
 
