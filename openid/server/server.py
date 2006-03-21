@@ -1047,12 +1047,13 @@ class OpenIDRequest(object):
     mode = None
 
 class CheckAuthRequest(OpenIDRequest):
-    mode = "check_auth"
+    mode = "check_authentication"
     # XXX: stuff
 
 class AssociateRequest(OpenIDRequest):
     mode = "associate"
-    # XXX: things
+    session_type = 'cleartext'
+    assoc_type = None
 
 class CheckIDRequest(OpenIDRequest):
     """A CheckID Request.
@@ -1070,11 +1071,17 @@ class CheckIDRequest(OpenIDRequest):
 
     assoc_handle = None
 
-    def __init__(self, identity_url, return_to, trust_root=None, mode=None):
-        self.mode = mode
-        self.identity_url = identity_url
+    def __init__(self, identity, return_to, trust_root=None,
+                 immediate=False):
+        self.identity_url = identity
         self.return_to = return_to
         self.trust_root = trust_root
+        if immediate:
+            self.immediate = True
+            self.mode = "checkid_immediate"
+        else:
+            self.immediate = False
+            self.mode = "checkid_setup"
 
     def trustRootValid(self):
         """Is my return_to under my trust_root?
@@ -1134,9 +1141,64 @@ class Encoder(object):
         return WebResponse()
 
 class Decoder(object):
-    requestFactory = OpenIDRequest
+    prefix = 'openid'
+    separator = '.'
     def decode(self, query):
-        return OpenIDRequest()
+        if not query:
+            return None
+        beginning = self.prefix + self.separator
+        myquery = dict(filter(lambda (k, v): k.startswith(beginning),
+                              query.iteritems()))
+        if not myquery:
+            return None
+
+        mode = myquery.get(self.separator.join([self.prefix, 'mode']))
+        if not mode:
+            raise ProtocolError("No %s%smode value in query %r" % (
+                self.prefix, self.separator, query))
+        handler = getattr(self, 'openid_' + mode, self.defaultDecoder)
+        return handler(query)
+
+    def openid_checkid_setup(self, query):
+        return self.decodeCheckId(query, immediate=False)
+
+    def openid_checkid_immediate(self, query):
+        return self.decodeCheckId(query, immediate=True)
+
+    def openid_check_authentication(self, query):
+        return CheckAuthRequest()
+
+    def openid_associate(self, query):
+        return AssociateRequest()
+
+    def defaultDecoder(self, query):
+        mode = query.get(self.separator.join([self.prefix, 'mode']))
+        raise ProtocolError("No decoder for mode %r" % (mode,))
+
+    def decodeCheckId(self, query, immediate):
+        kwargs = {
+            'immediate': immediate,
+            }
+        required = [
+            'identity',
+            'return_to',
+            ]
+        optional = [
+            'trust_root',
+            ]
+        # assoc_handle ?
+        for field in required:
+            value = query.get('%s%s%s' % (self.prefix, self.separator, field))
+            if not value:
+                raise ProtocolError("Missing required field %s from %r"
+                                    % (field, query))
+            kwargs[field] = value
+        for field in optional:
+            value = query.get('%s%s%s' % (self.prefix, self.separator, field))
+            if value:
+                kwargs[field] = value
+        return CheckIDRequest(**kwargs)
+
 
 _encoder = Encoder()
 _decoder = Decoder()

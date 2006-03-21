@@ -448,7 +448,7 @@ class TestDecode(unittest.TestCase):
             'openid.mode': 'twos-compliment',
             'openid.pants': 'zippered',
             }
-        self.failUnlessEqual(server.ProtocolError, server.decode, args)
+        self.failUnlessRaises(server.ProtocolError, server.decode, args)
 
     def test_checkidImmediate(self):
         args = {
@@ -464,7 +464,7 @@ class TestDecode(unittest.TestCase):
         self.failUnless(isinstance(r, server.CheckIDRequest))
         self.failUnlessEqual(r.mode, "checkid_immediate")
         self.failUnlessEqual(r.immediate, True)
-        self.failUnlessEqual(r.identity, self.id_url)
+        self.failUnlessEqual(r.identity_url, self.id_url)
         self.failUnlessEqual(r.trust_root, self.tr_url)
         self.failUnlessEqual(r.return_to, self.rt_url)
 
@@ -480,7 +480,7 @@ class TestDecode(unittest.TestCase):
         self.failUnless(isinstance(r, server.CheckIDRequest))
         self.failUnlessEqual(r.mode, "checkid_setup")
         self.failUnlessEqual(r.immediate, False)
-        self.failUnlessEqual(r.identity, self.id_url)
+        self.failUnlessEqual(r.identity_url, self.id_url)
         self.failUnlessEqual(r.trust_root, self.tr_url)
         self.failUnlessEqual(r.return_to, self.rt_url)
 
@@ -555,6 +555,12 @@ class TestDecode(unittest.TestCase):
         self.failUnlessEqual(r.session_type, "cleartext")
         self.failUnlessEqual(r.assoc_type, "HMAC-SHA1")
 
+    def test_nomode(self):
+        args = {
+            'openid.session_type': 'DH-SHA1',
+            'openid.dh_consumer_public': "my public keeey",
+            }
+        self.failUnlessRaises(server.ProtocolError, server.decode, args)
 
 class TestEncode(unittest.TestCase):
     def test_id_res(self):
