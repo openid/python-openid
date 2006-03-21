@@ -585,7 +585,9 @@ class TestEncode(unittest.TestCase):
                         "%s does not start with %s" % (location,
                                                        request.return_to))
         query = cgi.parse_qs(urlparse(location)[4])
-        self.failUnlessEqual(query, response.fields)
+        # argh.
+        q2 = dict([(k, v[0]) for k, v in query.iteritems()])
+        self.failUnlessEqual(q2, response.fields)
 
     def test_cancel(self):
         request = server.CheckIDRequest(

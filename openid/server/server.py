@@ -1219,8 +1219,17 @@ class CheckIDResponse(OpenIDResponse):
 
 class WebResponse(object):
     code = 200
-    headers = {}
     body = ""
+
+    def __init__(self, code=None, headers=None, body=None):
+        if code:
+            self.code = code
+        if headers is not None:
+            self.headers = headers
+        else:
+            self.headers = {}
+        if body is not None:
+            self.body = body
 
 class Signatory(object):
     def __init__(self, store):
@@ -1249,7 +1258,14 @@ class OpenIDServer2(object):
 class Encoder(object):
     responseFactory = WebResponse
     def encode(self, response):
-        return WebResponse()
+        request = response.request
+        if request.mode in ['checkid_setup', 'checkid_immediate']:
+            location = oidutil.appendArgs(request.return_to, response.fields)
+            wr = self.responseFactory(code=HTTP_REDIRECT,
+                                      headers={'location': location})
+        else:
+            wr = self.responseFactory(body=kvform.dictToKV(response.fields))
+        return wr
 
 class Decoder(object):
     prefix = 'openid.'
