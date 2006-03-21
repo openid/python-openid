@@ -562,10 +562,9 @@ class TestEncode(unittest.TestCase):
             mode = 'checkid_setup',
             identity_url = 'http://bombom.unittest/',
             trust_root = 'http://burr.unittest/',
-            return_to = 'http://burr.unittest/999'
+            return_to = 'http://burr.unittest/999',
             )
-        response = server.CheckIDResponse()
-        response.request = request
+        response = server.CheckIDResponse(request)
         response.fields = {
             'openid.mode': 'id_res',
             'openid.identity': request.identity_url,
@@ -589,8 +588,7 @@ class TestEncode(unittest.TestCase):
             trust_root = 'http://burr.unittest/',
             return_to = 'http://burr.unittest/999'
             )
-        response = server.CheckIDResponse()
-        response.request = request
+        response = server.CheckIDResponse(request)
         response.fields = {
             'openid.mode': 'cancel',
             }
@@ -660,7 +658,7 @@ class TestCheckID(unittest.TestCase):
             'openid.mode': 'cancel',
             })
 
-def Counter(object):
+class Counter(object):
     def __init__(self):
         self.count = 0
 
@@ -668,6 +666,10 @@ def Counter(object):
         self.count += 1
 
 class TestServer(unittest.TestCase):
+    def setUp(self):
+        self.store = _memstore.MemoryStore()
+        self.server = server.OpenIDServer2(self.store)
+
     def test_dispatch(self):
         monkeycalled = Counter()
         def monkeyDo(self, request):
@@ -685,7 +687,7 @@ class TestServer(unittest.TestCase):
         response = self.server.openid_associate(request)
 
     def test_checkAuth(self):
-        request = server.CheckIDRequest()
+        request = server.CheckIDRequest('id', 'rt')
         response = self.server.openid_check_authentication(request)
 
 class TestSignatory(unittest.TestCase):
@@ -697,8 +699,7 @@ class TestSignatory(unittest.TestCase):
         request = server.OpenIDRequest()
         assoc_handle = '{assoc}{lookatme}'
         request.assoc_handle = assoc_handle
-        response = server.CheckIDResponse()
-        response.request = request
+        response = server.CheckIDResponse(request)
         response.fields = {
             'foo': 'amsigned',
             'bar': 'notsigned',
@@ -706,17 +707,16 @@ class TestSignatory(unittest.TestCase):
             }
         response.signed = ['foo', 'azu']
         sresponse = self.signatory.sign(response)
-        self.failUnlessEqual(sresponse.fields['openid.assoc_handle'],
+        self.failUnlessEqual(sresponse.fields.get('openid.assoc_handle'),
                              assoc_handle)
-        self.failUnlessEqual(sresponse.fields['openid.signed'],
+        self.failUnlessEqual(sresponse.fields.get('openid.signed'),
                              ['foo', 'azu'])
-        self.failUnless(sresponse['openid.sig'])
+        self.failUnless(sresponse.fields.get('openid.sig'))
 
     def test_signDumb(self):
         request = server.OpenIDRequest()
         request.assoc_handle = None
-        response = server.CheckIDResponse()
-        response.request = request
+        response = server.CheckIDResponse(request)
         response.fields = {
             'foo': 'amsigned',
             'bar': 'notsigned',
@@ -724,10 +724,10 @@ class TestSignatory(unittest.TestCase):
             }
         response.signed = ['foo', 'azu']
         sresponse = self.signatory.sign(response)
-        self.failUnlessEqual(sresponse.fields['openid.signed'],
+        self.failUnlessEqual(sresponse.fields.get('openid.signed'),
                              ['foo', 'azu'])
-        self.failUnless(sresponse.fields['openid.assoc_handle'])
-        self.failUnless(sresponse['openid.sig'])
+        self.failUnless(sresponse.fields.get('openid.assoc_handle'))
+        self.failUnless(sresponse.fields.get('openid.sig'))
 
     def test_verify(self):
         assoc_handle = sig = signed = "FIXME"

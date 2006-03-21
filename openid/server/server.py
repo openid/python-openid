@@ -1070,14 +1070,20 @@ class CheckIDRequest(OpenIDRequest):
 
     assoc_handle = None
 
+    def __init__(self, identity_url, return_to, trust_root=None, mode=None):
+        self.mode = mode
+        self.identity_url = identity_url
+        self.return_to = return_to
+        self.trust_root = trust_root
+
     def trustRootValid(self):
         """Is my return_to under my trust_root?
 
         @returntype: bool
         """
 
-    def respond(self, allow=False):
-        raise NotImplementedError
+    def answer(self, allow, setup_url=None):
+        return OpenIDResponse(self)
 
 class OpenIDResponse(object):
     """
@@ -1097,3 +1103,50 @@ class WebResponse(object):
     code = 200
     headers = {}
     body = ""
+
+class Signatory(object):
+    def __init__(self, store):
+        self.store = store
+
+    def verify(self, assoc_handle, sig, signed_data):
+        return True
+
+    def sign(self, response):
+        return response
+
+
+class OpenIDServer2(object):
+    def __init__(self, store):
+        self.store = store
+
+    def handle(self, request):
+        return OpenIDResponse(request)
+
+    def openid_check_authentication(self, request):
+        return OpenIDResponse(request)
+
+    def openid_associate(self, request):
+        return OpenIDResponse(request)
+
+class Encoder(object):
+    responseFactory = WebResponse
+    def encode(self, response):
+        return WebResponse()
+
+class Decoder(object):
+    requestFactory = OpenIDRequest
+    def decode(self, query):
+        return OpenIDRequest()
+
+_encoder = Encoder()
+_decoder = Decoder()
+encode = _encoder.encode
+decode = _decoder.decode
+
+class ProtocolError(Exception):
+    pass
+
+class UntrustedReturnURL(Exception):
+    pass
+
+HTTP_REDIRECT = 302
