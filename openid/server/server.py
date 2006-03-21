@@ -1253,6 +1253,14 @@ class Encoder(object):
 
 class Decoder(object):
     prefix = 'openid.'
+
+    handlers = {
+        'checkid_setup': CheckIDRequest.fromQuery,
+        'checkid_immediate': CheckIDRequest.fromQuery,
+        'check_authentication': CheckAuthRequest.fromQuery,
+        'associate': AssociateRequest.fromQuery,
+        }
+
     def decode(self, query):
         if not query:
             return None
@@ -1265,20 +1273,8 @@ class Decoder(object):
         if not mode:
             raise ProtocolError("No %smode value in query %r" % (
                 self.prefix, query))
-        handler = getattr(self, 'openid_' + mode, self.defaultDecoder)
+        handler = self.handlers.get(mode, self.defaultDecoder)
         return handler(query)
-
-    def openid_checkid_setup(self, query):
-        return CheckIDRequest.fromQuery(query)
-
-    def openid_checkid_immediate(self, query):
-        return CheckIDRequest.fromQuery(query)
-
-    def openid_check_authentication(self, query):
-        return CheckAuthRequest.fromQuery(query)
-
-    def openid_associate(self, query):
-        return AssociateRequest.fromQuery(query)
 
     def defaultDecoder(self, query):
         mode = query[self.prefix + 'mode']
