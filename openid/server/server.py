@@ -1078,7 +1078,23 @@ class CheckAuthRequest(OpenIDRequest):
 class AssociateRequest(OpenIDRequest):
     mode = "associate"
     session_type = 'cleartext'
-    assoc_type = None
+    assoc_type = 'HMAC-SHA1'
+
+    def fromQuery(klass, query):
+        self = AssociateRequest()
+        session_type = query.get('openid.session_type')
+        if session_type:
+            self.session_type = session_type
+            if session_type == 'DH-SHA1':
+                try:
+                    self.pubkey = query['openid.dh_consumer_public']
+                except KeyError, e:
+                    raise ProtocolError("Public key for DH-SHA1 session "
+                                        "not found in query %s" % (query,))
+                # FIXME: Missing dh_modulus and dh_gen options.
+        return self
+
+    fromQuery = classmethod(fromQuery)
 
 class CheckIDRequest(OpenIDRequest):
     """A CheckID Request.
@@ -1228,7 +1244,7 @@ class Decoder(object):
         return CheckAuthRequest.fromQuery(query)
 
     def openid_associate(self, query):
-        return AssociateRequest()
+        return AssociateRequest.fromQuery(query)
 
     def defaultDecoder(self, query):
         mode = query[self.prefix + 'mode']
