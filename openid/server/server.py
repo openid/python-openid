@@ -178,6 +178,7 @@ USING THIS LIBRARY
 import time
 import urllib
 import cgi
+from copy import deepcopy
 
 from openid import cryptutil
 from openid import kvform
@@ -1232,6 +1233,11 @@ class WebResponse(object):
             self.body = body
 
 class Signatory(object):
+    SECRET_LIFETIME = 14 * 24 * 60 * 60 # 14 days, in seconds
+
+    normal_key = '|normal'
+    dumb_key = '|dumb'
+
     def __init__(self, store):
         self.store = store
 
@@ -1239,7 +1245,32 @@ class Signatory(object):
         return True
 
     def sign(self, response):
-        return response
+        signed_response = deepcopy(response)
+        assoc_handle = response.request.assoc_handle
+        assoc = self.store.getAssociation(self.normal_key, assoc_handle)
+        if assoc is not None and assoc.expiresIn <= 0:
+            self.store.removeAssociation(self.normal_key, assoc_handle)
+            assoc = None
+
+        if not assoc:
+            signed_response.fields['openid.invalidate_handle'] = assoc_handle
+            assoc = self._createAssociation()
+        signed_response.fields['openid.assoc_handle'] = assoc.handle
+        assoc.addSignature(signed_response.signed, signed_response.fields)
+        return signed_response
+
+    def _createAssociation(self, dumb=True, assoc_type='HMAC-SHA1'):
+        secret = cryptutil.getBytes(20)
+        uniq = oidutil.toBase64(cryptutil.getBytes(4))
+        handle = '{%s}{%x}{%s}' % (assoc_type, int(time.time()), uniq)
+
+        assoc = Association.fromExpiresIn(
+            self.SECRET_LIFETIME, handle, secret, assoc_type)
+        if dumb:
+            self.store.storeAssociation(self.dumb_key, assoc)
+        else:
+            raise NotImplementedError
+        return assoc
 
 
 class OpenIDServer2(object):

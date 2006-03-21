@@ -1,7 +1,7 @@
 """Tests for openid.server.
 """
 from openid.server import server
-from openid import cryptutil, kvform
+from openid import association, cryptutil, kvform
 import _memstore
 import cgi
 import urllib
@@ -708,36 +708,108 @@ class TestSignatory(unittest.TestCase):
     def test_sign(self):
         request = server.OpenIDRequest()
         assoc_handle = '{assoc}{lookatme}'
+        self.store.storeAssociation(
+            '|normal',
+            association.Association.fromExpiresIn(60, assoc_handle,
+                                                  'sekrit', 'HMAC-SHA1'))
         request.assoc_handle = assoc_handle
         response = server.CheckIDResponse(request)
         response.fields = {
-            'foo': 'amsigned',
-            'bar': 'notsigned',
-            'azu': 'alsosigned',
+            'openid.foo': 'amsigned',
+            'openid.bar': 'notsigned',
+            'openid.azu': 'alsosigned',
             }
         response.signed = ['foo', 'azu']
         sresponse = self.signatory.sign(response)
         self.failUnlessEqual(sresponse.fields.get('openid.assoc_handle'),
                              assoc_handle)
         self.failUnlessEqual(sresponse.fields.get('openid.signed'),
-                             ['foo', 'azu'])
+                             'foo,azu')
         self.failUnless(sresponse.fields.get('openid.sig'))
+
+    def test_signExpired(self):
+        request = server.OpenIDRequest()
+        assoc_handle = '{assoc}{lookatme}'
+        self.store.storeAssociation(
+            '|normal',
+            association.Association.fromExpiresIn(-10, assoc_handle,
+                                                  'sekrit', 'HMAC-SHA1'))
+        self.failUnless(self.store.getAssociation('|normal', assoc_handle))
+
+        request.assoc_handle = assoc_handle
+        response = server.CheckIDResponse(request)
+        response.fields = {
+            'openid.foo': 'amsigned',
+            'openid.bar': 'notsigned',
+            'openid.azu': 'alsosigned',
+            }
+        response.signed = ['foo', 'azu']
+        sresponse = self.signatory.sign(response)
+
+        new_assoc_handle = sresponse.fields.get('openid.assoc_handle')
+        self.failUnless(new_assoc_handle)
+        self.failIfEqual(new_assoc_handle, assoc_handle)
+
+        self.failUnlessEqual(sresponse.fields.get('openid.invalidate_handle'),
+                             assoc_handle)
+
+        self.failUnlessEqual(sresponse.fields.get('openid.signed'),
+                             'foo,azu')
+        self.failUnless(sresponse.fields.get('openid.sig'))
+
+        # make sure the expired association is gone
+        self.failIf(self.store.getAssociation('|normal', assoc_handle))
+
+        # make sure the new key is a dumb mode association
+        self.failUnless(self.store.getAssociation('|dumb', new_assoc_handle))
+        self.failIf(self.store.getAssociation('|normal', new_assoc_handle))
+
+    def test_signInvalidHandle(self):
+        request = server.OpenIDRequest()
+        assoc_handle = '{bogus-assoc}{notvalid}'
+
+        request.assoc_handle = assoc_handle
+        response = server.CheckIDResponse(request)
+        response.fields = {
+            'openid.foo': 'amsigned',
+            'openid.bar': 'notsigned',
+            'openid.azu': 'alsosigned',
+            }
+        response.signed = ['foo', 'azu']
+        sresponse = self.signatory.sign(response)
+
+        new_assoc_handle = sresponse.fields.get('openid.assoc_handle')
+        self.failUnless(new_assoc_handle)
+        self.failIfEqual(new_assoc_handle, assoc_handle)
+
+        self.failUnlessEqual(sresponse.fields.get('openid.invalidate_handle'),
+                             assoc_handle)
+
+        self.failUnlessEqual(sresponse.fields.get('openid.signed'),
+                             'foo,azu')
+        self.failUnless(sresponse.fields.get('openid.sig'))
+
+        # make sure the new key is a dumb mode association
+        self.failUnless(self.store.getAssociation('|dumb', new_assoc_handle))
+        self.failIf(self.store.getAssociation('|normal', new_assoc_handle))
 
     def test_signDumb(self):
         request = server.OpenIDRequest()
         request.assoc_handle = None
         response = server.CheckIDResponse(request)
         response.fields = {
-            'foo': 'amsigned',
-            'bar': 'notsigned',
-            'azu': 'alsosigned',
+            'openid.foo': 'amsigned',
+            'openid.bar': 'notsigned',
+            'openid.azu': 'alsosigned',
             }
         response.signed = ['foo', 'azu']
         sresponse = self.signatory.sign(response)
         self.failUnlessEqual(sresponse.fields.get('openid.signed'),
-                             ['foo', 'azu'])
+                             'foo,azu')
         self.failUnless(sresponse.fields.get('openid.assoc_handle'))
         self.failUnless(sresponse.fields.get('openid.sig'))
+        # Not actually testing the signature integrity on the assumption
+        # that Association.signDict has its own tests.
 
     def test_verify(self):
         assoc_handle = sig = signed = "FIXME"
