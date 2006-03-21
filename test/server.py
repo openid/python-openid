@@ -680,13 +680,13 @@ class TestServer(unittest.TestCase):
 
     def test_dispatch(self):
         monkeycalled = Counter()
-        def monkeyDo(self, request):
+        def monkeyDo(request):
             monkeycalled.inc()
             r = server.OpenIDResponse(request)
             return r
         self.server.openid_monkeymode = monkeyDo
         request = server.OpenIDRequest()
-        request.mode = "monkeycalled"
+        request.mode = "monkeymode"
         webresult = self.server.handle(request)
         self.failUnlessEqual(monkeycalled.count, 1)
 

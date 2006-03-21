@@ -1247,7 +1247,8 @@ class OpenIDServer2(object):
         self.store = store
 
     def handle(self, request):
-        return OpenIDResponse(request)
+        handler = getattr(self, 'openid_' + request.mode)
+        return handler(request)
 
     def openid_check_authentication(self, request):
         return OpenIDResponse(request)
