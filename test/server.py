@@ -407,7 +407,7 @@ def exampleBitsUsage(http_method, args):
         return
     sreg_request = sreg.decode(http_method, args)
     if request.mode in ["checkid_immediate", "checkid_setup"]:
-        request.identity_url # logged in?
+        request.identity # logged in?
         request.trust_root # trusted?
         if True:
             if sreg_request:
@@ -565,10 +565,10 @@ class TestDecode(unittest.TestCase):
 class TestEncode(unittest.TestCase):
     def test_id_res(self):
         request = server.CheckIDRequest(
-            mode = 'checkid_setup',
-            identity_url = 'http://bombom.unittest/',
+            identity = 'http://bombom.unittest/',
             trust_root = 'http://burr.unittest/',
             return_to = 'http://burr.unittest/999',
+            immediate = False,
             )
         response = server.CheckIDResponse(request)
         response.fields = {
@@ -589,10 +589,10 @@ class TestEncode(unittest.TestCase):
 
     def test_cancel(self):
         request = server.CheckIDRequest(
-            mode = 'checkid_setup',
-            identity_url = 'http://bombom.unittest/',
+            identity = 'http://bombom.unittest/',
             trust_root = 'http://burr.unittest/',
-            return_to = 'http://burr.unittest/999'
+            return_to = 'http://burr.unittest/999',
+            immediate = False,
             )
         response = server.CheckIDResponse(request)
         response.fields = {
@@ -612,10 +612,10 @@ class TestEncode(unittest.TestCase):
 class TestCheckID(unittest.TestCase):
     def setUp(self):
         self.request = server.CheckIDRequest(
-            mode = 'checkid_setup',
-            identity_url = 'http://bambam.unittest/',
+            identity = 'http://bambam.unittest/',
             trust_root = 'http://bar.unittest/',
-            return_to = 'http://bar.unittest/999'
+            return_to = 'http://bar.unittest/999',
+            immediate = False,
             )
 
     def test_trustRootInvalid(self):
