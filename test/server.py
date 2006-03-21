@@ -603,10 +603,10 @@ class TestEncode(unittest.TestCase):
         self.failUnless(webresponse.headers.has_key('location'))
 
     def test_assocReply(self):
-        raise NotImplementedError
+        self.fail("Incomplete Test")
 
     def test_checkauthReply(self):
-        raise NotImplementedError
+        self.fail("Incomplete Test")
 
 
 class TestCheckID(unittest.TestCase):
@@ -691,10 +691,12 @@ class TestServer(unittest.TestCase):
     def test_associate(self):
         request = server.AssociateRequest()
         response = self.server.openid_associate(request)
+        self.fail("incomplete test")
 
     def test_checkAuth(self):
         request = server.CheckAuthRequest()
         response = self.server.openid_check_authentication(request)
+        self.fail("incomplete test")
 
 class TestSignatory(unittest.TestCase):
     def setUp(self):
