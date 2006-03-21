@@ -648,7 +648,7 @@ class TestCheckID(unittest.TestCase):
 
     def test_answerImmediateDeny(self):
         self.request.mode = 'checkid_immediate'
-        self.request.immediate = False
+        self.request.immediate = True
         setup_url = "http://setup-url.unittest/"
         # crappiting setup_url, you dirty my interface with your presence!
         answer = self.request.answer(False, setup_url=setup_url)

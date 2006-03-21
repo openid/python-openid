@@ -1110,6 +1110,7 @@ class CheckIDRequest(OpenIDRequest):
 
     immediate = False
 
+    trust_root = None
     assoc_handle = None
 
     def __init__(self, identity, return_to, trust_root=None,
@@ -1165,9 +1166,36 @@ class CheckIDRequest(OpenIDRequest):
 
         @returntype: bool
         """
+        if not self.trust_root:
+            return True
+        tr = TrustRoot.parse(self.trust_root)
+        if tr is None:
+            raise ValueError('Malformed trust_root: %r' % (self.trust_root,))
+        return tr.validateURL(self.return_to)
 
     def answer(self, allow, setup_url=None):
-        return OpenIDResponse(self)
+        if allow or self.immediate:
+            mode = 'id_res'
+        else:
+            mode = 'cancel'
+
+        response = CheckIDResponse(self, mode)
+
+        if allow:
+            response.fields['openid.identity'] = self.identity
+            response.fields['openid.return_to'] = self.return_to
+            if not self.trustRootValid():
+                raise UntrustedReturnURL(self.return_to, self.trust_root)
+        else:
+            if self.immediate:
+                if not setup_url:
+                    raise ValueError("setup_url is required for allow=False "
+                                     "in immediate mode.")
+                response.fields['openid.user_setup_url'] = setup_url
+
+        return response
+
+
 
 class OpenIDResponse(object):
     """
@@ -1182,6 +1210,12 @@ class CheckIDResponse(OpenIDResponse):
     """
     @type signed: list
     """
+    def __init__(self, request, mode='id_res'):
+        super(CheckIDResponse, self).__init__(request)
+        self.fields['openid.mode'] = mode
+        self.signed = []
+        if mode == 'id_res':
+            self.signed.extend(['mode', 'identity', 'return_to'])
 
 class WebResponse(object):
     code = 200
@@ -1260,6 +1294,14 @@ class ProtocolError(Exception):
     pass
 
 class UntrustedReturnURL(Exception):
-    pass
+    def __init__(self, return_to, trust_root):
+        self.return_to = return_to
+        self.trust_root = trust_root
+        Exception.__init__(self, return_to, trust_root)
+
+    def __str__(self):
+        return "return_to %r not under trust_root %r" % (return_to,
+                                                         trust_root)
+
 
 HTTP_REDIRECT = 302
