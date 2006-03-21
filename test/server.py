@@ -464,7 +464,7 @@ class TestDecode(unittest.TestCase):
         self.failUnless(isinstance(r, server.CheckIDRequest))
         self.failUnlessEqual(r.mode, "checkid_immediate")
         self.failUnlessEqual(r.immediate, True)
-        self.failUnlessEqual(r.identity_url, self.id_url)
+        self.failUnlessEqual(r.identity, self.id_url)
         self.failUnlessEqual(r.trust_root, self.tr_url)
         self.failUnlessEqual(r.return_to, self.rt_url)
 
@@ -480,7 +480,7 @@ class TestDecode(unittest.TestCase):
         self.failUnless(isinstance(r, server.CheckIDRequest))
         self.failUnlessEqual(r.mode, "checkid_setup")
         self.failUnlessEqual(r.immediate, False)
-        self.failUnlessEqual(r.identity_url, self.id_url)
+        self.failUnlessEqual(r.identity, self.id_url)
         self.failUnlessEqual(r.trust_root, self.tr_url)
         self.failUnlessEqual(r.return_to, self.rt_url)
 
@@ -573,7 +573,7 @@ class TestEncode(unittest.TestCase):
         response = server.CheckIDResponse(request)
         response.fields = {
             'openid.mode': 'id_res',
-            'openid.identity': request.identity_url,
+            'openid.identity': request.identity,
             'openid.return_to': request.return_to,
             }
         webresponse = server.encode(response)
@@ -641,7 +641,7 @@ class TestCheckID(unittest.TestCase):
         self.failUnlessEqual(answer.request, self.request)
         self.failUnlessEqual(answer.fields, {
             'openid.mode': 'id_res',
-            'openid.identity': self.request.identity_url,
+            'openid.identity': self.request.identity,
             'openid.return_to': self.request.return_to,
             })
         self.failUnlessEqual(answer.signed, ["mode", "identity", "return_to"])

@@ -1085,7 +1085,7 @@ class CheckIDRequest(OpenIDRequest):
 
     @type mode: str
     @type immediate: bool
-    @type identity_url: str
+    @type identity: str
     @type trust_root: str
     @type return_to: str
     @type assoc_handle: str
@@ -1098,7 +1098,7 @@ class CheckIDRequest(OpenIDRequest):
 
     def __init__(self, identity, return_to, trust_root=None,
                  immediate=False):
-        self.identity_url = identity
+        self.identity = identity
         self.return_to = return_to
         self.trust_root = trust_root
         if immediate:
@@ -1107,6 +1107,41 @@ class CheckIDRequest(OpenIDRequest):
         else:
             self.immediate = False
             self.mode = "checkid_setup"
+
+    def fromQuery(klass, query, immediate):
+        self = klass.__new__(klass)
+        if immediate:
+            self.immediate = True
+            self.mode = "checkid_immediate"
+        else:
+            self.immediate = False
+            self.mode = "checkid_setup"
+
+        required = [
+            'identity',
+            'return_to',
+            ]
+        optional = [
+            'trust_root',
+        #    'assoc_handle',  ?
+            ]
+
+        prefix = 'openid.'
+        for field in required:
+            value = query.get(prefix + field)
+            if not value:
+                raise ProtocolError("Missing required field %s from %r"
+                                    % (field, query))
+            setattr(self, field, value)
+
+        for field in optional:
+            value = query.get(prefix + field)
+            if value:
+                setattr(self, field, value)
+
+        return self
+
+    fromQuery = classmethod(fromQuery)
 
     def trustRootValid(self):
         """Is my return_to under my trust_root?
@@ -1185,10 +1220,10 @@ class Decoder(object):
         return handler(query)
 
     def openid_checkid_setup(self, query):
-        return self.decodeCheckId(query, immediate=False)
+        return CheckIDRequest.fromQuery(query, immediate=False)
 
     def openid_checkid_immediate(self, query):
-        return self.decodeCheckId(query, immediate=True)
+        return CheckIDRequest.fromQuery(query, immediate=True)
 
     def openid_check_authentication(self, query):
         return CheckAuthRequest.fromQuery(query)
@@ -1199,30 +1234,6 @@ class Decoder(object):
     def defaultDecoder(self, query):
         mode = query.get(self.separator.join([self.prefix, 'mode']))
         raise ProtocolError("No decoder for mode %r" % (mode,))
-
-    def decodeCheckId(self, query, immediate):
-        kwargs = {
-            'immediate': immediate,
-            }
-        required = [
-            'identity',
-            'return_to',
-            ]
-        optional = [
-            'trust_root',
-            ]
-        # assoc_handle ?
-        for field in required:
-            value = query.get('%s%s%s' % (self.prefix, self.separator, field))
-            if not value:
-                raise ProtocolError("Missing required field %s from %r"
-                                    % (field, query))
-            kwargs[field] = value
-        for field in optional:
-            value = query.get('%s%s%s' % (self.prefix, self.separator, field))
-            if value:
-                kwargs[field] = value
-        return CheckIDRequest(**kwargs)
 
 
 _encoder = Encoder()
