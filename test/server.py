@@ -1,7 +1,7 @@
 """Tests for openid.server.
 """
 from openid.server import server
-from openid import association, cryptutil, kvform
+from openid import association, cryptutil, kvform, oidutil
 import _memstore
 import cgi
 import urllib
@@ -810,15 +810,59 @@ class TestSignatory(unittest.TestCase):
         self.failUnless(sresponse.fields.get('openid.sig'))
         # Not actually testing the signature integrity on the assumption
         # that Association.signDict has its own tests.
+        # XXX: BAD ASSUMPTION!
 
     def test_verify(self):
-        assoc_handle = sig = signed = "FIXME"
-        verified = self.signatory.verify(assoc_handle, sig, signed)
+        assoc_handle = '{vroom}{zoom}'
+        assoc = association.Association.fromExpiresIn(60, assoc_handle,
+                                                      'sekrit', 'HMAC-SHA1')
+        sig = oidutil.toBase64(assoc.sign([('foo', 'bar'),
+                                           ('apple', 'orange')]))
+
+        self.store.storeAssociation('|dumb', assoc)
+        signed = {
+            'openid.foo': 'bar',
+            'openid.apple': 'orange',
+            'openid.grape': 'lime',
+            }
+
+        verified = self.signatory.verify(assoc_handle, sig, ['foo', 'apple'],
+                                         signed)
         self.failUnless(verified)
 
-    def test_verifyBad(self):
-        assoc_handle = sig = signed = "FIXME"
-        verified = self.signatory.verify(assoc_handle, sig, signed)
+    def test_verifyBadSig(self):
+        assoc_handle = '{vroom}{zoom}'
+        assoc = association.Association.fromExpiresIn(60, assoc_handle,
+                                                      'sekrit', 'HMAC-SHA1')
+        sig = 'Bad Sig'
+
+        self.store.storeAssociation('|dumb', assoc)
+        signed = {
+            'openid.foo': 'bar',
+            'openid.apple': 'orange',
+            'openid.grape': 'lime',
+            }
+
+        verified = self.signatory.verify(assoc_handle, sig, ['foo', 'apple'],
+                                         signed)
+        self.failIf(verified)
+
+    def test_verifyBadHandle(self):
+        assoc_handle = '{vroom}{zoom}'
+        assoc = association.Association.fromExpiresIn(60, assoc_handle,
+                                                      'sekrit', 'HMAC-SHA1')
+        sig = oidutil.toBase64(assoc.sign([('foo', 'bar'),
+                                           ('apple', 'orange')]))
+
+        self.store.storeAssociation('|dumb', assoc)
+        signed = {
+            'openid.foo': 'bar',
+            'openid.apple': 'orange',
+            'openid.grape': 'lime',
+            }
+
+        verified = self.signatory.verify(assoc_handle + 'junk', sig,
+                                         ['foo', 'apple'], signed)
         self.failIf(verified)
 
 if __name__ == '__main__':

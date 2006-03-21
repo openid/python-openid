@@ -1241,16 +1241,19 @@ class Signatory(object):
     def __init__(self, store):
         self.store = store
 
-    def verify(self, assoc_handle, sig, signed_data):
-        return True
+    def verify(self, assoc_handle, sig, signed_fields, data):
+        assoc = self._getAssociation(assoc_handle, dumb=True)
+        if not assoc:
+            return False
+
+        expected_sig = assoc.signDict(signed_fields, data)
+
+        return sig == expected_sig
 
     def sign(self, response):
         signed_response = deepcopy(response)
         assoc_handle = response.request.assoc_handle
-        assoc = self.store.getAssociation(self.normal_key, assoc_handle)
-        if assoc is not None and assoc.expiresIn <= 0:
-            self.store.removeAssociation(self.normal_key, assoc_handle)
-            assoc = None
+        assoc = self._getAssociation(assoc_handle, dumb=False)
 
         if not assoc:
             signed_response.fields['openid.invalidate_handle'] = assoc_handle
@@ -1272,6 +1275,16 @@ class Signatory(object):
             raise NotImplementedError
         return assoc
 
+    def _getAssociation(self, assoc_handle, dumb=True):
+        if dumb:
+            key = self.dumb_key
+        else:
+            key = self.normal_key
+        assoc = self.store.getAssociation(key, assoc_handle)
+        if assoc is not None and assoc.expiresIn <= 0:
+            self.store.removeAssociation(key, assoc_handle)
+            assoc = None
+        return assoc
 
 class OpenIDServer2(object):
     def __init__(self, store):
