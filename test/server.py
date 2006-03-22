@@ -666,6 +666,70 @@ class TestCheckID(unittest.TestCase):
             'openid.mode': 'cancel',
             })
 
+class MockSignatory(object):
+    isValid = True
+
+    def __init__(self, assoc):
+        self.assocs = [assoc]
+
+    def verify(self, assoc_handle, sig, signed_pairs):
+        assert sig
+        signed_pairs[:]
+        if (True, assoc_handle) in self.assocs:
+            return self.isValid
+        else:
+            return False
+
+    def getAssociation(self, assoc_handle, dumb):
+        if (dumb, assoc_handle) in self.assocs:
+            # This isn't a valid implementation for many uses of this
+            # function, mind you.
+            return True
+        else:
+            return None
+
+    def invalidate(self, assoc_handle, dumb):
+        if (dumb, assoc_handle) in self.assocs:
+            self.assocs.remove((dumb, assoc_handle))
+
+class TestCheckAuth(unittest.TestCase):
+    def setUp(self):
+        self.request = server.CheckAuthRequest()
+        self.assoc_handle = self.request.assoc_handle = 'mooooooooo'
+        self.request.sig = 'signarture'
+        self.request.signed = [('one', 'alpha'), ('two', 'beta')]
+
+        self.signatory = MockSignatory((True, self.assoc_handle))
+
+    def test_valid(self):
+        r = self.request.answer(self.signatory)
+        self.failUnlessEqual(r.fields, {'is_valid': 'true'})
+        self.failUnlessEqual(r.request, self.request)
+
+    def test_invalid(self):
+        self.signatory.isValid = False
+        r = self.request.answer(self.signatory)
+        self.failUnlessEqual(r.fields, {'is_valid': 'false'})
+
+    def test_replay(self):
+        r = self.request.answer(self.signatory)
+        r = self.request.answer(self.signatory)
+        self.failUnlessEqual(r.fields, {'is_valid': 'false'})
+
+    def test_invalidatehandle(self):
+        self.request.invalidate_handle = "bogusHandle"
+        r = self.request.answer(self.signatory)
+        self.failUnlessEqual(r.fields, {'is_valid': 'true',
+                                        'invalidate_handle': "bogusHandle"})
+        self.failUnlessEqual(r.request, self.request)
+
+    def test_invalidatehandleNo(self):
+        assoc_handle = 'goodhandle'
+        self.signatory.assocs.append((False, 'goodhandle'))
+        self.request.invalidate_handle = assoc_handle
+        r = self.request.answer(self.signatory)
+        self.failUnlessEqual(r.fields, {'is_valid': 'true'})
+
 class Counter(object):
     def __init__(self):
         self.count = 0
@@ -816,54 +880,82 @@ class TestSignatory(unittest.TestCase):
         assoc_handle = '{vroom}{zoom}'
         assoc = association.Association.fromExpiresIn(60, assoc_handle,
                                                       'sekrit', 'HMAC-SHA1')
-        sig = oidutil.toBase64(assoc.sign([('foo', 'bar'),
-                                           ('apple', 'orange')]))
 
         self.store.storeAssociation('|dumb', assoc)
-        signed = {
-            'openid.foo': 'bar',
-            'openid.apple': 'orange',
-            'openid.grape': 'lime',
-            }
 
-        verified = self.signatory.verify(assoc_handle, sig, ['foo', 'apple'],
-                                         signed)
+        signed_pairs = [('foo', 'bar'),
+                        ('apple', 'orange')]
+
+        sig = "Ylu0KcIR7PvNegB/K41KpnRgJl0="
+        verified = self.signatory.verify(assoc_handle, sig, signed_pairs)
         self.failUnless(verified)
 
     def test_verifyBadSig(self):
         assoc_handle = '{vroom}{zoom}'
         assoc = association.Association.fromExpiresIn(60, assoc_handle,
                                                       'sekrit', 'HMAC-SHA1')
-        sig = 'Bad Sig'
 
         self.store.storeAssociation('|dumb', assoc)
-        signed = {
-            'openid.foo': 'bar',
-            'openid.apple': 'orange',
-            'openid.grape': 'lime',
-            }
 
-        verified = self.signatory.verify(assoc_handle, sig, ['foo', 'apple'],
-                                         signed)
+        signed_pairs = [('foo', 'bar'),
+                        ('apple', 'orange')]
+
+        sig = "Ylu0KcIR7PvNegB/K41KpnRgJl0=".encode('rot13')
+        verified = self.signatory.verify(assoc_handle, sig, signed_pairs)
         self.failIf(verified)
 
     def test_verifyBadHandle(self):
         assoc_handle = '{vroom}{zoom}'
+        signed_pairs = [('foo', 'bar'),
+                        ('apple', 'orange')]
+
+        sig = "Ylu0KcIR7PvNegB/K41KpnRgJl0="
+        verified = self.signatory.verify(assoc_handle, sig, signed_pairs)
+        self.failIf(verified)
+
+    def test_getAssoc(self):
+        assoc_handle = self.makeAssoc(dumb=True)
+        assoc = self.signatory.getAssociation(assoc_handle, True)
+        self.failUnless(assoc)
+        self.failUnlessEqual(assoc.handle, assoc_handle)
+
+    def test_getAssocExpired(self):
+        assoc_handle = self.makeAssoc(dumb=True, lifetime=-10)
+        assoc = self.signatory.getAssociation(assoc_handle, True)
+        self.failIf(assoc, assoc)
+
+    def test_getAssocInvalid(self):
+        ah = 'no-such-handle'
+        self.failUnlessEqual(
+            self.signatory.getAssociation(ah, dumb=False), None)
+
+    def test_getAssocDumbVsNormal(self):
+        assoc_handle = self.makeAssoc(dumb=True)
+        self.failUnlessEqual(
+            self.signatory.getAssociation(assoc_handle, dumb=False), None)
+
+    def makeAssoc(self, dumb, lifetime=60):
+        assoc_handle = '{bling}'
+        assoc = association.Association.fromExpiresIn(lifetime, assoc_handle,
+                                                      'sekrit', 'HMAC-SHA1')
+
+        self.store.storeAssociation((dumb and '|dumb') or '|normal', assoc)
+        return assoc_handle
+
+    def test_invalidate(self):
+        assoc_handle = '-squash-'
         assoc = association.Association.fromExpiresIn(60, assoc_handle,
                                                       'sekrit', 'HMAC-SHA1')
-        sig = oidutil.toBase64(assoc.sign([('foo', 'bar'),
-                                           ('apple', 'orange')]))
 
         self.store.storeAssociation('|dumb', assoc)
-        signed = {
-            'openid.foo': 'bar',
-            'openid.apple': 'orange',
-            'openid.grape': 'lime',
-            }
+        assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
+        self.failUnless(assoc)
+        assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
+        self.failUnless(assoc)
+        self.signatory.invalidate(assoc_handle, dumb=True)
+        assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
+        self.failIf(assoc)
 
-        verified = self.signatory.verify(assoc_handle + 'junk', sig,
-                                         ['foo', 'apple'], signed)
-        self.failIf(verified)
 
 if __name__ == '__main__':
     unittest.main()

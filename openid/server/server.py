@@ -1048,7 +1048,14 @@ class OpenIDRequest(object):
     mode = None
 
 class CheckAuthRequest(OpenIDRequest):
+    """
+    @type assoc_handle: str
+    @type sig: str
+    @type signed: list of pairs
+    @type invalidate_handle: str
+    """
     mode = "check_authentication"
+    invalidate_handle = None
     def fromQuery(klass, query):
         self = klass()
         prefix = 'openid.'
@@ -1073,6 +1080,20 @@ class CheckAuthRequest(OpenIDRequest):
 
         self.signed = signed_pairs
         return self
+
+    def answer(self, signatory):
+        is_valid = signatory.verify(self.assoc_handle, self.sig, self.signed)
+        # Now invalidate that assoc_handle so it this checkAuth message cannot
+        # be replayed.
+        signatory.invalidate(self.assoc_handle, dumb=True)
+        response = OpenIDResponse(self)
+        response.fields['is_valid'] = (is_valid and "true") or "false"
+
+        if self.invalidate_handle:
+            assoc = signatory.getAssociation(self.invalidate_handle, dumb=False)
+            if not assoc:
+                response.fields['invalidate_handle'] = self.invalidate_handle
+        return response
 
     fromQuery = classmethod(fromQuery)
 
@@ -1241,19 +1262,19 @@ class Signatory(object):
     def __init__(self, store):
         self.store = store
 
-    def verify(self, assoc_handle, sig, signed_fields, data):
-        assoc = self._getAssociation(assoc_handle, dumb=True)
+    def verify(self, assoc_handle, sig, signed_pairs):
+        assoc = self.getAssociation(assoc_handle, dumb=True)
         if not assoc:
             return False
 
-        expected_sig = assoc.signDict(signed_fields, data)
+        expected_sig = oidutil.toBase64(assoc.sign(signed_pairs))
 
         return sig == expected_sig
 
     def sign(self, response):
         signed_response = deepcopy(response)
         assoc_handle = response.request.assoc_handle
-        assoc = self._getAssociation(assoc_handle, dumb=False)
+        assoc = self.getAssociation(assoc_handle, dumb=False)
 
         if not assoc:
             signed_response.fields['openid.invalidate_handle'] = assoc_handle
@@ -1275,7 +1296,7 @@ class Signatory(object):
             raise NotImplementedError
         return assoc
 
-    def _getAssociation(self, assoc_handle, dumb=True):
+    def getAssociation(self, assoc_handle, dumb):
         if dumb:
             key = self.dumb_key
         else:
@@ -1285,6 +1306,14 @@ class Signatory(object):
             self.store.removeAssociation(key, assoc_handle)
             assoc = None
         return assoc
+
+    def invalidate(self, assoc_handle, dumb):
+        if dumb:
+            key = self.dumb_key
+        else:
+            key = self.normal_key
+        self.store.removeAssociation(key, assoc_handle)
+
 
 class OpenIDServer2(object):
     def __init__(self, store):
