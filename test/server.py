@@ -414,12 +414,13 @@ def exampleBitsUsage(http_method, args):
                 sreg_response = sreg.sauce({'zip': '97219'})
             response = request.answer(True)
             response += sreg_response
+            response = my_signatory.sign(response)
         else:
             response = request.answer(False)
     else:
         # check_auth and associate response logic is implemented by the
         # library, and needs no input from the app ?
-        response = server.handle(request)
+        response = my_server.handle(request)
 
     webresponse = server.encode(response)
 
@@ -608,7 +609,9 @@ class TestEncode(unittest.TestCase):
         self.fail("Incomplete Test")
 
     def test_checkauthReply(self):
-        request = server.CheckAuthRequest()
+        request = server.CheckAuthRequest('a_sock_monkey',
+                                          'siggggg',
+                                          [])
         response = server.OpenIDResponse(request)
         response.fields = {
             'is_valid': 'true',
@@ -707,10 +710,10 @@ class MockSignatory(object):
 
 class TestCheckAuth(unittest.TestCase):
     def setUp(self):
-        self.request = server.CheckAuthRequest()
-        self.assoc_handle = self.request.assoc_handle = 'mooooooooo'
-        self.request.sig = 'signarture'
-        self.request.signed = [('one', 'alpha'), ('two', 'beta')]
+        self.assoc_handle = 'mooooooooo'
+        self.request = server.CheckAuthRequest(
+            self.assoc_handle, 'signarture',
+            [('one', 'alpha'), ('two', 'beta')])
 
         self.signatory = MockSignatory((True, self.assoc_handle))
 
@@ -743,6 +746,11 @@ class TestCheckAuth(unittest.TestCase):
         r = self.request.answer(self.signatory)
         self.failUnlessEqual(r.fields, {'is_valid': 'true'})
 
+
+class TestAssociate(unittest.TestCase):
+    def setUp(self):
+        self.request = server.AssociateRequest()
+
 class Counter(object):
     def __init__(self):
         self.count = 0
@@ -773,9 +781,9 @@ class TestServer(unittest.TestCase):
         self.fail("incomplete test")
 
     def test_checkAuth(self):
-        request = server.CheckAuthRequest()
+        request = server.CheckAuthRequest('arrrrrf', '0x3999', [])
         response = self.server.openid_check_authentication(request)
-        self.fail("incomplete test")
+        self.failUnless(response.fields.has_key("is_valid"))
 
 class TestSignatory(unittest.TestCase):
     def setUp(self):

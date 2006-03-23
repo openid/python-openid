@@ -1059,8 +1059,16 @@ class CheckAuthRequest(OpenIDRequest):
     """
     mode = "check_authentication"
     invalidate_handle = None
+
+    def __init__(self, assoc_handle, sig, signed, invalidate_handle=None):
+        self.assoc_handle = assoc_handle
+        self.sig = sig
+        self.signed = signed
+        if invalidate_handle is not None:
+            self.invalidate_handle = invalidate_handle
+
     def fromQuery(klass, query):
-        self = klass()
+        self = klass.__new__(klass)
         prefix = 'openid.'
         try:
             self.assoc_handle = query[prefix + 'assoc_handle']
@@ -1321,13 +1329,14 @@ class Signatory(object):
 class OpenIDServer2(object):
     def __init__(self, store):
         self.store = store
+        self.signatory = Signatory(self.store)
 
     def handle(self, request):
         handler = getattr(self, 'openid_' + request.mode)
         return handler(request)
 
     def openid_check_authentication(self, request):
-        return OpenIDResponse(request)
+        return request.answer(self.signatory)
 
     def openid_associate(self, request):
         return OpenIDResponse(request)
