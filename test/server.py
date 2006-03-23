@@ -608,7 +608,20 @@ class TestEncode(unittest.TestCase):
         self.fail("Incomplete Test")
 
     def test_checkauthReply(self):
-        self.fail("Incomplete Test")
+        request = server.CheckAuthRequest()
+        response = server.OpenIDResponse(request)
+        response.fields = {
+            'is_valid': 'true',
+            'invalidate_handle': 'xXxX:xXXx'
+            }
+        body = """invalidate_handle:xXxX:xXXx
+is_valid:true
+"""
+        webresponse = server.encode(response)
+        self.failUnlessEqual(webresponse.code, server.HTTP_OK)
+        self.failUnlessEqual(webresponse.headers, {})
+        self.failUnlessEqual(webresponse.body, body)
+
 
 
 class TestCheckID(unittest.TestCase):

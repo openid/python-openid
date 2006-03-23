@@ -198,6 +198,9 @@ REMOTE_ERROR = 'exact_error'
 
 LOCAL_ERROR  = 'local_error'
 
+HTTP_REDIRECT = 302
+HTTP_OK = 200
+
 class AppIface(object):
     """Object that serves as the interface between the OpenID server
     object and the application.
@@ -1240,7 +1243,7 @@ class CheckIDResponse(OpenIDResponse):
             self.signed.extend(['mode', 'identity', 'return_to'])
 
 class WebResponse(object):
-    code = 200
+    code = HTTP_OK
     body = ""
 
     def __init__(self, code=None, headers=None, body=None):
@@ -1388,6 +1391,3 @@ class UntrustedReturnURL(Exception):
     def __str__(self):
         return "return_to %r not under trust_root %r" % (return_to,
                                                          trust_root)
-
-
-HTTP_REDIRECT = 302
