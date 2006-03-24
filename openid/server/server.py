@@ -1353,9 +1353,10 @@ class Signatory(object):
 
 
 class OpenIDServer2(object):
+    signatoryClass = Signatory
     def __init__(self, store):
         self.store = store
-        self.signatory = Signatory(self.store)
+        self.signatory = self.signatoryClass(self.store)
 
     def handle(self, request):
         handler = getattr(self, 'openid_' + request.mode)
