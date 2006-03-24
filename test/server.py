@@ -553,7 +553,7 @@ class TestDecode(unittest.TestCase):
         r = server.decode(args)
         self.failUnless(isinstance(r, server.AssociateRequest))
         self.failUnlessEqual(r.mode, "associate")
-        self.failUnlessEqual(r.session_type, "cleartext")
+        self.failUnlessEqual(r.session_type, "plaintext")
         self.failUnlessEqual(r.assoc_type, "HMAC-SHA1")
 
     def test_nomode(self):

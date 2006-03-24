@@ -165,7 +165,7 @@ USING THIS LIBRARY
     C{L{getOpenIDResponse<OpenIDServer.getOpenIDResponse>}} when
     something went wrong, and the library isn't able to find an
     appropriate in-protocol response.  When this happens, a short
-    plaintext description of the error will be provided.  The server
+    cleartext description of the error will be provided.  The server
     will probably want to return some sort of error page here, but its
     contents are not strictly prescribed, like those of the
     C{L{REMOTE_ERROR}} case.
