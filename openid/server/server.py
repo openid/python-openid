@@ -1120,7 +1120,8 @@ class AssociateRequest(OpenIDRequest):
             self.session_type = session_type
             if session_type == 'DH-SHA1':
                 try:
-                    self.pubkey = query['openid.dh_consumer_public']
+                    self.pubkey = cryptutil.base64ToLong(
+                        query['openid.dh_consumer_public'])
                 except KeyError, e:
                     raise ProtocolError("Public key for DH-SHA1 session "
                                         "not found in query %s" % (query,))
@@ -1128,6 +1129,29 @@ class AssociateRequest(OpenIDRequest):
         return self
 
     fromQuery = classmethod(fromQuery)
+
+    def answer(self, assoc):
+        response = OpenIDResponse(self)
+        response.fields.update({
+            'expires_in': '%d' % (assoc.getExpiresIn(),),
+            'assoc_type': 'HMAC-SHA1',
+            'assoc_handle': assoc.handle,
+            })
+        if self.session_type == 'DH-SHA1':
+            # XXX - get dh_modulus and dh_gen
+            dh = DiffieHellman()
+            mac_key = dh.xorSecret(self.pubkey, assoc.secret)
+            response.fields.update({
+                'session_type': self.session_type,
+                'dh_server_public': cryptutil.longToBase64(dh.public),
+                'enc_mac_key': oidutil.toBase64(mac_key),
+                })
+        elif self.session_type == 'plaintext':
+            response.fields['mac_key'] = oidutil.toBase64(assoc.secret)
+        else:
+            # XXX - kablooie
+            pass
+        return response
 
 class CheckIDRequest(OpenIDRequest):
     """A CheckID Request.
@@ -1341,7 +1365,8 @@ class OpenIDServer2(object):
         return request.answer(self.signatory)
 
     def openid_associate(self, request):
-        return OpenIDResponse(request)
+        assoc = self.signatory.createAssociation(dumb=False)
+        return request.answer(assoc)
 
 class Encoder(object):
     responseFactory = WebResponse

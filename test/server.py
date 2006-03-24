@@ -529,13 +529,14 @@ class TestDecode(unittest.TestCase):
         args = {
             'openid.mode': 'associate',
             'openid.session_type': 'DH-SHA1',
-            'openid.dh_consumer_public': "my public keeey",
+            'openid.dh_consumer_public': "Rzup9265tw==",
             }
         r = server.decode(args)
         self.failUnless(isinstance(r, server.AssociateRequest))
         self.failUnlessEqual(r.mode, "associate")
         self.failUnlessEqual(r.session_type, "DH-SHA1")
         self.failUnlessEqual(r.assoc_type, "HMAC-SHA1")
+        self.failUnless(r.pubkey)
 
     def test_associateDHMissingKey(self):
         """Trying DH assoc w/o public key"""
@@ -606,7 +607,15 @@ class TestEncode(unittest.TestCase):
         self.failUnless(webresponse.headers.has_key('location'))
 
     def test_assocReply(self):
-        self.fail("Incomplete Test")
+        request = server.AssociateRequest()
+        response = server.OpenIDResponse(request)
+        response.fields = {'assoc_handle': "every-zig"}
+        webresponse = server.encode(response)
+        body = """assoc_handle:every-zig
+"""
+        self.failUnlessEqual(webresponse.code, server.HTTP_OK)
+        self.failUnlessEqual(webresponse.headers, {})
+        self.failUnlessEqual(webresponse.body, body)
 
     def test_checkauthReply(self):
         request = server.CheckAuthRequest('a_sock_monkey',
@@ -750,6 +759,36 @@ class TestCheckAuth(unittest.TestCase):
 class TestAssociate(unittest.TestCase):
     def setUp(self):
         self.request = server.AssociateRequest()
+        self.store = _memstore.MemoryStore()
+        self.signatory = server.Signatory(self.store)
+        self.assoc = self.signatory.createAssociation(dumb=False)
+
+    def test_dh(self):
+        self.request.session_type = 'DH-SHA1'
+        self.request.pubkey = 42 # 'FIXME-99'
+        response = self.request.answer(self.assoc)
+        rfg = response.fields.get
+        self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA1")
+        self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
+        self.failIf(rfg("mac_key"))
+        self.failUnlessEqual(rfg("session_type"), "DH-SHA1")
+        self.failUnless(rfg("enc_mac_key")) # , "FIXME-abc")
+        self.failUnless(rfg("dh_server_public")) #, "FIXME-def")
+
+    def test_plaintext(self):
+        response = self.request.answer(self.assoc)
+        rfg = response.fields.get
+
+        self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA1")
+        self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
+
+        self.failUnlessEqual(
+            rfg("expires_in"), "%d" % (self.signatory.SECRET_LIFETIME,))
+        self.failUnlessEqual(
+            rfg("mac_key"), oidutil.toBase64(self.assoc.secret))
+        self.failIf(rfg("session_type"))
+        self.failIf(rfg("enc_mac_key"))
+        self.failIf(rfg("dh_server_public"))
 
 class Counter(object):
     def __init__(self):
@@ -778,7 +817,7 @@ class TestServer(unittest.TestCase):
     def test_associate(self):
         request = server.AssociateRequest()
         response = self.server.openid_associate(request)
-        self.fail("incomplete test")
+        self.failUnless(response.fields.has_key("assoc_handle"))
 
     def test_checkAuth(self):
         request = server.CheckAuthRequest('arrrrrf', '0x3999', [])
