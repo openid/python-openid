@@ -1289,22 +1289,24 @@ class Signatory(object):
 
         if not assoc:
             signed_response.fields['openid.invalidate_handle'] = assoc_handle
-            assoc = self._createAssociation()
+            assoc = self.createAssociation()
         signed_response.fields['openid.assoc_handle'] = assoc.handle
         assoc.addSignature(signed_response.signed, signed_response.fields)
         return signed_response
 
-    def _createAssociation(self, dumb=True, assoc_type='HMAC-SHA1'):
+    def createAssociation(self, dumb=True, assoc_type='HMAC-SHA1'):
         secret = cryptutil.getBytes(20)
         uniq = oidutil.toBase64(cryptutil.getBytes(4))
         handle = '{%s}{%x}{%s}' % (assoc_type, int(time.time()), uniq)
 
         assoc = Association.fromExpiresIn(
             self.SECRET_LIFETIME, handle, secret, assoc_type)
+
         if dumb:
-            self.store.storeAssociation(self.dumb_key, assoc)
+            key = self.dumb_key
         else:
-            raise NotImplementedError
+            key = self.normal_key
+        self.store.storeAssociation(key, assoc)
         return assoc
 
     def getAssociation(self, assoc_handle, dumb):

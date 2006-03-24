@@ -955,6 +955,10 @@ class TestSignatory(unittest.TestCase):
         self.failUnlessEqual(
             self.signatory.getAssociation(assoc_handle, dumb=False), None)
 
+    def test_createAssociation(self):
+        assoc = self.signatory.createAssociation(dumb=False)
+        self.failUnless(self.signatory.getAssociation(assoc.handle, dumb=False))
+
     def makeAssoc(self, dumb, lifetime=60):
         assoc_handle = '{bling}'
         assoc = association.Association.fromExpiresIn(lifetime, assoc_handle,
