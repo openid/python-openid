@@ -1400,5 +1400,5 @@ class UntrustedReturnURL(Exception):
         Exception.__init__(self, return_to, trust_root)
 
     def __str__(self):
-        return "return_to %r not under trust_root %r" % (return_to,
-                                                         trust_root)
+        return "return_to %r not under trust_root %r" % (self.return_to,
+                                                         self.trust_root)
