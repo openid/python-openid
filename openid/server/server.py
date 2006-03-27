@@ -1099,6 +1099,8 @@ class CheckAuthRequest(OpenIDRequest):
         self.signed = signed_pairs
         return self
 
+    fromQuery = classmethod(fromQuery)
+
     def answer(self, signatory):
         is_valid = signatory.verify(self.assoc_handle, self.sig, self.signed)
         # Now invalidate that assoc_handle so it this checkAuth message cannot
@@ -1113,7 +1115,15 @@ class CheckAuthRequest(OpenIDRequest):
                 response.fields['invalidate_handle'] = self.invalidate_handle
         return response
 
-    fromQuery = classmethod(fromQuery)
+    def __str__(self):
+        if self.invalidate_handle:
+            ih = " invalidate? %r" % (self.invalidate_handle,)
+        else:
+            ih = ""
+        s = "<%s handle: %r sig: %r: signed: %r%s>" % (
+            self.__class__.__name__, self.assoc_handle,
+            self.sig, self.signed, ih)
+        return s
 
 class AssociateRequest(OpenIDRequest):
     mode = "associate"
@@ -1269,6 +1279,12 @@ class OpenIDResponse(object):
     def __init__(self, request):
         self.request = request
         self.fields = {}
+
+    def __str__(self):
+        return "%s for %s: %s" % (
+            self.__class__.__name__,
+            self.request.__class__.__name__,
+            self.fields)
 
 class CheckIDResponse(OpenIDResponse):
     """
