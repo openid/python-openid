@@ -508,7 +508,7 @@ class TestDecode(unittest.TestCase):
             'openid.mode': 'check_authentication',
             'openid.assoc_handle': '{dumb}{handle}',
             'openid.sig': 'sigblob',
-            'openid.signed': 'foo,bar',
+            'openid.signed': 'foo,bar,mode',
             'openid.foo': 'signedval1',
             'openid.bar': 'signedval2',
             'openid.baz': 'unsigned',
@@ -520,6 +520,7 @@ class TestDecode(unittest.TestCase):
         self.failUnlessEqual(r.signed, [
             ('foo', 'signedval1'),
             ('bar', 'signedval2'),
+            ('mode', 'id_res'),
             ])
         # XXX: and invalidate_handle, which is optional
         # XXX: test error cases (missing required fields,

@@ -1082,7 +1082,14 @@ class CheckAuthRequest(OpenIDRequest):
         signed_pairs = []
         for field in signed_list:
             try:
-                value = query[prefix + field]
+                if field == 'mode':
+                    # XXX KLUDGE HAX WEB PROTOCoL BR0KENNN
+                    # openid.mode is currently check_authentication because
+                    # that's the mode of this request.  But the signature
+                    # was made on something with a different openid.mode.
+                    value = "id_res"
+                else:
+                    value = query[prefix + field]
             except KeyError, e:
                 raise ProtocolError("Couldn't find signed field %r in query %s"
                                     % (field, query))
