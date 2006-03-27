@@ -1291,8 +1291,12 @@ class WebResponse(object):
 class Signatory(object):
     SECRET_LIFETIME = 14 * 24 * 60 * 60 # 14 days, in seconds
 
-    normal_key = '|normal'
-    dumb_key = '|dumb'
+    # keys have a bogus server URL in them because the filestore
+    # really does expect that key to be a URL.  This seems a little
+    # silly for the server store, since I expect there to be only one
+    # server URL.
+    normal_key = 'http://localhost/|normal'
+    dumb_key = 'http://localhost/|dumb'
 
     def __init__(self, store):
         self.store = store

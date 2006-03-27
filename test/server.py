@@ -828,12 +828,14 @@ class TestSignatory(unittest.TestCase):
     def setUp(self):
         self.store = _memstore.MemoryStore()
         self.signatory = server.Signatory(self.store)
+        self.dumb_key = self.signatory.dumb_key
+        self.normal_key = self.signatory.normal_key
 
     def test_sign(self):
         request = server.OpenIDRequest()
         assoc_handle = '{assoc}{lookatme}'
         self.store.storeAssociation(
-            '|normal',
+            self.normal_key,
             association.Association.fromExpiresIn(60, assoc_handle,
                                                   'sekrit', 'HMAC-SHA1'))
         request.assoc_handle = assoc_handle
@@ -855,10 +857,10 @@ class TestSignatory(unittest.TestCase):
         request = server.OpenIDRequest()
         assoc_handle = '{assoc}{lookatme}'
         self.store.storeAssociation(
-            '|normal',
+            self.normal_key,
             association.Association.fromExpiresIn(-10, assoc_handle,
                                                   'sekrit', 'HMAC-SHA1'))
-        self.failUnless(self.store.getAssociation('|normal', assoc_handle))
+        self.failUnless(self.store.getAssociation(self.normal_key, assoc_handle))
 
         request.assoc_handle = assoc_handle
         response = server.CheckIDResponse(request)
@@ -882,11 +884,11 @@ class TestSignatory(unittest.TestCase):
         self.failUnless(sresponse.fields.get('openid.sig'))
 
         # make sure the expired association is gone
-        self.failIf(self.store.getAssociation('|normal', assoc_handle))
+        self.failIf(self.store.getAssociation(self.normal_key, assoc_handle))
 
         # make sure the new key is a dumb mode association
-        self.failUnless(self.store.getAssociation('|dumb', new_assoc_handle))
-        self.failIf(self.store.getAssociation('|normal', new_assoc_handle))
+        self.failUnless(self.store.getAssociation(self.dumb_key, new_assoc_handle))
+        self.failIf(self.store.getAssociation(self.normal_key, new_assoc_handle))
 
     def test_signInvalidHandle(self):
         request = server.OpenIDRequest()
@@ -914,8 +916,8 @@ class TestSignatory(unittest.TestCase):
         self.failUnless(sresponse.fields.get('openid.sig'))
 
         # make sure the new key is a dumb mode association
-        self.failUnless(self.store.getAssociation('|dumb', new_assoc_handle))
-        self.failIf(self.store.getAssociation('|normal', new_assoc_handle))
+        self.failUnless(self.store.getAssociation(self.dumb_key, new_assoc_handle))
+        self.failIf(self.store.getAssociation(self.normal_key, new_assoc_handle))
 
     def test_signDumb(self):
         request = server.OpenIDRequest()
@@ -941,7 +943,7 @@ class TestSignatory(unittest.TestCase):
         assoc = association.Association.fromExpiresIn(60, assoc_handle,
                                                       'sekrit', 'HMAC-SHA1')
 
-        self.store.storeAssociation('|dumb', assoc)
+        self.store.storeAssociation(self.dumb_key, assoc)
 
         signed_pairs = [('foo', 'bar'),
                         ('apple', 'orange')]
@@ -955,7 +957,7 @@ class TestSignatory(unittest.TestCase):
         assoc = association.Association.fromExpiresIn(60, assoc_handle,
                                                       'sekrit', 'HMAC-SHA1')
 
-        self.store.storeAssociation('|dumb', assoc)
+        self.store.storeAssociation(self.dumb_key, assoc)
 
         signed_pairs = [('foo', 'bar'),
                         ('apple', 'orange')]
@@ -1003,7 +1005,7 @@ class TestSignatory(unittest.TestCase):
         assoc = association.Association.fromExpiresIn(lifetime, assoc_handle,
                                                       'sekrit', 'HMAC-SHA1')
 
-        self.store.storeAssociation((dumb and '|dumb') or '|normal', assoc)
+        self.store.storeAssociation((dumb and self.dumb_key) or self.normal_key, assoc)
         return assoc_handle
 
     def test_invalidate(self):
@@ -1011,7 +1013,7 @@ class TestSignatory(unittest.TestCase):
         assoc = association.Association.fromExpiresIn(60, assoc_handle,
                                                       'sekrit', 'HMAC-SHA1')
 
-        self.store.storeAssociation('|dumb', assoc)
+        self.store.storeAssociation(self.dumb_key, assoc)
         assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
         self.failUnless(assoc)
         assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
