@@ -15,6 +15,7 @@ def quoteattr(s):
     qs = cgi.escape(s, 1)
     return '"%s"' % (qs,)
 
+from openid import oidutil
 from openid.server import server
 from openid.store.filestore import FileOpenIDStore
 
@@ -34,11 +35,11 @@ class OpenIDHTTPServer(HTTPServer):
 
         self.openid = oidserver
         self.approved = {}
+        self.lastCheckIDRequest = {}
 
 class ServerHandler(BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         self.user = None
-        self.lastCheckIDRequest = None
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
 
@@ -103,11 +104,11 @@ class ServerHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(cgitb.html(sys.exc_info(), context=10))
 
-    def handleAllow(self):
+    def handleAllow(self, query):
         # smegging hell this is a bad example
-        request = self.lastCheckIDRequest
+        request = self.server.lastCheckIDRequest.get(self.user)
 
-        if 'yes' in self.query:
+        if 'yes' in query:
             identity = request.identity
             trust_root = request.trust_root
             if self.query.get('remember', 'no') == 'yes':
@@ -117,18 +118,19 @@ class ServerHandler(BaseHTTPRequestHandler):
 
             self.server.approved[(identity, trust_root)] = duration
 
-            if 'login_as' in self.query:
+            if 'login_as' in query:
                 self.user = self.query['login_as']
 
             response = request.answer(True)
+            response = self.server.openid.signatory.sign(response)
             self.displayResponse(server.encode(response))
 
-        elif 'no' in self.query:
+        elif 'no' in query:
             response = request.answer(False)
             self.displayResponse(server.encode(response))
 
         else:
-            assert False, 'strange allow post.  %r' % (self.query,)
+            assert False, 'strange allow post.  %r' % (query,)
 
     def setUser(self):
         cookies = self.headers.get('Cookie')
@@ -154,15 +156,20 @@ class ServerHandler(BaseHTTPRequestHandler):
     def serverEndPoint(self, query):
         request = server.decode(query)
         if request.mode in ["checkid_immediate", "checkid_setup"]:
-            if not self.user:
-                self.lastCheckIDRequest = request
-                self.showDecidePage(request)
-                return
-            if self.isAuthorized(request.identity_url, request.trust_root):
+            if (self.user and
+                self.isAuthorized(request.identity, request.trust_root)):
                 response = request.answer(True)
                 response = self.server.openid.signatory.sign(response)
+            elif request.immediate:
+                retry_query = dict(query)
+                retry_query['openid.mode'] = 'checkid_setup'
+                setup_url = oidutil.appendArgs(
+                    self.server.base_url + 'openidserver', retry_query)
+                response = request.answer(False, setup_url=setup_url)
             else:
-                response = request.answer(False)
+                self.server.lastCheckIDRequest[self.user] = request
+                self.showDecidePage(request)
+                return
         else:
             response = self.server.openid.handle(request)
         webresponse = server.encode(response)
@@ -334,7 +341,7 @@ class ServerHandler(BaseHTTPRequestHandler):
               <input type="submit" name="yes" value="yes" />
               <input type="submit" name="no" value="no" />
             </form>''' % fdata
-        
+
         self.showPage(200, 'Approve OpenID request?', msg=msg, form=form)
 
     def showIdPage(self, path):
@@ -443,7 +450,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             'body': body,
             'user_link': user_link,
             }
-        
+
         self.send_response(response_code)
         self.writeUserHeader()
 
