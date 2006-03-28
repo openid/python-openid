@@ -1383,7 +1383,9 @@ class Signatory(object):
             key = self.normal_key
         assoc = self.store.getAssociation(key, assoc_handle)
         if assoc is not None and assoc.expiresIn <= 0:
-            oidutil.log("requested key %r is expired (by %s seconds)")
+            oidutil.log("requested %sdumb key %r is expired (by %s seconds)" %
+                        ((not dumb) and 'not-' or '',
+                         assoc_handle, assoc.expiresIn))
             self.store.removeAssociation(key, assoc_handle)
             assoc = None
         return assoc

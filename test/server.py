@@ -14,6 +14,18 @@ from urlparse import urlparse
 # of testing smaller units.  For testing the external interfaces, we'll be
 # developing an implementation-agnostic testing suite.
 
+class CatchLogs(object):
+    def setUp(self):
+        self.old_logger = oidutil.log
+        oidutil.log = self.gotLogMessage
+        self.messages = []
+
+    def gotLogMessage(self, message):
+        self.messages.append(message)
+
+    def tearDown(self):
+        oidutil.log = self.old_logger
+
 class ConstReturningApp(server.AppIface):
     def __init__(self, truth, http_method, args,
                  additional_args=None, signed=None):
@@ -798,10 +810,11 @@ class Counter(object):
     def inc(self):
         self.count += 1
 
-class TestServer(unittest.TestCase):
+class TestServer(unittest.TestCase, CatchLogs):
     def setUp(self):
         self.store = _memstore.MemoryStore()
         self.server = server.OpenIDServer2(self.store)
+        CatchLogs.setUp(self)
 
     def test_dispatch(self):
         monkeycalled = Counter()
@@ -825,12 +838,13 @@ class TestServer(unittest.TestCase):
         response = self.server.openid_check_authentication(request)
         self.failUnless(response.fields.has_key("is_valid"))
 
-class TestSignatory(unittest.TestCase):
+class TestSignatory(unittest.TestCase, CatchLogs):
     def setUp(self):
         self.store = _memstore.MemoryStore()
         self.signatory = server.Signatory(self.store)
         self.dumb_key = self.signatory.dumb_key
         self.normal_key = self.signatory.normal_key
+        CatchLogs.setUp(self)
 
     def test_sign(self):
         request = server.OpenIDRequest()
@@ -853,6 +867,7 @@ class TestSignatory(unittest.TestCase):
         self.failUnlessEqual(sresponse.fields.get('openid.signed'),
                              'foo,azu')
         self.failUnless(sresponse.fields.get('openid.sig'))
+        self.failIf(self.messages, self.messages)
 
     def test_signDumb(self):
         request = server.OpenIDRequest()
@@ -872,6 +887,7 @@ class TestSignatory(unittest.TestCase):
         self.failUnlessEqual(sresponse.fields.get('openid.signed'),
                              'foo,azu')
         self.failUnless(sresponse.fields.get('openid.sig'))
+        self.failIf(self.messages, self.messages)
 
     def test_signExpired(self):
         request = server.OpenIDRequest()
@@ -909,6 +925,7 @@ class TestSignatory(unittest.TestCase):
         # make sure the new key is a dumb mode association
         self.failUnless(self.store.getAssociation(self.dumb_key, new_assoc_handle))
         self.failIf(self.store.getAssociation(self.normal_key, new_assoc_handle))
+        self.failUnless(self.messages)
 
     def test_signInvalidHandle(self):
         request = server.OpenIDRequest()
@@ -938,6 +955,7 @@ class TestSignatory(unittest.TestCase):
         # make sure the new key is a dumb mode association
         self.failUnless(self.store.getAssociation(self.dumb_key, new_assoc_handle))
         self.failIf(self.store.getAssociation(self.normal_key, new_assoc_handle))
+        self.failIf(self.messages, self.messages)
 
     def test_signDumb(self):
         request = server.OpenIDRequest()
@@ -957,6 +975,7 @@ class TestSignatory(unittest.TestCase):
         # Not actually testing the signature integrity on the assumption
         # that Association.signDict has its own tests.
         # XXX: BAD ASSUMPTION!
+        self.failIf(self.messages, self.messages)
 
     def test_verify(self):
         assoc_handle = '{vroom}{zoom}'
@@ -971,6 +990,7 @@ class TestSignatory(unittest.TestCase):
         sig = "Ylu0KcIR7PvNegB/K41KpnRgJl0="
         verified = self.signatory.verify(assoc_handle, sig, signed_pairs)
         self.failUnless(verified)
+        self.failIf(self.messages, self.messages)
 
     def test_verifyBadSig(self):
         assoc_handle = '{vroom}{zoom}'
@@ -985,6 +1005,7 @@ class TestSignatory(unittest.TestCase):
         sig = "Ylu0KcIR7PvNegB/K41KpnRgJl0=".encode('rot13')
         verified = self.signatory.verify(assoc_handle, sig, signed_pairs)
         self.failIf(verified)
+        self.failIf(self.messages, self.messages)
 
     def test_verifyBadHandle(self):
         assoc_handle = '{vroom}{zoom}'
@@ -994,31 +1015,37 @@ class TestSignatory(unittest.TestCase):
         sig = "Ylu0KcIR7PvNegB/K41KpnRgJl0="
         verified = self.signatory.verify(assoc_handle, sig, signed_pairs)
         self.failIf(verified)
+        self.failUnless(self.messages)
 
     def test_getAssoc(self):
         assoc_handle = self.makeAssoc(dumb=True)
         assoc = self.signatory.getAssociation(assoc_handle, True)
         self.failUnless(assoc)
         self.failUnlessEqual(assoc.handle, assoc_handle)
+        self.failIf(self.messages, self.messages)
 
     def test_getAssocExpired(self):
         assoc_handle = self.makeAssoc(dumb=True, lifetime=-10)
         assoc = self.signatory.getAssociation(assoc_handle, True)
         self.failIf(assoc, assoc)
+        self.failUnless(self.messages)
 
     def test_getAssocInvalid(self):
         ah = 'no-such-handle'
         self.failUnlessEqual(
             self.signatory.getAssociation(ah, dumb=False), None)
+        self.failIf(self.messages, self.messages)
 
     def test_getAssocDumbVsNormal(self):
         assoc_handle = self.makeAssoc(dumb=True)
         self.failUnlessEqual(
             self.signatory.getAssociation(assoc_handle, dumb=False), None)
+        self.failIf(self.messages, self.messages)
 
     def test_createAssociation(self):
         assoc = self.signatory.createAssociation(dumb=False)
         self.failUnless(self.signatory.getAssociation(assoc.handle, dumb=False))
+        self.failIf(self.messages, self.messages)
 
     def makeAssoc(self, dumb, lifetime=60):
         assoc_handle = '{bling}'
@@ -1041,6 +1068,7 @@ class TestSignatory(unittest.TestCase):
         self.signatory.invalidate(assoc_handle, dumb=True)
         assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
         self.failIf(assoc)
+        self.failIf(self.messages, self.messages)
 
 
 if __name__ == '__main__':
