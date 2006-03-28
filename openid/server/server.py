@@ -1269,7 +1269,12 @@ class CheckIDRequest(OpenIDRequest):
 
         return response
 
-
+    def __str__(self):
+        return '<%s id:%r im:%s tr:%r ah:%r>' % (self.__class__.__name__,
+                                                 self.identity,
+                                                 self.immediate,
+                                                 self.trust_root,
+                                                 self.assoc_handle)
 
 class OpenIDResponse(object):
     """
