@@ -578,6 +578,10 @@ class TestDecode(unittest.TestCase):
         self.failUnlessRaises(server.ProtocolError, server.decode, args)
 
 class TestEncode(unittest.TestCase):
+    def setUp(self):
+        self.encoder = server.Encoder()
+        self.encode = self.encoder.encode
+
     def test_id_res(self):
         request = server.CheckIDRequest(
             identity = 'http://bombom.unittest/',
@@ -591,7 +595,7 @@ class TestEncode(unittest.TestCase):
             'openid.identity': request.identity,
             'openid.return_to': request.return_to,
             }
-        webresponse = server.encode(response)
+        webresponse = self.encode(response)
         self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
         self.failUnless(webresponse.headers.has_key('location'))
 
@@ -615,7 +619,7 @@ class TestEncode(unittest.TestCase):
         response.fields = {
             'openid.mode': 'cancel',
             }
-        webresponse = server.encode(response)
+        webresponse = self.encode(response)
         self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
         self.failUnless(webresponse.headers.has_key('location'))
 
@@ -623,7 +627,7 @@ class TestEncode(unittest.TestCase):
         request = server.AssociateRequest()
         response = server.OpenIDResponse(request)
         response.fields = {'assoc_handle': "every-zig"}
-        webresponse = server.encode(response)
+        webresponse = self.encode(response)
         body = """assoc_handle:every-zig
 """
         self.failUnlessEqual(webresponse.code, server.HTTP_OK)
@@ -642,7 +646,7 @@ class TestEncode(unittest.TestCase):
         body = """invalidate_handle:xXxX:xXXx
 is_valid:true
 """
-        webresponse = server.encode(response)
+        webresponse = self.encode(response)
         self.failUnlessEqual(webresponse.code, server.HTTP_OK)
         self.failUnlessEqual(webresponse.headers, {})
         self.failUnlessEqual(webresponse.body, body)
