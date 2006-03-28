@@ -105,7 +105,8 @@ class ServerHandler(BaseHTTPRequestHandler):
             self.wfile.write(cgitb.html(sys.exc_info(), context=10))
 
     def handleAllow(self, query):
-        # smegging hell this is a bad example
+        # pretend this next bit is keying off the user's session or something,
+        # right?
         request = self.server.lastCheckIDRequest.get(self.user)
 
         if 'yes' in query:
@@ -123,14 +124,15 @@ class ServerHandler(BaseHTTPRequestHandler):
 
             response = request.answer(True)
             response = self.server.openid.signatory.sign(response)
-            self.displayResponse(server.encode(response))
 
         elif 'no' in query:
             response = request.answer(False)
-            self.displayResponse(server.encode(response))
 
         else:
             assert False, 'strange allow post.  %r' % (query,)
+
+        self.displayResponse(server.encode(response))
+        
 
     def setUser(self):
         cookies = self.headers.get('Cookie')
@@ -184,32 +186,6 @@ class ServerHandler(BaseHTTPRequestHandler):
 
         if webresponse.body:
             self.wfile.write(webresponse.body)
-
-    def doOpenIDResponse(self, status, info):
-        if status == server.REDIRECT:
-            self.redirect(info)
-
-        elif status == server.DO_AUTH:
-            self.showDecidePage(info)
-
-        elif status == server.DO_ABOUT:
-            self.showAboutPage()
-
-        elif status == server.REMOTE_OK:
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(info)
-
-        elif status == server.REMOTE_ERROR:
-            self.send_response(400)
-            self.end_headers()
-            self.wfile.write(info)
-
-        elif status == server.LOCAL_ERROR:
-            self.showErrorPage(info)
-
-        else:
-            assert 0, 'should be unreachable %r' % (status,)
 
     def doLogin(self):
         if 'submit' in self.query:
