@@ -1332,6 +1332,8 @@ class Signatory(object):
     def verify(self, assoc_handle, sig, signed_pairs):
         assoc = self.getAssociation(assoc_handle, dumb=True)
         if not assoc:
+            oidutil.log("failed to get assoc with handle %r to verify sig %r"
+                        % (assoc_handle, sig))
             return False
 
         expected_sig = oidutil.toBase64(assoc.sign(signed_pairs))
@@ -1372,6 +1374,7 @@ class Signatory(object):
             key = self.normal_key
         assoc = self.store.getAssociation(key, assoc_handle)
         if assoc is not None and assoc.expiresIn <= 0:
+            oidutil.log("requested key %r is expired (by %s seconds)")
             self.store.removeAssociation(key, assoc_handle)
             assoc = None
         return assoc
