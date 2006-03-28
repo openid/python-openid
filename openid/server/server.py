@@ -1343,11 +1343,18 @@ class Signatory(object):
     def sign(self, response):
         signed_response = deepcopy(response)
         assoc_handle = response.request.assoc_handle
-        assoc = self.getAssociation(assoc_handle, dumb=False)
+        if assoc_handle:
+            # normal mode
+            assoc = self.getAssociation(assoc_handle, dumb=False)
+            if not assoc:
+                # fall back to dumb mode
+                signed_response.fields['openid.invalidate_handle'] = \
+                                                                   assoc_handle
+                assoc = self.createAssociation(dumb=True)
+        else:
+            # dumb mode.
+            assoc = self.createAssociation(dumb=True)
 
-        if not assoc:
-            signed_response.fields['openid.invalidate_handle'] = assoc_handle
-            assoc = self.createAssociation()
         signed_response.fields['openid.assoc_handle'] = assoc.handle
         assoc.addSignature(signed_response.signed, signed_response.fields)
         return signed_response
@@ -1368,6 +1375,8 @@ class Signatory(object):
         return assoc
 
     def getAssociation(self, assoc_handle, dumb):
+        if assoc_handle is None:
+            raise ValueError("assoc_handle must not be None")
         if dumb:
             key = self.dumb_key
         else:

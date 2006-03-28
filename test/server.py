@@ -854,6 +854,25 @@ class TestSignatory(unittest.TestCase):
                              'foo,azu')
         self.failUnless(sresponse.fields.get('openid.sig'))
 
+    def test_signDumb(self):
+        request = server.OpenIDRequest()
+        request.assoc_handle = assoc_handle
+        response = server.CheckIDResponse(request)
+        response.fields = {
+            'openid.foo': 'amsigned',
+            'openid.bar': 'notsigned',
+            'openid.azu': 'alsosigned',
+            }
+        response.signed = ['foo', 'azu']
+        sresponse = self.signatory.sign(response)
+        assoc_handle = sresponse.fields.get('openid.assoc_handle')
+        self.failUnless(assoc_handle)
+        assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
+        self.failUnless(assoc)
+        self.failUnlessEqual(sresponse.fields.get('openid.signed'),
+                             'foo,azu')
+        self.failUnless(sresponse.fields.get('openid.sig'))
+
     def test_signExpired(self):
         request = server.OpenIDRequest()
         assoc_handle = '{assoc}{lookatme}'
