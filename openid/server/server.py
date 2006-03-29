@@ -1302,6 +1302,12 @@ class CheckIDResponse(OpenIDResponse):
         if mode == 'id_res':
             self.signed.extend(['mode', 'identity', 'return_to'])
 
+    def __str__(self):
+        return "%s for %s: signed%s %s" % (
+            self.__class__.__name__,
+            self.request.__class__.__name__,
+            self.signed, self.fields)
+
 class WebResponse(object):
     code = HTTP_OK
     body = ""
