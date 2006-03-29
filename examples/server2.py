@@ -515,7 +515,7 @@ def main(host, port, data_path):
     else:
         server_url = 'http://%s:%s/openidserver' % (host, port)
     store = FileOpenIDStore(data_path)
-    oidserver = server.OpenIDServer2(store)
+    oidserver = server.OpenIDServer(store)
 
     addr = (host, port)
     httpserver = OpenIDHTTPServer(oidserver, addr, ServerHandler)

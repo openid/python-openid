@@ -476,7 +476,7 @@ class Decoder(object):
         raise ProtocolError("No decoder for mode %r" % (mode,))
 
 
-class OpenIDServer2(object):
+class OpenIDServer(object):
     signatoryClass = Signatory
     encoderClass = SigningEncoder
     decoderClass = Decoder
