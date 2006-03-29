@@ -130,7 +130,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         else:
             assert False, 'strange allow post.  %r' % (query,)
 
-        self.displayResponse(server.encode(response))
+        self.displayResponse(response)
 
 
     def setUser(self):
@@ -155,7 +155,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         return approval is not None
 
     def serverEndPoint(self, query):
-        request = server.decode(query)
+        request = self.server.openid.decodeRequest(query)
         if request.mode in ["checkid_immediate", "checkid_setup"]:
             if (self.user and
                 self.isAuthorized(request.identity, request.trust_root)):
@@ -171,11 +171,11 @@ class ServerHandler(BaseHTTPRequestHandler):
                 self.showDecidePage(request)
                 return
         else:
-            response = self.server.openid.handle(request)
-        webresponse = server.encode(response)
-        self.displayResponse(webresponse)
+            response = self.server.openid.handleRequest(request)
+        self.displayResponse(response)
 
-    def displayResponse(self, webresponse):
+    def displayResponse(self, response):
+        webresponse = self.server.openid.encodeResponse(response)
         self.send_response(webresponse.code)
         for header, value in webresponse.headers.iteritems():
             self.send_header(header, value)
