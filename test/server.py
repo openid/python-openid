@@ -992,7 +992,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
 
     def test_signDumb(self):
         request = server.OpenIDRequest()
-        request.assoc_handle = assoc_handle
+        request.assoc_handle = None
         response = server.CheckIDResponse(request)
         response.fields = {
             'openid.foo': 'amsigned',
@@ -1078,25 +1078,6 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.failIf(self.store.getAssociation(self.normal_key, new_assoc_handle))
         self.failIf(self.messages, self.messages)
 
-    def test_signDumb(self):
-        request = server.OpenIDRequest()
-        request.assoc_handle = None
-        response = server.CheckIDResponse(request)
-        response.fields = {
-            'openid.foo': 'amsigned',
-            'openid.bar': 'notsigned',
-            'openid.azu': 'alsosigned',
-            }
-        response.signed = ['foo', 'azu']
-        sresponse = self.signatory.sign(response)
-        self.failUnlessEqual(sresponse.fields.get('openid.signed'),
-                             'foo,azu')
-        self.failUnless(sresponse.fields.get('openid.assoc_handle'))
-        self.failUnless(sresponse.fields.get('openid.sig'))
-        # Not actually testing the signature integrity on the assumption
-        # that Association.signDict has its own tests.
-        # XXX: BAD ASSUMPTION!
-        self.failIf(self.messages, self.messages)
 
     def test_verify(self):
         assoc_handle = '{vroom}{zoom}'
