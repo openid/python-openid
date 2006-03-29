@@ -1434,22 +1434,20 @@ class Encoder(object):
         return wr
 
 class SigningEncoder(Encoder):
-    signatoryClass = Signatory
-    def encode(self, response, store=None):
-        # I could have a constructor that takes a store, but since
-        # I really only get called for one-shots, that is likely to not
-        # be used much.
+    def __init__(self, signatory):
+        self.signatory = signatory
+
+    def encode(self, response):
         request = response.request
         if request.mode in ['checkid_setup', 'checkid_immediate']:
             if response.signed:
-                if not store:
+                if not self.signatory:
                     raise ValueError(
                         "Must have a store to sign this request: %s" %
                         (response,), response)
                 if 'openid.sig' in response.fields:
                     raise AlreadySigned(response)
-                signatory = self.signatoryClass(store)
-                response = signatory.sign(response)
+                response = self.signatory.sign(response)
         return super(SigningEncoder, self).encode(response)
 
 class Decoder(object):
@@ -1482,10 +1480,15 @@ class Decoder(object):
         raise ProtocolError("No decoder for mode %r" % (mode,))
 
 
-_encoder = SigningEncoder()
 _decoder = Decoder()
-encode = _encoder.encode
 decode = _decoder.decode
+
+def encode(response, store=None):
+    if store:
+        signatory = Signatory(store)
+    else:
+        signatory = None
+    return SigningEncoder(signatory).encode(response)
 
 class ProtocolError(Exception):
     pass
