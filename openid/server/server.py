@@ -1333,6 +1333,7 @@ class Signatory(object):
     dumb_key = 'http://localhost/|dumb'
 
     def __init__(self, store):
+        assert store is not None
         self.store = store
 
     def verify(self, assoc_handle, sig, signed_pairs):

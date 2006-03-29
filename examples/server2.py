@@ -123,7 +123,6 @@ class ServerHandler(BaseHTTPRequestHandler):
                 self.user = self.query['login_as']
 
             response = request.answer(True)
-            response = self.server.openid.signatory.sign(response)
 
         elif 'no' in query:
             response = request.answer(False)
@@ -161,7 +160,6 @@ class ServerHandler(BaseHTTPRequestHandler):
             if (self.user and
                 self.isAuthorized(request.identity, request.trust_root)):
                 response = request.answer(True)
-                response = self.server.openid.signatory.sign(response)
             elif request.immediate:
                 retry_query = dict(query)
                 retry_query['openid.mode'] = 'checkid_setup'
