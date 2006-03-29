@@ -651,6 +651,85 @@ is_valid:true
         self.failUnlessEqual(webresponse.headers, {})
         self.failUnlessEqual(webresponse.body, body)
 
+class TestSigningEncode(unittest.TestCase):
+    def setUp(self):
+        self.dumb_key = server.Signatory.dumb_key
+        self.normal_key = server.Signatory.normal_key
+        self.store = _memstore.MemoryStore()
+        self.request = server.CheckIDRequest(
+            identity = 'http://bombom.unittest/',
+            trust_root = 'http://burr.unittest/',
+            return_to = 'http://burr.unittest/999',
+            immediate = False,
+            )
+        self.response = server.CheckIDResponse(self.request)
+        self.response.fields = {
+            'openid.mode': 'id_res',
+            'openid.identity': self.request.identity,
+            'openid.return_to': self.request.return_to,
+            }
+
+    def test_idres(self):
+        assoc_handle = '{bicycle}{shed}'
+        self.store.storeAssociation(
+            self.normal_key,
+            association.Association.fromExpiresIn(60, assoc_handle,
+                                                  'sekrit', 'HMAC-SHA1'))
+        self.request.assoc_handle = assoc_handle
+        webresponse = server.encode(self.response, self.store)
+        self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
+        self.failUnless(webresponse.headers.has_key('location'))
+
+        location = webresponse.headers['location']
+        query = cgi.parse_qs(urlparse(location)[4])
+        self.failUnless('openid.sig' in query)
+        self.failUnless('openid.assoc_handle' in query)
+        self.failUnless('openid.signed' in query)
+
+    def test_idresDumb(self):
+        webresponse = server.encode(self.response, self.store)
+        self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
+        self.failUnless(webresponse.headers.has_key('location'))
+
+        location = webresponse.headers['location']
+        query = cgi.parse_qs(urlparse(location)[4])
+        self.failUnless('openid.sig' in query)
+        self.failUnless('openid.assoc_handle' in query)
+        self.failUnless('openid.signed' in query)
+
+    def test_forgotStore(self):
+        self.failUnlessRaises(ValueError, server.encode, self.response)
+
+    def test_cancel(self):
+        request = server.CheckIDRequest(
+            identity = 'http://bombom.unittest/',
+            trust_root = 'http://burr.unittest/',
+            return_to = 'http://burr.unittest/999',
+            immediate = False,
+            )
+        response = server.CheckIDResponse(request, 'cancel')
+        webresponse = server.encode(response)
+        self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
+        self.failUnless(webresponse.headers.has_key('location'))
+        location = webresponse.headers['location']
+        query = cgi.parse_qs(urlparse(location)[4])
+        self.failIf('openid.sig' in query, query.get('openid.sig'))
+
+    def test_assocReply(self):
+        request = server.AssociateRequest()
+        response = server.OpenIDResponse(request)
+        response.fields = {'assoc_handle': "every-zig"}
+        webresponse = server.encode(response)
+        body = """assoc_handle:every-zig
+"""
+        self.failUnlessEqual(webresponse.code, server.HTTP_OK)
+        self.failUnlessEqual(webresponse.headers, {})
+        self.failUnlessEqual(webresponse.body, body)
+
+    def test_alreadySigned(self):
+        self.response.fields['openid.sig'] = 'priorSig=='
+        self.failUnlessRaises(server.AlreadySigned, server.encode,
+                              self.response, self.store)
 
 
 class TestCheckID(unittest.TestCase):

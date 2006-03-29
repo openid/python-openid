@@ -1433,6 +1433,25 @@ class Encoder(object):
             wr = self.responseFactory(body=kvform.dictToKV(response.fields))
         return wr
 
+class SigningEncoder(Encoder):
+    signatoryClass = Signatory
+    def encode(self, response, store=None):
+        # I could have a constructor that takes a store, but since
+        # I really only get called for one-shots, that is likely to not
+        # be used much.
+        request = response.request
+        if request.mode in ['checkid_setup', 'checkid_immediate']:
+            if response.signed:
+                if not store:
+                    raise ValueError(
+                        "Must have a store to sign this request: %s" %
+                        (response,), response)
+                if 'openid.sig' in response.fields:
+                    raise AlreadySigned(response)
+                signatory = self.signatoryClass(store)
+                response = signatory.sign(response)
+        return super(SigningEncoder, self).encode(response)
+
 class Decoder(object):
     prefix = 'openid.'
 
@@ -1463,13 +1482,19 @@ class Decoder(object):
         raise ProtocolError("No decoder for mode %r" % (mode,))
 
 
-_encoder = Encoder()
+_encoder = SigningEncoder()
 _decoder = Decoder()
 encode = _encoder.encode
 decode = _decoder.decode
 
 class ProtocolError(Exception):
     pass
+
+class EncodingError(Exception):
+    pass
+
+class AlreadySigned(EncodingError):
+    """This response is already signed."""
 
 class UntrustedReturnURL(Exception):
     def __init__(self, return_to, trust_root):
