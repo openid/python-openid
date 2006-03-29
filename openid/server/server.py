@@ -1199,6 +1199,10 @@ class CheckIDRequest(OpenIDRequest):
             self.immediate = False
             self.mode = "checkid_setup"
 
+        if not TrustRoot.parse(self.return_to):
+            raise MalformedReturnURL(self.return_to)
+
+
     def fromQuery(klass, query):
         self = klass.__new__(klass)
         mode = query['openid.mode']
@@ -1231,9 +1235,13 @@ class CheckIDRequest(OpenIDRequest):
             if value:
                 setattr(self, field, value)
 
+        if not TrustRoot.parse(self.return_to):
+            raise MalformedReturnURL(self.return_to)
+
         return self
 
     fromQuery = classmethod(fromQuery)
+
 
     def trustRootValid(self):
         """Is my return_to under my trust_root?
@@ -1511,3 +1519,5 @@ class UntrustedReturnURL(Exception):
     def __str__(self):
         return "return_to %r not under trust_root %r" % (self.return_to,
                                                          self.trust_root)
+class MalformedReturnURL(ProtocolError):
+    pass
