@@ -786,6 +786,7 @@ class TestCheckID(unittest.TestCase):
         self.failUnlessEqual(answer.fields, {
             'openid.mode': 'cancel',
             })
+        self.failUnlessEqual(answer.signed, [])
 
 class MockSignatory(object):
     isValid = True
