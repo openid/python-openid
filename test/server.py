@@ -784,6 +784,7 @@ class TestCheckID(unittest.TestCase):
             'openid.mode': 'id_res',
             'openid.user_setup_url': setup_url,
             })
+        self.failUnlessEqual(answer.signed, [])
 
     def test_answerSetupDeny(self):
         answer = self.request.answer(False)

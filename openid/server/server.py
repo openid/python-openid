@@ -1261,6 +1261,7 @@ class CheckIDRequest(OpenIDRequest):
             if not self.trustRootValid():
                 raise UntrustedReturnURL(self.return_to, self.trust_root)
         else:
+            response.signed[:] = []
             if self.immediate:
                 if not setup_url:
                     raise ValueError("setup_url is required for allow=False "
