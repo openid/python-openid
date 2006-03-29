@@ -442,10 +442,11 @@ class TestDecode(unittest.TestCase):
         self.rt_url = "http://rp.unittest/foobot/?qux=zam"
         self.tr_url = "http://rp.unittest/"
         self.assoc_handle = "{assoc}{handle}"
+        self.decode = server.Decoder().decode
 
     def test_none(self):
         args = {}
-        r = server.decode(args)
+        r = self.decode(args)
         self.failUnlessEqual(r, None)
 
     def test_irrelevant(self):
@@ -453,7 +454,7 @@ class TestDecode(unittest.TestCase):
             'pony': 'spotted',
             'sreg.mutant_power': 'decaffinator',
             }
-        r = server.decode(args)
+        r = self.decode(args)
         self.failUnlessEqual(r, None)
 
     def test_bad(self):
@@ -461,7 +462,7 @@ class TestDecode(unittest.TestCase):
             'openid.mode': 'twos-compliment',
             'openid.pants': 'zippered',
             }
-        self.failUnlessRaises(server.ProtocolError, server.decode, args)
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
     def test_checkidImmediate(self):
         args = {
@@ -473,7 +474,7 @@ class TestDecode(unittest.TestCase):
             # should be ignored
             'openid.some.extension': 'junk',
             }
-        r = server.decode(args)
+        r = self.decode(args)
         self.failUnless(isinstance(r, server.CheckIDRequest))
         self.failUnlessEqual(r.mode, "checkid_immediate")
         self.failUnlessEqual(r.immediate, True)
@@ -489,7 +490,7 @@ class TestDecode(unittest.TestCase):
             'openid.return_to': self.rt_url,
             'openid.trust_root': self.tr_url,
             }
-        r = server.decode(args)
+        r = self.decode(args)
         self.failUnless(isinstance(r, server.CheckIDRequest))
         self.failUnlessEqual(r.mode, "checkid_setup")
         self.failUnlessEqual(r.immediate, False)
@@ -504,7 +505,7 @@ class TestDecode(unittest.TestCase):
             'openid.return_to': self.rt_url,
             'openid.trust_root': self.tr_url,
             }
-        self.failUnlessRaises(server.ProtocolError, server.decode, args)
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
     def test_checkidSetupNoReturn(self):
         args = {
@@ -513,7 +514,7 @@ class TestDecode(unittest.TestCase):
             'openid.assoc_handle': self.assoc_handle,
             'openid.trust_root': self.tr_url,
             }
-        self.failUnlessRaises(server.ProtocolError, server.decode, args)
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
     def test_checkAuth(self):
         args = {
@@ -525,7 +526,7 @@ class TestDecode(unittest.TestCase):
             'openid.bar': 'signedval2',
             'openid.baz': 'unsigned',
             }
-        r = server.decode(args)
+        r = self.decode(args)
         self.failUnless(isinstance(r, server.CheckAuthRequest))
         self.failUnlessEqual(r.mode, 'check_authentication')
         self.failUnlessEqual(r.sig, 'sigblob')
@@ -544,7 +545,7 @@ class TestDecode(unittest.TestCase):
             'openid.session_type': 'DH-SHA1',
             'openid.dh_consumer_public': "Rzup9265tw==",
             }
-        r = server.decode(args)
+        r = self.decode(args)
         self.failUnless(isinstance(r, server.AssociateRequest))
         self.failUnlessEqual(r.mode, "associate")
         self.failUnlessEqual(r.session_type, "DH-SHA1")
@@ -558,13 +559,13 @@ class TestDecode(unittest.TestCase):
             'openid.session_type': 'DH-SHA1',
             }
         # Using DH-SHA1 without supplying dh_consumer_public is an error.
-        self.failUnlessRaises(server.ProtocolError, server.decode, args)
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
     def test_associatePlain(self):
         args = {
             'openid.mode': 'associate',
             }
-        r = server.decode(args)
+        r = self.decode(args)
         self.failUnless(isinstance(r, server.AssociateRequest))
         self.failUnlessEqual(r.mode, "associate")
         self.failUnlessEqual(r.session_type, "plaintext")
@@ -575,7 +576,7 @@ class TestDecode(unittest.TestCase):
             'openid.session_type': 'DH-SHA1',
             'openid.dh_consumer_public': "my public keeey",
             }
-        self.failUnlessRaises(server.ProtocolError, server.decode, args)
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
 class TestEncode(unittest.TestCase):
     def setUp(self):
@@ -668,6 +669,9 @@ class TestSigningEncode(unittest.TestCase):
             'openid.identity': self.request.identity,
             'openid.return_to': self.request.return_to,
             }
+        self.signatory = server.Signatory(self.store)
+        self.encoder = server.SigningEncoder(self.signatory)
+        self.encode = self.encoder.encode
 
     def test_idres(self):
         assoc_handle = '{bicycle}{shed}'
@@ -676,7 +680,7 @@ class TestSigningEncode(unittest.TestCase):
             association.Association.fromExpiresIn(60, assoc_handle,
                                                   'sekrit', 'HMAC-SHA1'))
         self.request.assoc_handle = assoc_handle
-        webresponse = server.encode(self.response, self.store)
+        webresponse = self.encode(self.response)
         self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
         self.failUnless(webresponse.headers.has_key('location'))
 
@@ -687,7 +691,7 @@ class TestSigningEncode(unittest.TestCase):
         self.failUnless('openid.signed' in query)
 
     def test_idresDumb(self):
-        webresponse = server.encode(self.response, self.store)
+        webresponse = self.encode(self.response)
         self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
         self.failUnless(webresponse.headers.has_key('location'))
 
@@ -698,7 +702,8 @@ class TestSigningEncode(unittest.TestCase):
         self.failUnless('openid.signed' in query)
 
     def test_forgotStore(self):
-        self.failUnlessRaises(ValueError, server.encode, self.response)
+        self.encoder.signatory = None
+        self.failUnlessRaises(ValueError, self.encode, self.response)
 
     def test_cancel(self):
         request = server.CheckIDRequest(
@@ -708,7 +713,7 @@ class TestSigningEncode(unittest.TestCase):
             immediate = False,
             )
         response = server.CheckIDResponse(request, 'cancel')
-        webresponse = server.encode(response)
+        webresponse = self.encode(response)
         self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
         self.failUnless(webresponse.headers.has_key('location'))
         location = webresponse.headers['location']
@@ -719,7 +724,7 @@ class TestSigningEncode(unittest.TestCase):
         request = server.AssociateRequest()
         response = server.OpenIDResponse(request)
         response.fields = {'assoc_handle': "every-zig"}
-        webresponse = server.encode(response)
+        webresponse = self.encode(response)
         body = """assoc_handle:every-zig
 """
         self.failUnlessEqual(webresponse.code, server.HTTP_OK)
@@ -728,8 +733,7 @@ class TestSigningEncode(unittest.TestCase):
 
     def test_alreadySigned(self):
         self.response.fields['openid.sig'] = 'priorSig=='
-        self.failUnlessRaises(server.AlreadySigned, server.encode,
-                              self.response, self.store)
+        self.failUnlessRaises(server.AlreadySigned, self.encode, self.response)
 
 
 class TestCheckID(unittest.TestCase):
@@ -909,7 +913,7 @@ class TestServer(unittest.TestCase, CatchLogs):
         self.server.openid_monkeymode = monkeyDo
         request = server.OpenIDRequest()
         request.mode = "monkeymode"
-        webresult = self.server.handle(request)
+        webresult = self.server.handleRequest(request)
         self.failUnlessEqual(monkeycalled.count, 1)
 
     def test_associate(self):

@@ -1405,23 +1405,6 @@ class Signatory(object):
         self.store.removeAssociation(key, assoc_handle)
 
 
-class OpenIDServer2(object):
-    signatoryClass = Signatory
-    def __init__(self, store):
-        self.store = store
-        self.signatory = self.signatoryClass(self.store)
-
-    def handle(self, request):
-        handler = getattr(self, 'openid_' + request.mode)
-        return handler(request)
-
-    def openid_check_authentication(self, request):
-        return request.answer(self.signatory)
-
-    def openid_associate(self, request):
-        assoc = self.signatory.createAssociation(dumb=False)
-        return request.answer(assoc)
-
 class Encoder(object):
     responseFactory = WebResponse
     def encode(self, response):
@@ -1481,15 +1464,33 @@ class Decoder(object):
         raise ProtocolError("No decoder for mode %r" % (mode,))
 
 
-_decoder = Decoder()
-decode = _decoder.decode
+class OpenIDServer2(object):
+    signatoryClass = Signatory
+    encoderClass = SigningEncoder
+    decoderClass = Decoder
+    def __init__(self, store):
+        self.store = store
+        self.signatory = self.signatoryClass(self.store)
+        self.encoder = self.encoderClass(self.signatory)
+        self.decoder = self.decoderClass()
 
-def encode(response, store=None):
-    if store:
-        signatory = Signatory(store)
-    else:
-        signatory = None
-    return SigningEncoder(signatory).encode(response)
+    def handleRequest(self, request):
+        handler = getattr(self, 'openid_' + request.mode)
+        return handler(request)
+
+    def openid_check_authentication(self, request):
+        return request.answer(self.signatory)
+
+    def openid_associate(self, request):
+        assoc = self.signatory.createAssociation(dumb=False)
+        return request.answer(assoc)
+
+    def encodeResponse(self, response):
+        return self.encoder.encode(response)
+
+    def decodeRequest(self, query):
+        return self.decoder.decode(query)
+
 
 class ProtocolError(Exception):
     pass
