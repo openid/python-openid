@@ -132,7 +132,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             assert False, 'strange allow post.  %r' % (query,)
 
         self.displayResponse(server.encode(response))
-        
+
 
     def setUser(self):
         cookies = self.headers.get('Cookie')
