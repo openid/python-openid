@@ -516,6 +516,15 @@ class TestDecode(unittest.TestCase):
             }
         self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
+    def test_checkidSetupBadReturn(self):
+        args = {
+            'openid.mode': 'checkid_setup',
+            'openid.identity': self.id_url,
+            'openid.assoc_handle': self.assoc_handle,
+            'openid.return_to': 'not a url',
+            }
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+
     def test_checkAuth(self):
         args = {
             'openid.mode': 'check_authentication',
@@ -773,6 +782,17 @@ class TestCheckID(unittest.TestCase):
             })
         self.failUnlessEqual(answer.signed, ["mode", "identity", "return_to"])
 
+    def test_answerAllowNoTrustRoot(self):
+        self.request.trust_root = None
+        answer = self.request.answer(True)
+        self.failUnlessEqual(answer.request, self.request)
+        self.failUnlessEqual(answer.fields, {
+            'openid.mode': 'id_res',
+            'openid.identity': self.request.identity,
+            'openid.return_to': self.request.return_to,
+            })
+        self.failUnlessEqual(answer.signed, ["mode", "identity", "return_to"])
+
     def test_answerImmediateDeny(self):
         self.request.mode = 'checkid_immediate'
         self.request.immediate = True
@@ -859,6 +879,9 @@ class TestCheckAuth(unittest.TestCase):
 
 
 class TestAssociate(unittest.TestCase):
+    # TODO: test DH with non-default values for modulus and gen.
+    # (important to do because we actually had it broken for a while.)
+
     def setUp(self):
         self.request = server.AssociateRequest()
         self.store = _memstore.MemoryStore()
@@ -866,16 +889,25 @@ class TestAssociate(unittest.TestCase):
         self.assoc = self.signatory.createAssociation(dumb=False)
 
     def test_dh(self):
+        from openid.dh import DiffieHellman
+        dh = DiffieHellman()
+
         self.request.session_type = 'DH-SHA1'
-        self.request.pubkey = 42 # 'FIXME-99'
+        self.request.pubkey = dh.public
         response = self.request.answer(self.assoc)
         rfg = response.fields.get
         self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA1")
         self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
         self.failIf(rfg("mac_key"))
         self.failUnlessEqual(rfg("session_type"), "DH-SHA1")
-        self.failUnless(rfg("enc_mac_key")) # , "FIXME-abc")
-        self.failUnless(rfg("dh_server_public")) #, "FIXME-def")
+        self.failUnless(rfg("enc_mac_key"))
+        self.failUnless(rfg("dh_server_public"))
+
+        enc_key = rfg("enc_mac_key").decode('base64')
+        spub = cryptutil.base64ToLong(rfg("dh_server_public"))
+        secret = dh.xorSecret(spub, enc_key)
+        self.failUnlessEqual(secret, self.assoc.secret)
+
 
     def test_plaintext(self):
         response = self.request.answer(self.assoc)
