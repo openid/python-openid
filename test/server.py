@@ -483,6 +483,17 @@ class TestCheckID(unittest.TestCase):
             })
         self.failUnlessEqual(answer.signed, [])
 
+    def test_getCancelURL(self):
+        url = self.request.getCancelURL()
+        expected = self.request.return_to + '?openid.mode=cancel'
+        self.failUnlessEqual(url, expected)
+
+    def test_getCancelURLimmed(self):
+        self.request.mode = 'checkid_immediate'
+        self.request.immediate = True
+        self.failUnlessRaises(ValueError, self.request.getCancelURL)
+
+
 class MockSignatory(object):
     isValid = True
 

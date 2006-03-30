@@ -281,6 +281,21 @@ class CheckIDRequest(OpenIDRequest):
 
         return response
 
+
+    def getCancelURL(self):
+        """Get the URL to cancel this request.
+
+        Useful for creating a "Cancel" button on a web form so that operation
+        can be carried out directly without another trip through the server.
+
+        @returntype: str
+        @returns: The return_to URL with openid.mode = cancel.
+        """
+        if self.immediate:
+            raise ValueError("Cancel is not an appropriate response to "
+                             "immediate mode requests.")
+        return oidutil.appendArgs(self.return_to, {'openid.mode': 'cancel'})
+
     def __str__(self):
         return '<%s id:%r im:%s tr:%r ah:%r>' % (self.__class__.__name__,
                                                  self.identity,
