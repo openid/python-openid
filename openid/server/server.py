@@ -51,7 +51,7 @@ HTTP_REDIRECT = 302
 HTTP_OK = 200
 
 BROWSER_REQUEST_MODES = ['checkid_setup', 'checkid_immediate']
-
+OPENID_PREFIX = 'openid.'
 
 
 class OpenIDRequest(object):
@@ -76,11 +76,10 @@ class CheckAuthRequest(OpenIDRequest):
 
     def fromQuery(klass, query):
         self = klass.__new__(klass)
-        prefix = 'openid.'
         try:
-            self.assoc_handle = query[prefix + 'assoc_handle']
-            self.sig = query[prefix + 'sig']
-            signed_list = query['openid.signed']
+            self.assoc_handle = query[OPENID_PREFIX + 'assoc_handle']
+            self.sig = query[OPENID_PREFIX + 'sig']
+            signed_list = query[OPENID_PREFIX + 'signed']
         except KeyError, e:
             raise ProtocolError("%s request missing required parameter %s"
                                 " from query %s" %
@@ -96,7 +95,7 @@ class CheckAuthRequest(OpenIDRequest):
                     # was made on something with a different openid.mode.
                     value = "id_res"
                 else:
-                    value = query[prefix + field]
+                    value = query[OPENID_PREFIX + field]
             except KeyError, e:
                 raise ProtocolError("Couldn't find signed field %r in query %s"
                                     % (field, query))
@@ -139,13 +138,13 @@ class AssociateRequest(OpenIDRequest):
 
     def fromQuery(klass, query):
         self = AssociateRequest()
-        session_type = query.get('openid.session_type')
+        session_type = query.get(OPENID_PREFIX + 'session_type')
         if session_type:
             self.session_type = session_type
             if session_type == 'DH-SHA1':
                 try:
                     self.pubkey = cryptutil.base64ToLong(
-                        query['openid.dh_consumer_public'])
+                        query[OPENID_PREFIX + 'dh_consumer_public'])
                 except KeyError, e:
                     raise ProtocolError("Public key for DH-SHA1 session "
                                         "not found in query %s" % (query,))
@@ -212,7 +211,7 @@ class CheckIDRequest(OpenIDRequest):
 
     def fromQuery(klass, query):
         self = klass.__new__(klass)
-        mode = query['openid.mode']
+        mode = query[OPENID_PREFIX + 'mode']
         if mode == "checkid_immediate":
             self.immediate = True
             self.mode = "checkid_immediate"
@@ -229,16 +228,15 @@ class CheckIDRequest(OpenIDRequest):
         #    'assoc_handle',  ?
             ]
 
-        prefix = 'openid.'
         for field in required:
-            value = query.get(prefix + field)
+            value = query.get(OPENID_PREFIX + field)
             if not value:
                 raise ProtocolError("Missing required field %s from %r"
                                     % (field, query))
             setattr(self, field, value)
 
         for field in optional:
-            value = query.get(prefix + field)
+            value = query.get(OPENID_PREFIX + field)
             if value:
                 setattr(self, field, value)
 
@@ -271,8 +269,8 @@ class CheckIDRequest(OpenIDRequest):
         response = CheckIDResponse(self, mode)
 
         if allow:
-            response.fields['openid.identity'] = self.identity
-            response.fields['openid.return_to'] = self.return_to
+            response.fields['identity'] = self.identity
+            response.fields['return_to'] = self.return_to
             if not self.trustRootValid():
                 raise UntrustedReturnURL(self.return_to, self.trust_root)
         else:
@@ -281,7 +279,7 @@ class CheckIDRequest(OpenIDRequest):
                 if not setup_url:
                     raise ValueError("setup_url is required for allow=False "
                                      "in immediate mode.")
-                response.fields['openid.user_setup_url'] = setup_url
+                response.fields['user_setup_url'] = setup_url
 
         return response
 
@@ -298,7 +296,8 @@ class CheckIDRequest(OpenIDRequest):
         if self.immediate:
             raise ValueError("Cancel is not an appropriate response to "
                              "immediate mode requests.")
-        return oidutil.appendArgs(self.return_to, {'openid.mode': 'cancel'})
+        return oidutil.appendArgs(self.return_to, {OPENID_PREFIX + 'mode':
+                                                   'cancel'})
 
     def __str__(self):
         return '<%s id:%r im:%s tr:%r ah:%r>' % (self.__class__.__name__,
@@ -328,7 +327,7 @@ class CheckIDResponse(OpenIDResponse):
     """
     def __init__(self, request, mode='id_res'):
         super(CheckIDResponse, self).__init__(request)
-        self.fields['openid.mode'] = mode
+        self.fields['mode'] = mode
         self.signed = []
         if mode == 'id_res':
             self.signed.extend(['mode', 'identity', 'return_to'])
@@ -386,15 +385,16 @@ class Signatory(object):
             assoc = self.getAssociation(assoc_handle, dumb=False)
             if not assoc:
                 # fall back to dumb mode
-                signed_response.fields['openid.invalidate_handle'] = \
+                signed_response.fields['invalidate_handle'] = \
                                                                    assoc_handle
                 assoc = self.createAssociation(dumb=True)
         else:
             # dumb mode.
             assoc = self.createAssociation(dumb=True)
 
-        signed_response.fields['openid.assoc_handle'] = assoc.handle
-        assoc.addSignature(signed_response.signed, signed_response.fields)
+        signed_response.fields['assoc_handle'] = assoc.handle
+        assoc.addSignature(signed_response.signed, signed_response.fields,
+                           prefix='')
         return signed_response
 
     def createAssociation(self, dumb=True, assoc_type='HMAC-SHA1'):
@@ -457,7 +457,9 @@ def encodeToURL(response):
     @returns: A URL to direct the user agent back to.
     @returntype: str
     """
-    return oidutil.appendArgs(response.request.return_to, response.fields)
+    fields = dict(
+        [(OPENID_PREFIX + k, v) for k, v in response.fields.iteritems()])
+    return oidutil.appendArgs(response.request.return_to, fields)
 
 
 def encodeToKVForm(response):
@@ -521,7 +523,7 @@ class SigningEncoder(Encoder):
                 raise ValueError(
                     "Must have a store to sign this request: %s" %
                     (response,), response)
-            if 'openid.sig' in response.fields:
+            if 'sig' in response.fields:
                 raise AlreadySigned(response)
             response = self.signatory.sign(response)
         return super(SigningEncoder, self).encode(response)
@@ -529,7 +531,7 @@ class SigningEncoder(Encoder):
 
 
 class Decoder(object):
-    prefix = 'openid.'
+    prefix = OPENID_PREFIX
 
     handlers = {
         'checkid_setup': CheckIDRequest.fromQuery,

@@ -271,9 +271,9 @@ class TestEncode(unittest.TestCase):
             )
         response = server.CheckIDResponse(request)
         response.fields = {
-            'openid.mode': 'id_res',
-            'openid.identity': request.identity,
-            'openid.return_to': request.return_to,
+            'mode': 'id_res',
+            'identity': request.identity,
+            'return_to': request.return_to,
             }
         webresponse = self.encode(response)
         self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
@@ -286,7 +286,9 @@ class TestEncode(unittest.TestCase):
         query = cgi.parse_qs(urlparse(location)[4])
         # argh.
         q2 = dict([(k, v[0]) for k, v in query.iteritems()])
-        self.failUnlessEqual(q2, response.fields)
+        expected = dict(
+            [('openid.' + k, v) for k, v in response.fields.iteritems()])
+        self.failUnlessEqual(q2, expected)
 
     def test_cancel(self):
         request = server.CheckIDRequest(
@@ -297,7 +299,7 @@ class TestEncode(unittest.TestCase):
             )
         response = server.CheckIDResponse(request)
         response.fields = {
-            'openid.mode': 'cancel',
+            'mode': 'cancel',
             }
         webresponse = self.encode(response)
         self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
@@ -344,9 +346,9 @@ class TestSigningEncode(unittest.TestCase):
             )
         self.response = server.CheckIDResponse(self.request)
         self.response.fields = {
-            'openid.mode': 'id_res',
-            'openid.identity': self.request.identity,
-            'openid.return_to': self.request.return_to,
+            'mode': 'id_res',
+            'identity': self.request.identity,
+            'return_to': self.request.return_to,
             }
         self.signatory = server.Signatory(self.store)
         self.encoder = server.SigningEncoder(self.signatory)
@@ -411,7 +413,7 @@ class TestSigningEncode(unittest.TestCase):
         self.failUnlessEqual(webresponse.body, body)
 
     def test_alreadySigned(self):
-        self.response.fields['openid.sig'] = 'priorSig=='
+        self.response.fields['sig'] = 'priorSig=='
         self.failUnlessRaises(server.AlreadySigned, self.encode, self.response)
 
 
@@ -446,9 +448,9 @@ class TestCheckID(unittest.TestCase):
         answer = self.request.answer(True)
         self.failUnlessEqual(answer.request, self.request)
         self.failUnlessEqual(answer.fields, {
-            'openid.mode': 'id_res',
-            'openid.identity': self.request.identity,
-            'openid.return_to': self.request.return_to,
+            'mode': 'id_res',
+            'identity': self.request.identity,
+            'return_to': self.request.return_to,
             })
         self.failUnlessEqual(answer.signed, ["mode", "identity", "return_to"])
 
@@ -457,9 +459,9 @@ class TestCheckID(unittest.TestCase):
         answer = self.request.answer(True)
         self.failUnlessEqual(answer.request, self.request)
         self.failUnlessEqual(answer.fields, {
-            'openid.mode': 'id_res',
-            'openid.identity': self.request.identity,
-            'openid.return_to': self.request.return_to,
+            'mode': 'id_res',
+            'identity': self.request.identity,
+            'return_to': self.request.return_to,
             })
         self.failUnlessEqual(answer.signed, ["mode", "identity", "return_to"])
 
@@ -471,15 +473,15 @@ class TestCheckID(unittest.TestCase):
         answer = self.request.answer(False, setup_url=setup_url)
         self.failUnlessEqual(answer.request, self.request)
         self.failUnlessEqual(answer.fields, {
-            'openid.mode': 'id_res',
-            'openid.user_setup_url': setup_url,
+            'mode': 'id_res',
+            'user_setup_url': setup_url,
             })
         self.failUnlessEqual(answer.signed, [])
 
     def test_answerSetupDeny(self):
         answer = self.request.answer(False)
         self.failUnlessEqual(answer.fields, {
-            'openid.mode': 'cancel',
+            'mode': 'cancel',
             })
         self.failUnlessEqual(answer.signed, [])
 
@@ -658,17 +660,17 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         request.assoc_handle = assoc_handle
         response = server.CheckIDResponse(request)
         response.fields = {
-            'openid.foo': 'amsigned',
-            'openid.bar': 'notsigned',
-            'openid.azu': 'alsosigned',
+            'foo': 'amsigned',
+            'bar': 'notsigned',
+            'azu': 'alsosigned',
             }
         response.signed = ['foo', 'azu']
         sresponse = self.signatory.sign(response)
-        self.failUnlessEqual(sresponse.fields.get('openid.assoc_handle'),
+        self.failUnlessEqual(sresponse.fields.get('assoc_handle'),
                              assoc_handle)
-        self.failUnlessEqual(sresponse.fields.get('openid.signed'),
+        self.failUnlessEqual(sresponse.fields.get('signed'),
                              'foo,azu')
-        self.failUnless(sresponse.fields.get('openid.sig'))
+        self.failUnless(sresponse.fields.get('sig'))
         self.failIf(self.messages, self.messages)
 
     def test_signDumb(self):
@@ -676,19 +678,19 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         request.assoc_handle = None
         response = server.CheckIDResponse(request)
         response.fields = {
-            'openid.foo': 'amsigned',
-            'openid.bar': 'notsigned',
-            'openid.azu': 'alsosigned',
+            'foo': 'amsigned',
+            'bar': 'notsigned',
+            'azu': 'alsosigned',
             }
         response.signed = ['foo', 'azu']
         sresponse = self.signatory.sign(response)
-        assoc_handle = sresponse.fields.get('openid.assoc_handle')
+        assoc_handle = sresponse.fields.get('assoc_handle')
         self.failUnless(assoc_handle)
         assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
         self.failUnless(assoc)
-        self.failUnlessEqual(sresponse.fields.get('openid.signed'),
+        self.failUnlessEqual(sresponse.fields.get('signed'),
                              'foo,azu')
-        self.failUnless(sresponse.fields.get('openid.sig'))
+        self.failUnless(sresponse.fields.get('sig'))
         self.failIf(self.messages, self.messages)
 
     def test_signExpired(self):
@@ -703,23 +705,23 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         request.assoc_handle = assoc_handle
         response = server.CheckIDResponse(request)
         response.fields = {
-            'openid.foo': 'amsigned',
-            'openid.bar': 'notsigned',
-            'openid.azu': 'alsosigned',
+            'foo': 'amsigned',
+            'bar': 'notsigned',
+            'azu': 'alsosigned',
             }
         response.signed = ['foo', 'azu']
         sresponse = self.signatory.sign(response)
 
-        new_assoc_handle = sresponse.fields.get('openid.assoc_handle')
+        new_assoc_handle = sresponse.fields.get('assoc_handle')
         self.failUnless(new_assoc_handle)
         self.failIfEqual(new_assoc_handle, assoc_handle)
 
-        self.failUnlessEqual(sresponse.fields.get('openid.invalidate_handle'),
+        self.failUnlessEqual(sresponse.fields.get('invalidate_handle'),
                              assoc_handle)
 
-        self.failUnlessEqual(sresponse.fields.get('openid.signed'),
+        self.failUnlessEqual(sresponse.fields.get('signed'),
                              'foo,azu')
-        self.failUnless(sresponse.fields.get('openid.sig'))
+        self.failUnless(sresponse.fields.get('sig'))
 
         # make sure the expired association is gone
         self.failIf(self.store.getAssociation(self.normal_key, assoc_handle))
@@ -736,23 +738,22 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         request.assoc_handle = assoc_handle
         response = server.CheckIDResponse(request)
         response.fields = {
-            'openid.foo': 'amsigned',
-            'openid.bar': 'notsigned',
-            'openid.azu': 'alsosigned',
+            'foo': 'amsigned',
+            'bar': 'notsigned',
+            'azu': 'alsosigned',
             }
         response.signed = ['foo', 'azu']
         sresponse = self.signatory.sign(response)
 
-        new_assoc_handle = sresponse.fields.get('openid.assoc_handle')
+        new_assoc_handle = sresponse.fields.get('assoc_handle')
         self.failUnless(new_assoc_handle)
         self.failIfEqual(new_assoc_handle, assoc_handle)
 
-        self.failUnlessEqual(sresponse.fields.get('openid.invalidate_handle'),
+        self.failUnlessEqual(sresponse.fields.get('invalidate_handle'),
                              assoc_handle)
 
-        self.failUnlessEqual(sresponse.fields.get('openid.signed'),
-                             'foo,azu')
-        self.failUnless(sresponse.fields.get('openid.sig'))
+        self.failUnlessEqual(sresponse.fields.get('signed'), 'foo,azu')
+        self.failUnless(sresponse.fields.get('sig'))
 
         # make sure the new key is a dumb mode association
         self.failUnless(self.store.getAssociation(self.dumb_key, new_assoc_handle))
