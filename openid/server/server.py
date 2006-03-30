@@ -255,7 +255,7 @@ class CheckIDRequest(OpenIDRequest):
             return True
         tr = TrustRoot.parse(self.trust_root)
         if tr is None:
-            raise ValueError('Malformed trust_root: %r' % (self.trust_root,))
+            raise MalformedTrustRoot(self.trust_root)
         return tr.validateURL(self.return_to)
 
     def answer(self, allow, setup_url=None):
@@ -528,7 +528,7 @@ class EncodingError(Exception):
 class AlreadySigned(EncodingError):
     """This response is already signed."""
 
-class UntrustedReturnURL(Exception):
+class UntrustedReturnURL(ProtocolError):
     def __init__(self, return_to, trust_root):
         self.return_to = return_to
         self.trust_root = trust_root
@@ -538,4 +538,7 @@ class UntrustedReturnURL(Exception):
         return "return_to %r not under trust_root %r" % (self.return_to,
                                                          self.trust_root)
 class MalformedReturnURL(ProtocolError):
+    pass
+
+class MalformedTrustRoot(ProtocolError):
     pass
