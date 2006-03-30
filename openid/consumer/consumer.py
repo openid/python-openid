@@ -235,6 +235,9 @@ from openid.dh import DiffieHellman
 from openid.consumer.parse import openIDDiscover, ParseError
 from urljr.fetchers import _getHTTPFetcher
 
+from openid.consumer.discover import OpenIDEndpoint
+from yadis.filters import getEndpoints
+
 from yadis.discover import discover as yadisDiscover
 from yadis.discover import DiscoveryFailure
 from yadis import xrd
@@ -624,7 +627,8 @@ class OpenIDConsumer(object):
         response = yadisDiscover(self.fetcher, uri)
 
         try:
-            yadis_services = self.xrd_parser.parse(response.response_text)
+            openid_services = list(
+                getEndpoints(uri, OpenIDEndpoint, self.fetcher))
         except xrd.XrdsError, xrd_err:
             # This next might raise parse.ParseError.
             openid_services = [
@@ -632,8 +636,6 @@ class OpenIDConsumer(object):
                                             response.response_text)
                 ]
         else:
-            openid_services = yadis_services.getServices(OPENID_1_0)
-
             if not openid_services:
                 # If we're here, we found an XRD that didn't blow up,
                 # but it didn't contain any recognized services
