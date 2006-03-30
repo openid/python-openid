@@ -621,14 +621,15 @@ class OpenIDConsumer(object):
         # came back for that URI at all.  I don't think falling back
         # to OpenID 1.0 discovery on the same URL will help, so don't bother
         # to catch it.
-        final_uri, xrd_doc = yadisDiscover(self.fetcher, uri)
+        response = yadisDiscover(self.fetcher, uri)
 
         try:
-            yadis_services = self.xrd_parser.parse(xrd_doc)
+            yadis_services = self.xrd_parser.parse(response.response_text)
         except xrd.XrdsError, xrd_err:
             # This next might raise parse.ParseError.
             openid_services = [
-                discoveryVersion1FromString(final_uri, xrd_doc),
+                discoveryVersion1FromString(response.normalized_uri,
+                                            response.response_text)
                 ]
         else:
             openid_services = yadis_services.getServices(OPENID_1_0)
@@ -646,7 +647,7 @@ class OpenIDConsumer(object):
                     # (the logic here is questionable.)
                     pass
 
-        return final_uri, openid_services
+        return response.normalized_uri, openid_services
 
 
     def _popNextServer(self, uri):
