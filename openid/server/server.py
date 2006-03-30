@@ -50,6 +50,10 @@ from openid.association import Association
 HTTP_REDIRECT = 302
 HTTP_OK = 200
 
+BROWSER_REQUEST_MODES = ['checkid_setup', 'checkid_immediate']
+
+
+
 class OpenIDRequest(object):
     mode = None
 
@@ -432,34 +436,97 @@ class Signatory(object):
         self.store.removeAssociation(key, assoc_handle)
 
 
+
+def responseIsKvform(response):
+    """Should this response be sent as a kvform?
+
+    If so, return True.  Otherwise the response should be encoded in a
+    URL, and I return False.
+
+    @returntype: bool
+    """
+    return response.request.mode not in BROWSER_REQUEST_MODES
+
+
+def encodeToURL(response):
+    """Encode a response as a URL for redirection.
+
+    @param response: The response to encode.
+    @type response: L{OpenIDResponse}
+
+    @returns: A URL to direct the user agent back to.
+    @returntype: str
+    """
+    return oidutil.appendArgs(response.request.return_to, response.fields)
+
+
+def encodeToKVForm(response):
+    """Encode a response as a kvform.
+
+    @param response: The response to encode.
+    @type response: L{OpenIDResponse}
+
+    @returns: The response in kvform.
+    @returntype: str
+    """
+    return kvform.dictToKV(response.fields)
+
+
+
 class Encoder(object):
+    """I encode responses to L{WebResponse}s.
+
+    If you don't like L{WebResponse}s, you can do your own handling of
+    L{OpenIDResponse}s with L{responseIsKvform}, L{encodeToURL}, and
+    L{encodeToKVForm}.
+    """
+
     responseFactory = WebResponse
+
+
     def encode(self, response):
         request = response.request
-        if request.mode in ['checkid_setup', 'checkid_immediate']:
-            location = oidutil.appendArgs(request.return_to, response.fields)
+        if responseIsKvform(response):
+            wr = self.responseFactory(body=encodeToKVForm(response))
+        else:
+            location = encodeToURL(response)
             wr = self.responseFactory(code=HTTP_REDIRECT,
                                       headers={'location': location})
-        else:
-            wr = self.responseFactory(body=kvform.dictToKV(response.fields))
         return wr
 
+
+
+def needsSigning(response):
+    """Does this response require signing?
+
+    @returntype: bool
+    """
+    return (
+        (response.request.mode in ['checkid_setup', 'checkid_immediate'])
+        and response.signed
+        )
+
+
+
 class SigningEncoder(Encoder):
+    """I encode responses to L{WebResponse}s, signing them when required.
+    """
     def __init__(self, signatory):
         self.signatory = signatory
 
     def encode(self, response):
         request = response.request
-        if request.mode in ['checkid_setup', 'checkid_immediate']:
-            if response.signed:
-                if not self.signatory:
-                    raise ValueError(
-                        "Must have a store to sign this request: %s" %
-                        (response,), response)
-                if 'openid.sig' in response.fields:
-                    raise AlreadySigned(response)
-                response = self.signatory.sign(response)
+        if needsSigning(response):
+            if not self.signatory:
+                raise ValueError(
+                    "Must have a store to sign this request: %s" %
+                    (response,), response)
+            if 'openid.sig' in response.fields:
+                raise AlreadySigned(response)
+            response = self.signatory.sign(response)
         return super(SigningEncoder, self).encode(response)
+
+
 
 class Decoder(object):
     prefix = 'openid.'
