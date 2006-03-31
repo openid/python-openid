@@ -497,6 +497,87 @@ class TestCheckID(unittest.TestCase):
         self.failUnlessRaises(ValueError, self.request.getCancelURL)
 
 
+
+class TestCheckIDExtension(unittest.TestCase):
+
+    def setUp(self):
+        self.request = server.CheckIDRequest(
+            identity = 'http://bambam.unittest/',
+            trust_root = 'http://bar.unittest/',
+            return_to = 'http://bar.unittest/999',
+            immediate = False,
+            )
+        self.response = server.CheckIDResponse(self.request)
+        self.response.fields['blue'] = 'star'
+
+
+    def test_addField(self):
+        namespace = 'mj12'
+        self.response.addField(namespace, 'bright', 'potato')
+        self.failUnlessEqual(self.response.fields,
+                             {'blue': 'star',
+                              'mode': 'id_res',
+                              'mj12.bright': 'potato'})
+        self.failUnlessEqual(self.response.signed,
+                             ['mode', 'identity', 'return_to', 'mj12.bright'])
+
+
+    def test_addFieldUnsigned(self):
+        namespace = 'mj12'
+        self.response.addField(namespace, 'dull', 'lemon', signed=False)
+        self.failUnlessEqual(self.response.fields,
+                             {'blue': 'star',
+                              'mode': 'id_res',
+                              'mj12.dull': 'lemon'})
+        self.failUnlessEqual(self.response.signed,
+                             ['mode', 'identity', 'return_to'])
+
+
+    def test_addFields(self):
+        namespace = 'mi5'
+        self.response.addFields(namespace, {'tangy': 'suspenders',
+                                           'bravo': 'inclusion'})
+        self.failUnlessEqual(self.response.fields,
+                             {'blue': 'star',
+                              'mode': 'id_res',
+                              'mi5.tangy': 'suspenders',
+                              'mi5.bravo': 'inclusion'})
+        self.failUnlessEqual(self.response.signed,
+                             ['mode', 'identity', 'return_to',
+                              'mi5.tangy', 'mi5.bravo'])
+
+
+    def test_addFieldsUnsigned(self):
+        namespace = 'mi5'
+        self.response.addFields(namespace, {'strange': 'conditioner',
+                                           'elemental': 'blender'},
+                                signed=False)
+        self.failUnlessEqual(self.response.fields,
+                             {'blue': 'star',
+                              'mode': 'id_res',
+                              'mi5.strange': 'conditioner',
+                              'mi5.elemental': 'blender'})
+        self.failUnlessEqual(self.response.signed,
+                             ['mode', 'identity', 'return_to'])
+
+
+
+    def test_update(self):
+        eresponse = server.OpenIDResponse(None)
+        eresponse.fields.update({'shape': 'heart',
+                                 'content': 'strings,wire'})
+        eresponse.signed = ['content']
+        self.response.update('box', eresponse)
+        self.failUnlessEqual(self.response.fields,
+                             {'blue': 'star',
+                              'mode': 'id_res',
+                              'box.shape': 'heart',
+                              'box.content': 'strings,wire'})
+        self.failUnlessEqual(self.response.signed,
+                             ['mode', 'identity', 'return_to', 'content'])
+
+
+
 class MockSignatory(object):
     isValid = True
 

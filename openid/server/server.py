@@ -332,6 +332,26 @@ class CheckIDResponse(OpenIDResponse):
         if mode == 'id_res':
             self.signed.extend(['mode', 'identity', 'return_to'])
 
+
+    def addField(self, namespace, key, value, signed=True):
+        key = '%s.%s' % (namespace, key)
+        self.fields[key] = value
+        if signed and key not in self.signed:
+            self.signed.append(key)
+
+
+    def addFields(self, namespace, fields, signed=True):
+        for key, value in fields.iteritems():
+            self.addField(namespace, key, value, signed)
+
+
+    def update(self, namespace, other):
+        namespaced_fields = dict([('%s.%s' % (namespace, k), v) for k, v
+                                  in other.fields.iteritems()])
+        self.fields.update(namespaced_fields)
+        self.signed.extend(other.signed)
+
+
     def __str__(self):
         return "%s for %s: signed%s %s" % (
             self.__class__.__name__,
