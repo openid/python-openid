@@ -225,7 +225,7 @@ class CheckIDRequest(OpenIDRequest):
             ]
         optional = [
             'trust_root',
-        #    'assoc_handle',  ?
+            'assoc_handle',
             ]
 
         for field in required:

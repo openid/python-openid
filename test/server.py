@@ -151,6 +151,7 @@ class TestDecode(unittest.TestCase):
         self.failUnlessEqual(r.identity, self.id_url)
         self.failUnlessEqual(r.trust_root, self.tr_url)
         self.failUnlessEqual(r.return_to, self.rt_url)
+        self.failUnlessEqual(r.assoc_handle, self.assoc_handle)
 
     def test_checkidSetup(self):
         args = {
