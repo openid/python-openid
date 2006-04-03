@@ -47,12 +47,15 @@ from openid.dh import DiffieHellman
 from openid.server.trustroot import TrustRoot
 from openid.association import Association
 
-HTTP_REDIRECT = 302
 HTTP_OK = 200
+HTTP_REDIRECT = 302
+HTTP_ERROR = 400
 
 BROWSER_REQUEST_MODES = ['checkid_setup', 'checkid_immediate']
 OPENID_PREFIX = 'openid.'
 
+ENCODE_KVFORM = ('kvform',)
+ENCODE_URL = ('URL/redirect',)
 
 class OpenIDRequest(object):
     mode = None
@@ -81,7 +84,8 @@ class CheckAuthRequest(OpenIDRequest):
             self.sig = query[OPENID_PREFIX + 'sig']
             signed_list = query[OPENID_PREFIX + 'signed']
         except KeyError, e:
-            raise ProtocolError("%s request missing required parameter %s"
+            raise ProtocolError(query,
+                                text="%s request missing required parameter %s"
                                 " from query %s" %
                                 (self.mode, e.args[0], query))
         signed_list = signed_list.split(',')
@@ -97,8 +101,10 @@ class CheckAuthRequest(OpenIDRequest):
                 else:
                     value = query[OPENID_PREFIX + field]
             except KeyError, e:
-                raise ProtocolError("Couldn't find signed field %r in query %s"
-                                    % (field, query))
+                raise ProtocolError(
+                    query,
+                    text="Couldn't find signed field %r in query %s"
+                    % (field, query))
             else:
                 signed_pairs.append((field, value))
 
@@ -146,8 +152,10 @@ class AssociateRequest(OpenIDRequest):
                     self.pubkey = cryptutil.base64ToLong(
                         query[OPENID_PREFIX + 'dh_consumer_public'])
                 except KeyError, e:
-                    raise ProtocolError("Public key for DH-SHA1 session "
-                                        "not found in query %s" % (query,))
+                    raise ProtocolError(
+                        query,
+                        text="Public key for DH-SHA1 session "
+                        "not found in query %s" % (query,))
                 # FIXME: Missing dh_modulus and dh_gen options.
         return self
 
@@ -231,8 +239,10 @@ class CheckIDRequest(OpenIDRequest):
         for field in required:
             value = query.get(OPENID_PREFIX + field)
             if not value:
-                raise ProtocolError("Missing required field %s from %r"
-                                    % (field, query))
+                raise ProtocolError(
+                    query,
+                    text="Missing required field %s from %r"
+                    % (field, query))
             setattr(self, field, value)
 
         for field in optional:
@@ -241,7 +251,7 @@ class CheckIDRequest(OpenIDRequest):
                 setattr(self, field, value)
 
         if not TrustRoot.parse(self.return_to):
-            raise MalformedReturnURL(self.return_to)
+            raise MalformedReturnURL(query, self.return_to)
 
         return self
 
@@ -299,6 +309,7 @@ class CheckIDRequest(OpenIDRequest):
         return oidutil.appendArgs(self.return_to, {OPENID_PREFIX + 'mode':
                                                    'cancel'})
 
+
     def __str__(self):
         return '<%s id:%r im:%s tr:%r ah:%r>' % (self.__class__.__name__,
                                                  self.identity,
@@ -320,6 +331,43 @@ class OpenIDResponse(object):
             self.__class__.__name__,
             self.request.__class__.__name__,
             self.fields)
+
+
+    # implements IEncodable
+
+    def whichEncoding(self):
+        if self.request.mode in BROWSER_REQUEST_MODES:
+            return ENCODE_URL
+        else:
+            return ENCODE_KVFORM
+
+
+    def encodeToURL(self):
+        """Encode a response as a URL for redirection.
+
+        @param response: The response to encode.
+        @type response: L{OpenIDResponse}
+
+        @returns: A URL to direct the user agent back to.
+        @returntype: str
+        """
+        fields = dict(
+            [(OPENID_PREFIX + k, v) for k, v in self.fields.iteritems()])
+        return oidutil.appendArgs(self.request.return_to, fields)
+
+
+    def encodeToKVForm(self):
+        """Encode a response as a kvform.
+
+        @param response: The response to encode.
+        @type response: L{OpenIDResponse}
+
+        @returns: The response in kvform.
+        @returntype: str
+        """
+        return kvform.dictToKV(self.fields)
+
+
 
 class CheckIDResponse(OpenIDResponse):
     """
@@ -357,6 +405,7 @@ class CheckIDResponse(OpenIDResponse):
             self.__class__.__name__,
             self.request.__class__.__name__,
             self.signed, self.fields)
+
 
 class WebResponse(object):
     code = HTTP_OK
@@ -435,6 +484,7 @@ class Signatory(object):
     def getAssociation(self, assoc_handle, dumb):
         if assoc_handle is None:
             raise ValueError("assoc_handle must not be None")
+
         if dumb:
             key = self.dumb_key
         else:
@@ -457,44 +507,6 @@ class Signatory(object):
 
 
 
-def responseIsKvform(response):
-    """Should this response be sent as a kvform?
-
-    If so, return True.  Otherwise the response should be encoded in a
-    URL, and I return False.
-
-    @returntype: bool
-    """
-    return response.request.mode not in BROWSER_REQUEST_MODES
-
-
-def encodeToURL(response):
-    """Encode a response as a URL for redirection.
-
-    @param response: The response to encode.
-    @type response: L{OpenIDResponse}
-
-    @returns: A URL to direct the user agent back to.
-    @returntype: str
-    """
-    fields = dict(
-        [(OPENID_PREFIX + k, v) for k, v in response.fields.iteritems()])
-    return oidutil.appendArgs(response.request.return_to, fields)
-
-
-def encodeToKVForm(response):
-    """Encode a response as a kvform.
-
-    @param response: The response to encode.
-    @type response: L{OpenIDResponse}
-
-    @returns: The response in kvform.
-    @returntype: str
-    """
-    return kvform.dictToKV(response.fields)
-
-
-
 class Encoder(object):
     """I encode responses to L{WebResponse}s.
 
@@ -507,13 +519,23 @@ class Encoder(object):
 
 
     def encode(self, response):
-        request = response.request
-        if responseIsKvform(response):
-            wr = self.responseFactory(body=encodeToKVForm(response))
-        else:
-            location = encodeToURL(response)
+        """Encode a response to a L{WebResponse}.
+
+        @raises: L{EncodingError}
+        """
+        encode_as = response.whichEncoding()
+        if encode_as == ENCODE_KVFORM:
+            wr = self.responseFactory(body=response.encodeToKVForm())
+            if isinstance(response, Exception):
+                wr.code = HTTP_ERROR
+        elif encode_as == ENCODE_URL:
+            location = response.encodeToURL()
             wr = self.responseFactory(code=HTTP_REDIRECT,
                                       headers={'location': location})
+        else:
+            # Can't encode this to a protocol message.  You should probably
+            # render it to HTML and show it to the user.
+            raise EncodingError(response)
         return wr
 
 
@@ -537,8 +559,9 @@ class SigningEncoder(Encoder):
         self.signatory = signatory
 
     def encode(self, response):
-        request = response.request
-        if needsSigning(response):
+        # the isinstance is a bit of a kludge... it means there isn't really
+        # an adapter to make the interfaces quite match.
+        if (not isinstance(response, Exception)) and needsSigning(response):
             if not self.signatory:
                 raise ValueError(
                     "Must have a store to sign this request: %s" %
@@ -570,14 +593,19 @@ class Decoder(object):
 
         mode = myquery.get(self.prefix + 'mode')
         if not mode:
-            raise ProtocolError("No %smode value in query %r" % (
+            raise ProtocolError(
+                query,
+                text="No %smode value in query %r" % (
                 self.prefix, query))
         handler = self.handlers.get(mode, self.defaultDecoder)
         return handler(query)
 
     def defaultDecoder(self, query):
         mode = query[self.prefix + 'mode']
-        raise ProtocolError("No decoder for mode %r" % (mode,))
+        raise ProtocolError(
+            query,
+            text="No decoder for mode %r" % (mode,))
+
 
 
 class OpenIDServer(object):
@@ -609,10 +637,62 @@ class OpenIDServer(object):
 
 
 class ProtocolError(Exception):
-    pass
+    def __init__(self, query=None, text=None):
+        self.query = query
+        Exception.__init__(self, text)
+
+    def hasReturnTo(self):
+        return (OPENID_PREFIX + 'return_to') in self.query
+
+    # implements IEncodable
+
+    def encodeToURL(self):
+        return_to = self.query.get(OPENID_PREFIX + 'return_to')
+        if not return_to:
+            raise ValueError("I have no return_to URL.")
+        return oidutil.appendArgs(return_to, {
+            'openid.mode': 'error',
+            'error': str(self),
+            })
+
+    def encodeToKVForm(self):
+        return kvform.dictToKV({
+            'mode': 'error',
+            'error': str(self),
+            })
+
+    def whichEncoding(self):
+        if self.hasReturnTo():
+            return ENCODE_URL
+
+        mode = self.query.get('openid.mode')
+        if mode:
+            if mode not in BROWSER_REQUEST_MODES:
+                return ENCODE_KVFORM
+
+        # According to the OpenID spec as of this writing, we are probably
+        # supposed to switch on request type here (GET versus POST) to figure
+        # out if we're supposed to print machine-readable or human-readable
+        # content at this point.  GET/POST seems like a pretty lousy way of
+        # making the distinction though, as it's just as possible that the
+        # user agent could have mistakenly been directed to post to the
+        # server URL.
+
+        # Basically, if your request was so broken that you didn't manage to
+        # include an openid.mode, I'm not going to worry too much about
+        # returning you something you can't parse.
+        return None
+
+
 
 class EncodingError(Exception):
-    pass
+    """Could not encode this as a protocol message.
+
+    You should probably render it and show it to the user.
+    """
+
+    def __init__(self, response):
+        self.response = response
 
 class AlreadySigned(EncodingError):
     """This response is already signed."""
@@ -621,13 +701,14 @@ class UntrustedReturnURL(ProtocolError):
     def __init__(self, return_to, trust_root):
         self.return_to = return_to
         self.trust_root = trust_root
-        Exception.__init__(self, return_to, trust_root)
 
     def __str__(self):
         return "return_to %r not under trust_root %r" % (self.return_to,
                                                          self.trust_root)
 class MalformedReturnURL(ProtocolError):
-    pass
+    def __init__(self, query, return_to):
+        self.return_to = return_to
+        ProtocolError.__init__(self, query)
 
 class MalformedTrustRoot(ProtocolError):
     pass

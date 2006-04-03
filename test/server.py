@@ -106,6 +106,41 @@ class CatchLogs(object):
 #         self.failUnless(resultArgs['error'])
 
 
+class TestProtocolError(unittest.TestCase):
+    def test_browserWithReturnTo(self):
+        return_to = "http://rp.unittest/consumer"
+        # will be a ProtocolError raised by Decode or CheckIDRequest.answer
+        args = {
+            'openid.mode': 'monkeydance',
+            'openid.identity': 'http://wagu.unittest/',
+            'openid.return_to': return_to,
+            }
+        e = server.ProtocolError(args, "plucky")
+        self.failUnless(e.hasReturnTo())
+        expected_args = {
+            'openid.mode': ['error'],
+            'error': ['plucky'],
+            }
+
+        rt_base, result_args = e.encodeToURL().split('?', 1)
+        result_args = cgi.parse_qs(result_args)
+        self.failUnlessEqual(result_args, expected_args)
+
+    def test_noReturnTo(self):
+        # will be a ProtocolError raised by Decode or CheckIDRequest.answer
+        args = {
+            'openid.mode': 'zebradance',
+            'openid.identity': 'http://wagu.unittest/',
+            }
+        e = server.ProtocolError(args, "waffles")
+        self.failIf(e.hasReturnTo())
+        expected = """error:waffles
+mode:error
+"""
+        self.failUnlessEqual(e.encodeToKVForm(), expected)
+
+
+
 class TestDecode(unittest.TestCase):
     def setUp(self):
         self.id_url = "http://decoder.am.unittest/"
@@ -176,7 +211,13 @@ class TestDecode(unittest.TestCase):
             'openid.return_to': self.rt_url,
             'openid.trust_root': self.tr_url,
             }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        try:
+            result = self.decode(args)
+        except server.ProtocolError, err:
+            self.failUnless(err.query)
+        else:
+            self.fail("Expected ProtocolError, instead returned with %s" %
+                      (result,))
 
     def test_checkidSetupNoReturn(self):
         args = {
@@ -194,7 +235,13 @@ class TestDecode(unittest.TestCase):
             'openid.assoc_handle': self.assoc_handle,
             'openid.return_to': 'not a url',
             }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        try:
+            result = self.decode(args)
+        except server.ProtocolError, err:
+            self.failUnless(err.query)
+        else:
+            self.fail("Expected ProtocolError, instead returned with %s" %
+                      (result,))
 
     def test_checkAuth(self):
         args = {
@@ -257,6 +304,8 @@ class TestDecode(unittest.TestCase):
             'openid.dh_consumer_public': "my public keeey",
             }
         self.failUnlessRaises(server.ProtocolError, self.decode, args)
+
+
 
 class TestEncode(unittest.TestCase):
     def setUp(self):
@@ -333,6 +382,28 @@ is_valid:true
         self.failUnlessEqual(webresponse.code, server.HTTP_OK)
         self.failUnlessEqual(webresponse.headers, {})
         self.failUnlessEqual(webresponse.body, body)
+
+    def test_unencodableError(self):
+        args = {
+            'openid.identity': 'http://limu.unittest/',
+            }
+        e = server.ProtocolError(args, "wet paint")
+        self.failUnlessRaises(server.EncodingError, self.encode, e)
+
+    def test_encodableError(self):
+        args = {
+            'openid.mode': 'associate',
+            'openid.identity': 'http://limu.unittest/',
+            }
+        body="""error:snoot
+mode:error
+"""
+        webresponse = self.encode(server.ProtocolError(args, "snoot"))
+        self.failUnlessEqual(webresponse.code, server.HTTP_ERROR)
+        self.failUnlessEqual(webresponse.headers, {})
+        self.failUnlessEqual(webresponse.body, body)
+
+
 
 class TestSigningEncode(unittest.TestCase):
     def setUp(self):
@@ -416,6 +487,7 @@ class TestSigningEncode(unittest.TestCase):
     def test_alreadySigned(self):
         self.response.fields['sig'] = 'priorSig=='
         self.failUnlessRaises(server.AlreadySigned, self.encode, self.response)
+
 
 
 class TestCheckID(unittest.TestCase):
@@ -561,7 +633,6 @@ class TestCheckIDExtension(unittest.TestCase):
                              ['mode', 'identity', 'return_to'])
 
 
-
     def test_update(self):
         eresponse = server.OpenIDResponse(None)
         eresponse.fields.update({'shape': 'heart',
@@ -603,6 +674,7 @@ class MockSignatory(object):
     def invalidate(self, assoc_handle, dumb):
         if (dumb, assoc_handle) in self.assocs:
             self.assocs.remove((dumb, assoc_handle))
+
 
 class TestCheckAuth(unittest.TestCase):
     def setUp(self):
