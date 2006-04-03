@@ -712,3 +712,20 @@ class MalformedReturnURL(ProtocolError):
 
 class MalformedTrustRoot(ProtocolError):
     pass
+
+
+#class IEncodable: # Interface
+#     def encodeToURL(return_to):
+#         pass
+#
+#     def encodeToKvform():
+#         pass
+#
+#     def whichEncoding():
+#         """How should I be encoded?
+#
+#         @returns: one of ENCODE_URL, ENCODE_KVFORM, or None.  If None,
+#             I cannot be encoded as a protocol message and should be
+#             displayed to the user.
+#         """
+#         pass
