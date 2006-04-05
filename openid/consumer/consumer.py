@@ -235,14 +235,12 @@ from openid.dh import DiffieHellman
 from openid.consumer.parse import openIDDiscover, ParseError
 from urljr.fetchers import _getHTTPFetcher
 
-from openid.consumer.discover import OpenIDEndpoint
-from yadis.filters import getEndpoints
+from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_1_0_TYPE
 
+from yadis.services import applyFilter as extractServices
 from yadis.discover import discover as yadisDiscover
 from yadis.discover import DiscoveryFailure
-from yadis import xrd
-from yadis.servicetypes.openid import OPENID_1_0, OpenIDParser, OpenIDDescriptor
-
+from yadis.xrd import XrdsError
 
 __all__ = ['SUCCESS', 'FAILURE', 'SETUP_NEEDED', 'HTTP_FAILURE', 'PARSE_ERROR',
            'OpenIDAuthRequest', 'OpenIDConsumer']
@@ -355,13 +353,6 @@ class OpenIDConsumer(object):
         else:
             self.fetcher = fetcher
 
-        # XXX: Will want multiple service parsers if we support more than one
-        # value of XRDS/Service/Type
-        service_parsers = [
-            OpenIDParser(),
-            ]
-        self.xrd_parser = xrd.ServiceParser(service_parsers)
-
     def beginAuth(self, user_url, return_to, immediate=False):
         """
         This method is called to start the OpenID login process.
@@ -467,7 +458,7 @@ class OpenIDConsumer(object):
 
         status, info = self._newAuthRequest(identity_url,
                                             next_server.delegate,
-                                            next_server.uri)
+                                            next_server.server_url)
         if status is SUCCESS:
             info.redirect_url = self.constructRedirect(info,
                                                        return_to,
@@ -627,9 +618,10 @@ class OpenIDConsumer(object):
         response = yadisDiscover(self.fetcher, uri)
 
         try:
-            openid_services = list(
-                getEndpoints(uri, OpenIDEndpoint, self.fetcher))
-        except xrd.XrdsError, xrd_err:
+            openid_services = extractServices(
+                response.normalized_uri, response.response_text,
+                OpenIDServiceEndpoint)
+        except XrdsError:
             # This next might raise parse.ParseError.
             openid_services = [
                 discoveryVersion1FromString(response.normalized_uri,
@@ -707,7 +699,9 @@ class OpenIDConsumer(object):
         if not visited_list:
             return
         for server in visited_list[:]:
-            if (server.uri == server_uri) and (server.delegate == delegate):
+            if ((server.server_url == server_uri) and
+                (server.delegate == delegate)):
+
                 visited_list.remove(server)
 
     def _resetServerList(self):
@@ -1087,11 +1081,13 @@ class OpenIDAuthRequest(object):
 def discoveryVersion1FromString(uri, doc):
     # XXX - parse.openIDDiscover probably doesn't need to take the URI
     # or return it.
-    unused, delegate_url, server_url = openIDDiscover(uri, doc)
-    service = OpenIDDescriptor()
+    identity_url, delegate_url, server_url = openIDDiscover(uri, doc)
+    service = OpenIDServiceEndpoint()
+    service.identity_url = identity_url
     service.delegate = delegate_url
-    service.uri = server_url
-    service.type = OPENID_1_0
+    service.server_url = server_url
+    service.type_uris = [OPENID_1_0_TYPE]
+    service.extensions = []
     return service
 
 def discoveryVersion1(uri, fetcher):

@@ -709,7 +709,7 @@ class TestDiscovery(BaseTestDiscovery):
         final_url, services = self.consumer.discover(self.id_url)
         self.failUnlessEqual(len(services), 1,
                              "More than one service in %r" % (services,))
-        self.failUnlessEqual(services[0].uri,
+        self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[0].delegate,
                              "http://smoker.myopenid.com/")
@@ -730,9 +730,9 @@ class TestDiscovery(BaseTestDiscovery):
         final_url, services = self.consumer.discover(self.id_url)
         self.failUnlessEqual(len(services), 2,
                              "Not 2 services in %r" % (services,))
-        self.failUnlessEqual(services[0].uri,
+        self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
-        self.failUnlessEqual(services[1].uri,
+        self.failUnlessEqual(services[1].server_url,
                              "http://www.livejournal.com/openid/server.bml")
 
 
@@ -759,7 +759,7 @@ class TestDiscovery(BaseTestDiscovery):
         final_url, services = self.consumer.discover(self.id_url)
         self.failUnlessEqual(len(services), 1,
                              "Not one service in %r" % (services,))
-        self.failUnlessEqual(services[0].uri,
+        self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(final_url, self.id_url)
 
@@ -770,7 +770,7 @@ class TestDiscovery(BaseTestDiscovery):
         final_url, services = self.consumer.discover(self.id_url)
         self.failUnlessEqual(len(services), 1,
                              "Not 1 service in %r" % (services,))
-        self.failUnlessEqual(services[0].uri,
+        self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
 
     def test_openidNoDelegate(self):
@@ -778,7 +778,7 @@ class TestDiscovery(BaseTestDiscovery):
             self.id_url: ('text/html', openid_html_no_delegate),
         }
         final_url, services = self.consumer.discover(self.id_url)
-        self.failUnlessEqual(services[0].uri,
+        self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(final_url, self.id_url)
 
