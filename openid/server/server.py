@@ -1,40 +1,81 @@
 """
-This module documents the interface to the OpenID server library.  The
-only part of the library which has to be used and isn't documented
-here is the store for associations.  See the C{L{openid.store}}
-package for more information on stores.
-
-
-OVERVIEW
+Overview
 ========
+
+    An OpenID server must perform three tasks:
+
+        1. Examine the incoming request to determine its nature and validity.
+
+        2. Make a decision about how to respond to this request.
+
+        3. Format the response according to the protocol.
+
+    The first and last of these tasks may performed by
+    the L{decodeRequest<OpenIDServer.decodeRequest>} and
+    L{encodeResponse<OpenIDServer.encodeResponse>} methods of the
+    L{OpenIDServer} object.  Who gets to do the remaining task -- deciding how
+    to respond to the request -- will depend on what type of request it is.
+
+    If it's a request to authenticate a user (a X{C{checkid_setup}} or
+    X{C{checkid_immediate}} request), you need to decide if you will assert
+    that this user may claim the identity in question.  Exactly how you do
+    that is a matter of application policy, but it generally involves making
+    sure the user has an account with your system and is logged in, checking
+    to see if that identity is hers to claim, and verifying with the user that
+    she does consent to releasing that information to the party making the
+    request.
+
+    Examine the properties of the L{CheckIDRequest} object, and if and when
+    you've come to a decision about their claim, form a response by calling
+    L{CheckIDRequest.answer}.
+
+    Other types of requests relate to establishing associations between client
+    and server and verifing the authenticity of previous communications.
+    L{OpenIDServer} contains all the logic and data necessary to respond to
+    such requests; just pass it to L{OpenIDServer.handleRequest}.
+
+
+OpenID Extensions
+=================
 
     FIXME
 
 
-LIBRARY DESIGN
+Library Design
 ==============
 
     FIXME
 
+        - Requests
+        - Responses
+        - WebResponse
 
-STORES
+        - Decoder
+        - Encoder
+        - Signatory
+
+        - Server
+
+Stores
 ======
 
-    The OpenID server needs to maintain state between requests in
-    order to function.  Its mechanism for doing this is called a
-    store.  The store interface is defined in
-    C{L{openid.store.interface.OpenIDStore}}.  Additionally, several
-    concrete store implementations are provided, so that most sites
-    won't need to implement a custom store.  For a store backed by
-    flat files on disk, see
-    C{L{openid.store.filestore.FileOpenIDStore}}.  For stores based
-    on MySQL or SQLite, see the C{L{openid.store.sqlstore}} module.
+    The OpenID server needs to maintain state between requests in order
+    to function.  Its mechanism for doing this is called a store.  The
+    store interface is defined in C{L{openid.store.interface.OpenIDStore}}.
+    Additionally, several concrete store implementations are provided, so that
+    most sites won't need to implement a custom store.  For a store backed
+    by flat files on disk, see C{L{openid.store.filestore.FileOpenIDStore}}.
+    For stores based on MySQL or SQLite, see the C{L{openid.store.sqlstore}}
+    module.
 
+@group Requests: OpenIDRequest, AssociateRequest, CheckIDRequest,
+    CheckAuthRequest
 
-USING THIS LIBRARY
-==================
+@group Responses: OpenIDResponse, CheckIDResponse
 
-    FIXME
+@group HTTP Codes: HTTP_OK, HTTP_REDIRECT, HTTP_ERROR
+
+@group Response Encodings: ENCODE_KVFORM, ENCODE_URL
 """
 
 import time
