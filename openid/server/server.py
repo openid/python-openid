@@ -106,24 +106,56 @@ class OpenIDRequest(object):
     """
     mode = None
 
+
 class CheckAuthRequest(OpenIDRequest):
-    """
+    """A request to verify the validity of a previous response.
+
+    @cvar mode: "X{C{check_authentication}}"
+    @type mode: str
+
+    @ivar assoc_handle: The X{association handle} the response was signed with.
     @type assoc_handle: str
+    @ivar sig: The signature to check.
     @type sig: str
+    @ivar signed: The ordered list of signed items you want to check.
     @type signed: list of pairs
+
+    @ivar invalidate_handle: An X{association handle} the client is asking
+        about the validity of.  Optional, may be C{None}.
     @type invalidate_handle: str
+
+    @see: U{OpenID Specs, Mode: check_authentication
+        <http://openid.net/specs.bml#mode-check_authentication>}
     """
     mode = "check_authentication"
-    invalidate_handle = None
+
 
     def __init__(self, assoc_handle, sig, signed, invalidate_handle=None):
+        """Construct me.
+
+        These parameters are assigned directly as class attributes, see
+        my L{class documentation<CheckAuthRequest>} for their descriptions.
+
+        @type assoc_handle: str
+        @type sig: str
+        @type signed: list of pairs
+        @type invalidate_handle: str
+        """
         self.assoc_handle = assoc_handle
         self.sig = sig
         self.signed = signed
-        if invalidate_handle is not None:
-            self.invalidate_handle = invalidate_handle
+        self.invalidate_handle = invalidate_handle
+
 
     def fromQuery(klass, query):
+        """Construct me from a web query.
+
+        @param query: The query parameters as a dictionary with each
+            key mapping to one value.
+        @type query: dict
+
+        @returntype: L{CheckAuthRequest}
+        """
         self = klass.__new__(klass)
         try:
             self.assoc_handle = query[OPENID_PREFIX + 'assoc_handle']
@@ -159,7 +191,20 @@ class CheckAuthRequest(OpenIDRequest):
 
     fromQuery = classmethod(fromQuery)
 
+
     def answer(self, signatory):
+        """Respond to this request.
+
+        Given a L{Signatory}, I can check the validity of the signature and
+        the X{C{invalidate_handle}}.
+
+        @param signatory: The L{Signatory} to use to check the signature.
+        @type signatory: L{Signatory}
+
+        @returns: A response with an X{C{is_valid}} (and, if
+           appropriate X{C{invalidate_handle}}) field.
+        @returntype: L{OpenIDResponse}
+        """
         is_valid = signatory.verify(self.assoc_handle, self.sig, self.signed)
         # Now invalidate that assoc_handle so it this checkAuth message cannot
         # be replayed.
@@ -173,6 +218,7 @@ class CheckAuthRequest(OpenIDRequest):
                 response.fields['invalidate_handle'] = self.invalidate_handle
         return response
 
+
     def __str__(self):
         if self.invalidate_handle:
             ih = " invalidate? %r" % (self.invalidate_handle,)
@@ -182,6 +228,8 @@ class CheckAuthRequest(OpenIDRequest):
             self.__class__.__name__, self.assoc_handle,
             self.sig, self.signed, ih)
         return s
+
+
 
 class AssociateRequest(OpenIDRequest):
     mode = "associate"
