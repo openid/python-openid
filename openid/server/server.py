@@ -232,11 +232,57 @@ class CheckAuthRequest(OpenIDRequest):
 
 
 class AssociateRequest(OpenIDRequest):
+    """A request to establish an X{association}.
+
+    @cvar mode: "X{C{check_authentication}}"
+    @type mode: str
+
+    @ivar assoc_type: The type of association.  The protocol currently only
+        defines one value for this, "X{C{HMAC-SHA1}}".
+    @type assoc_type: str
+    @ivar session_type: The preferred way to encrypt the shared secret.
+        Either "X{C{DH-SHA1}}" or "X{C{plaintext}}".
+    @type session_type: str
+
+    @ivar pubkey: The consumer's X{public key}, for use with X{Diffe-Hellman}
+        key exchange.
+    @type pubkey: long
+
+    @group Diffe-Hellman parameters: pubkey
+
+    @bug: lacking modulus and gen
+
+    @see: U{OpenID Specs, Mode: associate
+        <http://openid.net/specs.bml#mode-associate>}
+    """
+
     mode = "associate"
-    session_type = 'plaintext'
     assoc_type = 'HMAC-SHA1'
 
+    def __init__(self, session_type='plaintext', pubkey=None):
+        """Construct me.
+
+        These parameters are assigned directly as class attributes, see
+        my L{class documentation<AssociateRequest>} for their descriptions.
+        """
+        super(AssociateRequest, self).__init__()
+        self.session_type = session_type
+        if session_type == 'DH-SHA1':
+            self.pubkey = pubkey
+        elif pubkey:
+            raise ValueError("pubkey (%r) not applicable for this session "
+                             "type (%r)." % (pubkey, session_type))
+
+
     def fromQuery(klass, query):
+        """Construct me from a web query.
+
+        @param query: The query parameters as a dictionary with each
+            key mapping to one value.
+        @type query: dict
+
+        @returntype: L{AssociateRequest}
+        """
         self = AssociateRequest()
         session_type = query.get(OPENID_PREFIX + 'session_type')
         if session_type:
@@ -256,6 +302,15 @@ class AssociateRequest(OpenIDRequest):
     fromQuery = classmethod(fromQuery)
 
     def answer(self, assoc):
+        """Respond to this request with an X{association}.
+
+        @param assoc: The association to send back.
+        @type assoc: L{openid.association.Association}
+
+        @returns: A response with the association information, encrypted
+            to the consumer's X{public key} if appropriate.
+        @returntype: L{OpenIDResponse}
+        """
         response = OpenIDResponse(self)
         response.fields.update({
             'expires_in': '%d' % (assoc.getExpiresIn(),),
@@ -277,6 +332,8 @@ class AssociateRequest(OpenIDRequest):
             # XXX - kablooie
             pass
         return response
+
+
 
 class CheckIDRequest(OpenIDRequest):
     """A CheckID Request.
