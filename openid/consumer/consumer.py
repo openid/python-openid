@@ -240,7 +240,7 @@ from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_1_0_TYPE
 from yadis.services import applyFilter as extractServices
 from yadis.discover import discover as yadisDiscover
 from yadis.discover import DiscoveryFailure
-from yadis.xrd import XrdsError
+from yadis.etxrd import XrdsError
 
 __all__ = ['SUCCESS', 'FAILURE', 'SETUP_NEEDED', 'HTTP_FAILURE', 'PARSE_ERROR',
            'OpenIDAuthRequest', 'OpenIDConsumer']
