@@ -214,7 +214,7 @@ class CheckIDRequest(OpenIDRequest):
             self.mode = "checkid_setup"
 
         if not TrustRoot.parse(self.return_to):
-            raise MalformedReturnURL(self.return_to)
+            raise MalformedReturnURL(None, self.return_to)
 
 
     def fromQuery(klass, query):
@@ -267,7 +267,7 @@ class CheckIDRequest(OpenIDRequest):
             return True
         tr = TrustRoot.parse(self.trust_root)
         if tr is None:
-            raise MalformedTrustRoot(self.trust_root)
+            raise MalformedTrustRoot(None, self.trust_root)
         return tr.validateURL(self.return_to)
 
     def answer(self, allow, setup_url=None):
