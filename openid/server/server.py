@@ -99,6 +99,11 @@ ENCODE_KVFORM = ('kvform',)
 ENCODE_URL = ('URL/redirect',)
 
 class OpenIDRequest(object):
+    """I represent an incoming OpenID request.
+
+    @cvar mode: the C{X{openid.mode}} of this request.
+    @type mode: str
+    """
     mode = None
 
 class CheckAuthRequest(OpenIDRequest):
