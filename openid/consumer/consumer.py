@@ -457,7 +457,7 @@ class OpenIDConsumer(object):
 
 
         status, info = self._newAuthRequest(identity_url,
-                                            next_server.delegate,
+                                            next_server.getServerID(),
                                             next_server.server_url)
         if status is SUCCESS:
             info.redirect_url = self.constructRedirect(info,
@@ -700,7 +700,7 @@ class OpenIDConsumer(object):
             return
         for server in visited_list[:]:
             if ((server.server_url == server_uri) and
-                (server.delegate == delegate)):
+                (server.getServerID() == delegate)):
 
                 visited_list.remove(server)
 

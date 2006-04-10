@@ -46,6 +46,7 @@ def otherTests():
     return failed
 
 def pyunitTests():
+    import test_openidyadis
     import unittest
     import consumer
     import server
@@ -64,6 +65,7 @@ def pyunitTests():
         oidutil,
         linkparse,
         trustroot,
+        test_openidyadis,
         ]
 
     loader = unittest.TestLoader()
