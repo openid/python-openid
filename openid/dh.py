@@ -16,6 +16,18 @@ class DiffieHellman(object):
     fromBase64 = classmethod(_fromBase64)
 
     def __init__(self, modulus=None, generator=None):
+        if (modulus is None and generator is not None or
+            generator is None and modulus is not None):
+
+            if modulus is None:
+                missing = 'modulus'
+            else:
+                missing = 'generator'
+
+            raise ValueError('If non-default modulus or generator is '
+                             'supplied, both must be supplied. Missing %s'
+                             % (missing,))
+
         if modulus is None:
             modulus = self.DEFAULT_MOD
         self.modulus = long(modulus)
