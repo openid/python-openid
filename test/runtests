@@ -6,7 +6,6 @@ test_modules = [
     'association',
     'storetest',
     'oidutil',
-    'kvform',
     'dh',
     ]
 
@@ -49,6 +48,7 @@ def pyunitTests():
     import test_openidyadis
     import unittest
     import consumer
+    import kvform
     import server
     import oidutil
     import linkparse
@@ -66,6 +66,7 @@ def pyunitTests():
         linkparse,
         trustroot,
         test_openidyadis,
+        kvform,
         ]
 
     loader = unittest.TestLoader()

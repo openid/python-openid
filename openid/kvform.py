@@ -31,6 +31,10 @@ def seqToKV(seq, strict=False):
             raise ValueError(
                 'Invalid input for seqToKV: key contains newline: %r' % (k,))
 
+        if ':' in k:
+            raise ValueError(
+                'Invalid input for seqToKV: key contains colon: %r' % (k,))
+
         if k.strip() != k:
             err('Key has whitespace at beginning or end: %r' % k)
 

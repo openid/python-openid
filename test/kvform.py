@@ -1,106 +1,150 @@
 from openid import kvform
 from openid import oidutil
+import unittest
 
-def test_kvform():
-    old_log = oidutil.log
-    try:
-        def log(unused_message, unused_level=None):
-            log.num_warnings += 1
+class KVBaseTest(unittest.TestCase):
+    def shortDescription(self):
+        return '%s test for %r' % (self.__class__.__name__, self.kvform)
 
-        oidutil.log = log
+    def log(self, unused_message, unused_priority=None):
+        self.warnings += 1
 
-        cases = [
-            # (kvform, parsed dictionary, expected warnings)
-            ('', {}, 0),
-            ('college:harvey mudd\n', {'college':'harvey mudd'}, 0),
-            ('city:claremont\nstate:CA\n',
-             {'city':'claremont', 'state':'CA'}, 0),
-            ('is_valid:true\ninvalidate_handle:{HMAC-SHA1:2398410938412093}\n',
-             {'is_valid':'true',
-              'invalidate_handle':'{HMAC-SHA1:2398410938412093}'}, 0),
+    def checkWarnings(self, num_warnings):
+        self.failUnlessEqual(num_warnings, self.warnings)
 
-            # Warnings from lines with no colon:
-            ('x\n', {}, 1),
-            ('x\nx\n', {}, 2),
+    def setUp(self):
+        self.warnings = 0
+        self.old_log = oidutil.log
+        self.log_func = oidutil.log = self.log
+        self.failUnless(self.log_func is oidutil.log,
+                        (oidutil.log, self.log_func))
 
-            # But not from blank lines (because LJ generates them)
-            ('x\n\n', {}, 1),
-            ('East is least\n', {}, 1),
+    def tearDown(self):
+        oidutil.log = self.old_log
 
-            # Warning from empty key
-            (':\n', {'':''}, 1),
-            (':missing key\n', {'':'missing key'}, 1),
+class KVDictTest(KVBaseTest):
+    def __init__(self, kv, dct, warnings):
+        unittest.TestCase.__init__(self)
+        self.kvform = kv
+        self.dict = dct
+        self.expected_warnings = warnings
 
-            # Warnings from leading or trailing whitespace in key or value
-            (' street:foothill blvd\n', {'street':'foothill blvd'}, 1),
-            ('major: computer science\n', {'major':'computer science'}, 1),
-            (' dorm : east \n', {'dorm':'east'}, 2),
+    def runTest(self):
+        # Convert KVForm to dict
+        d = kvform.kvToDict(self.kvform)
 
-            # Warnings from missing trailing newline
-            ('e^(i*pi)+1:0', {'e^(i*pi)+1':'0'}, 1),
-            ('east:west\nnorth:south', {'east':'west', 'north':'south'}, 1),
-            ]
+        # make sure it parses to expected dict
+        self.failUnlessEqual(self.dict, d)
 
-        for case_kv, case_d, expected_warnings in cases:
-            log.num_warnings = 0
-            d = kvform.kvToDict(case_kv)
-            assert case_d == d
-            assert log.num_warnings == expected_warnings, (
-                case_kv, log.num_warnings, expected_warnings)
-            kv = kvform.dictToKV(d)
-            d2 = kvform.kvToDict(kv)
-            assert d == d2
+        # Check to make sure we got the expected number of warnings
+        self.checkWarnings(self.expected_warnings)
 
-        cases = [
-            ([], ''),
-            ([('openid', 'useful'),
-              ('a', 'b')], 'openid:useful\na:b\n'),
-            ([(' openid', 'useful'),
-              ('a', 'b')], ' openid:useful\na:b\n'),
-            ([(' openid ', ' useful '),
-              (' a ', ' b ')], ' openid : useful \n a : b \n'),
-            ([(' open id ', ' use ful '),
-              (' a ', ' b ')], ' open id : use ful \n a : b \n'),
-            ]
+        # Convert back to KVForm and round-trip back to dict to make
+        # sure that *** dict -> kv -> dict is identity. ***
+        kv = kvform.dictToKV(d)
+        d2 = kvform.kvToDict(kv)
+        self.failUnlessEqual(d, d2)
 
-        for case, expected in cases:
-            actual = kvform.seqToKV(case)
-            assert actual == expected, (case, expected, actual)
+class KVSeqTest(KVBaseTest):
+    def __init__(self, seq, kv):
+        unittest.TestCase.__init__(self)
+        self.kvform = kv
+        self.seq = seq
 
-            seq = kvform.kvToSeq(actual)
+    def cleanSeq(self, seq):
+        """Create a new sequence by stripping whitespace from start
+        and end of each value of each pair"""
+        clean = []
+        for k, v in self.seq:
+            clean.append((k.strip(), v.strip()))
+        return clean
 
-            # Expected to be unchanged, except stripping whitespace
-            # from start and end of values (i. e. ordering, case, and
-            # internal whitespace is preserved)
-            expected_seq = []
-            for k, v in case:
-                expected_seq.append((k.strip(), v.strip()))
+    def runTest(self):
+        # seq serializes to expected kvform
+        actual = kvform.seqToKV(self.seq)
+        self.failUnlessEqual(self.kvform, actual)
 
-            assert seq == expected_seq, (case, expected_seq, seq)
+        # Parse back to sequence. Expected to be unchanged, except
+        # stripping whitespace from start and end of values
+        # (i. e. ordering, case, and internal whitespace is preserved)
+        seq = kvform.kvToSeq(actual)
+        clean_seq = self.cleanSeq(seq)
 
-        log.num_warnings = 0
+        self.failUnlessEqual(seq, clean_seq)
+
+kvdict_cases = [
+    # (kvform, parsed dictionary, expected warnings)
+    ('', {}, 0),
+    ('college:harvey mudd\n', {'college':'harvey mudd'}, 0),
+    ('city:claremont\nstate:CA\n',
+     {'city':'claremont', 'state':'CA'}, 0),
+    ('is_valid:true\ninvalidate_handle:{HMAC-SHA1:2398410938412093}\n',
+     {'is_valid':'true',
+      'invalidate_handle':'{HMAC-SHA1:2398410938412093}'}, 0),
+
+    # Warnings from lines with no colon:
+    ('x\n', {}, 1),
+    ('x\nx\n', {}, 2),
+    ('East is least\n', {}, 1),
+
+    # But not from blank lines (because LJ generates them)
+    ('x\n\n', {}, 1),
+
+    # Warning from empty key
+    (':\n', {'':''}, 1),
+    (':missing key\n', {'':'missing key'}, 1),
+
+    # Warnings from leading or trailing whitespace in key or value
+    (' street:foothill blvd\n', {'street':'foothill blvd'}, 1),
+    ('major: computer science\n', {'major':'computer science'}, 1),
+    (' dorm : east \n', {'dorm':'east'}, 2),
+
+    # Warnings from missing trailing newline
+    ('e^(i*pi)+1:0', {'e^(i*pi)+1':'0'}, 1),
+    ('east:west\nnorth:south', {'east':'west', 'north':'south'}, 1),
+    ]
+
+kvseq_cases = [
+    ([], ''),
+    ([('openid', 'useful'), ('a', 'b')], 'openid:useful\na:b\n'),
+    ([(' openid', 'useful'), ('a', 'b')], ' openid:useful\na:b\n'),
+    ([(' openid ', ' useful '),
+      (' a ', ' b ')], ' openid : useful \n a : b \n'),
+    ([(' open id ', ' use ful '),
+      (' a ', ' b ')], ' open id : use ful \n a : b \n'),
+    ]
+
+kvexc_cases = [
+    [('openid', 'use\nful')],
+    [('open\nid', 'useful')],
+    [('open\nid', 'use\nful')],
+    [('open:id', 'useful')],
+    [('foo', 'bar'), ('ba\n d', 'seed')],
+    [('foo', 'bar'), ('bad:', 'seed')],
+    ]
+
+class KVExcTest(unittest.TestCase):
+    def __init__(self, seq):
+        unittest.TestCase.__init__(self)
+        self.seq = seq
+
+    def shortDescription(self):
+        return 'KVExcTest for %r' % (self.seq,)
+
+    def runTest(self):
+        self.failUnlessRaises(ValueError, kvform.seqToKV, self.seq)
+
+class GeneralTest(KVBaseTest):
+    kvform = '<None>'
+
+    def test_convert(self):
         result = kvform.seqToKV([(1,1)])
-        assert result == '1:1\n'
-        assert log.num_warnings == 2
+        self.failUnlessEqual(result, '1:1\n')
+        self.checkWarnings(2)
 
-        exceptional_cases = [
-            [('openid', 'use\nful')],
-            [('open\nid', 'useful')],
-            [('open\nid', 'use\nful')],
-            ]
-        for case in exceptional_cases:
-            try:
-                unexpected = kvform.seqToKV(case)
-            except ValueError:
-                pass
-            else:
-                assert False, 'Expected ValueError, got %r' % (unexpected,)
-
-    finally:
-        oidutil.log = old_log
-
-def test():
-    test_kvform()
-
-if __name__ == '__main__':
-    test()
+def pyUnitTests():
+    tests = [KVDictTest(*case) for case in kvdict_cases]
+    tests.extend([KVSeqTest(*case) for case in kvseq_cases])
+    tests.extend([KVExcTest(case) for case in kvexc_cases])
+    tests.append(unittest.defaultTestLoader.loadTestsFromTestCase(GeneralTest))
+    return unittest.TestSuite(tests)
