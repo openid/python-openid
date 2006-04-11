@@ -298,7 +298,14 @@ class AssociateRequest(OpenIDRequest):
                         query,
                         text="Public key for DH-SHA1 session "
                         "not found in query %s" % (query,))
-                # FIXME: Missing dh_modulus and dh_gen options.
+
+                try:
+                    self.dh = DiffieHellman.fromBase64(
+                        query.get('openid.dh_modulus'),
+                        query.get('openid.dh_gen'))
+                except ValueError, e:
+                    raise ProtocolError(query, text=e[0])
+
         return self
 
     fromQuery = classmethod(fromQuery)
@@ -320,12 +327,10 @@ class AssociateRequest(OpenIDRequest):
             'assoc_handle': assoc.handle,
             })
         if self.session_type == 'DH-SHA1':
-            # XXX - get dh_modulus and dh_gen
-            dh = DiffieHellman()
-            mac_key = dh.xorSecret(self.pubkey, assoc.secret)
+            mac_key = self.dh.xorSecret(self.pubkey, assoc.secret)
             response.fields.update({
                 'session_type': self.session_type,
-                'dh_server_public': cryptutil.longToBase64(dh.public),
+                'dh_server_public': cryptutil.longToBase64(self.dh.public),
                 'enc_mac_key': oidutil.toBase64(mac_key),
                 })
         elif self.session_type == 'plaintext':
