@@ -46,6 +46,7 @@ def otherTests():
 
 def pyunitTests():
     import test_openidyadis
+    import test_discover
     import unittest
     import consumer
     import kvform
@@ -57,6 +58,7 @@ def pyunitTests():
     pyunit_modules = [
         server,
         consumer,
+        test_discover,
         ]
 
     # Some modules have data-driven tests, and they use custom methods

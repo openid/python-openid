@@ -3,6 +3,7 @@ import cgi
 import time
 
 from openid import cryptutil, dh, oidutil, kvform
+from openid.consumer.discover import OpenIDServiceEndpoint
 from openid.consumer.consumer import OpenIDConsumer
 from openid.consumer.consumer import SUCCESS, \
      HTTP_FAILURE, PARSE_ERROR, SETUP_NEEDED, FAILURE
@@ -94,21 +95,6 @@ class TestFetcher(object):
 
         return self.response(url, 404, 'Not found')
 
-user_page_pat = '''\
-<html>
-  <head>
-    <title>A user page</title>
-    %s
-  </head>
-  <body>
-    blah blah
-  </body>
-</html>
-'''
-http_server_url = 'http://server.example.com/'
-consumer_url = 'http://consumer.example.com/'
-https_server_url = 'https://server.example.com/'
-
 def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     store = _memstore.MemoryStore()
     if immediate:
@@ -116,8 +102,12 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     else:
         mode = 'checkid_setup'
 
-    user_page = user_page_pat % (links,)
-    fetcher = TestFetcher(user_url, user_page, assocs[0])
+    endpoint = OpenIDServiceEndpoint()
+    endpoint.identity_url = user_url
+    endpoint.server_url = server_url
+    endpoint.delegate = delegate_url
+
+    fetcher = TestFetcher(None, None, assocs[0])
 
     def run():
         trust_root = consumer_url
@@ -125,8 +115,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
 
         consumer = OpenIDConsumer(trust_root, store, session, fetcher)
         return_to = consumer_url
-        (status, info) = consumer.beginAuth(user_url, return_to, immediate)
-        assert status == SUCCESS, status
+        info = consumer.beginAuth(endpoint, return_to, immediate)
 
         redirect_url = info.redirect_url
 
@@ -176,6 +165,10 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
 
 import unittest
 
+http_server_url = 'http://server.example.com/'
+consumer_url = 'http://consumer.example.com/'
+https_server_url = 'https://server.example.com/'
+
 class TestSuccess(unittest.TestCase):
     server_url = http_server_url
     user_url = 'http://www.example.com/user.html'
@@ -208,46 +201,6 @@ class TestSuccess(unittest.TestCase):
 
 class TestSuccessHTTPS(TestSuccess):
     server_url = https_server_url
-
-
-class TestFetch(unittest.TestCase):
-    def test_badFetch(self):
-        store = _memstore.MemoryStore()
-        fetcher = TestFetcher(None, None, (None, None))
-        session = {}
-        trust_root = "http://tru.st.unittest/"
-        return_to = trust_root + 'login'
-        consumer = OpenIDConsumer(trust_root, store, session, fetcher)
-        cases = [
-            (None, 'http://network.error/'),
-            (404, 'http://not.found/'),
-            (400, 'http://bad.request/'),
-            (500, 'http://server.error/'),
-            ]
-        for error_code, url in cases:
-            fetcher.get_responses[url] = fetcher.response(url, error_code, None)
-            (status, info) = consumer.beginAuth(url, return_to)
-            self.failUnlessEqual(status, HTTP_FAILURE)
-            self.failUnlessEqual(info, error_code)
-
-
-class TestParse(unittest.TestCase):
-    def test_badParse(self):
-        store = _memstore.MemoryStore()
-        user_url = 'http://user.example.com/'
-        trust_root = "http://trust.unittest/"
-        return_to = trust_root + 'sign-in/'
-        cases = [
-            '',
-            "http://not.in.a.link.tag/",
-            '<link rel="openid.server" href="not.in.html.or.head" />',
-            ]
-        for user_page in cases:
-            fetcher = TestFetcher(user_url, user_page, (None, None))
-            session = {}
-            consumer = OpenIDConsumer(trust_root, store, session, fetcher)
-            status, info = consumer.beginAuth(user_url, return_to)
-            self.failUnlessEqual(status, PARSE_ERROR)
 
 
 class TestConstruct(unittest.TestCase):
@@ -474,313 +427,6 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
                                             "http://server_url", "postbody")
         self.failUnlessEqual(r, None)
         self.failUnless(self.messages)
-
-
-class DiscoveryMockFetcher(object):
-    redirect = None
-
-    def __init__(self, documents):
-        self.documents = documents
-        self.fetchlog = []
-
-    def fetch(self, url, body=None, headers=None):
-        self.fetchlog.append((url, body, headers))
-        if self.redirect:
-            final_url = self.redirect
-        else:
-            final_url = url
-        try:
-            ctype, body = self.documents[url]
-            return HTTPResponse(final_url, 200, {'content-type': ctype},
-                                         body)
-        except KeyError:
-            return HTTPResponse(final_url, 404, {}, '')
-
-
-# from twisted.trial import unittest as trialtest
-
-class BaseTestDiscovery(unittest.TestCase):
-    id_url = "http://someuser.unittest/"
-
-    documents = {}
-
-    def setUp(self):
-        self.documents = self.documents.copy()
-        self.fetcher = DiscoveryMockFetcher(self.documents)
-        self.store = _memstore.MemoryStore()
-        self.trust_root = 'http://trustme.unittest/'
-        self.return_to = 'http://trustme.unittest/login'
-        self.session = {}
-        self.consumer = OpenIDConsumer(self.trust_root,
-                                       self.store,
-                                       self.session,
-                                       fetcher=self.fetcher)
-
-
-yadis_2entries = '''<?xml version="1.0" encoding="UTF-8"?>
-<xrds:XRDS xmlns:xrds="xri://$xrds"
-           xmlns="xri://$xrd*($v*2.0)"
-           xmlns:openid="http://openid.net/xmlns/1.0"
-           >
-  <XRD>
-
-    <Service priority="10">
-      <Type>http://openid.net/signon/1.0</Type>
-      <URI>http://www.myopenid.com/server</URI>
-      <openid:Delegate>http://smoker.myopenid.com/</openid:Delegate>
-    </Service>
-
-    <Service priority="20">
-      <Type>http://openid.net/signon/1.0</Type>
-      <URI>http://www.livejournal.com/openid/server.bml</URI>
-      <openid:Delegate>http://frank.livejournal.com/</openid:Delegate>
-    </Service>
-
-  </XRD>
-</xrds:XRDS>
-'''
-
-yadis_another = '''<?xml version="1.0" encoding="UTF-8"?>
-<xrds:XRDS xmlns:xrds="xri://$xrds"
-           xmlns="xri://$xrd*($v*2.0)"
-           xmlns:openid="http://openid.net/xmlns/1.0"
-           >
-  <XRD>
-
-    <Service priority="10">
-      <Type>http://openid.net/signon/1.0</Type>
-      <URI>http://vroom.unittest/server</URI>
-      <openid:Delegate>http://smoker.myopenid.com/</openid:Delegate>
-    </Service>
-  </XRD>
-</xrds:XRDS>
-'''
-
-
-yadis_0entries = '''<?xml version="1.0" encoding="UTF-8"?>
-<xrds:XRDS xmlns:xrds="xri://$xrds"
-           xmlns="xri://$xrd*($v*2.0)"
-           xmlns:openid="http://openid.net/xmlns/1.0"
-           >
-  <XRD>
-    <Service >
-      <Type>http://is-not-openid.unittest/</Type>
-      <URI>http://noffing.unittest./</URI>
-    </Service>
-  </XRD>
-</xrds:XRDS>
-'''
-
-yadis_no_delegate = '''<?xml version="1.0" encoding="UTF-8"?>
-<xrds:XRDS xmlns:xrds="xri://$xrds"
-           xmlns="xri://$xrd*($v*2.0)"
-           >
-  <XRD>
-    <Service priority="10">
-      <Type>http://openid.net/signon/1.0</Type>
-      <URI>http://www.myopenid.com/server</URI>
-    </Service>
-  </XRD>
-</xrds:XRDS>
-'''
-
-class TestYadisFallback(BaseTestDiscovery):
-
-    documents = {
-        BaseTestDiscovery.id_url: ('application/xrds+xml', yadis_2entries),
-        }
-
-    servers = [
-        "http://www.myopenid.com/server",
-        "http://www.livejournal.com/openid/server.bml",
-        ]
-
-    def test_yadis(self):
-        """trying one Yadis service."""
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        self.failUnlessEqual(status, SUCCESS)
-        self.failUnlessEqual(info.server_url, self.servers[0])
-
-    def test_yadisFallback(self):
-        """fallback to second Yadis service."""
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        self.failUnlessEqual(status, SUCCESS)
-        self.failUnlessEqual(info.server_url, self.servers[1])
-
-    def test_yadisRetryAfterCancel(self):
-        """Re-try same service after receiving cancel."""
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        self.failUnlessEqual(status, SUCCESS)
-        self.consumer.completeAuth({'openid.mode': 'cancel'})
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        self.failUnlessEqual(info.server_url, self.servers[1])
-
-    def test_yadisExhausted(self):
-        """Trying all services plus one."""
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        # there were only two services, they were both broken but the
-        # yadis doc changed in the meantime.
-        self.documents[self.id_url] = ('application/xrds+xml',
-                                       yadis_another)
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        self.failUnlessEqual(status, SUCCESS)
-        self.failUnlessEqual(info.server_url, "http://vroom.unittest/server")
-
-    def test_zerolength(self):
-        self.documents[self.id_url] = ('application/xrds+xml',
-                                       yadis_0entries)
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        # XXX - this is a bit of a stretch.  The page parsed fine, it's just
-        # that there isn't any OpenID stuff in it.
-        self.failUnlessEqual(status, PARSE_ERROR)
-
-    def test_cPickleability(self):
-        import cPickle
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        pickled = cPickle.dumps(self.consumer.session)
-        self.consumer.session = cPickle.loads(pickled)
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        self.failUnlessEqual(status, SUCCESS)
-        self.failUnlessEqual(info.server_url, self.servers[1])
-
-    def test_pickleability(self):
-        import pickle
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        pickled = pickle.dumps(self.consumer.session)
-        self.consumer.session = pickle.loads(pickled)
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        self.failUnlessEqual(status, SUCCESS)
-        self.failUnlessEqual(info.server_url, self.servers[1])
-
-    def test_yadisFallback(self):
-        """user supplies new URL"""
-        self.documents[self.id_url + 'other'] = ('application/xrds+xml',
-                                                 yadis_another)
-        status, info = self.consumer.beginAuth(self.id_url, self.return_to)
-        status, info = self.consumer.beginAuth(self.id_url + 'other',
-                                               self.return_to)
-        self.failUnlessEqual(status, SUCCESS)
-        self.failUnlessEqual(info.server_url, "http://vroom.unittest/server")
-
-
-openid_html = """
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html>
-  <head>
-    <title>Identity Page for Smoker</title>
-<link rel="openid.server" href="http://www.myopenid.com/server" />
-<link rel="openid.delegate" href="http://smoker.myopenid.com/" />
-  </head><body><p>foo</p></body></html>
-"""
-
-openid_html_no_delegate = """
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html>
-  <head>
-    <title>Identity Page for Smoker</title>
-<link rel="openid.server" href="http://www.myopenid.com/server" />
-  </head><body><p>foo</p></body></html>
-"""
-
-openid_and_yadis_html = """
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html>
-  <head>
-    <title>Identity Page for Smoker</title>
-<meta http-equiv="X-XRDS-Location" content="http://someuser.unittest/xrds" />
-<link rel="openid.server" href="http://www.myopenid.com/server" />
-<link rel="openid.delegate" href="http://smoker.myopenid.com/" />
-  </head><body><p>foo</p></body></html>
-"""
-
-class TestDiscovery(BaseTestDiscovery):
-    def test_404(self):
-        self.failUnlessRaises(DiscoveryFailure,
-                              self.consumer.discover, self.id_url + '/404')
-
-
-    def test_noYadis(self):
-        self.fetcher.documents = {
-            self.id_url: ('text/html', openid_html),
-        }
-        final_url, services = self.consumer.discover(self.id_url)
-        self.failUnlessEqual(len(services), 1,
-                             "More than one service in %r" % (services,))
-        self.failUnlessEqual(services[0].server_url,
-                             "http://www.myopenid.com/server")
-        self.failUnlessEqual(services[0].delegate,
-                             "http://smoker.myopenid.com/")
-        self.failUnlessEqual(final_url, self.id_url)
-
-    def test_noOpenID(self):
-        self.fetcher.documents = {
-            self.id_url: ('text/plain', "junk"),
-        }
-        self.failUnlessRaises(parse.ParseError,
-                              self.consumer.discover, self.id_url)
-
-    def test_yadis(self):
-        self.fetcher.documents = {
-            BaseTestDiscovery.id_url: ('application/xrds+xml', yadis_2entries),
-            }
-
-        final_url, services = self.consumer.discover(self.id_url)
-        self.failUnlessEqual(len(services), 2,
-                             "Not 2 services in %r" % (services,))
-        self.failUnlessEqual(services[0].server_url,
-                             "http://www.myopenid.com/server")
-        self.failUnlessEqual(services[1].server_url,
-                             "http://www.livejournal.com/openid/server.bml")
-
-
-    def test_redirect(self):
-        self.fetcher.redirect = "http://elsewhere.unittest/"
-        self.fetcher.documents = {
-            self.id_url: ('text/html', openid_html),
-        }
-        final_url, services = self.consumer.discover(self.id_url)
-        self.failUnlessEqual(final_url, "http://elsewhere.unittest/")
-
-    def test_emptyList(self):
-        self.fetcher.documents = {
-            self.id_url: ('application/xrds+xml', yadis_0entries),
-        }
-        final_url, services = self.consumer.discover(self.id_url)
-        self.failIf(services)
-
-    def test_emptyListWithLegacy(self):
-        self.fetcher.documents = {
-            self.id_url: ('text/html', openid_and_yadis_html),
-            self.id_url + 'xrds': ('application/xrds+xml', yadis_0entries),
-        }
-        final_url, services = self.consumer.discover(self.id_url)
-        self.failUnlessEqual(len(services), 1,
-                             "Not one service in %r" % (services,))
-        self.failUnlessEqual(services[0].server_url,
-                             "http://www.myopenid.com/server")
-        self.failUnlessEqual(final_url, self.id_url)
-
-    def test_yadisNoDelegate(self):
-        self.fetcher.documents = {
-            self.id_url: ('application/xrds+xml', yadis_no_delegate),
-        }
-        final_url, services = self.consumer.discover(self.id_url)
-        self.failUnlessEqual(len(services), 1,
-                             "Not 1 service in %r" % (services,))
-        self.failUnlessEqual(services[0].server_url,
-                             "http://www.myopenid.com/server")
-
-    def test_openidNoDelegate(self):
-        self.fetcher.documents = {
-            self.id_url: ('text/html', openid_html_no_delegate),
-        }
-        final_url, services = self.consumer.discover(self.id_url)
-        self.failUnlessEqual(services[0].server_url,
-                             "http://www.myopenid.com/server")
-        self.failUnlessEqual(final_url, self.id_url)
 
 if __name__ == '__main__':
     unittest.main()

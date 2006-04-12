@@ -353,8 +353,10 @@ class OpenIDConsumer(object):
         else:
             self.fetcher = fetcher
 
-    def beginAuth(self, user_url, return_to, immediate=False):
+    def beginAuth(self, service_endpoint, return_to, immediate=False):
         """
+        XXX: docs need to be updated
+
         This method is called to start the OpenID login process.
 
         First, the user's claimed identity page is fetched, to
@@ -444,27 +446,22 @@ class OpenIDConsumer(object):
 
             It raises no exceptions itself.
         """
-        uri = oidutil.normalizeUrl(user_url)
+        nonce = cryptutil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
 
-        try:
-            identity_url, next_server = self._popNextServer(uri)
-        except DiscoveryFailure, e:
-            return HTTP_FAILURE, e.http_response.status
-        except ParseError, e:
-            return PARSE_ERROR, str(e)
-        if not next_server:
-            return PARSE_ERROR, "No supported OpenID services found."
+        consumer_id = service_endpoint.identity_url
+        server_id = service_endpoint.getServerID()
+        server_url = service_endpoint.server_url
 
+        token = self._genToken(nonce, consumer_id, server_id, server_url)
 
-        status, info = self._newAuthRequest(identity_url,
-                                            next_server.getServerID(),
-                                            next_server.server_url)
-        if status is SUCCESS:
-            info.redirect_url = self.constructRedirect(info,
-                                                       return_to,
-                                                       immediate)
-            self.session[self.sessionKeyPrefix + self._token] = info.token
-        return status, info
+        auth_request = OpenIDAuthRequest(
+            token, consumer_id, server_id, server_url, nonce)
+
+        auth_request.redirect_url = self.constructRedirect(auth_request,
+                                                           return_to,
+                                                           immediate)
+        self.session[self.sessionKeyPrefix + self._token] = token
+        return auth_request
 
     def constructRedirect(self, auth_request, return_to, immediate=False):
         """
@@ -601,125 +598,6 @@ class OpenIDConsumer(object):
         else:
             return FAILURE, None
 
-
-    def discover(self, uri):
-        """Discover OpenID services for a URI.
-
-        @param uri:
-        @type uri: str
-
-        @returns: uri, services
-        @returntype: (str, list(IOpenIDDescriptor))
-        """
-        # Might raise a yadis.discover.DiscoveryFailure if no document
-        # came back for that URI at all.  I don't think falling back
-        # to OpenID 1.0 discovery on the same URL will help, so don't bother
-        # to catch it.
-        response = yadisDiscover(self.fetcher, uri)
-
-        try:
-            openid_services = extractServices(
-                response.normalized_uri, response.response_text,
-                OpenIDServiceEndpoint)
-        except XRDSError:
-            # This next might raise parse.ParseError.
-            openid_services = [
-                discoveryVersion1FromString(response.normalized_uri,
-                                            response.response_text)
-                ]
-        else:
-            if not openid_services:
-                # If we're here, we found an XRD that didn't blow up,
-                # but it didn't contain any recognized services
-                # either.  We should re-start with old style discovery
-                # (no following headers or content-negotiation tricks)
-                # and see if we get HTML with some links.
-                try:
-                    openid_services = [discoveryVersion1(uri, self.fetcher)]
-                except ParseError:
-                    # It *did* successfully parse for Yadis...
-                    # (the logic here is questionable.)
-                    pass
-
-        return response.normalized_uri, openid_services
-
-
-    def _popNextServer(self, uri):
-        identity_url, server_list, visited_list = self._getServerList(uri)
-        if not server_list:
-            return identity_url, None
-        next_server = None
-        for server in server_list:
-            if server in visited_list:
-                continue
-            next_server = server
-            visited_list.append(next_server)
-            break
-        else:
-            identity_url, server_list, visited_list = self._getServerList(
-                uri, rediscover=True)
-            # TODO: refersh server list
-            next_server = server_list[0]
-            visited_list[:] = [next_server]
-
-        return identity_url, next_server
-
-    def _getServerList(self, uri, rediscover=False):
-        previous_uri = self.session.get(
-            self.sessionKeyPrefix + self._last_uri, None)
-        if (not previous_uri) or (uri != previous_uri[0]):
-            server_list = self._resetServerList()
-            visited_list = self._resetVisitedList()
-            identity_url = None
-        else:
-            identity_url = previous_uri[1]
-            server_list = self.session.get(
-                self.sessionKeyPrefix + self._server_list, None)
-            if server_list is None:
-                server_list = self._resetServerList()
-                visited_list = self._resetVisitedList()
-            else:
-                visited_list = self.session.get(
-                    self.sessionKeyPrefix + self._visited_list, None)
-                if visited_list is None:
-                    visited_list = self._resetVisitedList()
-
-        if rediscover or (not server_list) or (not identity_url):
-            identity_url, openid_servers = self.discover(uri)
-            visited_list = self._resetVisitedList()
-            server_list[:] = openid_servers
-            self.session[self.sessionKeyPrefix + self._last_uri] = (
-                uri, identity_url)
-
-        return identity_url, server_list, visited_list
-
-    def _unVisit(self, server_uri, delegate):
-        visited_list = self.session.get(
-            self.sessionKeyPrefix + self._visited_list, None)
-        if not visited_list:
-            return
-        for server in visited_list[:]:
-            if ((server.server_url == server_uri) and
-                (server.getServerID() == delegate)):
-
-                visited_list.remove(server)
-
-    def _resetServerList(self):
-        return self._resetSessionThing(self._server_list, [])
-
-    def _resetVisitedList(self):
-        return self._resetSessionThing(self._visited_list, [])
-
-    def _resetSessionThing(self, key, value):
-        self.session[self.sessionKeyPrefix + key] = value
-        return self.session[self.sessionKeyPrefix + key]
-
-    def _newAuthRequest(self, consumer_id, server_id, server_url):
-        nonce = cryptutil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
-
-        token = self._genToken(nonce, consumer_id, server_id, server_url)
-        return SUCCESS, OpenIDAuthRequest(token, consumer_id,
-                                          server_id, server_url, nonce)
 
     def _constructRedirect(self, assoc, auth_req, return_to, trust_root,
                            immediate=False):
