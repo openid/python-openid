@@ -1,4 +1,5 @@
-"""
+"""OpenID server protocol and logic.
+
 Overview
 ========
 
@@ -13,8 +14,9 @@ Overview
     The first and last of these tasks may performed by
     the L{decodeRequest<OpenIDServer.decodeRequest>} and
     L{encodeResponse<OpenIDServer.encodeResponse>} methods of the
-    L{OpenIDServer} object.  Who gets to do the remaining task -- deciding how
-    to respond to the request -- will depend on what type of request it is.
+    L{OpenIDServer} object.  Who gets to do the intermediate task -- deciding
+    how to respond to the request -- will depend on what type of request it
+    is.
 
     If it's a request to authenticate a user (a X{C{checkid_setup}} or
     X{C{checkid_immediate}} request), you need to decide if you will assert
@@ -25,8 +27,8 @@ Overview
     she does consent to releasing that information to the party making the
     request.
 
-    Examine the properties of the L{CheckIDRequest} object, and if and when
-    you've come to a decision about their claim, form a response by calling
+    Examine the properties of the L{CheckIDRequest} object, and if
+    and when you've come to a decision, form a response by calling
     L{CheckIDRequest.answer}.
 
     Other types of requests relate to establishing associations between client
