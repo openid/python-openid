@@ -637,10 +637,24 @@ class OpenIDResponse(object):
 
 
 class CheckIDResponse(OpenIDResponse):
-    """
-    @type signed: list
+    """I am a response to a L{CheckIDRequest}.
+
+    I differ from my base class L{OpenIDResponse} in that some of my fields
+    may be signed.
+
+    @ivar signed: The names of the fields which should be signed.
+    @type signed: list of str
     """
     def __init__(self, request, mode='id_res'):
+        """Make a response to a L{CheckIDRequest}.
+
+        @param request: A request to respond to.
+        @type request: L{CheckIDRequest}
+
+        @param mode: The mode of this response.  One of "X{C{id_res}}" or
+            "X{C{cancel}}"
+        @type mode: str
+        """
         super(CheckIDResponse, self).__init__(request)
         self.fields['mode'] = mode
         self.signed = []
@@ -649,6 +663,21 @@ class CheckIDResponse(OpenIDResponse):
 
 
     def addField(self, namespace, key, value, signed=True):
+        """Add a field to this response.
+
+        @param namespace: The extension namespace the field is in, with no
+            leading "C{openid.}" e.g. "C{sreg}".
+        @type namespace: str
+
+        @param key: The field's name, e.g. "C{fullname}".
+        @type key: str
+
+        @param value: The field's value.
+        @type value: str
+
+        @param signed: Whether this field should be signed.
+        @type signed: bool
+        """
         if namespace:
             key = '%s.%s' % (namespace, key)
         self.fields[key] = value
@@ -657,6 +686,18 @@ class CheckIDResponse(OpenIDResponse):
 
 
     def addFields(self, namespace, fields, signed=True):
+        """Add a number of fields to this response.
+
+        @param namespace: The extension namespace the field is in, with no
+            leading "C{openid.}" e.g. "C{sreg}".
+        @type namespace: str
+
+        @param fields: A dictionary with the fields to add.
+            e.g. C{{"fullname": "Frank the Goat"}}
+
+        @param signed: Whether these fields should be signed.
+        @type signed: bool
+        """
         for key, value in fields.iteritems():
             self.addField(namespace, key, value, signed)
 
