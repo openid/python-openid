@@ -458,7 +458,28 @@ class CheckIDRequest(OpenIDRequest):
             raise MalformedTrustRoot(None, self.trust_root)
         return tr.validateURL(self.return_to)
 
-    def answer(self, allow, setup_url=None):
+
+    def answer(self, allow, server_url=None):
+        """Respond to this request.
+
+        @param allow: Allow this user to claim this identity, and allow the
+            consumer to have this information?
+        @type allow: bool
+
+        @param server_url: When an immediate mode request does not
+            succeed, it gets back a URL where the request may be
+            carried out in a not-so-immediate fashion.  Pass my URL
+            in here (the fully qualified address of this server's
+            endpoint, i.e.  C{http://example.com/server}), and I
+            will use it as a base for the URL for a new request.
+
+            Optional for requests where C{CheckIDRequest.immediate} is C{False}
+            or C{allow} is C{True}.
+
+        @type server_url: str
+
+        @returntype: L{CheckIDResponse}
+        """
         if allow or self.immediate:
             mode = 'id_res'
         else:
@@ -474,12 +495,42 @@ class CheckIDRequest(OpenIDRequest):
         else:
             response.signed[:] = []
             if self.immediate:
-                if not setup_url:
+                if not server_url:
                     raise ValueError("setup_url is required for allow=False "
                                      "in immediate mode.")
+                # Make a new request just like me, but with immediate=False.
+                setup_request = self.__class__(
+                    self.identity, self.return_to, self.trust_root,
+                    immediate=True, assoc_handle=self.assoc_handle)
+                setup_url = setup_request.encodeToURL(server_url)
                 response.fields['user_setup_url'] = setup_url
 
         return response
+
+
+    def encodeToURL(self, server_url):
+        """Encode this request as a URL to GET.
+
+        @param server_url: The URL of the OpenID server to make this request of.
+        @type server_url: str
+
+        @returntype: str
+        """
+        # Imported from the alternate reality where these classes are used
+        # in both the client and server code, so Requests are Encodable too.
+        # That's right, code imported from alternate realities all for the
+        # love of you, id_res/user_setup_url.
+        q = {'mode': self.mode,
+             'identity': self.identity,
+             'return_to': self.return_to}
+        if self.trust_root:
+            q['trust_root'] = self.trust_root
+        if self.assoc_handle:
+            q['assoc_handle'] = self.assoc_handle
+
+        q = dict([(OPENID_PREFIX + k, v) for k, v in q.iteritems()])
+
+        return oidutil.appendArgs(server_url, q)
 
 
     def getCancelURL(self):

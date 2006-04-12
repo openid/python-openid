@@ -460,14 +460,14 @@ class TestCheckID(unittest.TestCase):
     def test_answerImmediateDeny(self):
         self.request.mode = 'checkid_immediate'
         self.request.immediate = True
-        setup_url = "http://setup-url.unittest/"
+        server_url = "http://setup-url.unittest/"
         # crappiting setup_url, you dirty my interface with your presence!
-        answer = self.request.answer(False, setup_url=setup_url)
+        answer = self.request.answer(False, server_url=server_url)
         self.failUnlessEqual(answer.request, self.request)
-        self.failUnlessEqual(answer.fields, {
-            'mode': 'id_res',
-            'user_setup_url': setup_url,
-            })
+        self.failUnlessEqual(len(answer.fields), 2)
+        self.failUnlessEqual(answer.fields.get('mode'), 'id_res')
+        self.failUnless(answer.fields.get('user_setup_url', '').startswith(
+            server_url))
         self.failUnlessEqual(answer.signed, [])
 
     def test_answerSetupDeny(self):
@@ -476,6 +476,17 @@ class TestCheckID(unittest.TestCase):
             'mode': 'cancel',
             })
         self.failUnlessEqual(answer.signed, [])
+
+    def test_encodeToURL(self):
+        server_url = 'http://openid-server.unittest/'
+        result = self.request.encodeToURL(server_url)
+
+        # How to check?  How about a round-trip test.
+        base, result_args = result.split('?', 1)
+        result_args = cgi.parse_qs(result_args)
+        result_args = dict([(k, v[0]) for k, v in result_args.iteritems()])
+        rebuilt_request = server.CheckIDRequest.fromQuery(result_args)
+        self.failUnlessEqual(rebuilt_request.__dict__, self.request.__dict__)
 
     def test_getCancelURL(self):
         url = self.request.getCancelURL()
