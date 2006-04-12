@@ -1081,9 +1081,9 @@ class OpenIDAuthRequest(object):
 def discoveryVersion1FromString(uri, doc):
     # XXX - parse.openIDDiscover probably doesn't need to take the URI
     # or return it.
-    identity_url, delegate_url, server_url = openIDDiscover(uri, doc)
+    delegate_url, server_url = openIDDiscover(doc)
     service = OpenIDServiceEndpoint()
-    service.identity_url = identity_url
+    service.identity_url = uri
     service.delegate = delegate_url
     service.server_url = server_url
     service.type_uris = [OPENID_1_0_TYPE]

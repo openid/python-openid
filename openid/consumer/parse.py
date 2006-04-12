@@ -252,7 +252,7 @@ class ParseError(ValueError):
     """Exception for errors in parsing the HTML text for OpenID
     settings"""
 
-def openIDDiscover(canonical_url, html_text):
+def openIDDiscover(html_text):
     """Parse OpenID settings out of the gived HTML text
 
     @raises: ParseError
@@ -266,7 +266,4 @@ def openIDDiscover(canonical_url, html_text):
         raise ParseError('No openid.server found')
 
     delegate_url = findFirstHref(link_attrs, 'openid.delegate')
-    if delegate_url is None:
-        delegate_url = canonical_url
-
-    return canonical_url, delegate_url, server_url
+    return delegate_url, server_url
