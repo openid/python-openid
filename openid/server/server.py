@@ -340,8 +340,8 @@ class AssociateRequest(OpenIDRequest):
 class CheckIDRequest(OpenIDRequest):
     """A request to confirm the identity of a user.
 
-    This class handles requests for openid modes C{checkid_immediate}
-    and X{C{checkid_setup}.
+    This class handles requests for openid modes X{C{checkid_immediate}}
+    and X{C{checkid_setup}}.
 
     @cvar mode: "X{C{checkid_immediate}}" or "X{C{checkid_setup}}"
     @type mode: str
