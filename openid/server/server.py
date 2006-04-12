@@ -703,10 +703,35 @@ class CheckIDResponse(OpenIDResponse):
 
 
     def update(self, namespace, other):
-        namespaced_fields = dict([('%s.%s' % (namespace, k), v) for k, v
-                                  in other.fields.iteritems()])
+        """Update my fields with those from another L{CheckIDResponse}.
+
+        The idea here is that if you write an OpenID extension, it
+        could produce a Response object with C{fields} and C{signed}
+        attributes, and you could merge it with me using this method
+        before I am signed and sent.
+
+        All entries in C{other.fields} will have their keys prefixed
+        with C{namespace} and added to my fields.  All elements of
+        C{other.signed} will be prefixed with C{namespace} and added
+        to my C{signed} list.
+
+        @param namespace: The extension namespace the field is in, with no
+            leading "C{openid.}" e.g. "C{sreg}".
+        @type namespace: str
+
+        @param other: A response object to update from.
+        @param other: L{CheckIDResponse}
+        """
+        if namespace:
+            namespaced_fields = dict([('%s.%s' % (namespace, k), v) for k, v
+                                      in other.fields.iteritems()])
+            namespaced_signed = ['%s.%s' % (namespace, k) for k
+                                 in other.signed]
+        else:
+            namespaced_fields = other.fields
+            namespaced_signed = other.signed
         self.fields.update(namespaced_fields)
-        self.signed.extend(other.signed)
+        self.signed.extend(namespaced_signed)
 
 
     def __str__(self):

@@ -582,7 +582,21 @@ class TestCheckIDExtension(unittest.TestCase):
                               'box.shape': 'heart',
                               'box.content': 'strings,wire'})
         self.failUnlessEqual(self.response.signed,
-                             ['mode', 'identity', 'return_to', 'content'])
+                             ['mode', 'identity', 'return_to', 'box.content'])
+
+    def test_updateNoNamespace(self):
+        eresponse = server.OpenIDResponse(None)
+        eresponse.fields.update({'species': 'pterodactyl',
+                                 'saturation': 'day-glo'})
+        eresponse.signed = ['species']
+        self.response.update(None, eresponse)
+        self.failUnlessEqual(self.response.fields,
+                             {'blue': 'star',
+                              'mode': 'id_res',
+                              'species': 'pterodactyl',
+                              'saturation': 'day-glo'})
+        self.failUnlessEqual(self.response.signed,
+                             ['mode', 'identity', 'return_to', 'species'])
 
 
 
