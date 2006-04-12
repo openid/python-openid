@@ -524,6 +524,13 @@ class TestCheckIDExtension(unittest.TestCase):
                              ['mode', 'identity', 'return_to', 'mj12.bright'])
 
 
+    def test_addFieldNoNamespace(self):
+        self.response.addField('', 'dark', 'pages')
+        self.failUnlessEqual(self.response.fields,
+                             {'blue': 'star',
+                              'mode': 'id_res',
+                              'dark': 'pages'})
+
     def test_addFieldUnsigned(self):
         namespace = 'mj12'
         self.response.addField(namespace, 'dull', 'lemon', signed=False)

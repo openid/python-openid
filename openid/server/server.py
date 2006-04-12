@@ -649,7 +649,8 @@ class CheckIDResponse(OpenIDResponse):
 
 
     def addField(self, namespace, key, value, signed=True):
-        key = '%s.%s' % (namespace, key)
+        if namespace:
+            key = '%s.%s' % (namespace, key)
         self.fields[key] = value
         if signed and key not in self.signed:
             self.signed.append(key)
