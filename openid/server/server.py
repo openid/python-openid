@@ -336,24 +336,45 @@ class AssociateRequest(OpenIDRequest):
 
 
 class CheckIDRequest(OpenIDRequest):
-    """A CheckID Request.
+    """A request to confirm the identity of a user.
 
+    This class handles requests for openid modes C{checkid_immediate}
+    and X{C{checkid_setup}.
+
+    @cvar mode: "X{C{checkid_immediate}}" or "X{C{checkid_setup}}"
     @type mode: str
+
+    @ivar immediate: Is this an immediate-mode request?
     @type immediate: bool
+
+    @ivar identity: The identity URL being checked.
     @type identity: str
+
+    @ivar trust_root: "Are you Frank?" asks the checkid request.  "Who wants
+        to know?"  C{trust_root}, that's who.  This URL identifies the party
+        making the request, and the user will use that to make her decision
+        about what answer she trusts them to have.
     @type trust_root: str
+
+    @ivar return_to: The URL to send the user agent back to to reply to this
+        request.
     @type return_to: str
+
+    @ivar assoc_handle: Provided in smart mode requests, a handle for a
+        previously established association.  C{None} for dumb mode requests.
     @type assoc_handle: str
     """
-    mode = "checkid_setup" or "checkid_immediate"
 
-    immediate = False
+    def __init__(self, identity, return_to, trust_root=None, immediate=False,
+                 assoc_handle=None):
+        """Construct me.
 
-    trust_root = None
-    assoc_handle = None
+        These parameters are assigned directly as class attributes, see
+        my L{class documentation<CheckIDRequest>} for their descriptions.
 
-    def __init__(self, identity, return_to, trust_root=None,
-                 immediate=False):
+        @raises MalformedReturnURL: When the C{return_to} URL is not a URL.
+        """
+        self.assoc_handle = assoc_handle
         self.identity = identity
         self.return_to = return_to
         self.trust_root = trust_root
@@ -369,6 +390,19 @@ class CheckIDRequest(OpenIDRequest):
 
 
     def fromQuery(klass, query):
+        """Construct me from a web query.
+
+        @raises ProtocolError: When not all required parameters are present
+            in the query.
+
+        @raises MalformedReturnURL: When the C{return_to} URL is not a URL.
+
+        @param query: The query parameters as a dictionary with each
+            key mapping to one value.
+        @type query: dict
+
+        @returntype: L{CheckIDRequest}
+        """
         self = klass.__new__(klass)
         mode = query[OPENID_PREFIX + 'mode']
         if mode == "checkid_immediate":
@@ -398,6 +432,12 @@ class CheckIDRequest(OpenIDRequest):
         self.trust_root = query.get(OPENID_PREFIX + 'trust_root')
         self.assoc_handle = query.get(OPENID_PREFIX + 'assoc_handle')
 
+        # Using TrustRoot.parse here is a bit misleading, as we're not
+        # parsing return_to as a trust root at all.  However, valid URLs
+        # are valid trust roots, so we can use this to get an idea if it
+        # is a valid URL.  Not all trust roots are valid return_to URLs,
+        # however (particularly ones with wildcards), so this is still a
+        # little sketchy.
         if not TrustRoot.parse(self.return_to):
             raise MalformedReturnURL(query, self.return_to)
 
@@ -447,6 +487,10 @@ class CheckIDRequest(OpenIDRequest):
 
         Useful for creating a "Cancel" button on a web form so that operation
         can be carried out directly without another trip through the server.
+
+        (Except you probably want to make another trip through the server so
+        that it knows that the user did make a decision.  Or you could simulate
+        this method by doing C{.answer(False).encodeToURL()})
 
         @returntype: str
         @returns: The return_to URL with openid.mode = cancel.
