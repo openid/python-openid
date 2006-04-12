@@ -563,11 +563,28 @@ class CheckIDRequest(OpenIDRequest):
                                                  self.assoc_handle)
 
 class OpenIDResponse(object):
-    """
+    """I am a response to an OpenID request.
+
+    @ivar request: The request I respond to.
     @type request: L{OpenIDRequest}
+
+    @ivar fields: My parameters as a dictionary with each key mapping to
+        one value.
     @type fields: dict
     """
+
+    # Implementer's note: In a more symmetric client/server
+    # implementation, there would be more types of OpenIDResponse
+    # object and they would have validated attributes according to the
+    # type of response.  But as it is, Response objects in a server are
+    # basically write-only, their only job is to go out over the wire,
+    # so this is just a loose wrapper around OpenIDResponse.fields.
+
     def __init__(self, request):
+        """Make a response to an L{OpenIDRequest}.
+
+        @type request: L{OpenIDRequest}
+        """
         self.request = request
         self.fields = {}
 
@@ -581,6 +598,10 @@ class OpenIDResponse(object):
     # implements IEncodable
 
     def whichEncoding(self):
+        """How should I be encoded?
+
+        @returns: one of ENCODE_URL or ENCODE_KVFORM.
+        """
         if self.request.mode in BROWSER_REQUEST_MODES:
             return ENCODE_URL
         else:
@@ -588,10 +609,9 @@ class OpenIDResponse(object):
 
 
     def encodeToURL(self):
-        """Encode a response as a URL for redirection.
+        """Encode a response as a URL for the user agent to GET.
 
-        @param response: The response to encode.
-        @type response: L{OpenIDResponse}
+        You will generally use this URL with a HTTP redirect.
 
         @returns: A URL to direct the user agent back to.
         @returntype: str
@@ -602,12 +622,14 @@ class OpenIDResponse(object):
 
 
     def encodeToKVForm(self):
-        """Encode a response as a kvform.
+        """Encode a response in key-value colon/newline format.
 
-        @param response: The response to encode.
-        @type response: L{OpenIDResponse}
+        This is a machine-readable format used to respond to messages which
+        came directly from the consumer and not through the user agent.
 
-        @returns: The response in kvform.
+        @see: OpenID Specs,
+           U{Key-Value Colon/Newline format<http://openid.net/specs.bml#keyvalue>}
+
         @returntype: str
         """
         return kvform.dictToKV(self.fields)
