@@ -125,13 +125,7 @@ USING THIS LIBRARY
     is entered in that field and the form is submitted, it should make
     a request to the your site which includes that OpenID URL.
 
-    When your site receives that request, it should create an
-    C{L{openid.consumer.consumer.OpenIDConsumer}} instance, and call
-    C{L{beginAuth<OpenIDConsumer.beginAuth>}} on it.  If
-    C{L{beginAuth<OpenIDConsumer.beginAuth>}} completes successfully,
-    it will return an C{L{OpenIDAuthRequest}}.  Otherwise it will
-    provide some useful information for giving the user an error
-    message.
+    XXX: Something about discovery
 
     Now that you have the C{L{OpenIDAuthRequest}} object, you need to
     preserve the value in its C{L{token<OpenIDAuthRequest.token>}}
