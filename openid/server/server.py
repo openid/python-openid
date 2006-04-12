@@ -382,10 +382,6 @@ class CheckIDRequest(OpenIDRequest):
             'identity',
             'return_to',
             ]
-        optional = [
-            'trust_root',
-            'assoc_handle',
-            ]
 
         for field in required:
             value = query.get(OPENID_PREFIX + field)
@@ -396,10 +392,11 @@ class CheckIDRequest(OpenIDRequest):
                     % (field, query))
             setattr(self, field, value)
 
-        for field in optional:
-            value = query.get(OPENID_PREFIX + field)
-            if value:
-                setattr(self, field, value)
+        # There's a case for making self.trust_root be a TrustRoot
+        # here.  But if TrustRoot isn't currently part of the "public" API,
+        # I'm not sure it's worth doing.
+        self.trust_root = query.get(OPENID_PREFIX + 'trust_root')
+        self.assoc_handle = query.get(OPENID_PREFIX + 'assoc_handle')
 
         if not TrustRoot.parse(self.return_to):
             raise MalformedReturnURL(query, self.return_to)
