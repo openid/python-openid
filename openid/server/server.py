@@ -1231,6 +1231,9 @@ class EncodingError(Exception):
     """Could not encode this as a protocol message.
 
     You should probably render it and show it to the user.
+
+    @ivar response: The response that failed to encode.
+    @type response: L{OpenIDResponse}
     """
 
     def __init__(self, response):
