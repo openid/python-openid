@@ -1236,8 +1236,12 @@ class EncodingError(Exception):
     def __init__(self, response):
         self.response = response
 
+
+
 class AlreadySigned(EncodingError):
     """This response is already signed."""
+
+
 
 class UntrustedReturnURL(ProtocolError):
     """A return_to is outside the trust_root."""
@@ -1250,12 +1254,21 @@ class UntrustedReturnURL(ProtocolError):
     def __str__(self):
         return "return_to %r not under trust_root %r" % (self.return_to,
                                                          self.trust_root)
+
+
 class MalformedReturnURL(ProtocolError):
+    """The return_to URL doesn't look like a valid URL."""
     def __init__(self, query, return_to):
         self.return_to = return_to
         ProtocolError.__init__(self, query)
 
+
+
 class MalformedTrustRoot(ProtocolError):
+    """The trust root is not well-formed.
+
+    @see: OpenID Specs, U{openid.trust_root<http://openid.net/specs.bml#mode-checkid_immediate>}
+    """
     pass
 
 
