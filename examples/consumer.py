@@ -121,8 +121,8 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # that will get us to process the server response. We will
             # need the token from the beginAuth call when processing
             # the response. A cookie or a session object could be used
-        # to accomplish this, but for simplicity here we just add
-        # it as a query parameter of the return-to URL.
+            # to accomplish this, but for simplicity here we just add
+            # it as a query parameter of the return-to URL.
             return_to = self.buildURL('process', token=info.token)
 
             # Now ask the library for the URL to redirect the user to
