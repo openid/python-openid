@@ -1033,6 +1033,8 @@ class SigningEncoder(Encoder):
             message.
 
         @raises AlreadySigned: When this response is already signed.
+
+        @returntype: L{WebResponse}
         """
         # the isinstance is a bit of a kludge... it means there isn't really
         # an adapter to make the interfaces quite match.
