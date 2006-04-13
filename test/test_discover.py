@@ -8,34 +8,38 @@ from openid.consumer import discover
 ### Tests for conditions that trigger DiscoveryFailure
 
 class SimpleMockFetcher(object):
-    def __init__(self, status, url):
-        self.status = status
-        self.url = url
+    def __init__(self, responses):
+        self.responses = list(responses)
 
     def fetch(self, url, body=None, headers=None):
+        response = self.responses.pop(0)
         assert body is None
-        assert url == self.url
-        return HTTPResponse(url, self.status)
+        assert response.final_url == url
+        return response
 
 class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
     cases = [
-        (None, 'http://network.error/'),
-        (404, 'http://not.found/'),
-        (400, 'http://bad.request/'),
-        (500, 'http://server.error/'),
+        ([HTTPResponse('http://network.error/', None)],),
+        ([HTTPResponse('http://not.found/', 404)],),
+        ([HTTPResponse('http://bad.request/', 400)],),
+        ([HTTPResponse('http://server.error/', 500)],),
+        ([HTTPResponse('http://header.found/', 200,
+                      headers={'x-xrds-location':'http://xrds.missing/'}),
+          HTTPResponse('http://xrds.missing/', 404)],),
         ]
 
-    def __init__(self, url, status):
-        datadriven.DataDrivenTestCase.__init__(self, url)
-        self.url = url
-        self.status = status
+    def __init__(self, responses):
+        self.url = responses[0].final_url
+        datadriven.DataDrivenTestCase.__init__(self, self.url)
+        self.responses = responses
 
     def runTest(self):
-        fetcher = SimpleMockFetcher(self.status, self.url)
+        fetcher = SimpleMockFetcher(self.responses)
+        expected_status = self.responses[-1].status
         try:
             discover.discover(self.url, fetcher)
         except DiscoveryFailure, why:
-            self.failUnlessEqual(why.http_response.status, self.status)
+            self.failUnlessEqual(why.http_response.status, expected_status)
         else:
             self.fail('Did not raise DiscoveryFailure')
 
