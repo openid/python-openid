@@ -1134,16 +1134,43 @@ class OpenIDServer(object):
 
 
 class ProtocolError(Exception):
-    def __init__(self, query=None, text=None):
+    """A message did not conform to the OpenID protocol.
+
+    @ivar query: The query that is failing to be a valid OpenID request.
+    @type query: dict
+    """
+
+    def __init__(self, query, text=None):
+        """When an error occurs.
+
+        @param query: The query that is failing to be a valid OpenID request.
+        @type query: dict
+
+        @param text: A message about the encountered error.  Set as C{args[0]}.
+        @type text: str
+        """
         self.query = query
         Exception.__init__(self, text)
 
+
     def hasReturnTo(self):
+        """Did this request have a return_to parameter?
+
+        @returntype: bool
+        """
         return (OPENID_PREFIX + 'return_to') in self.query
+
 
     # implements IEncodable
 
     def encodeToURL(self):
+        """Encode a response as a URL for the user agent to GET.
+
+        You will generally use this URL with a HTTP redirect.
+
+        @returns: A URL to direct the user agent back to.
+        @returntype: str
+        """
         return_to = self.query.get(OPENID_PREFIX + 'return_to')
         if not return_to:
             raise ValueError("I have no return_to URL.")
@@ -1152,13 +1179,31 @@ class ProtocolError(Exception):
             'error': str(self),
             })
 
+
     def encodeToKVForm(self):
+        """Encode a response in key-value colon/newline format.
+
+        This is a machine-readable format used to respond to messages which
+        came directly from the consumer and not through the user agent.
+
+        @see: OpenID Specs,
+           U{Key-Value Colon/Newline format<http://openid.net/specs.bml#keyvalue>}
+
+        @returntype: str
+        """
         return kvform.dictToKV({
             'mode': 'error',
             'error': str(self),
             })
 
+
     def whichEncoding(self):
+        """How should I be encoded?
+
+        @returns: one of ENCODE_URL, ENCODE_KVFORM, or None.  If None,
+            I cannot be encoded as a protocol message and should be
+            displayed to the user.
+        """
         if self.hasReturnTo():
             return ENCODE_URL
 
