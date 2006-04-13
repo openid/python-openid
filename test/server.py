@@ -162,6 +162,22 @@ class TestDecode(unittest.TestCase):
             self.fail("Expected ProtocolError, instead returned with %s" %
                       (result,))
 
+    def test_checkidSetupUntrustedReturn(self):
+        args = {
+            'openid.mode': 'checkid_setup',
+            'openid.identity': self.id_url,
+            'openid.assoc_handle': self.assoc_handle,
+            'openid.return_to': self.rt_url,
+            'openid.trust_root': 'http://not-the-return-place.unittest/',
+            }
+        try:
+            result = self.decode(args)
+        except server.UntrustedReturnURL, err:
+            self.failUnless(err.query)
+        else:
+            self.fail("Expected UntrustedReturnURL, instead returned with %s" %
+                      (result,))
+
     def test_checkAuth(self):
         args = {
             'openid.mode': 'check_authentication',
@@ -427,14 +443,6 @@ class TestCheckID(unittest.TestCase):
         self.request.trust_root = "http://foo.unittest/"
         self.request.return_to = "http://foo.unittest/39"
         self.failUnless(self.request.trustRootValid())
-
-    def test_answerToInvalidRoot(self):
-        """Attempting to answer to a bad trust root"""
-        self.request.trust_root = "http://foo.unittest/17"
-        self.request.return_to = "http://foo.unittest/39"
-        self.failUnlessRaises(server.UntrustedReturnURL,
-                              self.request.answer, True)
-        self.failUnless(self.request.answer(False))
 
     def test_answerAllow(self):
         answer = self.request.answer(True)

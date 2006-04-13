@@ -394,6 +394,8 @@ class CheckIDRequest(OpenIDRequest):
 
         if not TrustRoot.parse(self.return_to):
             raise MalformedReturnURL(None, self.return_to)
+        if not self.trustRootValid():
+            raise UntrustedReturnURL(None, self.return_to, self.trust_root)
 
 
     def fromQuery(klass, query):
@@ -403,6 +405,9 @@ class CheckIDRequest(OpenIDRequest):
             in the query.
 
         @raises MalformedReturnURL: When the C{return_to} URL is not a URL.
+
+        @raises UntrustedReturnURL: When the C{return_to} URL is outside
+            the C{trust_root}.
 
         @param query: The query parameters as a dictionary with each
             key mapping to one value.
@@ -447,6 +452,14 @@ class CheckIDRequest(OpenIDRequest):
         # little sketchy.
         if not TrustRoot.parse(self.return_to):
             raise MalformedReturnURL(query, self.return_to)
+
+        # I first thought that checking to see if the return_to is within
+        # the trust_root is premature here, a logic-not-decoding thing.  But
+        # it was argued that this is really part of data validation.  A
+        # request with an invalid trust_root/return_to is broken regardless of
+        # application, right?
+        if not self.trustRootValid():
+            raise UntrustedReturnURL(query, self.return_to, self.trust_root)
 
         return self
 
@@ -497,8 +510,6 @@ class CheckIDRequest(OpenIDRequest):
         if allow:
             response.fields['identity'] = self.identity
             response.fields['return_to'] = self.return_to
-            if not self.trustRootValid():
-                raise UntrustedReturnURL(self.return_to, self.trust_root)
         else:
             response.signed[:] = []
             if self.immediate:
@@ -1184,7 +1195,10 @@ class AlreadySigned(EncodingError):
     """This response is already signed."""
 
 class UntrustedReturnURL(ProtocolError):
-    def __init__(self, return_to, trust_root):
+    """A return_to is outside the trust_root."""
+
+    def __init__(self, query, return_to, trust_root):
+        ProtocolError.__init__(self, query)
         self.return_to = return_to
         self.trust_root = trust_root
 
