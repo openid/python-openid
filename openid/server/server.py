@@ -791,7 +791,7 @@ class Signatory(object):
     @cvar SECRET_LIFETIME: The number of seconds a secret remains valid.
     @type SECRET_LIFETIME: int
     """
-    
+
     SECRET_LIFETIME = 14 * 24 * 60 * 60 # 14 days, in seconds
 
     # keys have a bogus server URL in them because the filestore
@@ -827,7 +827,7 @@ class Signatory(object):
             list, without any C{"openid."} prefix.
         @type signed_pairs: list of pairs
 
-        @returns: {True} if the signature is valid, C{False} if not.
+        @returns: C{True} if the signature is valid, C{False} if not.
         @returntype: bool
         """
         assoc = self.getAssociation(assoc_handle, dumb=True)
@@ -921,7 +921,7 @@ class Signatory(object):
         # (and thus the only place that ever sees Association objects) is
         # when creating a response to an association request, as it must have
         # the association's secret.
-        
+
         if assoc_handle is None:
             raise ValueError("assoc_handle must not be None")
 
