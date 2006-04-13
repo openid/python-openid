@@ -774,6 +774,18 @@ class WebResponse(object):
 
 
 class Signatory(object):
+    """I sign things.
+
+    I also check signatures.
+
+    All my state is encapsulated in an
+    L{OpenIDStore<openid.store.interface.OpenIDStore>}, which means
+    I'm not generally pickleable but I am easy to reconstruct.
+
+    @cvar SECRET_LIFETIME: The number of seconds a secret remains valid.
+    @type SECRET_LIFETIME: int
+    """
+    
     SECRET_LIFETIME = 14 * 24 * 60 * 60 # 14 days, in seconds
 
     # keys have a bogus server URL in them because the filestore
@@ -783,22 +795,62 @@ class Signatory(object):
     _normal_key = 'http://localhost/|normal'
     _dumb_key = 'http://localhost/|dumb'
 
+
     def __init__(self, store):
+        """Create a new Signatory.
+
+        @param store: The back-end where my associations are stored.
+        @type store: L{openid.store.interface.OpenIDStore}
+        """
         assert store is not None
         self.store = store
 
+
     def verify(self, assoc_handle, sig, signed_pairs):
+        """Verify that the signature for some data is valid.
+
+        @param assoc_handle: The handle of the association used to sign the
+            data.
+        @type assoc_handle: str
+
+        @param sig: The base-64 encoded signature to check.
+        @type sig: str
+
+        @param signed_pairs: The data to check, an ordered list of key-value
+            pairs.  The keys should be as they are in the request's C{signed}
+            list, without any C{"openid."} prefix.
+        @type signed_pairs: list of pairs
+
+        @returns: {True} if the signature is valid, C{False} if not.
+        @returntype: bool
+        """
         assoc = self.getAssociation(assoc_handle, dumb=True)
         if not assoc:
             oidutil.log("failed to get assoc with handle %r to verify sig %r"
                         % (assoc_handle, sig))
             return False
 
+        # Not using Association.checkSignature here is intentional;
+        # Association should not know things like "the list of signed pairs is
+        # in the request's 'signed' parameter and it is comma-separated."
         expected_sig = oidutil.toBase64(assoc.sign(signed_pairs))
 
         return sig == expected_sig
 
+
     def sign(self, response):
+        """Sign a response.
+
+        I take a L{CheckIDResponse}, create a signature for everything
+        in its L{signed<CheckIDResponse.signed>} list, and return a new
+        copy of the response object with that signature included.
+
+        @param response: A response to sign.
+        @type response: L{CheckIDResponse}
+
+        @returns: A signed copy of the response.
+        @returntype: L{CheckIDResponse}
+        """
         signed_response = deepcopy(response)
         assoc_handle = response.request.assoc_handle
         if assoc_handle:
@@ -806,8 +858,7 @@ class Signatory(object):
             assoc = self.getAssociation(assoc_handle, dumb=False)
             if not assoc:
                 # fall back to dumb mode
-                signed_response.fields['invalidate_handle'] = \
-                                                                   assoc_handle
+                signed_response.fields['invalidate_handle'] = assoc_handle
                 assoc = self.createAssociation(dumb=True)
         else:
             # dumb mode.
@@ -818,7 +869,20 @@ class Signatory(object):
                            prefix='')
         return signed_response
 
+
     def createAssociation(self, dumb=True, assoc_type='HMAC-SHA1'):
+        """Make a new association.
+
+        @param dumb: Is this association for a dumb-mode transaction?
+        @type dumb: bool
+
+        @param assoc_type: The type of association to create.  Currently
+            there is only one type defined, C{HMAC-SHA1}.
+        @type assoc_type: str
+
+        @returns: the new association.
+        @returntype: L{openid.association.Association}
+        """
         secret = cryptutil.getBytes(20)
         uniq = oidutil.toBase64(cryptutil.getBytes(4))
         handle = '{%s}{%x}{%s}' % (assoc_type, int(time.time()), uniq)
@@ -833,7 +897,25 @@ class Signatory(object):
         self.store.storeAssociation(key, assoc)
         return assoc
 
+
     def getAssociation(self, assoc_handle, dumb):
+        """Get the association with the specified handle.
+
+        @type assoc_handle: str
+
+        @param dumb: Is this association used with dumb mode?
+        @type dumb: bool
+
+        @returns: the association, or None if no valid association with that
+            handle was found.
+        @returntype: L{openid.association.Association}
+        """
+        # Hmm.  We've created an interface that deals almost entirely with
+        # assoc_handles.  The only place outside the Signatory that uses this
+        # (and thus the only place that ever sees Association objects) is
+        # when creating a response to an association request, as it must have
+        # the association's secret.
+        
         if assoc_handle is None:
             raise ValueError("assoc_handle must not be None")
 
@@ -850,7 +932,15 @@ class Signatory(object):
             assoc = None
         return assoc
 
+
     def invalidate(self, assoc_handle, dumb):
+        """Invalidates the association with the given handle.
+
+        @type assoc_handle: str
+
+        @param dumb: Is this association used with dumb mode?
+        @type dumb: bool
+        """
         if dumb:
             key = self._dumb_key
         else:
