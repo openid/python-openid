@@ -969,5 +969,6 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.failIf(self.messages, self.messages)
 
 
+
 if __name__ == '__main__':
     unittest.main()

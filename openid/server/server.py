@@ -578,6 +578,8 @@ class CheckIDRequest(OpenIDRequest):
                                                  self.trust_root,
                                                  self.assoc_handle)
 
+
+
 class OpenIDResponse(object):
     """I am a response to an OpenID request.
 
