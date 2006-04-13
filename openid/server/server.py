@@ -956,11 +956,12 @@ class Signatory(object):
 
 
 class Encoder(object):
-    """I encode responses to L{WebResponse}s.
+    """I encode responses in to L{WebResponses<WebResponse>}.
 
-    If you don't like L{WebResponse}s, you can do your own handling of
-    L{OpenIDResponse}s with L{responseIsKvform}, L{encodeToURL}, and
-    L{encodeToKVForm}.
+    If you don't like L{WebResponses<WebResponse>}, you can do
+    your own handling of L{OpenIDResponses<OpenIDResponse>} with
+    L{OpenIDResponse.whichEncoding}, L{OpenIDResponse.encodeToURL}, and
+    L{OpenIDResponse.encodeToKVForm}.
     """
 
     responseFactory = WebResponse
@@ -969,7 +970,8 @@ class Encoder(object):
     def encode(self, response):
         """Encode a response to a L{WebResponse}.
 
-        @raises: L{EncodingError}
+        @raises EncodingError: When I can't figure out how to encode this
+            message.
         """
         encode_as = response.whichEncoding()
         if encode_as == ENCODE_KVFORM:
@@ -1001,12 +1003,26 @@ def needsSigning(response):
 
 
 class SigningEncoder(Encoder):
-    """I encode responses to L{WebResponse}s, signing them when required.
+    """I encode responses in to L{WebResponses<WebResponse>}, signing them when required.
     """
+
     def __init__(self, signatory):
+        """Create a L{SigningEncoder}.
+
+        @param signatory: The L{Signatory} I will make signatures with.
+        @type signatory: L{Signatory}
+        """
         self.signatory = signatory
 
+
     def encode(self, response):
+        """Encode a response to a L{WebResponse}, signing it first if appropriate.
+
+        @raises EncodingError: When I can't figure out how to encode this
+            message.
+
+        @raises AlreadySigned: When this response is already signed.
+        """
         # the isinstance is a bit of a kludge... it means there isn't really
         # an adapter to make the interfaces quite match.
         if (not isinstance(response, Exception)) and needsSigning(response):
