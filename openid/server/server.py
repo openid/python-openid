@@ -569,7 +569,8 @@ class OpenIDResponse(object):
     @type request: L{OpenIDRequest}
 
     @ivar fields: My parameters as a dictionary with each key mapping to
-        one value.
+        one value.  Keys are parameter names with no leading "C{openid.}".
+        e.g.  "C{identity}" and "C{mac_key}", never "C{openid.identity}".
     @type fields: dict
     """
 
@@ -720,7 +721,7 @@ class CheckIDResponse(OpenIDResponse):
         @type namespace: str
 
         @param other: A response object to update from.
-        @param other: L{CheckIDResponse}
+        @type other: L{CheckIDResponse}
         """
         if namespace:
             namespaced_fields = dict([('%s.%s' % (namespace, k), v) for k, v
