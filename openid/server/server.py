@@ -1110,31 +1110,134 @@ class Decoder(object):
 
 
 class OpenIDServer(object):
+    """I handle requests for an OpenID server.
+
+    Some types of requests (those which are not C{checkid} requests) may be
+    handed to my L{handleRequest} method, and I will take care of it and
+    return a response.
+
+    For your convenience, I also provide an interface to L{Decoder.decode}
+    and L{SigningEncoder.encode} through my methods L{decodeRequest} and
+    L{encodeResponse}.
+
+    All my state is encapsulated in an
+    L{OpenIDStore<openid.store.interface.OpenIDStore>}, which means
+    I'm not generally pickleable but I am easy to reconstruct.
+
+    Example::
+
+        oserver = OpenIDServer(FileOpenIDStore(data_path))
+        request = oserver.decodeRequest(query)
+        if request.mode in ["checkid_immediate", "checkid_setup"]:
+            if self.isAuthorized(request.identity, request.trust_root):
+                response = request.answer(True)
+            elif request.immediate:
+                response = request.answer(False, self.base_url)
+            else:
+                self.showDecidePage(request)
+                return
+        else:
+            response = oserver.handleRequest(request)
+
+        webresponse = oserver.encode(response)
+
+    @ivar signatory: I'm using this for associate requests and to sign things.
+    @type signatory: L{Signatory}
+
+    @ivar decoder: I'm using this to decode things.
+    @type decoder: L{Decoder}
+
+    @ivar encoder: I'm using this to encode things.
+    @type encoder: L{Encoder}
+    """
+
     signatoryClass = Signatory
     encoderClass = SigningEncoder
     decoderClass = Decoder
+
     def __init__(self, store):
+        """A new L{OpenIDServer}.
+
+        @param store: The back-end where my associations are stored.
+        @type store: L{openid.store.interface.OpenIDStore}
+        """
         self.store = store
         self.signatory = self.signatoryClass(self.store)
         self.encoder = self.encoderClass(self.signatory)
         self.decoder = self.decoderClass()
 
+
     def handleRequest(self, request):
-        handler = getattr(self, 'openid_' + request.mode)
-        return handler(request)
+        """Handle a request.
+
+        Give me a request, I will give you a response.  Unless it's a type
+        of request I cannot handle myself, in which case I will raise
+        C{NotImplementedError}.  In that case, you can handle it yourself,
+        or add a method to me for handling that request type.
+
+        @raises NotImplementedError: When I do not have a handler defined
+            for that type of request.
+        """
+        handler = getattr(self, 'openid_' + request.mode, None)
+        if request is not None:
+            return handler(request)
+        else:
+            raise NotImplementedError(
+                "%s has no handler for a request of mode %r." %
+                (self, request.mode))
+
 
     def openid_check_authentication(self, request):
+        """Handle and respond to {check_authentication} requests.
+
+        @returntype: L{OpenIDResponse}
+        """
         return request.answer(self.signatory)
 
+
     def openid_associate(self, request):
+        """Handle and respond to {associate} requests.
+
+        @returntype: L{OpenIDResponse}
+        """
         assoc = self.signatory.createAssociation(dumb=False)
         return request.answer(assoc)
 
-    def encodeResponse(self, response):
-        return self.encoder.encode(response)
 
     def decodeRequest(self, query):
+        """Transform query parameters into an L{OpenIDRequest}.
+
+        If the query does not seem to be an OpenID request at all, I return
+        C{None}.
+
+        @param query: The query parameters as a dictionary with each
+            key mapping to one value.
+        @type query: dict
+
+        @raises ProtocolError: When the query does not seem to be a valid
+            OpenID request.
+
+        @returntype: L{OpenIDRequest}
+
+        @see: L{Decoder.decode}
+        """
         return self.decoder.decode(query)
+
+
+    def encodeResponse(self, response):
+        """Encode a response to a L{WebResponse}, signing it first if appropriate.
+
+        @raises EncodingError: When I can't figure out how to encode this
+            message.
+
+        @raises AlreadySigned: When this response is already signed.
+
+        @returntype: L{WebResponse}
+
+        @see: L{Encoder.encode}
+        """
+        return self.encoder.encode(response)
+
 
 
 class ProtocolError(Exception):
