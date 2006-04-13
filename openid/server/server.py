@@ -762,8 +762,8 @@ class Signatory(object):
     # really does expect that key to be a URL.  This seems a little
     # silly for the server store, since I expect there to be only one
     # server URL.
-    normal_key = 'http://localhost/|normal'
-    dumb_key = 'http://localhost/|dumb'
+    _normal_key = 'http://localhost/|normal'
+    _dumb_key = 'http://localhost/|dumb'
 
     def __init__(self, store):
         assert store is not None
@@ -809,9 +809,9 @@ class Signatory(object):
             self.SECRET_LIFETIME, handle, secret, assoc_type)
 
         if dumb:
-            key = self.dumb_key
+            key = self._dumb_key
         else:
-            key = self.normal_key
+            key = self._normal_key
         self.store.storeAssociation(key, assoc)
         return assoc
 
@@ -820,9 +820,9 @@ class Signatory(object):
             raise ValueError("assoc_handle must not be None")
 
         if dumb:
-            key = self.dumb_key
+            key = self._dumb_key
         else:
-            key = self.normal_key
+            key = self._normal_key
         assoc = self.store.getAssociation(key, assoc_handle)
         if assoc is not None and assoc.expiresIn <= 0:
             oidutil.log("requested %sdumb key %r is expired (by %s seconds)" %
@@ -834,9 +834,9 @@ class Signatory(object):
 
     def invalidate(self, assoc_handle, dumb):
         if dumb:
-            key = self.dumb_key
+            key = self._dumb_key
         else:
-            key = self.normal_key
+            key = self._normal_key
         self.store.removeAssociation(key, assoc_handle)
 
 

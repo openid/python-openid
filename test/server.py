@@ -326,8 +326,8 @@ mode:error
 
 class TestSigningEncode(unittest.TestCase):
     def setUp(self):
-        self.dumb_key = server.Signatory.dumb_key
-        self.normal_key = server.Signatory.normal_key
+        self._dumb_key = server.Signatory._dumb_key
+        self._normal_key = server.Signatory._normal_key
         self.store = _memstore.MemoryStore()
         self.request = server.CheckIDRequest(
             identity = 'http://bombom.unittest/',
@@ -348,7 +348,7 @@ class TestSigningEncode(unittest.TestCase):
     def test_idres(self):
         assoc_handle = '{bicycle}{shed}'
         self.store.storeAssociation(
-            self.normal_key,
+            self._normal_key,
             association.Association.fromExpiresIn(60, assoc_handle,
                                                   'sekrit', 'HMAC-SHA1'))
         self.request.assoc_handle = assoc_handle
@@ -751,15 +751,15 @@ class TestSignatory(unittest.TestCase, CatchLogs):
     def setUp(self):
         self.store = _memstore.MemoryStore()
         self.signatory = server.Signatory(self.store)
-        self.dumb_key = self.signatory.dumb_key
-        self.normal_key = self.signatory.normal_key
+        self._dumb_key = self.signatory._dumb_key
+        self._normal_key = self.signatory._normal_key
         CatchLogs.setUp(self)
 
     def test_sign(self):
         request = server.OpenIDRequest()
         assoc_handle = '{assoc}{lookatme}'
         self.store.storeAssociation(
-            self.normal_key,
+            self._normal_key,
             association.Association.fromExpiresIn(60, assoc_handle,
                                                   'sekrit', 'HMAC-SHA1'))
         request.assoc_handle = assoc_handle
@@ -802,10 +802,10 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         request = server.OpenIDRequest()
         assoc_handle = '{assoc}{lookatme}'
         self.store.storeAssociation(
-            self.normal_key,
+            self._normal_key,
             association.Association.fromExpiresIn(-10, assoc_handle,
                                                   'sekrit', 'HMAC-SHA1'))
-        self.failUnless(self.store.getAssociation(self.normal_key, assoc_handle))
+        self.failUnless(self.store.getAssociation(self._normal_key, assoc_handle))
 
         request.assoc_handle = assoc_handle
         response = server.CheckIDResponse(request)
@@ -829,11 +829,11 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.failUnless(sresponse.fields.get('sig'))
 
         # make sure the expired association is gone
-        self.failIf(self.store.getAssociation(self.normal_key, assoc_handle))
+        self.failIf(self.store.getAssociation(self._normal_key, assoc_handle))
 
         # make sure the new key is a dumb mode association
-        self.failUnless(self.store.getAssociation(self.dumb_key, new_assoc_handle))
-        self.failIf(self.store.getAssociation(self.normal_key, new_assoc_handle))
+        self.failUnless(self.store.getAssociation(self._dumb_key, new_assoc_handle))
+        self.failIf(self.store.getAssociation(self._normal_key, new_assoc_handle))
         self.failUnless(self.messages)
 
     def test_signInvalidHandle(self):
@@ -861,8 +861,8 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.failUnless(sresponse.fields.get('sig'))
 
         # make sure the new key is a dumb mode association
-        self.failUnless(self.store.getAssociation(self.dumb_key, new_assoc_handle))
-        self.failIf(self.store.getAssociation(self.normal_key, new_assoc_handle))
+        self.failUnless(self.store.getAssociation(self._dumb_key, new_assoc_handle))
+        self.failIf(self.store.getAssociation(self._normal_key, new_assoc_handle))
         self.failIf(self.messages, self.messages)
 
 
@@ -871,7 +871,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         assoc = association.Association.fromExpiresIn(60, assoc_handle,
                                                       'sekrit', 'HMAC-SHA1')
 
-        self.store.storeAssociation(self.dumb_key, assoc)
+        self.store.storeAssociation(self._dumb_key, assoc)
 
         signed_pairs = [('foo', 'bar'),
                         ('apple', 'orange')]
@@ -886,7 +886,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         assoc = association.Association.fromExpiresIn(60, assoc_handle,
                                                       'sekrit', 'HMAC-SHA1')
 
-        self.store.storeAssociation(self.dumb_key, assoc)
+        self.store.storeAssociation(self._dumb_key, assoc)
 
         signed_pairs = [('foo', 'bar'),
                         ('apple', 'orange')]
@@ -941,7 +941,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         assoc = association.Association.fromExpiresIn(lifetime, assoc_handle,
                                                       'sekrit', 'HMAC-SHA1')
 
-        self.store.storeAssociation((dumb and self.dumb_key) or self.normal_key, assoc)
+        self.store.storeAssociation((dumb and self._dumb_key) or self._normal_key, assoc)
         return assoc_handle
 
     def test_invalidate(self):
@@ -949,7 +949,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         assoc = association.Association.fromExpiresIn(60, assoc_handle,
                                                       'sekrit', 'HMAC-SHA1')
 
-        self.store.storeAssociation(self.dumb_key, assoc)
+        self.store.storeAssociation(self._dumb_key, assoc)
         assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
         self.failUnless(assoc)
         assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
