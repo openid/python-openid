@@ -1038,34 +1038,56 @@ class SigningEncoder(Encoder):
 
 
 class Decoder(object):
-    prefix = OPENID_PREFIX
+    """I decode an incoming web request in to a L{OpenIDRequest}.
+    """
 
-    handlers = {
+    _handlers = {
         'checkid_setup': CheckIDRequest.fromQuery,
         'checkid_immediate': CheckIDRequest.fromQuery,
         'check_authentication': CheckAuthRequest.fromQuery,
         'associate': AssociateRequest.fromQuery,
         }
 
+
     def decode(self, query):
+        """I transform query parameters into an L{OpenIDRequest}.
+
+        If the query does not seem to be an OpenID request at all, I return
+        C{None}.
+
+        @param query: The query parameters as a dictionary with each
+            key mapping to one value.
+        @type query: dict
+
+        @raises ProtocolError: When the query does not seem to be a valid
+            OpenID request.
+
+        @returntype: L{OpenIDRequest}
+        """
         if not query:
             return None
-        myquery = dict(filter(lambda (k, v): k.startswith(self.prefix),
+        myquery = dict(filter(lambda (k, v): k.startswith(OPENID_PREFIX),
                               query.iteritems()))
         if not myquery:
             return None
 
-        mode = myquery.get(self.prefix + 'mode')
+        mode = myquery.get(OPENID_PREFIX + 'mode')
         if not mode:
             raise ProtocolError(
                 query,
                 text="No %smode value in query %r" % (
-                self.prefix, query))
-        handler = self.handlers.get(mode, self.defaultDecoder)
+                OPENID_PREFIX, query))
+        handler = self._handlers.get(mode, self.defaultDecoder)
         return handler(query)
 
+
     def defaultDecoder(self, query):
-        mode = query[self.prefix + 'mode']
+        """Called to decode queries when no handler for that mode is found.
+
+        @raises ProtocolError: This implementation always raises
+            L{ProtocolError}.
+        """
+        mode = query[OPENID_PREFIX + 'mode']
         raise ProtocolError(
             query,
             text="No decoder for mode %r" % (mode,))
