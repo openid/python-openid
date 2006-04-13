@@ -58,7 +58,6 @@ def pyunitTests():
     pyunit_modules = [
         server,
         consumer,
-        test_discover,
         ]
 
     # Some modules have data-driven tests, and they use custom methods
@@ -68,6 +67,7 @@ def pyunitTests():
         linkparse,
         trustroot,
         test_openidyadis,
+        test_discover,
         kvform,
         ]
 
