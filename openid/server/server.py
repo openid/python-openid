@@ -741,19 +741,37 @@ class CheckIDResponse(OpenIDResponse):
             self.signed, self.fields)
 
 
-class WebResponse(object):
-    code = HTTP_OK
-    body = ""
 
-    def __init__(self, code=None, headers=None, body=None):
-        if code:
-            self.code = code
+class WebResponse(object):
+    """I am a response to an OpenIDRequest in terms a web server understands.
+
+    I generally come from an L{Encoder}, either directly or from
+    L{OpenIDServer.encodeResponse}.
+
+    @ivar code: The HTTP code of this response.
+    @type code: int
+
+    @ivar headers: Headers to include in this response.
+    @type headers: dict
+
+    @ivar body: The body of this response.
+    @type body: str
+    """
+
+    def __init__(self, code=HTTP_OK, headers=None, body=""):
+        """Construct me.
+
+        These parameters are assigned directly as class attributes, see
+        my L{class documentation<WebResponse>} for their descriptions.
+        """
+        self.code = code
         if headers is not None:
             self.headers = headers
         else:
             self.headers = {}
-        if body is not None:
-            self.body = body
+        self.body = body
+
+
 
 class Signatory(object):
     SECRET_LIFETIME = 14 * 24 * 60 * 60 # 14 days, in seconds
