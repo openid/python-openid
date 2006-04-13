@@ -19,13 +19,13 @@ class SimpleMockFetcher(object):
 
 class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
     cases = [
-        ([HTTPResponse('http://network.error/', None)],),
-        ([HTTPResponse('http://not.found/', 404)],),
-        ([HTTPResponse('http://bad.request/', 400)],),
-        ([HTTPResponse('http://server.error/', 500)],),
-        ([HTTPResponse('http://header.found/', 200,
+        [HTTPResponse('http://network.error/', None)],
+        [HTTPResponse('http://not.found/', 404)],
+        [HTTPResponse('http://bad.request/', 400)],
+        [HTTPResponse('http://server.error/', 500)],
+        [HTTPResponse('http://header.found/', 200,
                       headers={'x-xrds-location':'http://xrds.missing/'}),
-          HTTPResponse('http://xrds.missing/', 404)],),
+         HTTPResponse('http://xrds.missing/', 404)],
         ]
 
     def __init__(self, responses):
@@ -64,11 +64,11 @@ class TestFetchException(datadriven.DataDrivenTestCase):
     fetcher."""
 
     cases = [
-        (Exception(),),
-        (DidFetch(),),
-        (ValueError(),),
-        (RuntimeError(),),
-        ('oi!',),
+        Exception(),
+        DidFetch(),
+        ValueError(),
+        RuntimeError(),
+        'oi!',
         ]
 
     def __init__(self, exc):

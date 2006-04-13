@@ -10,7 +10,16 @@ class DataDrivenTestCase(unittest.TestCase):
     generateCases = classmethod(generateCases)
 
     def loadTests(cls):
-        return [cls(*args) for args in cls.generateCases()]
+        tests = []
+        for case in cls.generateCases():
+            if isinstance(case, tuple):
+                test = cls(*case)
+            elif isinstance(case, dict):
+                test = cls(**case)
+            else:
+                test = cls(case)
+            tests.append(test)
+        return tests
 
     loadTests = classmethod(loadTests)
 
