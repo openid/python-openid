@@ -71,7 +71,7 @@ class OpenIDServiceEndpoint(object):
 
         @raises: openid.consumer.parse.ParseError
         """
-        delegate_url, server_url = parseOpenIDLinkRel(uri, doc)
+        delegate_url, server_url = parseOpenIDLinkRel(html)
         service = cls()
         service.identity_url = identity_url
         service.delegate = delegate_url
@@ -145,7 +145,7 @@ def discover(uri, fetcher):
         try:
             service = OpenIDServiceEndpoint.fromHTML(body, identity_url)
         except ParseError:
-            pass
+            pass # Parsing failed, so return an empty list
         else:
             openid_services = [service]
 

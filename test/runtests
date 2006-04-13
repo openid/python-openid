@@ -45,6 +45,7 @@ def otherTests():
     return failed
 
 def pyunitTests():
+    import test_htmldiscover
     import test_openidyadis
     import test_discover
     import unittest
@@ -68,6 +69,7 @@ def pyunitTests():
         trustroot,
         test_openidyadis,
         test_discover,
+        test_htmldiscover,
         kvform,
         ]
 
