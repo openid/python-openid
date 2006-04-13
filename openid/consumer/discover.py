@@ -1,7 +1,9 @@
-from yadis.etxrd import nsTag
+from yadis.etxrd import nsTag, XRDSError
+from yadis.services import applyFilter as extractServices
 from yadis.discover import discover as yadisDiscover
 from yadis.discover import DiscoveryFailure
 from openid.consumer.parse import openIDDiscover as parseOpenIDLinkRel
+from openid.consumer.parse import ParseError
 
 OPENID_1_0_NS = 'http://openid.net/xmlns/1.0'
 OPENID_1_2_TYPE = 'http://openid.net/signon/1.2'
@@ -73,7 +75,7 @@ class OpenIDServiceEndpoint(object):
         """
         delegate_url, server_url = parseOpenIDLinkRel(html)
         service = cls()
-        service.identity_url = identity_url
+        service.identity_url = uri
         service.delegate = delegate_url
         service.server_url = server_url
         service.type_uris = [OPENID_1_0_TYPE]
@@ -128,7 +130,7 @@ def discover(uri, fetcher):
         # if we got the Yadis content-type or followed the Yadis
         # header, re-fetch the document without following the Yadis
         # header, with no Accept header.
-        if resp.isXRDS():
+        if response.isXRDS():
             http_resp = fetcher.fetch(uri)
             if http_resp.status != 200:
                 raise DiscoveryFailure(
@@ -137,13 +139,13 @@ def discover(uri, fetcher):
             body = http_resp.body
             identity_url = http_resp.final_url
         else:
-            body = resp.response_text
-            identity_url = resp.normalized_uri
+            body = response.response_text
+            identity_url = response.normalized_uri
 
         # Try to parse the response as HTML to get OpenID 1.0/1.1
         # <link rel="...">
         try:
-            service = OpenIDServiceEndpoint.fromHTML(body, identity_url)
+            service = OpenIDServiceEndpoint.fromHTML(identity_url, body)
         except ParseError:
             pass # Parsing failed, so return an empty list
         else:
