@@ -8,6 +8,7 @@ robust examples, and integrating OpenID into your application.
 """
 __copyright__ = 'Copyright 2005, Janrain, Inc.'
 
+from Cookie import SimpleCookie
 import cgi
 import urlparse
 import cgitb
@@ -25,16 +26,22 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 # Python-OpenID.
 # sys.path.append('/path/to/openid/')
 
+from urljr.fetchers import _getHTTPFetcher
+from yadis.manager import YadisServiceManager
 from openid.store import filestore
+from openid.consumer.discover import discover
 from openid.consumer import consumer
-from openid.oidutil import appendArgs
+from openid.oidutil import appendArgs, normalizeUrl
+from openid.cryptutil import randomString
 
 class OpenIDHTTPServer(HTTPServer):
     """http server that contains a reference to an OpenID consumer and
     knows its base URL.
     """
-    def __init__(self, oidconsumer, *args, **kwargs):
+    def __init__(self, store, *args, **kwargs):
         HTTPServer.__init__(self, *args, **kwargs)
+        self.sessions = {}
+        self.store = store
 
         if self.server_port != 80:
             self.base_url = ('http://%s:%s/' %
@@ -42,10 +49,54 @@ class OpenIDHTTPServer(HTTPServer):
         else:
             self.base_url = 'http://%s/' % (self.server_name,)
 
-        self.openid_consumer = oidconsumer
-
 class OpenIDRequestHandler(BaseHTTPRequestHandler):
     """Request handler that knows how to verify an OpenID identity."""
+    SESSION_COOKIE_NAME = 'pyoidconsexsid'
+
+    session = None
+
+    def getConsumer(self):
+        store = self.server.store
+        session = self.getSession()
+        trust_root = self.server.base_url
+        return consumer.OpenIDConsumer(trust_root, store, session)
+
+    def getSession(self):
+        """Return the existing session or a new session"""
+        if self.session is not None:
+            return self.session
+
+        # Get value of cookie header that was sent
+        cookie_str = self.headers.get('Cookie')
+        if cookie_str:
+            cookie_obj = SimpleCookie(cookie_str)
+            sid_morsel = cookie_obj.get(self.SESSION_COOKIE_NAME, None)
+            if sid_morsel is not None:
+                sid = sid_morsel.value
+            else:
+                sid = None
+        else:
+            sid = None
+
+        # If a session id was not set, create a new one
+        if sid is None:
+            sid = randomString(16, '0123456789abcdef')
+            session = None
+        else:
+            session = self.server.sessions.get(sid)
+
+        # If no session exists for this session ID, create one
+        if session is None:
+            session = self.server.sessions[sid] = {}
+
+        session['id'] = sid
+        self.session = session
+        return session
+
+    def setSessionCookie(self):
+        sid = self.getSession()['id']
+        session_cookie = '%s=%s;' % (self.SESSION_COOKIE_NAME, sid)
+        self.send_header('Set-Cookie', session_cookie)
 
     def do_GET(self):
         """Dispatching logic. There are three paths defined:
@@ -82,8 +133,20 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         except:
             self.send_response(500)
             self.send_header('Content-type', 'text/html')
+            self.setSessionCookie()
             self.end_headers()
             self.wfile.write(cgitb.html(sys.exc_info(), context=10))
+
+    def getManager(self, openid_url):
+        openid_url = normalizeUrl(openid_url)
+        session = self.getSession()
+        manager = YadisServiceManager.getManager(session, openid_url)
+        if manager is None:
+            fetcher = _getHTTPFetcher()
+            services = discover(openid_url, fetcher)
+            manager = YadisServiceManager.create(session, openid_url, services)
+
+        return manager
 
     def doVerify(self):
         """Process the form submission, initating OpenID verification.
@@ -96,60 +159,30 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                         css_class='error', form_contents=openid_url)
             return
 
-        oidconsumer = self.server.openid_consumer
-
-        # Then, ask the library to begin the authorization.
-        # Here we find out the identity server that will verify the
-        # user's identity, and get a token that allows us to
-        # communicate securely with the identity server.
-        status, info = oidconsumer.beginAuth(openid_url)
-
-        # If the URL was unusable (either because of network
-        # conditions, a server error, or that the response returned
-        # was not an OpenID identity page), the library will return
-        # an error code. Let the user know that that URL is unusable.
-        if status in [consumer.HTTP_FAILURE, consumer.PARSE_ERROR]:
-            if status == consumer.HTTP_FAILURE:
-                fmt = 'Failed to retrieve <q>%s</q>'
-            else:
-                fmt = 'Could not find OpenID information in <q>%s</q>'
-
-            message = fmt % (cgi.escape(openid_url),)
-            self.render(message, css_class='error', form_contents=openid_url)
-        elif status == consumer.SUCCESS:
-            # The URL was a valid identity URL. Now we construct a URL
-            # that will get us to process the server response. We will
-            # need the token from the beginAuth call when processing
-            # the response. A cookie or a session object could be used
-            # to accomplish this, but for simplicity here we just add
-            # it as a query parameter of the return-to URL.
-            return_to = self.buildURL('process', token=info.token)
-
-            # Now ask the library for the URL to redirect the user to
-            # his OpenID server. It is required for security that the
-            # return_to URL must be under the specified trust_root. We
-            # just use the base_url for this server as a trust root.
-            redirect_url = oidconsumer.constructRedirect(
-                info, return_to, trust_root=self.server.base_url)
-
-            # Send the redirect response
-            self.redirect(redirect_url)
+        for service in self.getManager(openid_url):
+            # Then, ask the library to begin the authorization.
+            # Here we find out the identity server that will verify the
+            # user's identity, and get a token that allows us to
+            # communicate securely with the identity server.
+            oidconsumer = self.getConsumer()
+            return_to = self.buildURL('process')
+            info = oidconsumer.beginAuth(service, return_to)
+            self.redirect(info.redirect_url)
+            break
         else:
-            assert False, 'Not reached'
+            self.render('No more services left for this URL',
+                        css_class='error', form_contents=openid_url)
 
     def doProcess(self):
         """Handle the redirect from the OpenID server.
         """
-        oidconsumer = self.server.openid_consumer
-
-        # retrieve the token from the environment (in this case, the URL)
-        token = self.query.get('token', '')
+        oidconsumer = self.getConsumer()
 
         # Ask the library to check the response that the server sent
         # us.  Status is a code indicating the response type. info is
         # either None or a string containing more information about
         # the return type.
-        status, info = oidconsumer.completeAuth(token, self.query)
+        status, info = oidconsumer.completeAuth(self.query)
 
         css_class = 'error'
         openid_url = None
@@ -198,6 +231,7 @@ Content-type: text/plain
 
 Redirecting to %s""" % (redirect_url, redirect_url)
         self.send_response(302)
+        self.setSessionCookie()
         self.wfile.write(response)
 
     def notFound(self):
@@ -220,6 +254,7 @@ Redirecting to %s""" % (redirect_url, redirect_url)
 
     def pageHeader(self, title):
         """Render the page header"""
+        self.setSessionCookie()
         self.wfile.write('''\
 Content-type: text/html
 
@@ -286,10 +321,9 @@ def main(host, port, data_path):
     # were connecting to a database, you would create the database
     # connection and instantiate an appropriate store here.
     store = filestore.FileOpenIDStore(data_path)
-    oidconsumer = consumer.OpenIDConsumer(store)
 
     addr = (host, port)
-    server = OpenIDHTTPServer(oidconsumer, addr, OpenIDRequestHandler)
+    server = OpenIDHTTPServer(store, addr, OpenIDRequestHandler)
 
     print 'Server running at:'
     print server.base_url
