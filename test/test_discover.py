@@ -5,6 +5,8 @@ from urljr.fetchers import HTTPResponse
 from yadis.discover import DiscoveryFailure
 from openid.consumer import discover
 
+### Tests for conditions that trigger DiscoveryFailure
+
 class SimpleMockFetcher(object):
     def __init__(self, status, url):
         self.status = status
@@ -37,16 +39,26 @@ class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
         else:
             self.fail('Did not raise DiscoveryFailure')
 
+
+### Tests for raising/catching exceptions from the fetcher through the
+### discover function
+
 class ErrorRaisingFetcher(object):
+    """Just raise an exception when fetch is called"""
+
     def __init__(self, thing_to_raise):
         self.thing_to_raise = thing_to_raise
 
     def fetch(self, url, body=None, headers=None):
         raise self.thing_to_raise
 
-class DidFetch(Exception): pass
+class DidFetch(Exception):
+    """Custom exception just to make sure it's not handled differently"""
 
 class TestFetchException(datadriven.DataDrivenTestCase):
+    """Make sure exceptions get passed through discover function from
+    fetcher."""
+
     cases = [
         (Exception(),),
         (DidFetch(),),
@@ -60,8 +72,6 @@ class TestFetchException(datadriven.DataDrivenTestCase):
         self.exc = exc
 
     def runTest(self):
-        """Make sure exceptions get passed through discover function
-        from fetcher."""
         fetcher = ErrorRaisingFetcher(self.exc)
         try:
             discover.discover('http://doesnt.matter/', fetcher)
