@@ -1279,9 +1279,24 @@ class MalformedTrustRoot(ProtocolError):
 
 #class IEncodable: # Interface
 #     def encodeToURL(return_to):
+#         """Encode a response as a URL for redirection.
+#
+#         @returns: A URL to direct the user agent back to.
+#         @returntype: str
+#         """
 #         pass
 #
 #     def encodeToKvform():
+#         """Encode a response in key-value colon/newline format.
+#
+#         This is a machine-readable format used to respond to messages which
+#         came directly from the consumer and not through the user agent.
+#
+#         @see: OpenID Specs,
+#            U{Key-Value Colon/Newline format<http://openid.net/specs.bml#keyvalue>}
+#
+#         @returntype: str
+#         """
 #         pass
 #
 #     def whichEncoding():
