@@ -298,7 +298,48 @@ class AssociateRequest(OpenIDRequest):
                         query,
                         text="Public key for DH-SHA1 session "
                         "not found in query %s" % (query,))
-                # FIXME: Missing dh_modulus and dh_gen options.
+
+                try:
+                    # oidutil.fromBase64 eats the exception, which is less
+                    # than helpful.
+                    consumer_pubkey = binascii.a2b_base64(consumer_pubkey)
+                except binascii.Error, err:
+                    raise ProtocolError(
+                        query, "dh_consumer_public not base64 encoded: %s" % (err,))
+
+                try:
+                    consumer_pubkey = cryptutil.binaryToLong(consumer_pubkey)
+                except ValueError, err:
+                    # a bit tricky, because cryptutil.binaryToLong has different
+                    # implementations which tolerate slightly different values.
+                    raise ProtocolError(
+                        query, "error unpacking dh_consumer_public: %s" %
+                        (err,))
+
+                self.pubkey = consumer_pubkey
+
+                dh_modulus = query.get(OPENID_PREFIX + 'dh_modulus')
+                dh_gen = query.get(OPENID_PREFIX + 'dh_gen')
+                if dh_modulus or dh_gen:
+                    if not (dh_modulus and dh_gen):
+                        raise ProtocolError(
+                            query,
+                            "only one of dh_modulus and dh_gen was supplied; "
+                            "must supply both or none.")
+                    try:
+                        dh_modulus = cryptutil.binaryToLong(binascii.a2b_base64(dh_modulus))
+                        dh_gen = cryptutil.base64ToLong(dh_gen)
+                    except binascii.Error, err:
+                        # XXX: which one caused the error?
+                        raise ProtocolError(
+                            query,
+                            "dh parameter not base64 encoded: %s" % (err,))
+
+                self.dh = DiffieHellman(dh_modulus, dh_gen)
+
+            else:
+                raise ProtocolError("Unknown session type %r" %
+                                    (session_type,))
         return self
 
     fromQuery = classmethod(fromQuery)
@@ -321,12 +362,10 @@ class AssociateRequest(OpenIDRequest):
             'assoc_handle': assoc.handle,
             })
         if self.session_type == 'DH-SHA1':
-            # XXX - get dh_modulus and dh_gen
-            dh = DiffieHellman()
-            mac_key = dh.xorSecret(self.pubkey, assoc.secret)
+            mac_key = self.dh.xorSecret(self.pubkey, assoc.secret)
             response.fields.update({
                 'session_type': self.session_type,
-                'dh_server_public': cryptutil.longToBase64(dh.public),
+                'dh_server_public': cryptutil.longToBase64(self.dh.public),
                 'enc_mac_key': oidutil.toBase64(mac_key),
                 })
         elif self.session_type == 'plaintext':

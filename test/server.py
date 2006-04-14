@@ -766,10 +766,9 @@ class TestAssociate(unittest.TestCase):
 
     def test_dh(self):
         from openid.dh import DiffieHellman
-        dh = DiffieHellman()
+        consumer_dh = DiffieHellman()
 
-        self.request.session_type = 'DH-SHA1'
-        self.request.pubkey = dh.public
+        self.request = server.AssociateRequest('DH-SHA1', consumer_dh.public)
         response = self.request.answer(self.assoc)
         rfg = response.fields.get
         self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA1")
@@ -781,7 +780,7 @@ class TestAssociate(unittest.TestCase):
 
         enc_key = rfg("enc_mac_key").decode('base64')
         spub = cryptutil.base64ToLong(rfg("dh_server_public"))
-        secret = dh.xorSecret(spub, enc_key)
+        secret = consumer_dh.xorSecret(spub, enc_key)
         self.failUnlessEqual(secret, self.assoc.secret)
 
 
