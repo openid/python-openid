@@ -169,6 +169,9 @@ class CheckAuthRequest(OpenIDRequest):
                                 text="%s request missing required parameter %s"
                                 " from query %s" %
                                 (self.mode, e.args[0], query))
+
+        self.invalidate_handle = query.get(OPENID_PREFIX + 'invalidate_handle')
+
         signed_list = signed_list.split(',')
         signed_pairs = []
         for field in signed_list:

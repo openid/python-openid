@@ -202,9 +202,25 @@ class TestDecode(unittest.TestCase):
             ('bar', 'signedval2'),
             ('mode', 'id_res'),
             ])
-        # XXX: and invalidate_handle, which is optional
         # XXX: test error cases (missing required fields,
         # missing fields that are in the signed list).
+
+
+    def test_checkAuthAndInvalidate(self):
+        args = {
+            'openid.mode': 'check_authentication',
+            'openid.assoc_handle': '{dumb}{handle}',
+            'openid.invalidate_handle': '[[SMART_handle]]',
+            'openid.sig': 'sigblob',
+            'openid.signed': 'foo,bar,mode',
+            'openid.foo': 'signedval1',
+            'openid.bar': 'signedval2',
+            'openid.baz': 'unsigned',
+            }
+        r = self.decode(args)
+        self.failUnless(isinstance(r, server.CheckAuthRequest))
+        self.failUnlessEqual(r.invalidate_handle, '[[SMART_handle]]')
+
 
     def test_associateDH(self):
         args = {
