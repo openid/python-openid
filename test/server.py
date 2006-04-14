@@ -13,6 +13,11 @@ from urlparse import urlparse
 # of testing smaller units.  For testing the external interfaces, we'll be
 # developing an implementation-agnostic testing suite.
 
+# for more, see /etc/ssh/moduli
+
+ALT_MODULUS = 0xCAADDDEC1667FC68B5FA15D53C4E1532DD24561A1A2D47A12C01ABEA1E00731F6921AAC40742311FDF9E634BB7131BEE1AF240261554389A910425E044E88C8359B010F5AD2B80E29CB1A5B027B19D9E01A6F63A6F45E5D7ED2FF6A2A0085050A7D0CF307C3DB51D2490355907B4427C23A98DF1EB8ABEF2BA209BB7AFFE86A7
+ALT_GEN = 5
+
 class CatchLogs(object):
     def setUp(self):
         self.old_logger = oidutil.log
@@ -222,6 +227,81 @@ class TestDecode(unittest.TestCase):
             }
         # Using DH-SHA1 without supplying dh_consumer_public is an error.
         self.failUnlessRaises(server.ProtocolError, self.decode, args)
+
+
+    def test_associateDHpubKeyNotB64(self):
+        args = {
+            'openid.mode': 'associate',
+            'openid.session_type': 'DH-SHA1',
+            'openid.dh_consumer_public': "donkeydonkeydonkey",
+            }
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+
+
+    def test_associateDHModGen(self):
+        # test dh with non-default but valid values for dh_modulus and dh_gen
+        args = {
+            'openid.mode': 'associate',
+            'openid.session_type': 'DH-SHA1',
+            'openid.dh_consumer_public': "Rzup9265tw==",
+            'openid.dh_modulus': cryptutil.longToBase64(ALT_MODULUS),
+            'openid.dh_gen': cryptutil.longToBase64(ALT_GEN) ,
+            }
+        r = self.decode(args)
+        self.failUnless(isinstance(r, server.AssociateRequest))
+        self.failUnlessEqual(r.mode, "associate")
+        self.failUnlessEqual(r.session_type, "DH-SHA1")
+        self.failUnlessEqual(r.assoc_type, "HMAC-SHA1")
+        self.failUnlessEqual(r.dh.modulus, ALT_MODULUS)
+        self.failUnlessEqual(r.dh.generator, ALT_GEN)
+        self.failUnless(r.pubkey)
+
+
+    def test_associateDHCorruptModGen(self):
+        # test dh with non-default but valid values for dh_modulus and dh_gen
+        args = {
+            'openid.mode': 'associate',
+            'openid.session_type': 'DH-SHA1',
+            'openid.dh_consumer_public': "Rzup9265tw==",
+            'openid.dh_modulus': 'pizza',
+            'openid.dh_gen': 'gnocchi',
+            }
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+
+
+    def test_associateDHMissingModGen(self):
+        # test dh with non-default but valid values for dh_modulus and dh_gen
+        args = {
+            'openid.mode': 'associate',
+            'openid.session_type': 'DH-SHA1',
+            'openid.dh_consumer_public': "Rzup9265tw==",
+            'openid.dh_modulus': 'pizza',
+            }
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+
+
+#     def test_associateDHInvalidModGen(self):
+#         # test dh with properly encoded values that are not a valid
+#         #   modulus/generator combination.
+#         args = {
+#             'openid.mode': 'associate',
+#             'openid.session_type': 'DH-SHA1',
+#             'openid.dh_consumer_public': "Rzup9265tw==",
+#             'openid.dh_modulus': cryptutil.longToBase64(9),
+#             'openid.dh_gen': cryptutil.longToBase64(27) ,
+#             }        
+#         self.failUnlessRaises(server.ProtocolError, self.decode, args)
+#     test_associateDHInvalidModGen.todo = "low-priority feature"
+
+
+    def test_associateWeirdSession(self):
+        args = {
+            'openid.mode': 'associate',
+            'openid.session_type': 'FLCL6',
+            'openid.dh_consumer_public': "YQ==\n",
+            }
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+
 
     def test_associatePlain(self):
         args = {

@@ -80,6 +80,7 @@ Stores
 @group Response Encodings: ENCODE_KVFORM, ENCODE_URL
 """
 
+import binascii
 import time
 from copy import deepcopy
 
@@ -271,6 +272,7 @@ class AssociateRequest(OpenIDRequest):
         self.session_type = session_type
         if session_type == 'DH-SHA1':
             self.pubkey = pubkey
+            self.dh = DiffieHellman()
         elif pubkey:
             raise ValueError("pubkey (%r) not applicable for this session "
                              "type (%r)." % (pubkey, session_type))
@@ -290,25 +292,17 @@ class AssociateRequest(OpenIDRequest):
         if session_type:
             self.session_type = session_type
             if session_type == 'DH-SHA1':
-                try:
-                    self.pubkey = cryptutil.base64ToLong(
-                        query[OPENID_PREFIX + 'dh_consumer_public'])
-                except KeyError, e:
+                consumer_pubkey = query.get(OPENID_PREFIX +'dh_consumer_public')
+                if consumer_pubkey is None:
                     raise ProtocolError(
                         query,
                         text="Public key for DH-SHA1 session "
                         "not found in query %s" % (query,))
-
-                try:
-                    self.dh = DiffieHellman.fromBase64(
-                        query.get('openid.dh_modulus'),
-                        query.get('openid.dh_gen'))
-                except ValueError, e:
-                    raise ProtocolError(query, text=e[0])
-
+                # FIXME: Missing dh_modulus and dh_gen options.
         return self
 
     fromQuery = classmethod(fromQuery)
+
 
     def answer(self, assoc):
         """Respond to this request with an X{association}.
@@ -327,10 +321,12 @@ class AssociateRequest(OpenIDRequest):
             'assoc_handle': assoc.handle,
             })
         if self.session_type == 'DH-SHA1':
-            mac_key = self.dh.xorSecret(self.pubkey, assoc.secret)
+            # XXX - get dh_modulus and dh_gen
+            dh = DiffieHellman()
+            mac_key = dh.xorSecret(self.pubkey, assoc.secret)
             response.fields.update({
                 'session_type': self.session_type,
-                'dh_server_public': cryptutil.longToBase64(self.dh.public),
+                'dh_server_public': cryptutil.longToBase64(dh.public),
                 'enc_mac_key': oidutil.toBase64(mac_key),
                 })
         elif self.session_type == 'plaintext':
