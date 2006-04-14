@@ -125,7 +125,9 @@ USING THIS LIBRARY
     is entered in that field and the form is submitted, it should make
     a request to the your site which includes that OpenID URL.
 
-    XXX: Something about discovery
+    When the application receives an OpenID URL, it needs to determine
+    the OpenID server which is authoritative for that URL.  It gets an
+    XXX object containing that information by doing XXX.
 
     Now that you have the C{L{OpenIDAuthRequest}} object, you need to
     preserve the value in its C{L{token<OpenIDAuthRequest.token>}}
