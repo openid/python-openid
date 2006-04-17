@@ -1,3 +1,4 @@
+from urljr import fetchers
 from yadis.etxrd import nsTag, XRDSError
 from yadis.services import applyFilter as extractServices
 from yadis.discover import discover as yadisDiscover
@@ -99,7 +100,7 @@ def findDelegate(service_element):
 
     return delegate
 
-def discover(uri, fetcher):
+def discover(uri):
     """Discover OpenID services for a URI. Tries Yadis and falls back
     on old-style <link rel='...'> discovery if Yadis fails.
 
@@ -115,7 +116,7 @@ def discover(uri, fetcher):
     # came back for that URI at all.  I don't think falling back
     # to OpenID 1.0 discovery on the same URL will help, so don't bother
     # to catch it.
-    response = yadisDiscover(fetcher, uri)
+    response = yadisDiscover(uri)
 
     identity_url = response.normalized_uri
     try:
@@ -133,7 +134,7 @@ def discover(uri, fetcher):
         # header, re-fetch the document without following the Yadis
         # header, with no Accept header.
         if response.isXRDS():
-            http_resp = fetcher.fetch(uri)
+            http_resp = fetchers.fetch(uri)
             if http_resp.status != 200:
                 raise DiscoveryFailure(
                     'HTTP Response status from identity URL host is not 200. '

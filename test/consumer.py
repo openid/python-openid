@@ -12,6 +12,7 @@ from openid import association
 from openid.consumer import parse
 
 from urljr.fetchers import HTTPResponse
+from urljr import fetchers
 
 from yadis.discover import DiscoveryFailure
 
@@ -108,12 +109,13 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     endpoint.delegate = delegate_url
 
     fetcher = TestFetcher(None, None, assocs[0])
+    fetchers.setDefaultFetcher(fetcher, wrap_exceptions=False)
 
     def run():
         trust_root = consumer_url
         session = {}
 
-        consumer = OpenIDConsumer(trust_root, store, session, fetcher)
+        consumer = OpenIDConsumer(trust_root, store, session)
         return_to = consumer_url
         info = consumer.beginAuth(endpoint, return_to, immediate)
 
@@ -206,29 +208,18 @@ class TestSuccessHTTPS(TestSuccess):
 class TestConstruct(unittest.TestCase):
     def setUp(self):
         self.store_sentinel = object()
-        self.fetcher_sentinel = object()
         self.session_sentinel = object()
         self.trust_root = "http://construct.unittest/"
 
     def test_construct(self):
         oidc = OpenIDConsumer(self.trust_root, self.store_sentinel,
-                              self.session_sentinel, self.fetcher_sentinel)
+                              self.session_sentinel)
         self.failUnless(oidc.store is self.store_sentinel)
         self.failUnless(oidc.session is self.session_sentinel)
-        self.failUnless(oidc.fetcher is self.fetcher_sentinel)
         self.failUnlessEqual(oidc.trust_root, self.trust_root)
 
-    def test_defaultFetcher(self):
-        oidc = OpenIDConsumer(self.trust_root, self.store_sentinel,
-                              self.session_sentinel, fetcher=None)
-        f = oidc.fetcher
-        self.failUnless(hasattr(f, 'fetch'), "oidc.fetcher is %r, which "
-                        "does not match the fetcher interface." % (f,))
-
     def test_nostore(self):
-        self.failUnlessRaises(TypeError,
-                              OpenIDConsumer, self.trust_root,
-                              fetcher=self.fetcher_sentinel)
+        self.failUnlessRaises(TypeError, OpenIDConsumer, self.trust_root)
 
 
 class TestIdRes(unittest.TestCase):
@@ -396,8 +387,9 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
         self.trust_root = "http://ca.unittest/"
 
         self.consumer = self.consumer_class(self.trust_root,
-                                            self.store, self.session,
-                                            self.fetcher)
+                                            self.store, self.session)
+
+        fetchers.setDefaultFetcher(self.fetcher)
 
     def test_error(self):
         self.fetcher.response = HTTPResponse(
@@ -415,10 +407,10 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         CatchLogs.setUp(self)
         self.store = _memstore.MemoryStore()
         self.fetcher = MockFetcher()
+        fetchers.setDefaultFetcher(self.fetcher)
         self.session = {}
         self.consumer = self.consumer_class("http://trust.root.unittest/",
-                                            self.store, self.session,
-                                            self.fetcher)
+                                            self.store, self.session)
 
     def test_error(self):
         self.fetcher.response = HTTPResponse(

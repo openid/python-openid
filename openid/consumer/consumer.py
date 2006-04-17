@@ -227,20 +227,18 @@ import time
 import urllib
 from urlparse import urlparse
 
+from urljr import fetchers
+
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
 from openid.association import Association
 from openid.dh import DiffieHellman
 from openid.consumer.parse import openIDDiscover, ParseError
-from urljr.fetchers import _getHTTPFetcher
 
 from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_1_0_TYPE
 
-from yadis.services import applyFilter as extractServices
-from yadis.discover import discover as yadisDiscover
 from yadis.discover import DiscoveryFailure
-from yadis.etxrd import XRDSError
 
 __all__ = ['SUCCESS', 'FAILURE', 'SETUP_NEEDED', 'HTTP_FAILURE', 'PARSE_ERROR',
            'OpenIDAuthRequest', 'OpenIDConsumer']
@@ -294,7 +292,7 @@ class OpenIDConsumer(object):
     _last_uri = 'last_uri'
     _token = 'last_token'
 
-    def __init__(self, trust_root, store, session, fetcher=None):
+    def __init__(self, trust_root, store, session):
         """
         This method initializes a new C{L{OpenIDConsumer}} instance to
         access the library.
@@ -333,25 +331,10 @@ class OpenIDConsumer(object):
 
 
         @param session: FIXME - to be documented
-
-        @param fetcher: This is an optional instance of
-            C{L{urljr.fetchers.HTTPFetcher}}.  If
-            present, the provided fetcher is used by the library to
-            fetch user's identity pages and make direct requests to
-            the identity server.  If it is not present, a default
-            fetcher is used.  The default fetcher uses curl if the
-            pycurl bindings are available, and uses urllib if not.
-
-        @type fetcher: C{L{urljr.fetchers.HTTPFetcher}}
         """
         self.trust_root = trust_root
         self.store = store
         self.session = session
-
-        if fetcher is None:
-            self.fetcher = _getHTTPFetcher()
-        else:
-            self.fetcher = fetcher
 
     def beginAuth(self, service_endpoint, return_to, immediate=False):
         """
@@ -695,7 +678,7 @@ class OpenIDConsumer(object):
         check_args['openid.mode'] = 'check_authentication'
         post_data = urllib.urlencode(check_args)
 
-        resp = self.fetcher.fetch(server_url, body=post_data)
+        resp = fetchers.fetch(server_url, body=post_data)
         if resp is None:
             oidutil.log('HTTP failure making check_auth post to server')
             return FAILURE
@@ -781,7 +764,7 @@ class OpenIDConsumer(object):
 
     def _findIdentityInfo(self, identity_url):
         url = oidutil.normalizeUrl(identity_url)
-        resp = self.fetcher.fetch(url)
+        resp = fetchers.fetch(url)
         if resp is None:
             return HTTP_FAILURE, None
 
@@ -830,7 +813,7 @@ class OpenIDConsumer(object):
         return urllib.urlencode(args)
 
     def _fetchAssociation(self, server_url, body, dh=None):
-        resp = self.fetcher.fetch(server_url, body=body)
+        resp = fetchers.fetch(server_url, body=body)
         if resp is None:
             fmt = 'Getting association: failed to fetch URL: %s'
             oidutil.log(fmt % server_url)
@@ -954,25 +937,3 @@ class OpenIDAuthRequest(object):
 
     def __ne__(self, other):
         return not (self == other)
-
-
-def discoveryVersion1FromString(uri, doc):
-    # XXX - parse.openIDDiscover probably doesn't need to take the URI
-    # or return it.
-    delegate_url, server_url = openIDDiscover(doc)
-    service = OpenIDServiceEndpoint()
-    service.identity_url = uri
-    service.delegate = delegate_url
-    service.server_url = server_url
-    service.type_uris = [OPENID_1_0_TYPE]
-    service.extensions = []
-    return service
-
-def discoveryVersion1(uri, fetcher):
-    resp = fetcher.fetch(uri)
-    if resp.status != 200:
-        raise DiscoveryFailure(
-            'HTTP Response status from identity URL host is not 200. '
-            'Got status %r' % (resp.status,), resp)
-
-    return discoveryVersion1FromString(resp.final_url, resp.body)

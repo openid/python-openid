@@ -1,6 +1,7 @@
 import sys
 import unittest
 import datadriven
+from urljr import fetchers
 from urljr.fetchers import HTTPResponse
 from yadis.discover import DiscoveryFailure
 from openid.consumer import discover
@@ -33,11 +34,17 @@ class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
         datadriven.DataDrivenTestCase.__init__(self, self.url)
         self.responses = responses
 
-    def runTest(self):
+    def setUp(self):
         fetcher = SimpleMockFetcher(self.responses)
+        fetchers.setDefaultFetcher(fetcher)
+
+    def tearDown(self):
+        fetchers.setDefaultFetcher(None)
+
+    def runTest(self):
         expected_status = self.responses[-1].status
         try:
-            discover.discover(self.url, fetcher)
+            discover.discover(self.url)
         except DiscoveryFailure, why:
             self.failUnlessEqual(why.http_response.status, expected_status)
         else:
@@ -75,10 +82,16 @@ class TestFetchException(datadriven.DataDrivenTestCase):
         datadriven.DataDrivenTestCase.__init__(self, repr(exc))
         self.exc = exc
 
-    def runTest(self):
+    def setUp(self):
         fetcher = ErrorRaisingFetcher(self.exc)
+        fetchers.setDefaultFetcher(fetcher, wrap_exceptions=False)
+
+    def tearDown(self):
+        fetchers.setDefaultFetcher(None)
+
+    def runTest(self):
         try:
-            discover.discover('http://doesnt.matter/', fetcher)
+            discover.discover('http://doesnt.matter/')
         except:
             exc = sys.exc_info()[1]
             if exc is None:
@@ -128,6 +141,10 @@ class BaseTestDiscovery(unittest.TestCase):
     def setUp(self):
         self.documents = self.documents.copy()
         self.fetcher = DiscoveryMockFetcher(self.documents)
+        fetchers.setDefaultFetcher(self.fetcher)
+
+    def tearDown(self):
+        fetchers.setDefaultFetcher(None)
 
 yadis_2entries = '''<?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
@@ -235,12 +252,11 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_404(self):
         self.failUnlessRaises(DiscoveryFailure,
-                              discover.discover, self.id_url + '/404',
-                              self.fetcher)
+                              discover.discover, self.id_url + '/404')
 
     def test_noYadis(self):
         self.documents[self.id_url] = ('text/html', openid_html)
-        id_url, services = discover.discover(self.id_url, self.fetcher)
+        id_url, services = discover.discover(self.id_url)
         self.failUnlessEqual(self.id_url, id_url)
         self.failUnlessEqual(len(services), 1,
                              "More than one service in %r" % (services,))
@@ -255,7 +271,7 @@ class TestDiscovery(BaseTestDiscovery):
         self.fetcher.documents = {
             self.id_url: ('text/plain', "junk"),
         }
-        id_url, services = discover.discover(self.id_url, self.fetcher)
+        id_url, services = discover.discover(self.id_url)
         self.failUnlessEqual(self.id_url, id_url)
         self.failIf(len(services))
 
@@ -264,7 +280,7 @@ class TestDiscovery(BaseTestDiscovery):
             BaseTestDiscovery.id_url: ('application/xrds+xml', yadis_2entries),
         }
 
-        id_url, services = discover.discover(self.id_url, self.fetcher)
+        id_url, services = discover.discover(self.id_url)
         self.failUnlessEqual(self.id_url, id_url)
         self.failUnlessEqual(len(services), 2,
                              "Not 2 services in %r" % (services,))
@@ -282,7 +298,7 @@ class TestDiscovery(BaseTestDiscovery):
         self.fetcher.documents = {
             self.id_url: ('text/html', openid_html),
         }
-        id_url, services = discover.discover(self.id_url, self.fetcher)
+        id_url, services = discover.discover(self.id_url)
         self.failUnlessEqual(expected_final_url, id_url)
         self.failUnlessEqual(len(services), 1,
                              "More than one service in %r" % (services,))
@@ -297,7 +313,7 @@ class TestDiscovery(BaseTestDiscovery):
         self.fetcher.documents = {
             self.id_url: ('application/xrds+xml', yadis_0entries),
         }
-        id_url, services = discover.discover(self.id_url, self.fetcher)
+        id_url, services = discover.discover(self.id_url)
         self.failUnlessEqual(self.id_url, id_url)
         self.failIf(services)
 
@@ -306,7 +322,7 @@ class TestDiscovery(BaseTestDiscovery):
             self.id_url: ('text/html', openid_and_yadis_html),
             self.id_url + 'xrds': ('application/xrds+xml', yadis_0entries),
         }
-        id_url, services = discover.discover(self.id_url, self.fetcher)
+        id_url, services = discover.discover(self.id_url)
         self.failUnlessEqual(self.id_url, id_url)
         self.failUnlessEqual(len(services), 1,
                              "Not one service in %r" % (services,))
@@ -319,7 +335,7 @@ class TestDiscovery(BaseTestDiscovery):
         self.fetcher.documents = {
             self.id_url: ('application/xrds+xml', yadis_no_delegate),
         }
-        id_url, services = discover.discover(self.id_url, self.fetcher)
+        id_url, services = discover.discover(self.id_url)
         self.failUnlessEqual(self.id_url, id_url)
         self.failUnlessEqual(len(services), 1,
                              "Not 1 service in %r" % (services,))
@@ -334,7 +350,7 @@ class TestDiscovery(BaseTestDiscovery):
         self.fetcher.documents = {
             self.id_url: ('text/html', openid_html_no_delegate),
         }
-        id_url, services = discover.discover(self.id_url, self.fetcher)
+        id_url, services = discover.discover(self.id_url)
         self.failUnlessEqual(self.id_url, id_url)
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
