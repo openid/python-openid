@@ -234,11 +234,6 @@ from openid import kvform
 from openid import oidutil
 from openid.association import Association
 from openid.dh import DiffieHellman
-from openid.consumer.parse import openIDDiscover, ParseError
-
-from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_1_0_TYPE
-
-from yadis.discover import DiscoveryFailure
 
 __all__ = ['SUCCESS', 'FAILURE', 'SETUP_NEEDED', 'HTTP_FAILURE', 'PARSE_ERROR',
            'OpenIDAuthRequest', 'OpenIDConsumer']
