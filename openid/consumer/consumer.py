@@ -576,6 +576,28 @@ class OpenIDConsumer(object):
         else:
             return FAILURE, None
 
+    def _makeKVPost(self, args, server_url):
+        mode = args['openid.mode']
+        body = urllib.urlencode(args)
+
+        resp = fetchers.fetch(server_url, body=body)
+        if resp is None:
+            fmt = 'openid.mode=%s: failed to fetch URL: %s'
+            oidutil.log(fmt % (mode, server_url))
+            return None
+
+        response = kvform.kvToDict(resp.body)
+        if resp.status == 400:
+            server_error = results.get('error', '<no message from server>')
+            fmt = 'openid.mode=%s: error returned from server %s: %s'
+            oidutil.log(fmt % (mode, server_url, server_error))
+            return None
+        elif resp.status != 200:
+            fmt = 'openid.mode=%s: bad status code from server %s: %s'
+            oidutil.log(fmt % (mode, server_url, resp.status))
+            return None
+
+        return response
 
     def _constructRedirect(self, assoc, auth_req, return_to, trust_root,
                            immediate=False):
@@ -671,19 +693,8 @@ class OpenIDConsumer(object):
         check_args = dict(filter(arg_filter, query.iteritems()))
 
         check_args['openid.mode'] = 'check_authentication'
-        post_data = urllib.urlencode(check_args)
-
-        resp = fetchers.fetch(server_url, body=post_data)
-        if resp is None:
-            oidutil.log('HTTP failure making check_auth post to server')
-            return FAILURE
-
-        results = kvform.kvToDict(resp.body)
-
-        if resp.status == 400 or 'error' in results:
-            server_error = results.get('error', '<no message from server>')
-            fmt = 'check_authentication: error returned from server %s: %s'
-            oidutil.log(fmt % (server_url, server_error))
+        response = self._makeKVPost(check_args, server_url)
+        if response is None:
             return FAILURE
 
         is_valid = results.get('is_valid', 'false')
@@ -712,12 +723,13 @@ class OpenIDConsumer(object):
                (replace and assoc.expiresIn < self.TOKEN_LIFETIME):
             proto = urlparse(server_url)[0]
             if proto == 'https':
-                body = self._createAssociateRequest()
-                assoc = self._fetchAssociation(server_url, body)
+                dh = None
             else:
                 dh = DiffieHellman()
-                body = self._createAssociateRequest(dh=dh)
-                assoc = self._fetchAssociation(server_url, body, dh=dh)
+
+            args = self._createAssociateRequest(dh)
+            response = self._makeKVPost(args, server_url)
+            assoc = self._parseAssociation(response, dh, server_url)
 
         return assoc
 
@@ -781,27 +793,7 @@ class OpenIDConsumer(object):
                     'openid.dh_gen': cryptutil.longToBase64(dh.generator),
                     })
 
-        return urllib.urlencode(args)
-
-    def _fetchAssociation(self, server_url, body, dh=None):
-        resp = fetchers.fetch(server_url, body=body)
-        if resp is None:
-            fmt = 'Getting association: failed to fetch URL: %s'
-            oidutil.log(fmt % server_url)
-            return None
-
-        results = kvform.kvToDict(resp.body)
-        if resp.status == 400:
-            server_error = results.get('error', '<no message from server>')
-            fmt = 'Getting association: error returned from server %s: %s'
-            oidutil.log(fmt % (server_url, server_error))
-            return None
-        elif resp.status != 200:
-            fmt = 'Getting association: bad status code from server %s: %s'
-            oidutil.log(fmt % (server_url, resp.status))
-            return None
-
-        return self._parseAssociation(results, dh, server_url)
+        return args
 
     def _parseAssociation(self, results, dh, server_url):
         try:

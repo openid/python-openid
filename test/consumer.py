@@ -415,8 +415,8 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
     def test_error(self):
         self.fetcher.response = HTTPResponse(
             "http://some_url", 404, {'Hea': 'der'}, 'blah:blah\n')
-        r = self.consumer._fetchAssociation("dh",
-                                            "http://server_url", "postbody")
+        r = self.consumer._makeKVPost({'openid.mode':'associate'},
+                                      "http://server_url")
         self.failUnlessEqual(r, None)
         self.failUnless(self.messages)
 
