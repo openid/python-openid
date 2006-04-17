@@ -79,7 +79,6 @@ class OpenIDServiceEndpoint(object):
         service.delegate = delegate_url
         service.server_url = server_url
         service.type_uris = [OPENID_1_0_TYPE]
-        service.extensions = []
         return service
 
     fromHTML = classmethod(fromHTML)
