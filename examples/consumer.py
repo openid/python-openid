@@ -158,8 +158,9 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                         form_contents=openid_url)
         else:
             if service is None:
-                self.render('No more services left for this URL',
-                            css_class='error', form_contents=openid_url)
+                msg = 'No OpenID services found for <code>%s</code>' % (
+                    cgi.escape(openid_url),)
+                self.render(msg, css_class='error', form_contents=openid_url)
             else:
                 # Then, ask the library to begin the authorization.
                 # Here we find out the identity server that will verify the
