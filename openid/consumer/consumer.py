@@ -561,10 +561,10 @@ class OpenIDConsumer(object):
             if token:
                 self._splitToken(token)
                 fields = self._splitToken(token)
-                self._unVisit(fields[3], fields[2])
+                # XXX: would return cancel for the identity url
             else:
                 oidutil.log("Failed to retrieve token from session.")
-                self._resetVisitedList()
+
             return SUCCESS, None
         elif mode == 'error':
             error = query.get('openid.error')
@@ -761,30 +761,6 @@ class OpenIDConsumer(object):
             return None
 
         return tuple(split[1:])
-
-    def _findIdentityInfo(self, identity_url):
-        url = oidutil.normalizeUrl(identity_url)
-        resp = fetchers.fetch(url)
-        if resp is None:
-            return HTTP_FAILURE, None
-
-        if resp.status != 200:
-            return HTTP_FAILURE, resp.status
-
-        # This method is split in two this way to allow for
-        # asynchronous implementations of _findIdentityInfo.
-        return self._parseIdentityInfo(resp.body, resp.final_url)
-
-    def _parseIdentityInfo(self, data, consumer_id):
-        """Extract the identity server address from the user's HTML.
-
-        @param data: The HTML fetched from the Identity URL.
-        @type data: string
-        """
-        try:
-            return SUCCESS, openIDDiscover(consumer_id, data)
-        except ParseError:
-            return PARSE_ERROR, None
 
     def _createAssociateRequest(self, dh=None, args=None):
         if args is None:
