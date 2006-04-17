@@ -57,10 +57,8 @@ def quoteMinimal(s):
     return str(''.join(res))
 
 def normalizeUrl(url):
-    if url is None:
+    if not isinstance(url, basestring):
         return None
-
-    assert isinstance(url, (str, unicode)), type(url)
 
     url = url.strip()
     parsed = urlparse.urlparse(url)
