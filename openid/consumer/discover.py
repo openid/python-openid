@@ -2,8 +2,10 @@ from yadis.etxrd import nsTag, XRDSError
 from yadis.services import applyFilter as extractServices
 from yadis.discover import discover as yadisDiscover
 from yadis.discover import DiscoveryFailure
+from yadis.manager import YadisServiceManager
 from openid.consumer.parse import openIDDiscover as parseOpenIDLinkRel
 from openid.consumer.parse import ParseError
+from openid.oidutil import normalizeUrl
 
 OPENID_1_0_NS = 'http://openid.net/xmlns/1.0'
 OPENID_1_2_TYPE = 'http://openid.net/signon/1.2'
@@ -104,8 +106,8 @@ def discover(uri, fetcher):
     @param uri: normalized identity URL
     @type uri: str
 
-    @returns: services
-    @returntype: list(OpenIDServiceEndpoint)
+    @return: (identity_url, services)
+    @rtype: (str, list(OpenIDServiceEndpoint))
 
     @raises: DiscoveryFailure
     """
@@ -115,6 +117,7 @@ def discover(uri, fetcher):
     # to catch it.
     response = yadisDiscover(fetcher, uri)
 
+    identity_url = response.normalized_uri
     try:
         openid_services = extractServices(
             response.normalized_uri, response.response_text,
@@ -139,7 +142,6 @@ def discover(uri, fetcher):
             identity_url = http_resp.final_url
         else:
             body = response.response_text
-            identity_url = response.normalized_uri
 
         # Try to parse the response as HTML to get OpenID 1.0/1.1
         # <link rel="...">
@@ -150,4 +152,4 @@ def discover(uri, fetcher):
         else:
             openid_services = [service]
 
-    return openid_services
+    return (identity_url, openid_services)
