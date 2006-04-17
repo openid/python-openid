@@ -61,10 +61,6 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         trust_root = self.server.base_url
         return consumer.OpenIDConsumer(trust_root, store, session)
 
-    def getDiscovery(self, url):
-        session = self.getSession()
-        return Discovery(session, url)
-
     def getSession(self):
         """Return the existing session or a new session"""
         if self.session is not None:
@@ -152,8 +148,9 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                         css_class='error', form_contents=openid_url)
             return
 
+        discovery = Discovery(self.getSession(), openid_url)
         try:
-            service = self.getDiscovery(openid_url).getNextService(discover)
+            service = discovery.getNextService(discover)
         except HTTPFetchingError, exc:
             fetch_error_string = 'Error retrieving identity URL: %s' % (
                 cgi.escape(str(exc.why)))
@@ -216,7 +213,8 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             message = 'Verification failed.'
 
         if openid_url is not None:
-            self.getDiscovery(openid_url).finish()
+            discovery = Discovery(self.getSession(), openid_url)
+            discovery.finish()
 
         self.render(message, css_class, openid_url)
 
