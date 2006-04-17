@@ -26,13 +26,13 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 # Python-OpenID.
 # sys.path.append('/path/to/openid/')
 
-from urljr.fetchers import _getHTTPFetcher
-from yadis.manager import YadisServiceManager
+from yadis.manager import Discovery
 from openid.store import filestore
 from openid.consumer.discover import discover
 from openid.consumer import consumer
 from openid.oidutil import appendArgs, normalizeUrl
 from openid.cryptutil import randomString
+from urljr.fetchers import HTTPFetchingError
 
 class OpenIDHTTPServer(HTTPServer):
     """http server that contains a reference to an OpenID consumer and
@@ -60,6 +60,10 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         session = self.getSession()
         trust_root = self.server.base_url
         return consumer.OpenIDConsumer(trust_root, store, session)
+
+    def getDiscovery(self, url):
+        session = self.getSession()
+        return Discovery(session, url)
 
     def getSession(self):
         """Return the existing session or a new session"""
@@ -137,41 +141,37 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(cgitb.html(sys.exc_info(), context=10))
 
-    def getManager(self, openid_url):
-        openid_url = normalizeUrl(openid_url)
-        session = self.getSession()
-        manager = YadisServiceManager.getManager(session, openid_url)
-        if manager is None:
-            fetcher = _getHTTPFetcher()
-            services = discover(openid_url, fetcher)
-            manager = YadisServiceManager.create(session, openid_url, services)
-
-        return manager
-
     def doVerify(self):
         """Process the form submission, initating OpenID verification.
         """
 
         # First, make sure that the user entered something
-        openid_url = self.query.get('openid_url')
+        openid_url = normalizeUrl(self.query.get('openid_url'))
         if not openid_url:
             self.render('Enter an identity URL to verify.',
                         css_class='error', form_contents=openid_url)
             return
 
-        for service in self.getManager(openid_url):
-            # Then, ask the library to begin the authorization.
-            # Here we find out the identity server that will verify the
-            # user's identity, and get a token that allows us to
-            # communicate securely with the identity server.
-            oidconsumer = self.getConsumer()
-            return_to = self.buildURL('process')
-            info = oidconsumer.beginAuth(service, return_to)
-            self.redirect(info.redirect_url)
-            break
+        try:
+            service = self.getDiscovery(openid_url).getNextService(discover)
+        except HTTPFetchingError, exc:
+            fetch_error_string = 'Error retrieving identity URL: %s' % (
+                cgi.escape(str(exc.why)))
+            self.render(fetch_error_string, css_class='error',
+                        form_contents=openid_url)
         else:
-            self.render('No more services left for this URL',
-                        css_class='error', form_contents=openid_url)
+            if service is None:
+                self.render('No more services left for this URL',
+                            css_class='error', form_contents=openid_url)
+            else:
+                # Then, ask the library to begin the authorization.
+                # Here we find out the identity server that will verify the
+                # user's identity, and get a token that allows us to
+                # communicate securely with the identity server.
+                oidconsumer = self.getConsumer()
+                return_to = self.buildURL('process')
+                info = oidconsumer.beginAuth(service, return_to)
+                self.redirect(info.redirect_url)
 
     def doProcess(self):
         """Handle the redirect from the OpenID server.
@@ -214,6 +214,9 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # failure message. The library should supply debug
             # information in a log.
             message = 'Verification failed.'
+
+        if openid_url is not None:
+            self.getDiscovery(openid_url).finish()
 
         self.render(message, css_class, openid_url)
 
