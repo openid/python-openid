@@ -43,6 +43,10 @@ class DiffieHellman(object):
         self.private = private
         self.public = pow(self.generator, self.private, self.modulus)
 
+    def usingDefaultValues(self):
+        return (self.modulus == self.DEFAULT_MOD and
+                self.generator == self.DEFAULT_GEN)
+
     def getSharedSecret(self, composite):
         return pow(composite, self.private, self.modulus)
 
