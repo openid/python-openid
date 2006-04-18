@@ -287,7 +287,7 @@ class OpenIDConsumer(object):
     _last_uri = 'last_uri'
     _token = 'last_token'
 
-    def __init__(self, trust_root, store, session):
+    def __init__(self, store, session):
         """
         This method initializes a new C{L{OpenIDConsumer}} instance to
         access the library.
@@ -327,167 +327,25 @@ class OpenIDConsumer(object):
 
         @param session: FIXME - to be documented
         """
-        self.trust_root = trust_root
         self.store = store
         self.session = session
 
-    def beginAuth(self, service_endpoint, return_to, immediate=False):
-        """
-        XXX: docs need to be updated
-
-        This method is called to start the OpenID login process.
-
-        First, the user's claimed identity page is fetched, to
-        determine their identity server.  If the page cannot be
-        fetched or if the page does not have the necessary link tags
-        in it, this method returns one of C{L{HTTP_FAILURE}} or
-        C{L{PARSE_ERROR}}, depending on where the process failed.
-
-        Second, unless the store provided is a dumb store, it checks
-        to see if it has an association with that identity server, and
-        creates and stores one if not.
-
-        Third, it generates a signed token for this authentication
-        transaction, which contains a timestamp, a nonce, and the
-        information needed in L{step 4<openid.consumer.consumer>} in
-        the module overview.  The token is used by the library to make
-        handling the various pieces of information needed in L{step
-        4<openid.consumer.consumer>} easy and secure.
-
-        The token generated must be preserved until L{step
-        4<openid.consumer.consumer>}, which is after the redirect to
-        the OpenID server takes place.  This means that the token must
-        be preserved across http requests.  There are three basic
-        approaches that might be used for storing the token.  First,
-        the token could be put in the return_to URL passed into the
-        C{L{constructRedirect}} method.  Second, the token could be
-        stored in a cookie.  Third, in an environment that supports
-        user sessions, the session is a good spot to store the token.
-
-        @param user_url: This is the url the user entered as their
-            OpenID.  This call takes care of normalizing it and
-            resolving any redirects the server might issue.  If the
-            value passed in is a C{unicode} object, this performs a
-            minimal translation on it to make it a valid URL.
-
-        @type user_url: C{basestring}, the parent class of C{str} and
-            C{unicode}.
-
-
-        @param return_to: This is the URL that will be included in the
-            generated redirect as the URL the OpenID server will send
-            its response to.  The URL passed in must handle OpenID
-            authentication responses.
-
-        @type return_to: C{str}
-
-
-        @param immediate: This is an optional boolean value.  It
-            controls whether the library uses immediate mode, as
-            explained in the module description.  The default value is
-            False, which disables immediate mode.
-
-        @type immediate: C{bool}
-
-        @return: This method returns a status code and additional
-            information about the code.
-
-            If there was a problem fetching the identity page the user
-            gave, the status code is set to C{L{HTTP_FAILURE}}, and
-            the additional information value is either set to C{None}
-            if the HTTP transaction failed or the HTTP return code,
-            which will be in the 400-500 range. This additional
-            information value may change in a future release.
-
-            If the identity page fetched successfully, but didn't
-            include the correct link tags, the status code is set to
-            C{L{PARSE_ERROR}}, and the additional information value is
-            currently set to C{None}.  The additional information
-            value may change in a future release.
-
-            Otherwise, the status code is set to C{L{SUCCESS}}, and
-            the additional information is an instance of
-            C{L{OpenIDAuthRequest}}.  The
-            C{L{token<OpenIDAuthRequest.token>}} attribute contains
-            the token to be preserved for the next HTTP request.  The
-            C{L{server_url<OpenIDAuthRequest.server_url>}} might also be
-            of interest, if you wish to blacklist or whitelist OpenID
-            servers.  The other contents of the object are information
-            needed in the C{L{constructRedirect}} call.
-
-        @rtype: A pair, where the first element is a C{str} object,
-            and the second depends on the value of the first.
-
-
-        @raise Exception: This method does not handle any exceptions
-            raised by the store or fetcher it is using.
-
-            It raises no exceptions itself.
-        """
+    def _createNonce(self):
         nonce = cryptutil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
+        self.store.storeNonce(nonce)
+        return nonce
 
-        consumer_id = service_endpoint.identity_url
-        server_id = service_endpoint.getServerID()
-        server_url = service_endpoint.server_url
-
-        token = self._genToken(nonce, consumer_id, server_id, server_url)
-
-        auth_request = OpenIDAuthRequest(
-            token, consumer_id, server_id, server_url, nonce)
-
-        auth_request.redirect_url = self.constructRedirect(auth_request,
-                                                           return_to,
-                                                           immediate)
+    def begin(self, service_endpoint):
+        nonce = self._createNonce()
+        token = self._genToken(
+            nonce,
+            service_endpoint.identity_url,
+            service_endpoint.getServerID(),
+            service_endpoint.server_url,
+            )
         self.session[self.sessionKeyPrefix + self._token] = token
-        return auth_request
-
-    def constructRedirect(self, auth_request, return_to, immediate=False):
-        """
-        This method is called to construct the redirect URL sent to
-        the browser to ask the server to verify its identity.  This is
-        called in L{step 3<openid.consumer.consumer>} of the flow
-        described in the overview.  The generated redirect should be
-        sent to the browser which initiated the authorization request.
-
-        @param auth_request: This must be an C{L{OpenIDAuthRequest}}
-            instance which was returned from a previous call to
-            C{L{beginAuth}}.  It contains information found during the
-            beginAuth call which is needed to build the redirect URL.
-
-        @type auth_request: C{L{OpenIDAuthRequest}}
-
-
-        @param return_to: This is the URL that will be included in the
-            generated redirect as the URL the OpenID server will send
-            its response to.  The URL passed in must handle OpenID
-            authentication responses.
-
-        @type return_to: C{str}
-
-
-        @param immediate: This is an optional boolean value.  It
-            controls whether the library uses immediate mode, as
-            explained in the module description.  The default value is
-            False, which disables immediate mode.
-
-        @type immediate: C{bool}
-
-        @return: This method returns a string containing the URL to
-            redirect to when such a URL is successfully constructed.
-
-        @rtype: C{str}
-
-
-        @raise Exception: This method does not handle any exceptions
-            raised by the store it is using.
-
-            It raises no exceptions itself.
-        """
-        assoc = self._getAssociation(auth_request.server_url)
-        # Because _getAssociation could be asynchronous if the
-        # association is not already in the store.
-        return self._constructRedirect(assoc, auth_request,
-                                       return_to, self.trust_root, immediate)
+        assoc = self._getAssociation(service_endpoint.server_url)
+        return OpenIDAuthRequest(assoc, service_endpoint)
 
     def completeAuth(self, query):
         """
@@ -550,13 +408,11 @@ class OpenIDConsumer(object):
         """
         mode = query.get('openid.mode', '')
         if mode == 'cancel':
-            # Remove the server from the visited list.
             token = self.session.get(self.sessionKeyPrefix + self._token,
                                      None)
             if token:
-                self._splitToken(token)
-                fields = self._splitToken(token)
-                # XXX: would return cancel for the identity url
+                # XXX: maybe get identifier out of token
+                pass
             else:
                 oidutil.log("Failed to retrieve token from session.")
 
@@ -588,7 +444,7 @@ class OpenIDConsumer(object):
 
         response = kvform.kvToDict(resp.body)
         if resp.status == 400:
-            server_error = results.get('error', '<no message from server>')
+            server_error = response.get('error', '<no message from server>')
             fmt = 'openid.mode=%s: error returned from server %s: %s'
             oidutil.log(fmt % (mode, server_url, server_error))
             return None
@@ -697,10 +553,10 @@ class OpenIDConsumer(object):
         if response is None:
             return FAILURE
 
-        is_valid = results.get('is_valid', 'false')
+        is_valid = response.get('is_valid', 'false')
 
         if is_valid == 'true':
-            invalidate_handle = results.get('invalidate_handle')
+            invalidate_handle = response.get('invalidate_handle')
             if invalidate_handle is not None:
                 self.store.removeAssociation(server_url, invalidate_handle)
 
@@ -845,35 +701,7 @@ class OpenIDConsumer(object):
 
 
 class OpenIDAuthRequest(object):
-    """
-    This class represents an in-progress OpenID authentication
-    request.  It exists to make transferring information between the
-    C{L{beginAuth<OpenIDConsumer.beginAuth>}} and
-    C{L{constructRedirect<OpenIDConsumer.constructRedirect>}} methods
-    easier.  Users of the OpenID consumer library will need to be
-    aware of the C{L{token}} value, and may care about the
-    C{L{server_url}} value.  All other fields are internal information
-    for the library which the user of the library shouldn't touch at
-    all.
-
-
-    @ivar token: This is the token generated by the library.  It must
-        be saved until the user's return request, via whatever
-        mechanism works best for this consumer application.
-
-
-    @ivar server_url: This is the URL of the identity server that will
-        be used.  It isn't necessary to do anything with this value,
-        but it is available for consumers that wish to either
-        blacklist or whitelist OpenID servers.
-
-
-    @sort: token, server_url
-    """
-
-    redirect_url = None
-
-    def __init__(self, token, identity_url, server_id, server_url, nonce):
+    def __init__(self, assoc, endpoint):
         """
         Creates a new OpenIDAuthRequest object.  This just stores each
         argument in an appropriately named field.
@@ -882,19 +710,29 @@ class OpenIDAuthRequest(object):
         class.  Instances of this class are created by the library
         when needed.
         """
-        self.token = token
-        self.identity_url = identity_url
-        self.server_id = server_id
-        self.server_url = server_url
-        self.nonce = nonce
+        self.assoc = assoc
+        self.endpoint = endpoint
+        self.extension_args = {}
 
-    def __eq__(self, other):
-        return ((self.token == other.token) and
-                (self.server_id == other.server_id) and
-                (self.server_url == other.server_url) and
-                (self.nonce == other.nonce) and
-                (self.identity_url == other.identity_url) and
-                (self.redirect_url == other.redirect_url))
+    def addExtensionArg(self, namespace, key, value):
+        arg_name = '.'.join('openid', namespace, key)
+        self.extension_args[arg_name] = value
 
-    def __ne__(self, other):
-        return not (self == other)
+    def redirectURL(self, trust_root, return_to, immediate=False):
+        if immediate:
+            mode = 'checkid_immediate'
+        else:
+            mode = 'checkid_setup'
+
+        redir_args = {
+            'openid.mode': mode,
+            'openid.identity': self.endpoint.getServerID(),
+            'openid.return_to': return_to,
+            'openid.trust_root': trust_root,
+            }
+
+        if self.assoc:
+            redir_args['openid.assoc_handle'] = self.assoc.handle
+
+        redir_args.update(self.extension_args)
+        return oidutil.appendArgs(self.endpoint.server_url, redir_args)

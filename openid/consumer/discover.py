@@ -30,6 +30,9 @@ class OpenIDServiceEndpoint(object):
         self.delegate = None
         self.used_yadis = False # whether this came from an XRDS
 
+    def usesExtension(self, extension_uri):
+        return extension_uri in self.type_uris
+
     def parseService(self, yadis_url, uri, type_uris, service_element):
         """Set the state of this object based on the contents of the
         service element."""

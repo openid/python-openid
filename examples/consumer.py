@@ -58,8 +58,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
     def getConsumer(self):
         store = self.server.store
         session = self.getSession()
-        trust_root = self.server.base_url
-        return consumer.OpenIDConsumer(trust_root, store, session)
+        return consumer.OpenIDConsumer(store, session)
 
     def getSession(self):
         """Return the existing session or a new session"""
@@ -166,10 +165,14 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                 # Here we find out the identity server that will verify the
                 # user's identity, and get a token that allows us to
                 # communicate securely with the identity server.
-                oidconsumer = self.getConsumer()
+
+                trust_root = self.server.base_url
                 return_to = self.buildURL('process')
-                info = oidconsumer.beginAuth(service, return_to)
-                self.redirect(info.redirect_url)
+                oidconsumer = self.getConsumer()
+                request = oidconsumer.begin(service)
+                redirect_url = request.redirectURL(trust_root, return_to)
+
+                self.redirect(redirect_url)
 
     def doProcess(self):
         """Handle the redirect from the OpenID server.
