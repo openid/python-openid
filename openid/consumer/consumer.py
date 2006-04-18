@@ -483,7 +483,7 @@ class OpenIDConsumer(object):
 
             It raises no exceptions itself.
         """
-        assoc = self._getAssociation(auth_request.server_url, replace=1)
+        assoc = self._getAssociation(auth_request.server_url)
         # Because _getAssociation could be asynchronous if the
         # association is not already in the store.
         return self._constructRedirect(assoc, auth_request,
@@ -713,14 +713,13 @@ class OpenIDConsumer(object):
         oidutil.log('Server responds that checkAuth call is not valid')
         return FAILURE
 
-    def _getAssociation(self, server_url, replace=0):
+    def _getAssociation(self, server_url):
         if self.store.isDumb():
             return None
 
         assoc = self.store.getAssociation(server_url)
 
-        if assoc is None or \
-               (replace and assoc.expiresIn < self.TOKEN_LIFETIME):
+        if assoc is None or assoc.expiresIn < self.TOKEN_LIFETIME:
             proto = urlparse(server_url)[0]
             if proto == 'https':
                 dh = None
