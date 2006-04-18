@@ -786,8 +786,7 @@ class OpenIDConsumer(object):
                 'openid.dh_consumer_public': cpub,
                 })
 
-            if (dh.modulus != DiffieHellman.DEFAULT_MOD or
-                dh.generator != DiffieHellman.DEFAULT_GEN):
+            if not dh.usingDefaultValues():
                 args.update({
                     'openid.dh_modulus': cryptutil.longToBase64(dh.modulus),
                     'openid.dh_gen': cryptutil.longToBase64(dh.generator),
