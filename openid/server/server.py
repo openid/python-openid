@@ -55,6 +55,13 @@ OpenID Extensions
     which you can add data to it which can be signed with the other data in
     the OpenID signature.
 
+    For example::
+
+        # when request is a checkid_* request
+        response = request.answer(True)
+        # this will a signed 'openid.sreg.timezone' parameter to the response
+        response.addField('sreg', 'timezone', 'America/Los_Angeles')
+
 
 Stores
 ======
