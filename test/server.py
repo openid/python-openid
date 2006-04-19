@@ -202,8 +202,31 @@ class TestDecode(unittest.TestCase):
             ('bar', 'signedval2'),
             ('mode', 'id_res'),
             ])
-        # XXX: test error cases (missing required fields,
-        # missing fields that are in the signed list).
+        # XXX: test error cases (i.e. missing required fields)
+
+
+    def test_checkAuthMissingSignedField(self):
+        args = {
+            'openid.mode': 'check_authentication',
+            'openid.assoc_handle': '{dumb}{handle}',
+            'openid.sig': 'sigblob',
+            'openid.signed': 'foo,bar,mode',
+            'openid.foo': 'signedval1',
+            'openid.baz': 'unsigned',
+            }
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+
+
+    def test_checkAuthMissingSignature(self):
+        args = {
+            'openid.mode': 'check_authentication',
+            'openid.assoc_handle': '{dumb}{handle}',
+            'openid.signed': 'foo,bar,mode',
+            'openid.foo': 'signedval1',
+            'openid.bar': 'signedval2',
+            'openid.baz': 'unsigned',
+            }
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
 
     def test_checkAuthAndInvalidate(self):
