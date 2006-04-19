@@ -564,7 +564,7 @@ class CheckIDRequest(OpenIDRequest):
                 # Make a new request just like me, but with immediate=False.
                 setup_request = self.__class__(
                     self.identity, self.return_to, self.trust_root,
-                    immediate=False, assoc_handle=self.assoc_handle)
+                    immediate=True, assoc_handle=self.assoc_handle)
                 setup_url = setup_request.encodeToURL(server_url)
                 response.fields['user_setup_url'] = setup_url
 
