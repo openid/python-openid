@@ -40,23 +40,21 @@ Overview
 OpenID Extensions
 =================
 
-    FIXME
+    Do you want to provide other information for your users
+    in addition to authentication?  Version 1.2 of the OpenID
+    protocol allows consumers to add extensions to their requests.
+    For example, with sites using the U{Simple Registration
+    Extension<http://www.openidenabled.com/openid/simple-registration-extension/>},
+    a user can agree to have their nickname and e-mail address sent to a
+    site when they sign up.
 
+    Since extensions do not change the way OpenID authentication works,
+    code to handle extension requests may be completely separate from the
+    L{OpenIDRequest} class here.  But you'll likely want data sent back by
+    your extension to be signed.  L{CheckIDResponse} provides methods with
+    which you can add data to it which can be signed with the other data in
+    the OpenID signature.
 
-Library Design
-==============
-
-    FIXME
-
-        - Requests
-        - Responses
-        - WebResponse
-
-        - Decoder
-        - Encoder
-        - Signatory
-
-        - Server
 
 Stores
 ======
@@ -69,6 +67,15 @@ Stores
     by flat files on disk, see C{L{openid.store.filestore.FileOpenIDStore}}.
     For stores based on MySQL or SQLite, see the C{L{openid.store.sqlstore}}
     module.
+
+
+Upgrading
+=========
+
+    The keys by which a server looks up associations in its store have changed
+    in version 1.2 of this library.  If your store has entries created from
+    version 1.0 code, you should empty it.
+
 
 @group Requests: OpenIDRequest, AssociateRequest, CheckIDRequest,
     CheckAuthRequest
@@ -800,7 +807,7 @@ class CheckIDResponse(OpenIDResponse):
 
 
 class WebResponse(object):
-    """I am a response to an OpenIDRequest in terms a web server understands.
+    """I am a response to an OpenID request in terms a web server understands.
 
     I generally come from an L{Encoder}, either directly or from
     L{OpenIDServer.encodeResponse}.
