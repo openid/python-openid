@@ -1139,6 +1139,10 @@ class Decoder(object):
             return None
 
         mode = myquery.get(OPENID_PREFIX + 'mode')
+        if isinstance(mode, list):
+            raise TypeError("query dict must have one value for each key, "
+                            "not lists of values.  Query is %r" % (query,))
+
         if not mode:
             raise ProtocolError(
                 query,

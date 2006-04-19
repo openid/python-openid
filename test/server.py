@@ -93,6 +93,21 @@ class TestDecode(unittest.TestCase):
             }
         self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
+    def test_dictOfLists(self):
+        args = {
+            'openid.mode': ['checkid_setup'],
+            'openid.identity': self.id_url,
+            'openid.assoc_handle': self.assoc_handle,
+            'openid.return_to': self.rt_url,
+            'openid.trust_root': self.tr_url,
+            }
+        try:
+            result = self.decode(args)
+        except TypeError, err:
+            self.failUnless(str(err).find('values') != -1, err)
+        else:
+            self.fail("Expected TypeError, but got result %s" % (result,))
+
     def test_checkidImmediate(self):
         args = {
             'openid.mode': 'checkid_immediate',
