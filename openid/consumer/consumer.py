@@ -129,6 +129,17 @@ USING THIS LIBRARY
     the OpenID server which is authoritative for that URL.  It gets an
     XXX object containing that information by doing XXX.
 
+    Once the application has the XXX object, the next step is to get
+    an C{L{OpenIDConsumer}} instance, and call its XXX method.  This
+    method takes the XXX object and, optionally, a session object.  If
+    the appliication has any sort of session framework that provides
+    per-client state management, that should be used here.  The
+    library just expects the session object to support a C{dict}-like
+    interface, if it provided.  If no session object is provided, the
+    application code needs to store the information that would have
+    been put in the session in an alternate location.  See the
+    documentation for the XXX call for more information.
+
     Now that you have the C{L{OpenIDAuthRequest}} object, you need to
     preserve the value in its C{L{token<OpenIDAuthRequest.token>}}
     field for lookup on the user's next request from your site.  There
