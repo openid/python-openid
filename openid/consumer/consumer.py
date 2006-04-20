@@ -319,9 +319,6 @@ class OpenIDConsumer(object):
 
     sessionKeyPrefix = "_openid_consumer_"
 
-    _server_list = 'servers'
-    _visited_list = 'visited'
-    _last_uri = 'last_uri'
     _token = 'last_token'
 
     def __init__(self, store):
