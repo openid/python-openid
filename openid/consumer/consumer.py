@@ -412,7 +412,11 @@ class OpenIDConsumer(object):
         elif mode == 'id_res':
             if pieces is None:
                 return FailureResponse(identity_url, 'No session state found')
-            return self._doIdRes(query, *pieces)
+            try:
+                return self._doIdRes(query, *pieces)
+            except fetchers.HTTPFetchingError, why:
+                message = 'HTTP request failed: %s' % (str(why),)
+                return FailureResponse(identity_url, msg)
         else:
             return FailureResponse(identity_url,
                                    'Invalid openid.mode: %r' % (mode,))
@@ -553,8 +557,14 @@ class OpenIDConsumer(object):
                 dh = DiffieHellman()
 
             args = self._createAssociateRequest(dh)
-            response = self._makeKVPost(args, server_url)
-            assoc = self._parseAssociation(response, dh, server_url)
+            try:
+                response = self._makeKVPost(args, server_url)
+            except fetchers.HTTPFetchingError, why:
+                oidutil.log('openid.associate request failed: %s' %
+                            (str(why),))
+                assoc = None
+            else:
+                assoc = self._parseAssociation(response, dh, server_url)
 
         return assoc
 
