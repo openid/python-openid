@@ -150,9 +150,10 @@ USING THIS LIBRARY
     when he or she is authorizing it.  Send a redirect to the
     resulting URL to the user's browser.
 
-    That's the first half of the process.  The second half of the
-    process is done after the user's ID server sends the user a
-    redirect back to your site to complete their login.
+    That's the first half of the authentication process.  The second
+    half of the process is done after the user's ID server sends the
+    user's browser a redirect back to your site to complete their
+    login.
 
     When that happens, the user will contact your site at the URL
     given as the return_to URL to the
