@@ -220,7 +220,6 @@ class TestIdRes(unittest.TestCase):
 
     def setUp(self):
         self.store = _memstore.MemoryStore()
-        self.session = {}
         self.consumer = self.consumer_class(self.store)
         self.return_to = "nonny"
         self.server_id = "sirod"
@@ -381,11 +380,10 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
     def setUp(self):
         CatchLogs.setUp(self)
         self.store = _memstore.MemoryStore()
-        self.fetcher = MockFetcher()
-        self.session = {}
 
         self.consumer = self.consumer_class(self.store)
 
+        self.fetcher = MockFetcher()
         fetchers.setDefaultFetcher(self.fetcher)
 
     def test_error(self):
@@ -405,7 +403,6 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         self.store = _memstore.MemoryStore()
         self.fetcher = MockFetcher()
         fetchers.setDefaultFetcher(self.fetcher)
-        self.session = {}
         self.consumer = self.consumer_class(self.store)
 
     def test_error(self):
