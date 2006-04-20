@@ -139,7 +139,7 @@ USING THIS LIBRARY
     application code needs to store the information that would have
     been put in the session in an alternate location.  See the
     documentation for the XXX call for more information.  The XXX
-    method returns a C{L{OpenIDRequestbuilder}} object.
+    method returns a C{L{OpenIDRequestBuilder}} object.
 
     The next step is to call the
     C{L{constructRedirect<OpenIDConsumer.constructRedirect>}} method
