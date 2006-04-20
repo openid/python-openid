@@ -162,14 +162,6 @@ USING THIS LIBRARY
     the URL by the identity server as the information necessary to
     finish the request.
 
-    When handling this request, the first thing to do is check the
-    C{openid.return_to} parameter.  If it doesn't match the URL that
-    the request was actually sent to (the URL the request was actually
-    sent to will contain the openid parameters in addition to any in
-    the return_to URL, but they should be identical other than that),
-    that is clearly suspicious, and the request shouldn't be allowed
-    to proceed.
-
     Otherwise, the next step is to extract the token value set in the
     first half of the OpenID login.  Create a C{L{OpenIDConsumer}}
     object, and call its
