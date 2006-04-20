@@ -486,27 +486,6 @@ class OpenIDConsumer(object):
 
         return response
 
-    def _constructRedirect(self, assoc, auth_req, return_to, trust_root,
-                           immediate=False):
-
-        if immediate:
-            mode = 'checkid_immediate'
-        else:
-            mode = 'checkid_setup'
-
-        redir_args = {
-            'openid.identity': auth_req.server_id,
-            'openid.return_to': return_to,
-            'openid.trust_root': trust_root,
-            'openid.mode': mode,
-            }
-
-        if assoc is not None:
-            redir_args['openid.assoc_handle'] = assoc.handle
-
-        self.store.storeNonce(auth_req.nonce)
-        return str(oidutil.appendArgs(auth_req.server_url, redir_args))
-
     def _doIdRes(self, query, nonce, consumer_id, server_id, server_url):
         user_setup_url = query.get('openid.user_setup_url')
         if user_setup_url is not None:
