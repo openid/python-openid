@@ -113,8 +113,8 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         trust_root = consumer_url
         session = {}
 
-        consumer = OpenIDConsumer(store, session)
-        request = consumer.begin(endpoint)
+        consumer = OpenIDConsumer(store)
+        request = consumer.begin(endpoint, session)
 
         return_to = consumer_url
         redirect_url = request.redirectURL(trust_root, return_to, immediate)
@@ -142,7 +142,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         assoc = store.getAssociation(server_url, fetcher.assoc_handle)
         assoc.addSignature(['mode', 'return_to', 'identity'], query)
 
-        info = consumer.completeAuth(query)
+        info = consumer.complete(query, session)
         assert info.status == 'success'
         assert info.identity_url == user_url
 
@@ -206,12 +206,10 @@ class TestSuccessHTTPS(TestSuccess):
 class TestConstruct(unittest.TestCase):
     def setUp(self):
         self.store_sentinel = object()
-        self.session_sentinel = object()
 
     def test_construct(self):
-        oidc = OpenIDConsumer(self.store_sentinel, self.session_sentinel)
+        oidc = OpenIDConsumer(self.store_sentinel)
         self.failUnless(oidc.store is self.store_sentinel)
-        self.failUnless(oidc.session is self.session_sentinel)
 
     def test_nostore(self):
         self.failUnlessRaises(TypeError, OpenIDConsumer)
@@ -223,7 +221,7 @@ class TestIdRes(unittest.TestCase):
     def setUp(self):
         self.store = _memstore.MemoryStore()
         self.session = {}
-        self.consumer = self.consumer_class(self.store, self.session)
+        self.consumer = self.consumer_class(self.store)
         self.return_to = "nonny"
         self.server_id = "sirod"
         self.server_url = "serlie"
@@ -386,7 +384,7 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
         self.fetcher = MockFetcher()
         self.session = {}
 
-        self.consumer = self.consumer_class(self.store, self.session)
+        self.consumer = self.consumer_class(self.store)
 
         fetchers.setDefaultFetcher(self.fetcher)
 
@@ -408,7 +406,7 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         self.fetcher = MockFetcher()
         fetchers.setDefaultFetcher(self.fetcher)
         self.session = {}
-        self.consumer = self.consumer_class(self.store, self.session)
+        self.consumer = self.consumer_class(self.store)
 
     def test_error(self):
         self.fetcher.response = HTTPResponse(

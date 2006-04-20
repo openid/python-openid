@@ -324,7 +324,7 @@ class OpenIDConsumer(object):
     _last_uri = 'last_uri'
     _token = 'last_token'
 
-    def __init__(self, store, session):
+    def __init__(self, store):
         """
         This method initializes a new C{L{OpenIDConsumer}} instance to
         access the library.
@@ -361,18 +361,15 @@ class OpenIDConsumer(object):
 
         @type store: C{L{openid.store.interface.OpenIDStore}}
 
-
-        @param session: FIXME - to be documented
         """
         self.store = store
-        self.session = session
 
     def _createNonce(self):
         nonce = cryptutil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
         self.store.storeNonce(nonce)
         return nonce
 
-    def begin(self, service_endpoint):
+    def begin(self, service_endpoint, session):
         nonce = self._createNonce()
         token = self._genToken(
             nonce,
@@ -380,11 +377,11 @@ class OpenIDConsumer(object):
             service_endpoint.getServerID(),
             service_endpoint.server_url,
             )
-        self.session[self.sessionKeyPrefix + self._token] = token
+        session[self.sessionKeyPrefix + self._token] = token
         assoc = self._getAssociation(service_endpoint.server_url)
         return OpenIDAuthRequest(assoc, service_endpoint)
 
-    def completeAuth(self, query):
+    def complete(self, query, session):
         """
         This method is called to interpret the server's response to an
         OpenID request.  It is called in L{step
@@ -443,7 +440,8 @@ class OpenIDConsumer(object):
 
             It raises no exceptions itself.
         """
-        token = self.session.get(self.sessionKeyPrefix + self._token, None)
+        # Get the current request's state
+        token = session.get(self.sessionKeyPrefix + self._token, None)
         if token:
             pieces = self._splitToken(token)
             if pieces:

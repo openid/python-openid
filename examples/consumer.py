@@ -56,9 +56,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
     session = None
 
     def getConsumer(self):
-        store = self.server.store
-        session = self.getSession()
-        return consumer.OpenIDConsumer(store, session)
+        return consumer.OpenIDConsumer(self.server.store)
 
     def getSession(self):
         """Return the existing session or a new session"""
@@ -169,7 +167,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                 trust_root = self.server.base_url
                 return_to = self.buildURL('process')
                 oidconsumer = self.getConsumer()
-                request = oidconsumer.begin(service)
+                request = oidconsumer.begin(service, self.getSession())
                 redirect_url = request.redirectURL(trust_root, return_to)
 
                 self.redirect(redirect_url)
@@ -183,7 +181,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         # us.  Status is a code indicating the response type. info is
         # either None or a string containing more information about
         # the return type.
-        info = oidconsumer.completeAuth(self.query)
+        info = oidconsumer.complete(self.query, self.getSession())
 
         css_class = 'error'
         if info.status == 'failure' and info.identity_url:
