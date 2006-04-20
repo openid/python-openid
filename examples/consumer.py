@@ -183,32 +183,29 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         # us.  Status is a code indicating the response type. info is
         # either None or a string containing more information about
         # the return type.
-        status, info = oidconsumer.completeAuth(self.query)
+        info = oidconsumer.completeAuth(self.query)
 
         css_class = 'error'
-        openid_url = None
-        if status == consumer.FAILURE and info:
+        if info.status == 'failure' and info.identity_url:
             # In the case of failure, if info is non-None, it is the
             # URL that we were verifying. We include it in the error
             # message to help the user figure out what happened.
-            openid_url = info
             fmt = "Verification of %s failed."
-            message = fmt % (cgi.escape(openid_url),)
-        elif status == consumer.SUCCESS:
+            message = fmt % (cgi.escape(info.identity_url),)
+        elif info.status == 'success':
             # Success means that the transaction completed without
             # error. If info is None, it means that the user cancelled
             # the verification.
             css_class = 'alert'
-            if info:
-                # This is a successful verification attempt. If this
-                # was a real application, we would do our login,
-                # comment posting, etc. here.
-                openid_url = info
-                fmt = "You have successfully verified %s as your identity."
-                message = fmt % (cgi.escape(openid_url),)
-            else:
-                # cancelled
-                message = 'Verification cancelled'
+
+            # This is a successful verification attempt. If this
+            # was a real application, we would do our login,
+            # comment posting, etc. here.
+            fmt = "You have successfully verified %s as your identity."
+            message = fmt % (cgi.escape(info.identity_url),)
+        elif info.status == 'cancelled':
+            # cancelled
+            message = 'Verification cancelled'
         else:
             # Either we don't understand the code or there is no
             # openid_url included with the error. Give a generic
@@ -216,11 +213,11 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # information in a log.
             message = 'Verification failed.'
 
-        if openid_url is not None:
-            discovery = Discovery(self.getSession(), openid_url)
+        if info.identity_url is not None:
+            discovery = Discovery(self.getSession(), info.identity_url)
             discovery.finish()
 
-        self.render(message, css_class, openid_url)
+        self.render(message, css_class, info.identity_url)
 
     def buildURL(self, action, **query):
         """Build a URL relative to the server base_url, with the given
