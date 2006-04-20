@@ -406,16 +406,19 @@ class OpenIDConsumer(object):
 
             It raises no exceptions itself.
         """
+        token = self.session.get(self.sessionKeyPrefix + self._token, None)
+        if token:
+            pieces = self._splitToken(token)
+            if pieces:
+                identity_url = pieces[1]
+            else:
+                identity_url = None
+        else:
+            pieces = None
+            identity_url = None
+
         mode = query.get('openid.mode', '')
         if mode == 'cancel':
-            token = self.session.get(self.sessionKeyPrefix + self._token,
-                                     None)
-            if token:
-                # XXX: maybe get identifier out of token
-                pass
-            else:
-                oidutil.log("Failed to retrieve token from session.")
-
             return SUCCESS, None
         elif mode == 'error':
             error = query.get('openid.error')
@@ -423,12 +426,9 @@ class OpenIDConsumer(object):
                 oidutil.log(error)
             return FAILURE, None
         elif mode == 'id_res':
-            token = self.session.get(self.sessionKeyPrefix + self._token,
-                                     None)
-            if not token:
-                oidutil.log("Failed to retrieve token from session.")
+            if pieces is None:
                 return FAILURE, None
-            return self._doIdRes(token, query)
+            return self._doIdRes(query, *pieces)
         else:
             return FAILURE, None
 
@@ -476,14 +476,7 @@ class OpenIDConsumer(object):
         self.store.storeNonce(auth_req.nonce)
         return str(oidutil.appendArgs(auth_req.server_url, redir_args))
 
-    def _doIdRes(self, token, query):
-        ret = self._splitToken(token)
-        if ret is None:
-            oidutil.log('Bad token')
-            return FAILURE, None
-
-        nonce, consumer_id, server_id, server_url = ret
-
+    def _doIdRes(self, query, nonce, consumer_id, server_id, server_url):
         user_setup_url = query.get('openid.user_setup_url')
         if user_setup_url is not None:
             return SETUP_NEEDED, user_setup_url

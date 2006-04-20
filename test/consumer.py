@@ -230,10 +230,7 @@ class TestIdRes(unittest.TestCase):
         self.server_id = "sirod"
         self.server_url = "serlie"
         self.consumer_id = "consu"
-        self.token = self.consumer._genToken(self.return_to,
-                                             self.consumer_id,
-                                             self.server_id,
-                                             self.server_url)
+        self.nonce = 'nonce'
 
 class TestSetupNeeded(TestIdRes):
     def test_setupNeeded(self):
@@ -242,7 +239,12 @@ class TestSetupNeeded(TestIdRes):
             'openid.mode': 'id_res',
             'openid.user_setup_url': setup_url,
             }
-        ret = self.consumer._doIdRes(self.token, query)
+        ret = self.consumer._doIdRes(query,
+                                     self.nonce,
+                                     self.consumer_id,
+                                     self.server_id,
+                                     self.server_url,
+                                     )
         self.failUnlessEqual(ret[0], SETUP_NEEDED)
         self.failUnlessEqual(ret[1], setup_url)
 
@@ -271,6 +273,14 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         TestIdRes.setUp(self)
         CatchLogs.setUp(self)
 
+    def _doIdRes(self, query):
+        return self.consumer._doIdRes(
+            query,
+            self.nonce,
+            self.consumer_id,
+            self.server_id,
+            self.server_url)
+
     def test_checkAuthTriggered(self):
         query = {
             'openid.return_to':self.return_to,
@@ -278,7 +288,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.assoc_handle':'not_found',
             }
         try:
-            result = self.consumer._doIdRes(self.token, query)
+            result = self._doIdRes(query)
         except CheckAuthHappened:
             pass
         else:
@@ -300,7 +310,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.assoc_handle':'not_found',
             }
         try:
-            result = self.consumer._doIdRes(self.token, query)
+            result = self._doIdRes(query)
         except CheckAuthHappened:
             pass
         else:
@@ -322,7 +332,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.identity':self.server_id,
             'openid.assoc_handle':handle,
             }
-        status, info = self.consumer._doIdRes(self.token, query)
+        status, info = self._doIdRes(query)
         self.failUnlessEqual(FAILURE, status)
         self.failUnlessEqual(self.consumer_id, info)
         self.failUnlessEqual(1, len(self.messages), self.messages)
@@ -346,8 +356,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             bad_handle, 'secret', bad_issued, lifetime, 'HMAC-SHA1')
         self.store.storeAssociation(self.server_url, bad_assoc)
 
-        nonce = self.consumer._splitToken(self.token)[0]
-        self.store.storeNonce(nonce)
+        self.store.storeNonce(self.nonce)
 
         query = {
             'openid.return_to':self.return_to,
@@ -356,7 +365,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             }
 
         good_assoc.addSignature(['return_to', 'identity'], query)
-        status, info = self.consumer._doIdRes(self.token, query)
+        status, info = self._doIdRes(query)
 
         self.failUnlessEqual(SUCCESS, status)
         self.failUnlessEqual(self.consumer_id, info)
