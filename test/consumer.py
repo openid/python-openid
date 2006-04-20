@@ -4,7 +4,7 @@ import time
 
 from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.discover import OpenIDServiceEndpoint
-from openid.consumer.consumer import OpenIDConsumer
+from openid.consumer.consumer import GenericOpenIDConsumer
 from openid import association
 
 from openid.consumer import parse
@@ -111,10 +111,9 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
 
     def run():
         trust_root = consumer_url
-        session = {}
 
-        consumer = OpenIDConsumer(store)
-        request = consumer.begin(endpoint, session)
+        consumer = GenericOpenIDConsumer(store)
+        request = consumer.begin(endpoint)
 
         return_to = consumer_url
         redirect_url = request.redirectURL(trust_root, return_to, immediate)
@@ -142,7 +141,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         assoc = store.getAssociation(server_url, fetcher.assoc_handle)
         assoc.addSignature(['mode', 'return_to', 'identity'], query)
 
-        info = consumer.complete(query, session)
+        info = consumer.complete(query, request.token)
         assert info.status == 'success'
         assert info.identity_url == user_url
 
@@ -208,15 +207,15 @@ class TestConstruct(unittest.TestCase):
         self.store_sentinel = object()
 
     def test_construct(self):
-        oidc = OpenIDConsumer(self.store_sentinel)
+        oidc = GenericOpenIDConsumer(self.store_sentinel)
         self.failUnless(oidc.store is self.store_sentinel)
 
     def test_nostore(self):
-        self.failUnlessRaises(TypeError, OpenIDConsumer)
+        self.failUnlessRaises(TypeError, GenericOpenIDConsumer)
 
 
 class TestIdRes(unittest.TestCase):
-    consumer_class = OpenIDConsumer
+    consumer_class = GenericOpenIDConsumer
 
     def setUp(self):
         self.store = _memstore.MemoryStore()
@@ -225,7 +224,6 @@ class TestIdRes(unittest.TestCase):
         self.server_id = "sirod"
         self.server_url = "serlie"
         self.consumer_id = "consu"
-        self.nonce = 'nonce'
 
 class TestSetupNeeded(TestIdRes):
     def test_setupNeeded(self):
@@ -235,7 +233,6 @@ class TestSetupNeeded(TestIdRes):
             'openid.user_setup_url': setup_url,
             }
         ret = self.consumer._doIdRes(query,
-                                     self.nonce,
                                      self.consumer_id,
                                      self.server_id,
                                      self.server_url,
@@ -245,7 +242,7 @@ class TestSetupNeeded(TestIdRes):
 
 class CheckAuthHappened(Exception): pass
 
-class CheckAuthDetectingConsumer(OpenIDConsumer):
+class CheckAuthDetectingConsumer(GenericOpenIDConsumer):
     def _checkAuth(self, *args):
         raise CheckAuthHappened(args)
 
@@ -271,7 +268,6 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
     def _doIdRes(self, query):
         return self.consumer._doIdRes(
             query,
-            self.nonce,
             self.consumer_id,
             self.server_id,
             self.server_url)
@@ -330,9 +326,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         info = self._doIdRes(query)
         self.failUnlessEqual('failure', info.status)
         self.failUnlessEqual(self.consumer_id, info.identity_url)
-        self.failUnlessEqual(1, len(self.messages), self.messages)
-        message = self.messages[0].lower()
-        message.index('expired') # raises an exception if it's not there
+        info.message.index('expired') # raises an exception if it's not there
 
     def test_newerAssoc(self):
         # Store an expired association for the server with the handle
@@ -350,8 +344,6 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         bad_assoc = association.Association(
             bad_handle, 'secret', bad_issued, lifetime, 'HMAC-SHA1')
         self.store.storeAssociation(self.server_url, bad_assoc)
-
-        self.store.storeNonce(self.nonce)
 
         query = {
             'openid.return_to':self.return_to,
@@ -378,7 +370,7 @@ class ExceptionRaisingMockFetcher(object):
     def fetch(self, url, body=None, headers=None):
         raise Exception('mock fetcher exception')
 
-class BadArgCheckingConsumer(OpenIDConsumer):
+class BadArgCheckingConsumer(GenericOpenIDConsumer):
     def _makeKVPost(self, args, _):
         assert args == {
             'openid.mode':'check_authentication',
@@ -387,7 +379,7 @@ class BadArgCheckingConsumer(OpenIDConsumer):
         return None
 
 class TestCheckAuth(unittest.TestCase, CatchLogs):
-    consumer_class = OpenIDConsumer
+    consumer_class = GenericOpenIDConsumer
 
     def setUp(self):
         CatchLogs.setUp(self)
@@ -401,9 +393,8 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
     def test_error(self):
         self.fetcher.response = HTTPResponse(
             "http://some_url", 404, {'Hea': 'der'}, 'blah:blah\n')
-        nonce = "nonce"
         query = {'openid.signed': 'stuff, things'}
-        r = self.consumer._checkAuth(nonce, query, http_server_url)
+        r = self.consumer._checkAuth(query, http_server_url)
         self.failIf(r)
         self.failUnless(self.messages)
 
@@ -413,10 +404,10 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
             'closid.foo':'something',
             }
         consumer = BadArgCheckingConsumer(self.store)
-        consumer._checkAuth('nonce', query, 'does://not.matter')
+        consumer._checkAuth(query, 'does://not.matter')
 
 class TestFetchAssoc(unittest.TestCase, CatchLogs):
-    consumer_class = OpenIDConsumer
+    consumer_class = GenericOpenIDConsumer
 
     def setUp(self):
         CatchLogs.setUp(self)
@@ -446,7 +437,6 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
 
         self.failUnlessRaises(fetchers.HTTPFetchingError,
                               self.consumer._checkAuth,
-                              'nonce',
                               {'openid.signed':''},
                               'some://url')
 
