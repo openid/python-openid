@@ -272,7 +272,7 @@ class OpenIDConsumer(object):
     NONCE_LEN = 8
     NONCE_CHRS = string.letters + string.digits
 
-    sessionKeyPrefix = "_openid_consumer_"
+    session_key_prefix = "_openid_consumer_"
 
     _token = 'last_token'
 
@@ -324,7 +324,7 @@ class OpenIDConsumer(object):
             service_endpoint.getServerID(),
             service_endpoint.server_url,
             )
-        session[self.sessionKeyPrefix + self._token] = token
+        session[self.session_key_prefix + self._token] = token
         assoc = self._getAssociation(service_endpoint.server_url)
         return OpenIDAuthRequest(assoc, service_endpoint)
 
@@ -391,7 +391,7 @@ class OpenIDConsumer(object):
 
         # Get the current request's state
         try:
-            token = session[self.sessionKeyPrefix + self._token]
+            token = session[self.session_key_prefix + self._token]
         except KeyError:
             oidutil.log('Called %r with no session state' % (mode,))
             pieces = identity_url = None
