@@ -156,7 +156,7 @@ USING THIS LIBRARY
     login.
 
     When that happens, the user will contact your site at the URL
-    given as the return_to URL to the
+    given as the C{return_to} URL to the
     C{L{buildRedirect<OpenIDRequestBuilder.buildRedirect>}} call made
     above.  The request will have several query parameters added to
     the URL by the identity server as the information necessary to
