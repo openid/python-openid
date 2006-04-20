@@ -249,7 +249,7 @@ class OpenIDConsumer(object):
     def __init__(self, session, store):
         self.session = session
         self.consumer = GenericOpenIDConsumer(store)
-        self._token_key = self.session_key_prefix + _token
+        self._token_key = self.session_key_prefix + self._token
 
     def begin(self, user_url):
         openid_url = oidutil.normalizeURL(user_url)
