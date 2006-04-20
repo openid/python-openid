@@ -432,19 +432,23 @@ class OpenIDConsumer(object):
 
             It raises no exceptions itself.
         """
-        # Get the current request's state
-        token = session.get(self.sessionKeyPrefix + self._token, None)
-        if token:
-            pieces = self._splitToken(token)
-            if pieces:
-                identity_url = pieces[1]
-            else:
-                identity_url = None
-        else:
-            pieces = None
-            identity_url = None
+        mode = query.get('openid.mode', '<no mode specified>')
 
-        mode = query.get('openid.mode', '')
+        # Get the current request's state
+        try:
+            token = session[self.sessionKeyPrefix + self._token]
+        except KeyError:
+            oidutil.log('Called %r with no session state' % (mode,))
+            pieces = identity_url = None
+        else:
+            try:
+                pieces = self._splitToken(token)
+            except ValueError, why:
+                oidutil.log(why[0])
+                pieces = identity_url = None
+            else:
+                identity_url = pieces[1]
+
         if mode == 'cancel':
             return CancelledResponse(identity_url)
         elif mode == 'error':
@@ -610,28 +614,23 @@ class OpenIDConsumer(object):
     def _splitToken(self, token):
         token = oidutil.fromBase64(token)
         if len(token) < 20:
-            oidutil.log('Bad token length: %d' % len(token))
-            return None
+            raise ValueError('Bad token length: %d' % len(token))
 
         sig, joined = token[:20], token[20:]
         if cryptutil.hmacSha1(self.store.getAuthKey(), joined) != sig:
-            oidutil.log('Bad token signature')
-            return None
+            raise ValueError('Bad token signature')
 
         split = joined.split('\x00')
         if len(split) != 5:
-            oidutil.log('Bad token contents (not enough fields)')
-            return None
+            raise ValueError('Bad token contents (not enough fields)')
 
         try:
             ts = int(split[0])
         except ValueError:
-            oidutil.log('Bad token contents (timestamp bad)')
-            return None
+            raise ValueError('Bad token contents (timestamp bad)')
 
         if ts + self.TOKEN_LIFETIME < time.time():
-            oidutil.log('Token expired')
-            return None
+            raise ValueError('Token expired')
 
         return tuple(split[1:])
 
