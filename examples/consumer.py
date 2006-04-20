@@ -26,11 +26,9 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 # Python-OpenID.
 # sys.path.append('/path/to/openid/')
 
-from yadis.manager import Discovery
 from openid.store import filestore
-from openid.consumer.discover import discover
 from openid.consumer import consumer
-from openid.oidutil import appendArgs, normalizeUrl
+from openid.oidutil import appendArgs
 from openid.cryptutil import randomString
 from urljr.fetchers import HTTPFetchingError
 
@@ -56,7 +54,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
     session = None
 
     def getConsumer(self):
-        return consumer.OpenIDConsumer(self.server.store)
+        return consumer.OpenIDConsumer(self.getSession(), self.server.store)
 
     def getSession(self):
         """Return the existing session or a new session"""
@@ -139,22 +137,23 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         """
 
         # First, make sure that the user entered something
-        openid_url = normalizeUrl(self.query.get('openid_url'))
+        openid_url = self.query.get('openid_url')
         if not openid_url:
             self.render('Enter an identity URL to verify.',
                         css_class='error', form_contents=openid_url)
             return
 
-        discovery = Discovery(self.getSession(), openid_url)
+        oidconsumer = self.getConsumer()
         try:
-            service = discovery.getNextService(discover)
+            request = oidconsumer.begin(openid_url)
         except HTTPFetchingError, exc:
             fetch_error_string = 'Error retrieving identity URL: %s' % (
                 cgi.escape(str(exc.why)))
-            self.render(fetch_error_string, css_class='error',
+            self.render(fetch_error_string,
+                        css_class='error',
                         form_contents=openid_url)
         else:
-            if service is None:
+            if request is None:
                 msg = 'No OpenID services found for <code>%s</code>' % (
                     cgi.escape(openid_url),)
                 self.render(msg, css_class='error', form_contents=openid_url)
@@ -166,8 +165,6 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
 
                 trust_root = self.server.base_url
                 return_to = self.buildURL('process')
-                oidconsumer = self.getConsumer()
-                request = oidconsumer.begin(service, self.getSession())
                 redirect_url = request.redirectURL(trust_root, return_to)
 
                 self.redirect(redirect_url)
@@ -181,7 +178,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         # us.  Status is a code indicating the response type. info is
         # either None or a string containing more information about
         # the return type.
-        info = oidconsumer.complete(self.query, self.getSession())
+        info = oidconsumer.complete(self.query)
 
         css_class = 'error'
         if info.status == 'failure' and info.identity_url:
@@ -210,10 +207,6 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # failure message. The library should supply debug
             # information in a log.
             message = 'Verification failed.'
-
-        if info.identity_url is not None:
-            discovery = Discovery(self.getSession(), info.identity_url)
-            discovery.finish()
 
         self.render(message, css_class, info.identity_url)
 
