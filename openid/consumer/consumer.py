@@ -240,8 +240,28 @@ __all__ = ['OpenIDAuthRequest', 'OpenIDConsumer']
 class SuccessResponse(object):
     status = 'success'
 
-    def __init__(self, identity_url):
+    def __init__(self, identity_url, signed_args):
         self.identity_url = identity_url
+        self.signed_args = signed_args
+
+    def fromQuery(cls, identity_url, query, signed):
+        signed_args = {}
+        for field_name in signed.split(','):
+            signed_args[field_name] = query.get(field_name, '')
+        return cls(identity_url, signed_args)
+
+    fromQuery = classmethod(fromQuery)
+
+    def extensionResponse(self, prefix):
+        response = {}
+        prefix = 'openid.%s.' % (prefix,)
+        prefix_len = len(prefix)
+        for k, v in self.signed_args.iteritems():
+            if k.startswith(prefix):
+                response_key = k[prefix_len:]
+                response[response_key] = v
+
+        return response
 
 class FailureResponse(object):
     status = 'failure'
@@ -509,13 +529,15 @@ class OpenIDConsumer(object):
             oidutil.log('Server ID mismatch')
             return FailureResponse(consumer_id, 'Server ID (delegate) mismatch')
 
+        signed = query.get('openid.signed')
+
         assoc = self.store.getAssociation(server_url, assoc_handle)
 
         if assoc is None:
             # It's not an association we know about.  Dumb mode is our
             # only possible path for recovery.
             if self._checkAuth(nonce, query, server_url):
-                return SuccessResponse(consumer_id)
+                return SuccessResponse.fromQuery(consumer_id, query, signed)
             else:
                 return FailureResponse(consumer_id,
                                        'Server denied check_authentication')
@@ -532,7 +554,6 @@ class OpenIDConsumer(object):
 
         # Check the signature
         sig = query.get('openid.sig')
-        signed = query.get('openid.signed')
         if sig is None or signed is None:
             oidutil.log('Missing argument signature')
             return FailureResponse(consumer_id, 'Missing argument signature')
@@ -548,7 +569,7 @@ class OpenIDConsumer(object):
             oidutil.log('Nonce not present')
             return FailureResponse(consumer_id, 'Nonce not present (replay?)')
 
-        return SuccessResponse(consumer_id)
+        return SuccessResponse.fromQuery(consumer_id, query, signed)
 
     def _checkAuth(self, nonce, query, server_url):
         signed = query.get('openid.signed')
