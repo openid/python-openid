@@ -580,8 +580,8 @@ class OpenIDConsumer(object):
         whitelist = ['assoc_handle', 'sig', 'signed', 'invalidate_handle']
         signed = signed.split(',') + whitelist
 
-        arg_filter = lambda (k, v): k[7:] in signed
-        check_args = dict(filter(arg_filter, query.iteritems()))
+        check_args = dict([(k, v) for k, v in query.iteritems()
+                           if k.startswith('openid.') and k[7:] in signed])
 
         check_args['openid.mode'] = 'check_authentication'
         response = self._makeKVPost(check_args, server_url)
