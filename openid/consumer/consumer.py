@@ -168,21 +168,11 @@ USING THIS LIBRARY
     the token saved earlier.  See the documentation for
     C{L{OpenIDRequestBuilder}} for more information about the token.
 
-    Otherwise, the next step is to extract the token value set in the
-    first half of the OpenID login.  Create a C{L{OpenIDConsumer}}
-    object, and call its
-    C{L{completeAuth<OpenIDConsumer.completeAuth>}} method with that
-    token and a dictionary of all the query arguments.  This call will
-    return a status code and some additional information describing
-    the the server's response.  See the documentation for
-    C{L{completeAuth<OpenIDConsumer.completeAuth>}} for a full
-    explanation of the possible responses.
+    There are multiple possible return types possible from that
+    method.  These indicate the whether or not the login was
+    successful, and include any additional information appropriate for
+    their type.
 
-    At this point, you have an identity URL that you know belongs to
-    the user who made that request.  Some sites will use that URL
-    directly as the user name.  Other sites will want to map that URL
-    to a username in the site's traditional namespace.  At this point,
-    you can take whichever action makes the most sense.
 
 
 @var SUCCESS: This is the status code returned when either the of the
