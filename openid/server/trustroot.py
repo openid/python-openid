@@ -137,27 +137,37 @@ class TrustRoot(object):
         if port != self.port:
             return False
 
-        if path != self.path:
-            if '?' in self.path:
-                sep = '&'
-            else:
-                sep = '/'
-
-            if not self.path.endswith(sep):
-                spath = self.path + sep
-            else:
-                spath = self.path
-
-            if not path.startswith(spath):
-                return False
-
         if '*' in host:
             return False
 
         if not self.wildcard:
-            return host == self.host
-        else:
-            return host.endswith(self.host) or ('.' + host) == self.host
+            if host != self.host:
+                return False
+        elif ((not host.endswith(self.host)) and
+              ('.' + host) != self.host):
+            return False
+
+        if path != self.path:
+            path_len = len(self.path)
+            trust_prefix = self.path[:path_len]
+            url_prefix = path[:path_len]
+
+            # must be equal up to the length of the path, at least
+            if trust_prefix != url_prefix:
+                return False
+
+            # These characters must be on the boundary between the end
+            # of the trust root's path and the start of the URL's
+            # path.
+            if '?' in self.path:
+                allowed = '&'
+            else:
+                allowed = '?/'
+
+            return (self.path[-1] in allowed or
+                path[path_len] in allowed)
+
+        return True
 
     def parse(cls, trust_root):
         """

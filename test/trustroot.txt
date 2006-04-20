@@ -59,7 +59,7 @@ return_to matching
 ========================================
 
 ----------------------------------------
-30: matches
+32: matches
 ----------------------------------------
 http://*/                             http://cnn.com/
 http://*/                             http://livejournal.com/
@@ -91,6 +91,8 @@ https://foo.com                       https://foo.com
 http://Foo.com                        http://foo.com
 http://foo.com                        http://Foo.com
 http://foo.com/?x=y                   http://foo.com/?x=y&a=b
+http://foo.com/x                      http://foo.com/x?y
+http://mylid.net/j3h.                 http://mylid.net/j3h.?x=y
 
 ----------------------------------------
 23: does not match
