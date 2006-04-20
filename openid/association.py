@@ -299,7 +299,7 @@ class Association(object):
         """
         pairs = []
         for field in fields:
-            pairs.append((field, data[prefix + field]))
+            pairs.append((field, data.get(prefix + field, '')))
 
         return oidutil.toBase64(self.sign(pairs))
 
