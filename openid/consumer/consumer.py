@@ -138,7 +138,8 @@ USING THIS LIBRARY
     interface, if it provided.  If no session object is provided, the
     application code needs to store the information that would have
     been put in the session in an alternate location.  See the
-    documentation for the XXX call for more information.
+    documentation for the XXX call for more information.  The XXX
+    method returns a C{L{OpenIDRequestbuilder}} object.
 
     Now that you have the C{L{OpenIDAuthRequest}} object, you need to
     preserve the value in its C{L{token<OpenIDAuthRequest.token>}}
