@@ -235,16 +235,33 @@ from openid import oidutil
 from openid.association import Association
 from openid.dh import DiffieHellman
 
-__all__ = ['SUCCESS', 'FAILURE', 'SETUP_NEEDED', 'HTTP_FAILURE', 'PARSE_ERROR',
-           'OpenIDAuthRequest', 'OpenIDConsumer']
+__all__ = ['OpenIDAuthRequest', 'OpenIDConsumer']
 
-SUCCESS = 'success'
-FAILURE = 'failure'
-SETUP_NEEDED = 'setup needed'
+class SuccessResponse(object):
+    status = 'success'
 
-HTTP_FAILURE = 'http failure'
-PARSE_ERROR = 'parse error'
+    def __init__(self, identity_url):
+        self.identity_url = identity_url
 
+class FailureResponse(object):
+    status = 'failure'
+
+    def __init__(self, identity_url=None, message=None):
+        self.identity_url = identity_url
+        self.message = message
+
+class CancelledResponse(object):
+    status = 'cancelled'
+
+    def __init__(self, identity_url=None):
+        self.identity_url = identity_url
+
+class SetupNeededResponse(object):
+    status = 'setup_needed'
+
+    def __init__(self, identity_url=None, setup_url=None):
+        self.identity_url = identity_url
+        self.setup_url = setup_url
 
 class OpenIDConsumer(object):
     """
@@ -419,18 +436,17 @@ class OpenIDConsumer(object):
 
         mode = query.get('openid.mode', '')
         if mode == 'cancel':
-            return SUCCESS, None
+            return CancelledResponse(identity_url)
         elif mode == 'error':
             error = query.get('openid.error')
-            if error is not None:
-                oidutil.log(error)
-            return FAILURE, None
+            return FailureResponse(identity_url, error)
         elif mode == 'id_res':
             if pieces is None:
-                return FAILURE, None
+                return FailureResponse(identity_url, 'No session state found')
             return self._doIdRes(query, *pieces)
         else:
-            return FAILURE, None
+            return FailureResponse(identity_url,
+                                   'Invalid openid.mode: %r' % (mode,))
 
     def _makeKVPost(self, args, server_url):
         mode = args['openid.mode']
@@ -479,7 +495,7 @@ class OpenIDConsumer(object):
     def _doIdRes(self, query, nonce, consumer_id, server_id, server_url):
         user_setup_url = query.get('openid.user_setup_url')
         if user_setup_url is not None:
-            return SETUP_NEEDED, user_setup_url
+            return SetupNeededResponse(consumer_id, user_setup_url)
 
         return_to = query.get('openid.return_to')
         server_id2 = query.get('openid.identity')
@@ -487,18 +503,22 @@ class OpenIDConsumer(object):
 
         if return_to is None or server_id is None or assoc_handle is None:
             oidutil.log('Missing required field')
-            return FAILURE, consumer_id
+            return FailureResponse(consumer_id, 'Missing required field')
 
         if server_id != server_id2:
             oidutil.log('Server ID mismatch')
-            return FAILURE, consumer_id
+            return FailureResponse(consumer_id, 'Server ID (delegate) mismatch')
 
         assoc = self.store.getAssociation(server_url, assoc_handle)
 
         if assoc is None:
             # It's not an association we know about.  Dumb mode is our
             # only possible path for recovery.
-            return self._checkAuth(nonce, query, server_url), consumer_id
+            if self._checkAuth(nonce, query, server_url):
+                return SuccessResponse(consumer_id)
+            else:
+                return FailureResponse(consumer_id,
+                                       'Server denied check_authentication')
 
         if assoc.expiresIn <= 0:
             # XXX: It might be a good idea sometimes to re-start the
@@ -506,34 +526,35 @@ class OpenIDConsumer(object):
             # automatically opens the possibility for
             # denial-of-service by a server that just returns expired
             # associations (or really short-lived associations)
-            oidutil.log('Association with %s expired' % (server_url,))
-            return FAILURE, consumer_id
+            msg = 'Association with %s expired' % (server_url,)
+            oidutil.log(msg)
+            return FailureResponse(consumer_id, msg)
 
         # Check the signature
         sig = query.get('openid.sig')
         signed = query.get('openid.signed')
         if sig is None or signed is None:
             oidutil.log('Missing argument signature')
-            return FAILURE, consumer_id
+            return FailureResponse(consumer_id, 'Missing argument signature')
 
         signed_list = signed.split(',')
         v_sig = assoc.signDict(signed_list, query)
 
         if v_sig != sig:
             oidutil.log('Bad argument signature')
-            return FAILURE, consumer_id
+            return FailureResponse(consumer_id, 'Bad signature')
 
         if not self.store.useNonce(nonce):
             oidutil.log('Nonce not present')
-            return FAILURE, consumer_id
+            return FailureResponse(consumer_id, 'Nonce not present (replay?)')
 
-        return SUCCESS, consumer_id
+        return SuccessResponse(consumer_id)
 
     def _checkAuth(self, nonce, query, server_url):
         signed = query.get('openid.signed')
         if signed is None:
             oidutil.log('No signature present; checkAuth aborted')
-            return FAILURE
+            return False
 
         whitelist = ['assoc_handle', 'sig', 'signed', 'invalidate_handle']
         signed = signed.split(',') + whitelist
@@ -544,7 +565,7 @@ class OpenIDConsumer(object):
         check_args['openid.mode'] = 'check_authentication'
         response = self._makeKVPost(check_args, server_url)
         if response is None:
-            return FAILURE
+            return False
 
         is_valid = response.get('is_valid', 'false')
 
@@ -555,12 +576,12 @@ class OpenIDConsumer(object):
 
             if not self.store.useNonce(nonce):
                 oidutil.log('Nonce already used')
-                return FAILURE
+                return False
 
-            return SUCCESS
+            return True
 
         oidutil.log('Server responds that checkAuth call is not valid')
-        return FAILURE
+        return False
 
     def _getAssociation(self, server_url):
         if self.store.isDumb():

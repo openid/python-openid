@@ -5,8 +5,6 @@ import time
 from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.discover import OpenIDServiceEndpoint
 from openid.consumer.consumer import OpenIDConsumer
-from openid.consumer.consumer import SUCCESS, \
-     HTTP_FAILURE, PARSE_ERROR, SETUP_NEEDED, FAILURE
 from openid import association
 
 from openid.consumer import parse
@@ -144,9 +142,9 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         assoc = store.getAssociation(server_url, fetcher.assoc_handle)
         assoc.addSignature(['mode', 'return_to', 'identity'], query)
 
-        (status, info) = consumer.completeAuth(query)
-        assert status == 'success'
-        assert info == user_url
+        info = consumer.completeAuth(query)
+        assert info.status == 'success'
+        assert info.identity_url == user_url
 
     assert fetcher.num_assocs == 0
     run()
@@ -245,8 +243,8 @@ class TestSetupNeeded(TestIdRes):
                                      self.server_id,
                                      self.server_url,
                                      )
-        self.failUnlessEqual(ret[0], SETUP_NEEDED)
-        self.failUnlessEqual(ret[1], setup_url)
+        self.failUnlessEqual(ret.status, 'setup_needed')
+        self.failUnlessEqual(ret.setup_url, setup_url)
 
 class CheckAuthHappened(Exception): pass
 
@@ -332,9 +330,9 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.identity':self.server_id,
             'openid.assoc_handle':handle,
             }
-        status, info = self._doIdRes(query)
-        self.failUnlessEqual(FAILURE, status)
-        self.failUnlessEqual(self.consumer_id, info)
+        info = self._doIdRes(query)
+        self.failUnlessEqual('failure', info.status)
+        self.failUnlessEqual(self.consumer_id, info.identity_url)
         self.failUnlessEqual(1, len(self.messages), self.messages)
         message = self.messages[0].lower()
         message.index('expired') # raises an exception if it's not there
@@ -365,10 +363,9 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             }
 
         good_assoc.addSignature(['return_to', 'identity'], query)
-        status, info = self._doIdRes(query)
-
-        self.failUnlessEqual(SUCCESS, status)
-        self.failUnlessEqual(self.consumer_id, info)
+        info = self._doIdRes(query)
+        self.failUnlessEqual(info.status, 'success')
+        self.failUnlessEqual(self.consumer_id, info.identity_url)
 
 
 class MockFetcher(object):
@@ -399,7 +396,7 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
         nonce = "nonce"
         query = {'openid.signed': 'stuff, things'}
         r = self.consumer._checkAuth(nonce, query, http_server_url)
-        self.failUnlessEqual(r, FAILURE)
+        self.failIf(r)
         self.failUnless(self.messages)
 
 class TestFetchAssoc(unittest.TestCase, CatchLogs):
