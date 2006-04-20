@@ -30,6 +30,7 @@ from openid.store import filestore
 from openid.consumer import consumer
 from openid.oidutil import appendArgs
 from openid.cryptutil import randomString
+from yadis.discover import DiscoveryFailure
 from urljr.fetchers import HTTPFetchingError
 
 class OpenIDHTTPServer(HTTPServer):
@@ -149,6 +150,12 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         except HTTPFetchingError, exc:
             fetch_error_string = 'Error retrieving identity URL: %s' % (
                 cgi.escape(str(exc.why)))
+            self.render(fetch_error_string,
+                        css_class='error',
+                        form_contents=openid_url)
+        except DiscoveryFailure, exc:
+            fetch_error_string = 'Error retrieving identity URL: %s' % (
+                cgi.escape(str(exc[0])))
             self.render(fetch_error_string,
                         css_class='error',
                         form_contents=openid_url)
