@@ -361,11 +361,6 @@ class OpenIDConsumer(object):
         """
         self.store = store
 
-    def _createNonce(self):
-        nonce = cryptutil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
-        self.store.storeNonce(nonce)
-        return nonce
-
     def begin(self, service_endpoint, session):
         nonce = self._createNonce()
         token = self._genToken(
@@ -462,6 +457,11 @@ class OpenIDConsumer(object):
         else:
             return FailureResponse(identity_url,
                                    'Invalid openid.mode: %r' % (mode,))
+
+    def _createNonce(self):
+        nonce = cryptutil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
+        self.store.storeNonce(nonce)
+        return nonce
 
     def _makeKVPost(self, args, server_url):
         mode = args['openid.mode']
