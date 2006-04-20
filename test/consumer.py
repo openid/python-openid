@@ -374,6 +374,18 @@ class MockFetcher(object):
         self.fetches.append((url, body, headers))
         return self.response
 
+class ExceptionRaisingMockFetcher(object):
+    def fetch(self, url, body=None, headers=None):
+        raise Exception('mock fetcher exception')
+
+class BadArgCheckingConsumer(OpenIDConsumer):
+    def _makeKVPost(self, args, _):
+        assert args == {
+            'openid.mode':'check_authentication',
+            'openid.signed':'foo',
+            }, args
+        return None
+
 class TestCheckAuth(unittest.TestCase, CatchLogs):
     consumer_class = OpenIDConsumer
 
@@ -395,6 +407,14 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
         self.failIf(r)
         self.failUnless(self.messages)
 
+    def test_bad_args(self):
+        query = {
+            'openid.signed':'foo',
+            'closid.foo':'something',
+            }
+        consumer = BadArgCheckingConsumer(self.store)
+        consumer._checkAuth('nonce', query, 'does://not.matter')
+
 class TestFetchAssoc(unittest.TestCase, CatchLogs):
     consumer_class = OpenIDConsumer
 
@@ -412,6 +432,23 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
                                       "http://server_url")
         self.failUnlessEqual(r, None)
         self.failUnless(self.messages)
+
+    def test_error_exception(self):
+        self.fetcher = ExceptionRaisingMockFetcher()
+        fetchers.setDefaultFetcher(self.fetcher)
+        self.failUnlessRaises(fetchers.HTTPFetchingError,
+                              self.consumer._makeKVPost,
+                              {'openid.mode':'associate'},
+                              "http://server_url")
+
+        # exception fetching returns no association
+        self.failUnless(self.consumer._getAssociation('some://url') is None)
+
+        self.failUnlessRaises(fetchers.HTTPFetchingError,
+                              self.consumer._checkAuth,
+                              'nonce',
+                              {'openid.signed':''},
+                              'some://url')
 
 if __name__ == '__main__':
     unittest.main()
