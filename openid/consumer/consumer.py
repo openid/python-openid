@@ -141,15 +141,6 @@ USING THIS LIBRARY
     documentation for the XXX call for more information.  The XXX
     method returns a C{L{OpenIDRequestbuilder}} object.
 
-    Now that you have the C{L{OpenIDAuthRequest}} object, you need to
-    preserve the value in its C{L{token<OpenIDAuthRequest.token>}}
-    field for lookup on the user's next request from your site.  There
-    are several approaches for doing this which will work.  If your
-    environment has any kind of session-tracking system, storing the
-    token in the session is a good approach.  If it doesn't you can
-    store the token in either a cookie or in the return_to url
-    provided in the next step.
-
     The next step is to call the
     C{L{constructRedirect<OpenIDConsumer.constructRedirect>}} method
     on the C{L{OpenIDConsumer}} object.  Pass it the
