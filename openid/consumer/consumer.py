@@ -162,6 +162,12 @@ USING THIS LIBRARY
     the URL by the identity server as the information necessary to
     finish the request.
 
+    Get an C{L{OpenIDConsumer}} instance, and call its
+    C{L{complete<OpenIDConsumer.complete>}} method, passing in all the
+    received query arguments and either the user's session object or
+    the token saved earlier.  See the documentation for
+    C{L{OpenIDRequestBuilder}} for more information about the token.
+
     Otherwise, the next step is to extract the token value set in the
     first half of the OpenID login.  Create a C{L{OpenIDConsumer}}
     object, and call its
