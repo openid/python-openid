@@ -235,53 +235,8 @@ from openid import oidutil
 from openid.association import Association
 from openid.dh import DiffieHellman
 
-__all__ = ['OpenIDAuthRequest', 'OpenIDConsumer']
-
-class SuccessResponse(object):
-    status = 'success'
-
-    def __init__(self, identity_url, signed_args):
-        self.identity_url = identity_url
-        self.signed_args = signed_args
-
-    def fromQuery(cls, identity_url, query, signed):
-        signed_args = {}
-        for field_name in signed.split(','):
-            signed_args[field_name] = query.get(field_name, '')
-        return cls(identity_url, signed_args)
-
-    fromQuery = classmethod(fromQuery)
-
-    def extensionResponse(self, prefix):
-        response = {}
-        prefix = 'openid.%s.' % (prefix,)
-        prefix_len = len(prefix)
-        for k, v in self.signed_args.iteritems():
-            if k.startswith(prefix):
-                response_key = k[prefix_len:]
-                response[response_key] = v
-
-        return response
-
-class FailureResponse(object):
-    status = 'failure'
-
-    def __init__(self, identity_url=None, message=None):
-        self.identity_url = identity_url
-        self.message = message
-
-class CancelledResponse(object):
-    status = 'cancelled'
-
-    def __init__(self, identity_url=None):
-        self.identity_url = identity_url
-
-class SetupNeededResponse(object):
-    status = 'setup_needed'
-
-    def __init__(self, identity_url=None, setup_url=None):
-        self.identity_url = identity_url
-        self.setup_url = setup_url
+__all__ = ['OpenIDAuthRequest', 'OpenIDConsumer', 'SuccessResponse',
+           'SetupNeededResponse', 'CancelResponse', 'FailureResponse']
 
 class OpenIDConsumer(object):
     """
@@ -450,7 +405,7 @@ class OpenIDConsumer(object):
                 identity_url = pieces[1]
 
         if mode == 'cancel':
-            return CancelledResponse(identity_url)
+            return CancelResponse(identity_url)
         elif mode == 'error':
             error = query.get('openid.error')
             return FailureResponse(identity_url, error)
@@ -746,3 +701,52 @@ class OpenIDAuthRequest(object):
 
         redir_args.update(self.extension_args)
         return oidutil.appendArgs(self.endpoint.server_url, redir_args)
+
+class OpenIDConsumerResponse(object):
+    status = None
+
+class SuccessResponse(OpenIDConsumerResponse):
+    status = 'success'
+
+    def __init__(self, identity_url, signed_args):
+        self.identity_url = identity_url
+        self.signed_args = signed_args
+
+    def fromQuery(cls, identity_url, query, signed):
+        signed_args = {}
+        for field_name in signed.split(','):
+            signed_args[field_name] = query.get(field_name, '')
+        return cls(identity_url, signed_args)
+
+    fromQuery = classmethod(fromQuery)
+
+    def extensionResponse(self, prefix):
+        response = {}
+        prefix = 'openid.%s.' % (prefix,)
+        prefix_len = len(prefix)
+        for k, v in self.signed_args.iteritems():
+            if k.startswith(prefix):
+                response_key = k[prefix_len:]
+                response[response_key] = v
+
+        return response
+
+class FailureResponse(OpenIDConsumerResponse):
+    status = 'failure'
+
+    def __init__(self, identity_url=None, message=None):
+        self.identity_url = identity_url
+        self.message = message
+
+class CancelResponse(OpenIDConsumerResponse):
+    status = 'cancelled'
+
+    def __init__(self, identity_url=None):
+        self.identity_url = identity_url
+
+class SetupNeededResponse(OpenIDConsumerResponse):
+    status = 'setup_needed'
+
+    def __init__(self, identity_url=None, setup_url=None):
+        self.identity_url = identity_url
+        self.setup_url = setup_url
