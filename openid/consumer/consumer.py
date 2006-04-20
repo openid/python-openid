@@ -575,6 +575,8 @@ class OpenIDConsumer(object):
             oidutil.log('No signature present; checkAuth aborted')
             return False
 
+        # Arguments that are always passed to the server and not
+        # included in the signature.
         whitelist = ['assoc_handle', 'sig', 'signed', 'invalidate_handle']
         signed = signed.split(',') + whitelist
 
