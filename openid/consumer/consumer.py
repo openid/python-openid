@@ -252,7 +252,7 @@ class OpenIDConsumer(object):
         self._token_key = self.session_key_prefix + self._token
 
     def begin(self, user_url):
-        openid_url = oidutil.normalizeURL(user_url)
+        openid_url = oidutil.normalizeUrl(user_url)
         disco = Discovery(self.session, openid_url, 'XXX')
         endpoint = disco.getNextService(openIDDiscover)
         if endpoint is None:
