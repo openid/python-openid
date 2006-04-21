@@ -1,9 +1,20 @@
 from urljr import fetchers
-from yadis.etxrd import nsTag, XRDSError
-from yadis.services import applyFilter as extractServices
-from yadis.discover import discover as yadisDiscover
-from yadis.discover import DiscoveryFailure
-from yadis.manager import YadisServiceManager
+
+# If the Yadis library is available, use it. Otherwise, only use
+# old-style discovery.
+try:
+    import yadis
+except ImportError:
+    yadis_available = False
+    class DisccoveryFailure(RuntimeError):
+        """Stand-in in case we don't have Yadis"""
+else:
+    yadis_available = True
+    from yadis.etxrd import nsTag, XRDSError
+    from yadis.services import applyFilter as extractServices
+    from yadis.discover import discover as yadisDiscover
+    from yadis.discover import DiscoveryFailure
+
 from openid.consumer.parse import openIDDiscover as parseOpenIDLinkRel
 from openid.consumer.parse import ParseError
 from openid.oidutil import normalizeUrl
@@ -12,8 +23,6 @@ OPENID_1_0_NS = 'http://openid.net/xmlns/1.0'
 OPENID_1_2_TYPE = 'http://openid.net/signon/1.2'
 OPENID_1_1_TYPE = 'http://openid.net/signon/1.1'
 OPENID_1_0_TYPE = 'http://openid.net/signon/1.0'
-
-delegate_tag = nsTag(OPENID_1_0_NS, 'Delegate')
 
 class OpenIDServiceEndpoint(object):
     """Object representing an OpenID service endpoint."""
@@ -94,6 +103,8 @@ def findDelegate(service_element):
     represented as an ElementTree Element object. If no delegate is
     found, returns None."""
     # XXX: should this die if there is more than one delegate element?
+    delegate_tag = nsTag(OPENID_1_0_NS, 'Delegate')
+
     delegates = service_element.findall(delegate_tag)
     for delegate_element in delegates:
         delegate = delegate_element.text
@@ -103,7 +114,7 @@ def findDelegate(service_element):
 
     return delegate
 
-def discover(uri):
+def discoverYadis(uri):
     """Discover OpenID services for a URI. Tries Yadis and falls back
     on old-style <link rel='...'> discovery if Yadis fails.
 
@@ -117,8 +128,8 @@ def discover(uri):
     """
     # Might raise a yadis.discover.DiscoveryFailure if no document
     # came back for that URI at all.  I don't think falling back
-    # to OpenID 1.0 discovery on the same URL will help, so don't bother
-    # to catch it.
+    # to OpenID 1.0 discovery on the same URL will help, so don't
+    # bother to catch it.
     response = yadisDiscover(uri)
 
     identity_url = response.normalized_uri
@@ -133,17 +144,11 @@ def discover(uri):
     if not openid_services:
         # Either not an XRDS or there are no OpenID services.
 
-        # if we got the Yadis content-type or followed the Yadis
-        # header, re-fetch the document without following the Yadis
-        # header, with no Accept header.
         if response.isXRDS():
-            http_resp = fetchers.fetch(uri)
-            if http_resp.status != 200:
-                raise DiscoveryFailure(
-                    'HTTP Response status from identity URL host is not 200. '
-                    'Got status %r' % (http_resp.status,), http_resp)
-            body = http_resp.body
-            identity_url = http_resp.final_url
+            # if we got the Yadis content-type or followed the Yadis
+            # header, re-fetch the document without following the Yadis
+            # header, with no Accept header.
+            return discoverNoYadis(uri)
         else:
             body = response.response_text
 
@@ -157,3 +162,27 @@ def discover(uri):
             openid_services = [service]
 
     return (identity_url, openid_services)
+
+def discoverNoYadis(uri):
+    http_resp = fetchers.fetch(uri)
+    if http_resp.status != 200:
+        raise DiscoveryFailure(
+            'HTTP Response status from identity URL host is not 200. '
+            'Got status %r' % (http_resp.status,), http_resp)
+    identity_url = http_resp.final_url
+
+    # Try to parse the response as HTML to get OpenID 1.0/1.1
+    # <link rel="...">
+    try:
+        service = OpenIDServiceEndpoint.fromHTML(identity_url, http_resp.body)
+    except ParseError:
+        openid_services = []
+    else:
+        openid_services = [service]
+
+    return identity_url, openid_services
+
+if yadis_available:
+    discover = discoverYadis
+else:
+    discover = discoverNoYadis
