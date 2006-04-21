@@ -78,10 +78,10 @@ STORES AND DUMB MODE
     Several store implementation are provided, and the interface is
     fully documented so that custom stores can be used as well.  See
     the documentation for the C{L{OpenIDConsumer}} class for more
-    information on the interface for stores.  The concrete
-    implementations that are provided allow the consumer site to store
-    the necessary data in several different ways, including several
-    SQL databases and normal files on disk.
+    information on the interface for stores.  The implementations that
+    are provided allow the consumer site to store the necessary data
+    in several different ways, including several SQL databases and
+    normal files on disk.
 
     There is an additional concrete store provided that puts the
     system in dumb mode.  This is not recommended, as it removes the
