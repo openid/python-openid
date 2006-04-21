@@ -230,16 +230,18 @@ from urlparse import urlparse
 from urljr import fetchers
 
 from openid.consumer.discover import discover as openIDDiscover
+from openid.consumer.discover import yadis_available
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
 from openid.association import Association
 from openid.dh import DiffieHellman
 
-from yadis.manager import Discovery
-
 __all__ = ['OpenIDAuthRequest', 'OpenIDConsumer', 'SuccessResponse',
            'SetupNeededResponse', 'CancelResponse', 'FailureResponse']
+
+if yadis_available:
+    from yadis.manager import Discovery
 
 class OpenIDConsumer(object):
     session_key_prefix = "_openid_consumer_"
@@ -253,8 +255,16 @@ class OpenIDConsumer(object):
 
     def begin(self, user_url):
         openid_url = oidutil.normalizeUrl(user_url)
-        disco = Discovery(self.session, openid_url, 'XXX')
-        endpoint = disco.getNextService(openIDDiscover)
+        if yadis_available:
+            disco = Discovery(self.session, openid_url, 'XXX')
+            endpoint = disco.getNextService(openIDDiscover)
+        else:
+            _, endpoints = openIDDiscover(openid_url)
+            if not endpoints:
+                endpoint = None
+            else:
+                endpoint = endpoints[0]
+
         if endpoint is None:
             return None
         else:
@@ -275,7 +285,7 @@ class OpenIDConsumer(object):
         if response.status in ['success',
                                'cancel'#maybe
                                ]:
-            if response.identity_url is not None:
+            if yadis_available and response.identity_url is not None:
                 disco = Discovery(self.session, response.identity_url)
                 # This is OK to do even if we did not do discovery in
                 # the first place.
