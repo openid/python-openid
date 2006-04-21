@@ -1236,7 +1236,7 @@ class OpenIDServer(object):
             for that type of request.
         """
         handler = getattr(self, 'openid_' + request.mode, None)
-        if request is not None:
+        if handler is not None:
             return handler(request)
         else:
             raise NotImplementedError(
