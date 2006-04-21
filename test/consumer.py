@@ -12,8 +12,6 @@ from openid.consumer import parse
 from urljr.fetchers import HTTPResponse
 from urljr import fetchers
 
-from yadis.discover import DiscoveryFailure
-
 import _memstore
 
 assocs = [
