@@ -1,11 +1,17 @@
 from urljr import fetchers
 
+from openid import oidutil
+
 # If the Yadis library is available, use it. Otherwise, only use
 # old-style discovery.
 try:
     import yadis
 except ImportError:
     yadis_available = False
+
+    oidutil.log('Consumer operating without Yadis support '
+                '(failed to import Yadis library)')
+
     class DisccoveryFailure(RuntimeError):
         """Stand-in in case we don't have Yadis"""
 else:
