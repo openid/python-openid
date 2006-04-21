@@ -17,9 +17,8 @@ OVERVIEW
         1. The user enters their OpenID into a field on the consumer's
            site, and hits a login button.
 
-        2. The consumer site checks that the entered URL describes an
-           OpenID page by fetching it and looking for appropriate link
-           tags in the head section.
+        2. The consumer site discovers the user's OpenID server using
+           the YADIS protocol.
 
         3. The consumer site sends the browser a redirect to the
            identity server.  This is the authentication request as
