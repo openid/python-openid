@@ -195,6 +195,7 @@ class CheckAuthRequest(OpenIDRequest):
                     # openid.mode is currently check_authentication because
                     # that's the mode of this request.  But the signature
                     # was made on something with a different openid.mode.
+                    # http://article.gmane.org/gmane.comp.web.openid.general/537
                     value = "id_res"
                 else:
                     value = query[OPENID_PREFIX + field]
