@@ -171,11 +171,7 @@ USING THIS LIBRARY
 
 
 
-@var SUCCESS: This is the status code returned when either the of the
-    C{L{beginAuth<openid.consumer.consumer.OpenIDConsumer.beginAuth>}}
-    or
-    C{L{completeAuth<openid.consumer.consumer.OpenIDConsumer.completeAuth>}}
-    methods return successfully.
+@var SUCCESS: This is a status code indicating success.
 
 @var HTTP_FAILURE: This is the status code
     C{L{beginAuth<openid.consumer.consumer.OpenIDConsumer.beginAuth>}}
