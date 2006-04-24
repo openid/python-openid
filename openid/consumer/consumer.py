@@ -170,19 +170,7 @@ USING THIS LIBRARY
     their type.
 
 
-
-@var SUCCESS: This is a status code indicating success.
-
-@var CANCELLED: This is a status code indicating cancellation.
-
-@var FAILURE: This is a status code indicating failure.
-
-@var SETUP_NEEDED: This is the status code used to indicate that the
-   OpenID Server returned a user setup URL when working in immediate
-   mode.
-
-@sort: OpenIDConsumer, OpenIDAuthRequest, SUCCESS, CANCELLED, FAILURE,
-    SETUP_NEEDED
+@sort: OpenIDConsumer, OpenIDAuthRequest
 """
 
 import string
