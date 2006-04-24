@@ -168,9 +168,6 @@ USING THIS LIBRARY
     method.  These indicate the whether or not the login was
     successful, and include any additional information appropriate for
     their type.
-
-
-@sort: OpenIDConsumer, OpenIDAuthRequest
 """
 
 import string
