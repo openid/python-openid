@@ -173,6 +173,8 @@ USING THIS LIBRARY
 
 @var SUCCESS: This is a status code indicating success.
 
+@var CANCELLED: This is a status code indicating cancellation.
+
 @var FAILURE: This is the status code
     C{L{completeAuth<openid.consumer.consumer.OpenIDConsumer.completeAuth>}}
     returns when the value it received indicated an invalid login.
@@ -183,7 +185,8 @@ USING THIS LIBRARY
     mode, and the identity server sends back a URL to send the user to
     to complete his or her login.
 
-@sort: OpenIDConsumer, OpenIDAuthRequest, SUCCESS, FAILURE, SETUP_NEEDED
+@sort: OpenIDConsumer, OpenIDAuthRequest, SUCCESS, CANCELLED, FAILURE,
+    SETUP_NEEDED
 """
 
 import string
