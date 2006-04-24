@@ -177,11 +177,9 @@ USING THIS LIBRARY
 
 @var FAILURE: This is a status code indicating failure.
 
-@var SETUP_NEEDED: This is the status code
-    C{L{completeAuth<openid.consumer.consumer.OpenIDConsumer.completeAuth>}}
-    returns when the C{L{OpenIDConsumer}} instance is in immediate
-    mode, and the identity server sends back a URL to send the user to
-    to complete his or her login.
+@var SETUP_NEEDED: This is the status code used to indicate that the
+   OpenID Server returned a user setup URL when working in immediate
+   mode.
 
 @sort: OpenIDConsumer, OpenIDAuthRequest, SUCCESS, CANCELLED, FAILURE,
     SETUP_NEEDED
