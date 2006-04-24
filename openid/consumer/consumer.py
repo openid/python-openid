@@ -173,16 +173,6 @@ USING THIS LIBRARY
 
 @var SUCCESS: This is a status code indicating success.
 
-@var HTTP_FAILURE: This is the status code
-    C{L{beginAuth<openid.consumer.consumer.OpenIDConsumer.beginAuth>}}
-    returns when it is unable to fetch the OpenID URL the user
-    entered.
-
-@var PARSE_ERROR: This is the status code
-    C{L{beginAuth<openid.consumer.consumer.OpenIDConsumer.beginAuth>}}
-    returns when the page fetched from the entered OpenID URL doesn't
-    contain the necessary link tags to function as an identity page.
-
 @var FAILURE: This is the status code
     C{L{completeAuth<openid.consumer.consumer.OpenIDConsumer.completeAuth>}}
     returns when the value it received indicated an invalid login.
@@ -193,8 +183,7 @@ USING THIS LIBRARY
     mode, and the identity server sends back a URL to send the user to
     to complete his or her login.
 
-@sort: OpenIDConsumer, OpenIDAuthRequest, SUCCESS, HTTP_FAILURE,
-    PARSE_ERROR, FAILURE, SETUP_NEEDED
+@sort: OpenIDConsumer, OpenIDAuthRequest, SUCCESS, FAILURE, SETUP_NEEDED
 """
 
 import string
