@@ -175,9 +175,7 @@ USING THIS LIBRARY
 
 @var CANCELLED: This is a status code indicating cancellation.
 
-@var FAILURE: This is the status code
-    C{L{completeAuth<openid.consumer.consumer.OpenIDConsumer.completeAuth>}}
-    returns when the value it received indicated an invalid login.
+@var FAILURE: This is a status code indicating failure.
 
 @var SETUP_NEEDED: This is the status code
     C{L{completeAuth<openid.consumer.consumer.OpenIDConsumer.completeAuth>}}
