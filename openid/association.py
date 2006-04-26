@@ -80,7 +80,7 @@ class Association(object):
         @param expires_in: This is the amount of time this association
             is good for, measured in seconds since the association was
             issued.
-        
+
         @type expires_in: C{int}
 
 
