@@ -119,19 +119,22 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         parsed = urlparse.urlparse(redirect_url)
         qs = parsed[4]
         q = parseQuery(qs)
+        new_return_to = q['openid.return_to']
+        del q['openid.return_to']
         assert q == {
             'openid.mode':mode,
             'openid.identity':delegate_url,
             'openid.trust_root':trust_root,
             'openid.assoc_handle':fetcher.assoc_handle,
-            'openid.return_to':return_to,
             }, (q, user_url, delegate_url, mode)
 
+        assert new_return_to.startswith(return_to)
         assert redirect_url.startswith(server_url)
 
         query = {
+            'nonce':request.return_to_args['nonce'],
             'openid.mode':'id_res',
-            'openid.return_to':return_to,
+            'openid.return_to':new_return_to,
             'openid.identity':delegate_url,
             'openid.assoc_handle':fetcher.assoc_handle,
             }
@@ -140,7 +143,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         assoc.addSignature(['mode', 'return_to', 'identity'], query)
 
         info = consumer.complete(query, request.token)
-        assert info.status == 'success'
+        assert info.status == 'success', info.message
         assert info.identity_url == user_url
 
     assert fetcher.num_assocs == 0

@@ -173,6 +173,7 @@ USING THIS LIBRARY
 import string
 import time
 import urllib
+import cgi
 from urlparse import urlparse
 
 from urljr import fetchers
@@ -279,13 +280,14 @@ class GenericOpenIDConsumer(object):
     def begin(self, service_endpoint):
         nonce = self._createNonce()
         token = self._genToken(
-            nonce,
             service_endpoint.identity_url,
             service_endpoint.getServerID(),
             service_endpoint.server_url,
             )
         assoc = self._getAssociation(service_endpoint.server_url)
-        return OpenIDAuthRequest(token, assoc, service_endpoint)
+        request = OpenIDAuthRequest(token, assoc, service_endpoint)
+        request.return_to_args['nonce'] = nonce
+        return request
 
     def complete(self, query, token):
         mode = query.get('openid.mode', '<no mode specified>')
@@ -295,9 +297,9 @@ class GenericOpenIDConsumer(object):
             pieces = self._splitToken(token)
         except ValueError, why:
             oidutil.log(why[0])
-            pieces = (None, None, None, None, None)
+            pieces = (None, None, None)
 
-        (nonce, identity_url, delegate, server_url) = pieces
+        (identity_url, delegate, server_url) = pieces
 
         if mode == 'cancel':
             return CancelResponse(identity_url)
@@ -314,15 +316,38 @@ class GenericOpenIDConsumer(object):
                 message = 'HTTP request failed: %s' % (str(why),)
                 return FailureResponse(identity_url, message)
             else:
-                if (response.status == 'success' and
-                    not self.store.useNonce(nonce)):
-
-                    return FailureResponse(identity_url, 'Nonce already used')
+                if response.status == 'success':
+                    return self._checkNonce(response, query.get('nonce'))
                 else:
                     return response
         else:
             return FailureResponse(identity_url,
                                    'Invalid openid.mode: %r' % (mode,))
+
+    def _checkNonce(self, response, nonce):
+        parsed_url = urlparse(response.getReturnTo())
+        query = parsed_url[4]
+        for k, v in cgi.parse_qsl(query):
+            if k == 'nonce':
+                if v != nonce:
+                    return FailureResponse(response.identity_url,
+                                           'Nonce mismatch')
+                else:
+                    break
+        else:
+            return FailureResponse(response.identity_url,
+                                   'Nonce missing from return_to: %r'
+                                   % (response.getReturnTo()))
+
+        # The nonce matches the signed nonce in the openid.return_to
+        # response parameter
+        if not self.store.useNonce(nonce):
+            return FailureResponse(response.identity_url,
+                                   'Nonce missing from store')
+
+        # If the nonce check succeeded, return the original success
+        # response
+        return response
 
     def _createNonce(self):
         nonce = cryptutil.randomString(self.NONCE_LEN, self.NONCE_CHRS)
@@ -466,9 +491,9 @@ class GenericOpenIDConsumer(object):
 
         return assoc
 
-    def _genToken(self, nonce, consumer_id, server_id, server_url):
+    def _genToken(self, consumer_id, server_id, server_url):
         timestamp = str(int(time.time()))
-        elements = [timestamp, nonce, consumer_id, server_id, server_url]
+        elements = [timestamp, consumer_id, server_id, server_url]
         joined = '\x00'.join(elements)
         sig = cryptutil.hmacSha1(self.store.getAuthKey(), joined)
 
@@ -484,7 +509,7 @@ class GenericOpenIDConsumer(object):
             raise ValueError('Bad token signature')
 
         split = joined.split('\x00')
-        if len(split) != 5:
+        if len(split) != 4:
             raise ValueError('Bad token contents (not enough fields)')
 
         try:
@@ -567,7 +592,7 @@ class GenericOpenIDConsumer(object):
             return None
 
 class OpenIDAuthRequest(object):
-    def __init__(self, token, assoc, endpoint):
+    def __init__(self, token, assoc, endpoint  ):
         """
         Creates a new OpenIDAuthRequest object.  This just stores each
         argument in an appropriately named field.
@@ -579,6 +604,7 @@ class OpenIDAuthRequest(object):
         self.assoc = assoc
         self.endpoint = endpoint
         self.extra_args = {}
+        self.return_to_args = {}
         self.token = token
 
     def addExtensionArg(self, namespace, key, value):
@@ -590,6 +616,8 @@ class OpenIDAuthRequest(object):
             mode = 'checkid_immediate'
         else:
             mode = 'checkid_setup'
+
+        return_to = oidutil.appendArgs(return_to, self.return_to_args)
 
         redir_args = {
             'openid.mode': mode,
@@ -633,6 +661,9 @@ class SuccessResponse(OpenIDConsumerResponse):
                 response[response_key] = v
 
         return response
+
+    def getReturnTo(self):
+        return self.signed_args['openid.return_to']
 
 class FailureResponse(OpenIDConsumerResponse):
     status = 'failure'
