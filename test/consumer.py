@@ -6,6 +6,8 @@ from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.discover import OpenIDServiceEndpoint
 from openid.consumer.consumer import GenericOpenIDConsumer
 from openid import association
+from openid.server.server import \
+     PlainTextServerSession, DiffieHellmanServerSession
 
 from openid.consumer import parse
 
@@ -32,31 +34,21 @@ def associate(qs, assoc_secret, assoc_handle):
     q = parseQuery(qs)
     assert q['openid.mode'] == 'associate'
     assert q['openid.assoc_type'] == 'HMAC-SHA1'
+    reply_dict = {
+        'assoc_type':'HMAC-SHA1',
+        'assoc_handle':assoc_handle,
+        'expires_in':'600',
+        }
+
     if q.get('openid.session_type') == 'DH-SHA1':
         assert len(q) == 6 or len(q) == 4
-        d = dh.DiffieHellman.fromBase64(
-            q.get('openid.dh_modulus'), q.get('openid.dh_gen'))
-
-        composite = cryptutil.base64ToLong(q['openid.dh_consumer_public'])
-        enc_mac_key = oidutil.toBase64(d.xorSecret(composite, assoc_secret))
-        reply_dict = {
-            'assoc_type':'HMAC-SHA1',
-            'assoc_handle':assoc_handle,
-            'expires_in':'600',
-            'session_type':'DH-SHA1',
-            'dh_server_public':cryptutil.longToBase64(d.public),
-            'enc_mac_key':enc_mac_key,
-            }
+        session = DiffieHellmanServerSession.fromQuery(q)
+        reply_dict['session_type'] = 'DH-SHA1'
     else:
         assert len(q) == 2
-        mac_key = oidutil.toBase64(assoc_secret)
-        reply_dict = {
-            'assoc_type':'HMAC-SHA1',
-            'assoc_handle':assoc_handle,
-            'expires_in':'600',
-            'mac_key':mac_key,
-            }
+        session = PlainTextServerSession.fromQuery(q)
 
+    reply_dict.update(session.answer(assoc_secret))
     return kvform.dictToKV(reply_dict)
 
 class TestFetcher(object):

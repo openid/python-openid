@@ -251,6 +251,103 @@ class CheckAuthRequest(OpenIDRequest):
         return s
 
 
+class PlainTextServerSession(object):
+    """An object that knows how to handle association requests with no
+    session type.
+
+    @cvar session_type: The session_type for this association
+        session. There is no type defined for plain-text in the OpenID
+        specification, so we use 'plaintext'.
+    @type session_type: str
+
+    @see: U{OpenID Specs, Mode: associate
+        <http://openid.net/specs.bml#mode-associate>}
+    @see: AssociateRequest
+    """
+    session_type = 'plaintext'
+
+    def fromQuery(cls, unused_request):
+        return cls()
+
+    fromQuery = classmethod(fromQuery)
+
+    def answer(self, secret):
+        return {'mac_key': oidutil.toBase64(secret)}
+
+
+class DiffieHellmanServerSession(object):
+    """An object that knows how to handle association requests with no
+    session type.
+
+    @cvar session_type: The session_type for this association
+        session.
+    @type session_type: str
+
+    @ivar dh: The Diffie-Hellman algorithm values for this request
+    @type dh: DiffieHellman
+
+    @ivar consumer_pubkey: The public key sent by the consumer in the
+        associate request
+    @type consumer_pubkey: long
+
+    @see: U{OpenID Specs, Mode: associate
+        <http://openid.net/specs.bml#mode-associate>}
+    @see: AssociateRequest
+    """
+    session_type = 'DH-SHA1'
+
+    def __init__(self, dh, consumer_pubkey):
+        self.dh = dh
+        self.consumer_pubkey = consumer_pubkey
+
+    def fromQuery(cls, query):
+        """
+        @param query: The associate request's query parameters
+        @type query: {str:str}
+
+        @returntype: DiffieHellmanServerSession
+
+        @raises: ValueError
+        """
+        dh_modulus = query.get('openid.dh_modulus')
+        dh_gen = query.get('openid.dh_gen')
+        if (dh_modulus is None and dh_gen is not None or
+            dh_gen is None and dh_modulus is not None):
+
+            if dh_modulus is None:
+                missing = 'modulus'
+            else:
+                missing = 'generator'
+
+            raise ValueError('If non-default modulus or generator is '
+                             'supplied, both must be supplied. Missing %s'
+                             % (missing,))
+
+        if dh_modulus or dh_gen:
+            dh_modulus = cryptutil.base64ToLong(dh_modulus)
+            dh_gen = cryptutil.base64ToLong(dh_gen)
+            dh = DiffieHellman(dh_modulus, dh_gen)
+        else:
+            dh = DiffieHellman.fromDefaults()
+
+        consumer_pubkey = query.get('openid.dh_consumer_public')
+        if consumer_pubkey is None:
+            raise ValueError("Public key for DH-SHA1 session "
+                             "not found in query %s" % (query,))
+
+        consumer_pubkey = cryptutil.base64ToLong(consumer_pubkey)
+
+        return cls(dh, consumer_pubkey)
+
+    fromQuery = classmethod(fromQuery)
+
+    def answer(self, secret):
+        mac_key = self.dh.xorSecret(self.consumer_pubkey, secret)
+        return {
+            'dh_server_public': cryptutil.longToBase64(self.dh.public),
+            'enc_mac_key': oidutil.toBase64(mac_key),
+            }
+
 
 class AssociateRequest(OpenIDRequest):
     """A request to establish an X{association}.
@@ -261,17 +358,9 @@ class AssociateRequest(OpenIDRequest):
     @ivar assoc_type: The type of association.  The protocol currently only
         defines one value for this, "X{C{HMAC-SHA1}}".
     @type assoc_type: str
-    @ivar session_type: The preferred way to encrypt the shared secret.
-        Either "X{C{DH-SHA1}}" or "X{C{plaintext}}".
-    @type session_type: str
 
-    @ivar pubkey: The consumer's X{public key}, for use with X{Diffe-Hellman}
-        key exchange.
-    @type pubkey: long
-
-    @group Diffe-Hellman parameters: pubkey
-
-    @bug: lacking modulus and gen
+    @ivar session: An object that knows how to handle association
+        requests of a certain type.
 
     @see: U{OpenID Specs, Mode: associate
         <http://openid.net/specs.bml#mode-associate>}
@@ -280,20 +369,19 @@ class AssociateRequest(OpenIDRequest):
     mode = "associate"
     assoc_type = 'HMAC-SHA1'
 
-    def __init__(self, session_type='plaintext', pubkey=None):
+    session_classes = {
+        None: PlainTextServerSession,
+        'DH-SHA1': DiffieHellmanServerSession,
+        }
+
+    def __init__(self, session):
         """Construct me.
 
-        These parameters are assigned directly as class attributes, see
-        my L{class documentation<AssociateRequest>} for their descriptions.
+        The session is assigned directly as a class attribute. See my
+        L{class documentation<AssociateRequest>} for its description.
         """
         super(AssociateRequest, self).__init__()
-        self.session_type = session_type
-        if session_type == 'DH-SHA1':
-            self.pubkey = pubkey
-            self.dh = DiffieHellman()
-        elif pubkey:
-            raise ValueError("pubkey (%r) not applicable for this session "
-                             "type (%r)." % (pubkey, session_type))
+        self.session = session
 
 
     def fromQuery(klass, query):
@@ -305,63 +393,22 @@ class AssociateRequest(OpenIDRequest):
 
         @returntype: L{AssociateRequest}
         """
-        self = AssociateRequest()
         session_type = query.get(OPENID_PREFIX + 'session_type')
-        if session_type:
-            self.session_type = session_type
-            if session_type == 'DH-SHA1':
-                consumer_pubkey = query.get(OPENID_PREFIX +'dh_consumer_public')
-                if consumer_pubkey is None:
-                    raise ProtocolError(
-                        query,
-                        text="Public key for DH-SHA1 session "
-                        "not found in query %s" % (query,))
+        try:
+            session_class = klass.session_classes[session_type]
+        except KeyError:
+            raise ProtocolError(query,
+                                "Unknown session type %r" % (session_type,))
 
-                try:
-                    # oidutil.fromBase64 eats the exception, which is less
-                    # than helpful.
-                    consumer_pubkey = binascii.a2b_base64(consumer_pubkey)
-                except binascii.Error, err:
-                    raise ProtocolError(
-                        query, "dh_consumer_public not base64 encoded: %s" % (err,))
+        try:
+            session = session_class.fromQuery(query)
+        except ValueError, why:
+            raise ProtocolError(query, 'Error parsing %s session: %s' %
+                                (session_class.session_type, why[0]))
 
-                try:
-                    consumer_pubkey = cryptutil.binaryToLong(consumer_pubkey)
-                except ValueError, err:
-                    # a bit tricky, because cryptutil.binaryToLong has different
-                    # implementations which tolerate slightly different values.
-                    raise ProtocolError(
-                        query, "error unpacking dh_consumer_public: %s" %
-                        (err,))
-
-                self.pubkey = consumer_pubkey
-
-                dh_modulus = query.get(OPENID_PREFIX + 'dh_modulus')
-                dh_gen = query.get(OPENID_PREFIX + 'dh_gen')
-                if dh_modulus or dh_gen:
-                    if not (dh_modulus and dh_gen):
-                        raise ProtocolError(
-                            query,
-                            "only one of dh_modulus and dh_gen was supplied; "
-                            "must supply both or none.")
-                    try:
-                        dh_modulus = cryptutil.binaryToLong(binascii.a2b_base64(dh_modulus))
-                        dh_gen = cryptutil.base64ToLong(dh_gen)
-                    except binascii.Error, err:
-                        # XXX: which one caused the error?
-                        raise ProtocolError(
-                            query,
-                            "dh parameter not base64 encoded: %s" % (err,))
-
-                self.dh = DiffieHellman(dh_modulus, dh_gen)
-
-            else:
-                raise ProtocolError("Unknown session type %r" %
-                                    (session_type,))
-        return self
+        return klass(session)
 
     fromQuery = classmethod(fromQuery)
-
 
     def answer(self, assoc):
         """Respond to this request with an X{association}.
@@ -379,20 +426,11 @@ class AssociateRequest(OpenIDRequest):
             'assoc_type': 'HMAC-SHA1',
             'assoc_handle': assoc.handle,
             })
-        if self.session_type == 'DH-SHA1':
-            mac_key = self.dh.xorSecret(self.pubkey, assoc.secret)
-            response.fields.update({
-                'session_type': self.session_type,
-                'dh_server_public': cryptutil.longToBase64(self.dh.public),
-                'enc_mac_key': oidutil.toBase64(mac_key),
-                })
-        elif self.session_type == 'plaintext':
-            response.fields['mac_key'] = oidutil.toBase64(assoc.secret)
-        else:
-            # XXX - kablooie
-            pass
-        return response
+        response.fields.update(self.session.answer(assoc.secret))
+        if self.session.session_type != 'plaintext':
+            response.fields['session_type'] = self.session.session_type
 
+        return response
 
 
 class CheckIDRequest(OpenIDRequest):

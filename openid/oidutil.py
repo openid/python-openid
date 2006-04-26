@@ -32,8 +32,9 @@ def toBase64(s):
 def fromBase64(s):
     try:
         return binascii.a2b_base64(s)
-    except binascii.Error:
-        return ''
+    except binascii.Error, why:
+        # Convert to a common exception type
+        raise ValueError(why[0])
 
 def quoteMinimal(s):
     """Turn a str or unicode object into an ASCII string

@@ -27,41 +27,6 @@ def test_cryptrand():
     # than platform int size
     cryptutil.randrange(long(sys.maxint) + 1L)
 
-def test_strxor():
-    NUL = '\x00'
-
-    cases = [
-        (NUL, NUL, NUL),
-        ('\x01', NUL, '\x01'),
-        ('a', 'a', NUL),
-        ('a', NUL, 'a'),
-        ('abc', NUL * 3, 'abc'),
-        ('x' * 10, NUL * 10, 'x' * 10),
-        ('\x01', '\x02', '\x03'),
-        ('\xf0', '\x0f', '\xff'),
-        ('\xff', '\x0f', '\xf0'),
-        ]
-
-    for aa, bb, expected in cases:
-        actual = cryptutil.strxor(aa, bb)
-        assert actual == expected, (aa, bb, expected, actual)
-
-    exc_cases = [
-        ('', 'a'),
-        ('foo', 'ba'),
-        (NUL * 3, NUL * 4),
-        (''.join(map(chr, xrange(256))),
-         ''.join(map(chr, xrange(128)))),
-        ]
-
-    for aa, bb in exc_cases:
-        try:
-            unexpected = cryptutil.strxor(aa, bb)
-        except ValueError:
-            pass
-        else:
-            assert False, 'Expected ValueError, got %r' % (unexpected,)
-
 def test_reversed():
     if hasattr(cryptutil, 'reversed'):
         cases = [
@@ -132,7 +97,6 @@ def test_base64ToLong():
 
 
 def test():
-    test_strxor()
     test_reversed()
     test_binaryLongConvert()
     test_cryptrand()

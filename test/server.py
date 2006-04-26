@@ -269,9 +269,9 @@ class TestDecode(unittest.TestCase):
         r = self.decode(args)
         self.failUnless(isinstance(r, server.AssociateRequest))
         self.failUnlessEqual(r.mode, "associate")
-        self.failUnlessEqual(r.session_type, "DH-SHA1")
+        self.failUnlessEqual(r.session.session_type, "DH-SHA1")
         self.failUnlessEqual(r.assoc_type, "HMAC-SHA1")
-        self.failUnless(r.pubkey)
+        self.failUnless(r.session.consumer_pubkey)
 
     def test_associateDHMissingKey(self):
         """Trying DH assoc w/o public key"""
@@ -304,11 +304,11 @@ class TestDecode(unittest.TestCase):
         r = self.decode(args)
         self.failUnless(isinstance(r, server.AssociateRequest))
         self.failUnlessEqual(r.mode, "associate")
-        self.failUnlessEqual(r.session_type, "DH-SHA1")
+        self.failUnlessEqual(r.session.session_type, "DH-SHA1")
         self.failUnlessEqual(r.assoc_type, "HMAC-SHA1")
-        self.failUnlessEqual(r.dh.modulus, ALT_MODULUS)
-        self.failUnlessEqual(r.dh.generator, ALT_GEN)
-        self.failUnless(r.pubkey)
+        self.failUnlessEqual(r.session.dh.modulus, ALT_MODULUS)
+        self.failUnlessEqual(r.session.dh.generator, ALT_GEN)
+        self.failUnless(r.session.consumer_pubkey)
 
 
     def test_associateDHCorruptModGen(self):
@@ -364,7 +364,7 @@ class TestDecode(unittest.TestCase):
         r = self.decode(args)
         self.failUnless(isinstance(r, server.AssociateRequest))
         self.failUnlessEqual(r.mode, "associate")
-        self.failUnlessEqual(r.session_type, "plaintext")
+        self.failUnlessEqual(r.session.session_type, "plaintext")
         self.failUnlessEqual(r.assoc_type, "HMAC-SHA1")
 
     def test_nomode(self):
@@ -425,7 +425,7 @@ class TestEncode(unittest.TestCase):
         self.failUnless(webresponse.headers.has_key('location'))
 
     def test_assocReply(self):
-        request = server.AssociateRequest()
+        request = server.AssociateRequest.fromQuery({})
         response = server.OpenIDResponse(request)
         response.fields = {'assoc_handle': "every-zig"}
         webresponse = self.encode(response)
@@ -543,7 +543,7 @@ class TestSigningEncode(unittest.TestCase):
         self.failIf('openid.sig' in query, query.get('openid.sig'))
 
     def test_assocReply(self):
-        request = server.AssociateRequest()
+        request = server.AssociateRequest.fromQuery({})
         response = server.OpenIDResponse(request)
         response.fields = {'assoc_handle': "every-zig"}
         webresponse = self.encode(response)
@@ -813,16 +813,18 @@ class TestAssociate(unittest.TestCase):
     # (important to do because we actually had it broken for a while.)
 
     def setUp(self):
-        self.request = server.AssociateRequest()
+        self.request = server.AssociateRequest.fromQuery({})
         self.store = _memstore.MemoryStore()
         self.signatory = server.Signatory(self.store)
         self.assoc = self.signatory.createAssociation(dumb=False)
 
     def test_dh(self):
         from openid.dh import DiffieHellman
-        consumer_dh = DiffieHellman()
-
-        self.request = server.AssociateRequest('DH-SHA1', consumer_dh.public)
+        from openid.server.server import DiffieHellmanServerSession
+        consumer_dh = DiffieHellman.fromDefaults()
+        cpub = consumer_dh.public
+        session = DiffieHellmanServerSession(DiffieHellman.fromDefaults(), cpub)
+        self.request = server.AssociateRequest(session)
         response = self.request.answer(self.assoc)
         rfg = response.fields.get
         self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA1")
@@ -879,7 +881,7 @@ class TestServer(unittest.TestCase, CatchLogs):
         self.failUnlessEqual(monkeycalled.count, 1)
 
     def test_associate(self):
-        request = server.AssociateRequest()
+        request = server.AssociateRequest.fromQuery({})
         response = self.server.openid_associate(request)
         self.failUnless(response.fields.has_key("assoc_handle"))
 

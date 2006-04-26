@@ -13,7 +13,7 @@ engine, but is currently found at:
 http://www.amk.ca/python/code/crypto
 """
 
-__all__ = ['randrange', 'hmacSha1', 'sha1', 'strxor', 'randomString',
+__all__ = ['randrange', 'hmacSha1', 'sha1', 'randomString',
            'binaryToLong', 'longToBinary', 'longToBase64', 'base64ToLong']
 
 import hmac
@@ -161,13 +161,6 @@ def longToBase64(l):
 
 def base64ToLong(s):
     return binaryToLong(fromBase64(s))
-
-def strxor(x, y):
-    if len(x) != len(y):
-        raise ValueError('Inputs to strxor must have the same length')
-
-    xor = lambda (a, b): chr(ord(a) ^ ord(b))
-    return "".join(map(xor, zip(x, y)))
 
 def randomString(length, chrs=None):
     """Produce a string of length random bytes, chosen from chrs."""

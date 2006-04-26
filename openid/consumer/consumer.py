@@ -242,6 +242,42 @@ class OpenIDConsumer(object):
 
         return response
 
+class DiffieHellmanConsumerSession(object):
+    session_type = 'DH-SHA1'
+
+    def __init__(self, dh=None):
+        if dh is None:
+            dh = DiffieHellman.fromDefaults()
+
+        self.dh = dh
+
+    def getRequest(self):
+        cpub = cryptutil.longToBase64(self.dh.public)
+
+        args = {'openid.dh_consumer_public': cpub}
+
+        if not self.dh.usingDefaultValues():
+            args.update({
+                'openid.dh_modulus': cryptutil.longToBase64(dh.modulus),
+                'openid.dh_gen': cryptutil.longToBase64(dh.generator),
+                })
+
+        return args
+
+    def extractSecret(self, response):
+        spub = cryptutil.base64ToLong(response['dh_server_public'])
+        enc_mac_key = oidutil.fromBase64(response['enc_mac_key'])
+        return self.dh.xorSecret(spub, enc_mac_key)
+
+class PlainTextConsumerSession(object):
+    session_type = None
+
+    def getRequest(self):
+        return {}
+
+    def extractSecret(self, response):
+        return oidutil.fromBase64(response['mac_key'])
+
 class GenericOpenIDConsumer(object):
     """This is the implementation of the common logic for OpenID
     consumers. It is unaware of the application in which it is
@@ -466,31 +502,6 @@ class GenericOpenIDConsumer(object):
         oidutil.log('Server responds that checkAuth call is not valid')
         return False
 
-    def _getAssociation(self, server_url):
-        if self.store.isDumb():
-            return None
-
-        assoc = self.store.getAssociation(server_url)
-
-        if assoc is None or assoc.expiresIn < self.TOKEN_LIFETIME:
-            proto = urlparse(server_url)[0]
-            if proto == 'https':
-                dh = None
-            else:
-                dh = DiffieHellman()
-
-            args = self._createAssociateRequest(dh)
-            try:
-                response = self._makeKVPost(args, server_url)
-            except fetchers.HTTPFetchingError, why:
-                oidutil.log('openid.associate request failed: %s' %
-                            (str(why),))
-                assoc = None
-            else:
-                assoc = self._parseAssociation(response, dh, server_url)
-
-        return assoc
-
     def _genToken(self, consumer_id, server_id, server_url):
         timestamp = str(int(time.time()))
         elements = [timestamp, consumer_id, server_id, server_url]
@@ -522,74 +533,95 @@ class GenericOpenIDConsumer(object):
 
         return tuple(split[1:])
 
-    def _createAssociateRequest(self, dh=None, args=None):
-        if args is None:
-            args = {}
+    def _getAssociation(self, server_url):
+        if self.store.isDumb():
+            return None
 
-        args.update({
+        assoc = self.store.getAssociation(server_url)
+
+        if assoc is None or assoc.expiresIn < self.TOKEN_LIFETIME:
+            assoc_session, args = self._createAssociateRequest(server_url)
+            try:
+                response = self._makeKVPost(args, server_url)
+            except fetchers.HTTPFetchingError, why:
+                oidutil.log('openid.associate request failed: %s' %
+                            (str(why),))
+                assoc = None
+            else:
+                assoc = self._parseAssociation(
+                    response, assoc_session, server_url)
+
+        return assoc
+
+    def _createAssociateRequest(self, server_url):
+        proto = urlparse(server_url)[0]
+        if proto == 'https':
+            session_type = PlainTextConsumerSession
+        else:
+            session_type = DiffieHellmanConsumerSession
+
+        assoc_session = session_type()
+
+        args = {
             'openid.mode': 'associate',
             'openid.assoc_type':'HMAC-SHA1',
-            })
+            }
 
-        if dh:
-            cpub = cryptutil.longToBase64(dh.public)
+        if assoc_session.session_type is not None:
+            args['openid.session_type'] = assoc_session.session_type
 
-            args.update({
-                'openid.session_type':'DH-SHA1',
-                'openid.dh_consumer_public': cpub,
-                })
+        args.update(assoc_session.getRequest())
+        return assoc_session, args
 
-            if not dh.usingDefaultValues():
-                args.update({
-                    'openid.dh_modulus': cryptutil.longToBase64(dh.modulus),
-                    'openid.dh_gen': cryptutil.longToBase64(dh.generator),
-                    })
-
-        return args
-
-    def _parseAssociation(self, results, dh, server_url):
+    def _parseAssociation(self, results, assoc_session, server_url):
         try:
             assoc_type = results['assoc_type']
-            if assoc_type != 'HMAC-SHA1':
-                fmt = 'Unsupported assoc_type returned from server %s: %s'
-                oidutil.log(fmt % (server_url, assoc_type))
-                return None
-
             assoc_handle = results['assoc_handle']
-            try:
-                expires_in = int(results.get('expires_in', '0'))
-            except ValueError, e:
-                fmt = 'Getting Association: invalid expires_in field: %s'
-                oidutil.log(fmt % (e[0],))
-                return None
-
-            session_type = results.get('session_type')
-            if session_type is None:
-                secret = oidutil.fromBase64(results['mac_key'])
-            else:
-                if session_type != 'DH-SHA1':
-                    fmt = 'Unsupported session_type from server %s: %s'
-                    oidutil.log(fmt % (server_url, session_type))
-                    return None
-                if dh is None:
-                    fmt = 'Not expecting a DH-SHA1 session from server %s'
-                    oidutil.log(fmt % (server_url))
-                    return None
-
-                spub = cryptutil.base64ToLong(results['dh_server_public'])
-                enc_mac_key = oidutil.fromBase64(results['enc_mac_key'])
-                secret = dh.xorSecret(spub, enc_mac_key)
-
-            assoc = Association.fromExpiresIn(
-                expires_in, assoc_handle, secret, assoc_type)
-            self.store.storeAssociation(server_url, assoc)
-
-            return assoc
-
+            expires_in_str = results['expires_in']
         except KeyError, e:
             fmt = 'Getting association: missing key in response from %s: %s'
             oidutil.log(fmt % (server_url, e[0]))
             return None
+
+        if assoc_type != 'HMAC-SHA1':
+            fmt = 'Unsupported assoc_type returned from server %s: %s'
+            oidutil.log(fmt % (server_url, assoc_type))
+            return None
+
+        try:
+            expires_in = int(expires_in_str)
+        except ValueError, e:
+            fmt = 'Getting Association: invalid expires_in field: %s'
+            oidutil.log(fmt % (e[0],))
+            return None
+
+        session_type = results.get('session_type')
+        if session_type != assoc_session.session_type:
+            if session_type is None:
+                oidutil.log('Falling back to plain text association '
+                            'session from %s' % assoc_session.session_type)
+                assoc_session = PlainTextSession()
+            else:
+                oidutil.log('Session type mismatch. Expected %r, got %r' %
+                            (assoc_session.session_type, session_type))
+                return None
+
+        try:
+            secret = assoc_session.extractSecret(results)
+        except ValueError, why:
+            oidutil.log('Malformed response for %s session: %s' % (
+                assoc_session.session_type, why[0]))
+            return None
+        except KeyError, why:
+            fmt = 'Getting association: missing key in response from %s: %s'
+            oidutil.log(fmt % (server_url, e[0]))
+            return None
+
+        assoc = Association.fromExpiresIn(
+            expires_in, assoc_handle, secret, assoc_type)
+        self.store.storeAssociation(server_url, assoc)
+
+        return assoc
 
 class OpenIDAuthRequest(object):
     def __init__(self, token, assoc, endpoint  ):
