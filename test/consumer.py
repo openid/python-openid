@@ -333,7 +333,8 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         except CheckAuthHappened:
             pass
         else:
-            self.fail('_checkAuth did not happen. Result was: %r' % result)
+            self.fail('_checkAuth did not happen. Result was: %r %s' %
+                      (result, self.messages))
 
     def test_checkAuthTriggeredWithAssoc(self):
         # Store an association for this server that does not match the
@@ -354,7 +355,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         except CheckAuthHappened:
             pass
         else:
-            self.fail('_checkAuth did not happen. Result was: %r' % result)
+            self.fail('_checkAuth did not happen. Result was: %r' % (result,))
 
     def test_expiredAssoc(self):
         # Store an expired association for the server with the handle
