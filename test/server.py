@@ -343,7 +343,7 @@ class TestDecode(unittest.TestCase):
 #             'openid.dh_consumer_public': "Rzup9265tw==",
 #             'openid.dh_modulus': cryptutil.longToBase64(9),
 #             'openid.dh_gen': cryptutil.longToBase64(27) ,
-#             }        
+#             }
 #         self.failUnlessRaises(server.ProtocolError, self.decode, args)
 #     test_associateDHInvalidModGen.todo = "low-priority feature"
 
