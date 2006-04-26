@@ -259,6 +259,63 @@ class CatchLogs(object):
     def tearDown(self):
         oidutil.log = self.old_logger
 
+class NonceIdResTest(TestIdRes):
+    def setUp(self):
+        self.old_logger = oidutil.log
+        oidutil.log = lambda *args: None
+        TestIdRes.setUp(self)
+
+    def tearDown(self):
+        oidutil.log = self.old_logger
+
+    def test_missingNonce(self):
+        setup_url = 'http://unittest/setup-here'
+        query = {
+            'openid.mode': 'id_res',
+            'openid.return_to': 'return_to', # No nonce parameter on return_to
+            'openid.identity': self.server_id,
+            'openid.assoc_handle': 'not_found',
+            }
+        ret = self.consumer._doIdRes(query,
+                                     self.consumer_id,
+                                     self.server_id,
+                                     self.server_url,
+                                     )
+        self.failUnlessEqual(ret.status, 'failure')
+        self.failUnlessEqual(ret.identity_url, self.consumer_id)
+
+    def test_badNonce(self):
+        setup_url = 'http://unittest/setup-here'
+        query = {
+            'openid.mode': 'id_res',
+            'openid.return_to': 'return_to?nonce=xxx',
+            'openid.identity': self.server_id,
+            'openid.assoc_handle': 'not_found',
+            }
+        ret = self.consumer._doIdRes(query,
+                                     self.consumer_id,
+                                     self.server_id,
+                                     self.server_url,
+                                     )
+        self.failUnlessEqual(ret.status, 'failure')
+        self.failUnlessEqual(ret.identity_url, self.consumer_id)
+
+    def test_twoNonce(self):
+        setup_url = 'http://unittest/setup-here'
+        query = {
+            'openid.mode': 'id_res',
+            'openid.return_to': 'return_to?nonce=nonny&nonce=xxx',
+            'openid.identity': self.server_id,
+            'openid.assoc_handle': 'not_found',
+            }
+        ret = self.consumer._doIdRes(query,
+                                     self.consumer_id,
+                                     self.server_id,
+                                     self.server_url,
+                                     )
+        self.failUnlessEqual(ret.status, 'failure')
+        self.failUnlessEqual(ret.identity_url, self.consumer_id)
+
 class TestCheckAuthTriggered(TestIdRes, CatchLogs):
     consumer_class = CheckAuthDetectingConsumer
 
