@@ -388,7 +388,7 @@ class TestEncode(unittest.TestCase):
             return_to = 'http://burr.unittest/999',
             immediate = False,
             )
-        response = server.CheckIDResponse(request)
+        response = server.OpenIDResponse(request)
         response.fields = {
             'mode': 'id_res',
             'identity': request.identity,
@@ -416,7 +416,7 @@ class TestEncode(unittest.TestCase):
             return_to = 'http://burr.unittest/999',
             immediate = False,
             )
-        response = server.CheckIDResponse(request)
+        response = server.OpenIDResponse(request)
         response.fields = {
             'mode': 'cancel',
             }
@@ -485,12 +485,13 @@ class TestSigningEncode(unittest.TestCase):
             return_to = 'http://burr.unittest/999',
             immediate = False,
             )
-        self.response = server.CheckIDResponse(self.request)
+        self.response = server.OpenIDResponse(self.request)
         self.response.fields = {
             'mode': 'id_res',
             'identity': self.request.identity,
             'return_to': self.request.return_to,
             }
+        self.response.signed.extend(['mode','identity','return_to'])
         self.signatory = server.Signatory(self.store)
         self.encoder = server.SigningEncoder(self.signatory)
         self.encode = self.encoder.encode
@@ -534,7 +535,9 @@ class TestSigningEncode(unittest.TestCase):
             return_to = 'http://burr.unittest/999',
             immediate = False,
             )
-        response = server.CheckIDResponse(request, 'cancel')
+        response = server.OpenIDResponse(request)
+        response.fields['mode'] = 'cancel'
+        response.signed[:] = []
         webresponse = self.encode(response)
         self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
         self.failUnless(webresponse.headers.has_key('location'))
@@ -586,7 +589,9 @@ class TestCheckID(unittest.TestCase):
             'identity': self.request.identity,
             'return_to': self.request.return_to,
             })
-        self.failUnlessEqual(answer.signed, ["mode", "identity", "return_to"])
+        signed = answer.signed[:]
+        signed.sort()
+        self.failUnlessEqual(signed, ["identity", "mode", "return_to"])
 
     def test_answerAllowNoTrustRoot(self):
         self.request.trust_root = None
@@ -597,7 +602,9 @@ class TestCheckID(unittest.TestCase):
             'identity': self.request.identity,
             'return_to': self.request.return_to,
             })
-        self.failUnlessEqual(answer.signed, ["mode", "identity", "return_to"])
+        signed = answer.signed[:]
+        signed.sort()
+        self.failUnlessEqual(signed, ["identity", "mode", "return_to"])
 
     def test_answerImmediateDeny(self):
         self.request.mode = 'checkid_immediate'
@@ -606,7 +613,7 @@ class TestCheckID(unittest.TestCase):
         # crappiting setup_url, you dirty my interface with your presence!
         answer = self.request.answer(False, server_url=server_url)
         self.failUnlessEqual(answer.request, self.request)
-        self.failUnlessEqual(len(answer.fields), 2)
+        self.failUnlessEqual(len(answer.fields), 2, answer.fields)
         self.failUnlessEqual(answer.fields.get('mode'), 'id_res')
         self.failUnless(answer.fields.get('user_setup_url', '').startswith(
             server_url))
@@ -651,8 +658,10 @@ class TestCheckIDExtension(unittest.TestCase):
             return_to = 'http://bar.unittest/999',
             immediate = False,
             )
-        self.response = server.CheckIDResponse(self.request)
+        self.response = server.OpenIDResponse(self.request)
+        self.response.fields['mode'] = 'id_res'
         self.response.fields['blue'] = 'star'
+        self.response.signed.extend(['mode','identity','return_to'])
 
 
     def test_addField(self):
@@ -906,7 +915,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
             association.Association.fromExpiresIn(60, assoc_handle,
                                                   'sekrit', 'HMAC-SHA1'))
         request.assoc_handle = assoc_handle
-        response = server.CheckIDResponse(request)
+        response = server.OpenIDResponse(request)
         response.fields = {
             'foo': 'amsigned',
             'bar': 'notsigned',
@@ -924,7 +933,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
     def test_signDumb(self):
         request = server.OpenIDRequest()
         request.assoc_handle = None
-        response = server.CheckIDResponse(request)
+        response = server.OpenIDResponse(request)
         response.fields = {
             'foo': 'amsigned',
             'bar': 'notsigned',
@@ -951,7 +960,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.failUnless(self.store.getAssociation(self._normal_key, assoc_handle))
 
         request.assoc_handle = assoc_handle
-        response = server.CheckIDResponse(request)
+        response = server.OpenIDResponse(request)
         response.fields = {
             'foo': 'amsigned',
             'bar': 'notsigned',
@@ -984,7 +993,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         assoc_handle = '{bogus-assoc}{notvalid}'
 
         request.assoc_handle = assoc_handle
-        response = server.CheckIDResponse(request)
+        response = server.OpenIDResponse(request)
         response.fields = {
             'foo': 'amsigned',
             'bar': 'notsigned',

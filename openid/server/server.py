@@ -51,7 +51,7 @@ OpenID Extensions
     Since extensions do not change the way OpenID authentication works,
     code to handle extension requests may be completely separate from the
     L{OpenIDRequest} class here.  But you'll likely want data sent back by
-    your extension to be signed.  L{CheckIDResponse} provides methods with
+    your extension to be signed.  L{OpenIDResponse} provides methods with
     which you can add data to it which can be signed with the other data in
     the OpenID signature.
 
@@ -87,7 +87,7 @@ Upgrading
 @group Requests: OpenIDRequest, AssociateRequest, CheckIDRequest,
     CheckAuthRequest
 
-@group Responses: OpenIDResponse, CheckIDResponse
+@group Responses: OpenIDResponse
 
 @group HTTP Codes: HTTP_OK, HTTP_REDIRECT, HTTP_ERROR
 
@@ -589,20 +589,23 @@ class CheckIDRequest(OpenIDRequest):
 
         @type server_url: str
 
-        @returntype: L{CheckIDResponse}
+        @returntype: L{OpenIDResponse}
         """
         if allow or self.immediate:
             mode = 'id_res'
         else:
             mode = 'cancel'
 
-        response = CheckIDResponse(self, mode)
+        response = OpenIDResponse(self)
 
         if allow:
-            response.fields['identity'] = self.identity
-            response.fields['return_to'] = self.return_to
+            response.addFields(None, {
+                'mode': mode,
+                'identity': self.identity,
+                'return_to': self.return_to,
+                })
         else:
-            response.signed[:] = []
+            response.addField(None, 'mode', mode, False)
             if self.immediate:
                 if not server_url:
                     raise ValueError("setup_url is required for allow=False "
@@ -612,7 +615,7 @@ class CheckIDRequest(OpenIDRequest):
                     self.identity, self.return_to, self.trust_root,
                     immediate=False, assoc_handle=self.assoc_handle)
                 setup_url = setup_request.encodeToURL(server_url)
-                response.fields['user_setup_url'] = setup_url
+                response.addField(None, 'user_setup_url', setup_url, False)
 
         return response
 
@@ -681,6 +684,9 @@ class OpenIDResponse(object):
         one value.  Keys are parameter names with no leading "C{openid.}".
         e.g.  "C{identity}" and "C{mac_key}", never "C{openid.identity}".
     @type fields: dict
+
+    @ivar signed: The names of the fields which should be signed.
+    @type signed: list of str
     """
 
     # Implementer's note: In a more symmetric client/server
@@ -697,79 +703,13 @@ class OpenIDResponse(object):
         """
         self.request = request
         self.fields = {}
+        self.signed = []
 
     def __str__(self):
         return "%s for %s: %s" % (
             self.__class__.__name__,
             self.request.__class__.__name__,
             self.fields)
-
-
-    # implements IEncodable
-
-    def whichEncoding(self):
-        """How should I be encoded?
-
-        @returns: one of ENCODE_URL or ENCODE_KVFORM.
-        """
-        if self.request.mode in BROWSER_REQUEST_MODES:
-            return ENCODE_URL
-        else:
-            return ENCODE_KVFORM
-
-
-    def encodeToURL(self):
-        """Encode a response as a URL for the user agent to GET.
-
-        You will generally use this URL with a HTTP redirect.
-
-        @returns: A URL to direct the user agent back to.
-        @returntype: str
-        """
-        fields = dict(
-            [(OPENID_PREFIX + k, v) for k, v in self.fields.iteritems()])
-        return oidutil.appendArgs(self.request.return_to, fields)
-
-
-    def encodeToKVForm(self):
-        """Encode a response in key-value colon/newline format.
-
-        This is a machine-readable format used to respond to messages which
-        came directly from the consumer and not through the user agent.
-
-        @see: OpenID Specs,
-           U{Key-Value Colon/Newline format<http://openid.net/specs.bml#keyvalue>}
-
-        @returntype: str
-        """
-        return kvform.dictToKV(self.fields)
-
-
-
-class CheckIDResponse(OpenIDResponse):
-    """I am a response to a L{CheckIDRequest}.
-
-    I differ from my base class L{OpenIDResponse} in that some of my fields
-    may be signed.
-
-    @ivar signed: The names of the fields which should be signed.
-    @type signed: list of str
-    """
-    def __init__(self, request, mode='id_res'):
-        """Make a response to a L{CheckIDRequest}.
-
-        @param request: A request to respond to.
-        @type request: L{CheckIDRequest}
-
-        @param mode: The mode of this response.  One of "X{C{id_res}}" or
-            "X{C{cancel}}"
-        @type mode: str
-        """
-        super(CheckIDResponse, self).__init__(request)
-        self.fields['mode'] = mode
-        self.signed = []
-        if mode == 'id_res':
-            self.signed.extend(['mode', 'identity', 'return_to'])
 
 
     def addField(self, namespace, key, value, signed=True):
@@ -813,7 +753,7 @@ class CheckIDResponse(OpenIDResponse):
 
 
     def update(self, namespace, other):
-        """Update my fields with those from another L{CheckIDResponse}.
+        """Update my fields with those from another L{OpenIDResponse}.
 
         The idea here is that if you write an OpenID extension, it
         could produce a Response object with C{fields} and C{signed}
@@ -830,7 +770,7 @@ class CheckIDResponse(OpenIDResponse):
         @type namespace: str
 
         @param other: A response object to update from.
-        @type other: L{CheckIDResponse}
+        @type other: L{OpenIDResponse}
         """
         if namespace:
             namespaced_fields = dict([('%s.%s' % (namespace, k), v) for k, v
@@ -842,6 +782,57 @@ class CheckIDResponse(OpenIDResponse):
             namespaced_signed = other.signed
         self.fields.update(namespaced_fields)
         self.signed.extend(namespaced_signed)
+
+
+    def needsSigning(self):
+        """Does this response require signing?
+
+        @returntype: bool
+        """
+        return (
+            (self.request.mode in ['checkid_setup', 'checkid_immediate'])
+            and self.signed
+            )
+
+
+    # implements IEncodable
+
+    def whichEncoding(self):
+        """How should I be encoded?
+
+        @returns: one of ENCODE_URL or ENCODE_KVFORM.
+        """
+        if self.request.mode in BROWSER_REQUEST_MODES:
+            return ENCODE_URL
+        else:
+            return ENCODE_KVFORM
+
+
+    def encodeToURL(self):
+        """Encode a response as a URL for the user agent to GET.
+
+        You will generally use this URL with a HTTP redirect.
+
+        @returns: A URL to direct the user agent back to.
+        @returntype: str
+        """
+        fields = dict(
+            [(OPENID_PREFIX + k, v) for k, v in self.fields.iteritems()])
+        return oidutil.appendArgs(self.request.return_to, fields)
+
+
+    def encodeToKVForm(self):
+        """Encode a response in key-value colon/newline format.
+
+        This is a machine-readable format used to respond to messages which
+        came directly from the consumer and not through the user agent.
+
+        @see: OpenID Specs,
+           U{Key-Value Colon/Newline format<http://openid.net/specs.bml#keyvalue>}
+
+        @returntype: str
+        """
+        return kvform.dictToKV(self.fields)
 
 
     def __str__(self):
@@ -951,15 +942,15 @@ class Signatory(object):
     def sign(self, response):
         """Sign a response.
 
-        I take a L{CheckIDResponse}, create a signature for everything
-        in its L{signed<CheckIDResponse.signed>} list, and return a new
+        I take a L{OpenIDResponse}, create a signature for everything
+        in its L{signed<OpenIDResponse.signed>} list, and return a new
         copy of the response object with that signature included.
 
         @param response: A response to sign.
-        @type response: L{CheckIDResponse}
+        @type response: L{OpenIDResponse}
 
         @returns: A signed copy of the response.
-        @returntype: L{CheckIDResponse}
+        @returntype: L{OpenIDResponse}
         """
         signed_response = deepcopy(response)
         assoc_handle = response.request.assoc_handle
@@ -1094,18 +1085,6 @@ class Encoder(object):
 
 
 
-def needsSigning(response):
-    """Does this response require signing?
-
-    @returntype: bool
-    """
-    return (
-        (response.request.mode in ['checkid_setup', 'checkid_immediate'])
-        and response.signed
-        )
-
-
-
 class SigningEncoder(Encoder):
     """I encode responses in to L{WebResponses<WebResponse>}, signing them when required.
     """
@@ -1131,7 +1110,7 @@ class SigningEncoder(Encoder):
         """
         # the isinstance is a bit of a kludge... it means there isn't really
         # an adapter to make the interfaces quite match.
-        if (not isinstance(response, Exception)) and needsSigning(response):
+        if (not isinstance(response, Exception)) and response.needsSigning():
             if not self.signatory:
                 raise ValueError(
                     "Must have a store to sign this request: %s" %
