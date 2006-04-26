@@ -617,6 +617,7 @@ class SuccessResponse(OpenIDConsumerResponse):
     def fromQuery(cls, identity_url, query, signed):
         signed_args = {}
         for field_name in signed.split(','):
+            field_name = 'openid.' + field_name
             signed_args[field_name] = query.get(field_name, '')
         return cls(identity_url, signed_args)
 
