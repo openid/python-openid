@@ -1418,6 +1418,7 @@ class EncodingError(Exception):
     """
 
     def __init__(self, response):
+        Exception.__init__(self, response)
         self.response = response
 
 
