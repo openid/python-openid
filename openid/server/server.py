@@ -475,7 +475,7 @@ class CheckIDRequest(OpenIDRequest):
         self.assoc_handle = assoc_handle
         self.identity = identity
         self.return_to = return_to
-        self.trust_root = trust_root
+        self.trust_root = trust_root or return_to
         if immediate:
             self.immediate = True
             self.mode = "checkid_immediate"
