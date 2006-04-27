@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+sed -i 's/\[unreleased development version:[^\]*\]/'"$1"'/' setup.py openid/__init__.py
