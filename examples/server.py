@@ -230,11 +230,32 @@ class ServerHandler(BaseHTTPRequestHandler):
             self.send_header('Set-Cookie', 'user=%s' % self.user)
 
     def showAboutPage(self):
-        self.showPage(200, 'This is an OpenID server', msg='''\
-        <p>This is an OpenID server.  See <a href="/">our main
-        page</a> or <a href="http://www.openid.net/">the OpenID
-        page<a> for more information.</p>
-        ''')
+        endpoint_url = self.server.base_url + 'openidserver'
+
+        def link(url):
+            url_attr = quoteattr(url)
+            url_text = cgi.escape(url)
+            return '<a href=%s><code>%s</code></a>' % (url_attr, url_text)
+
+        def term(url, text):
+            return '<dt>%s</dt><dd>%s</dd>' % (link(url), text)
+
+        resources = [
+            (self.server.base_url, "This example server's home page"),
+            ('http://www.openidenabled.com/',
+             'An OpenID community Web site, home of this library'),
+            ('http://www.openid.net/', 'the official OpenID Web site'),
+            ]
+
+        resource_markup = ''.join([term(url, text) for url, text in resources])
+
+        self.showPage(200, 'This is an OpenID server', msg="""\
+        <p>%s is an OpenID server endpoint.<p>
+        <p>For more information about OpenID, see:</p>
+        <dl>
+        %s
+        </dl>
+        """ % (link(endpoint_url), resource_markup,))
 
     def showErrorPage(self, error_message):
         self.showPage(400, 'Error Processing Request', err='''\
@@ -503,6 +524,9 @@ Content-type: text/html
         margin: .5em;
         margin-top: 1em;
         padding-bottom: 0em;
+      }
+      dd {
+        margin-bottom: 0.5em;
       }
   </style>
   <body>
