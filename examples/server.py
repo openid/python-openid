@@ -15,6 +15,20 @@ def quoteattr(s):
     qs = cgi.escape(s, 1)
     return '"%s"' % (qs,)
 
+try:
+    import openid
+except ImportError:
+    print >>sys.stderr, """
+Failed to import the OpenID library. In order to use this example, you
+must either install the library (see INSTALL in the root of the
+distribution) or else add the library to python's import path (the
+PYTHONPATH environment variable).
+
+For more information, see the README in the root of the library
+distribution or http://www.openidenabled.com/
+"""
+    sys.exit(1)
+
 from openid import oidutil
 from openid.server import server
 from openid.store.filestore import FileOpenIDStore

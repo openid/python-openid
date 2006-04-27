@@ -20,11 +20,19 @@ def quoteattr(s):
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
-# You may need to manually add the openid package into your
-# python path if you don't have it installed with your system python.
-# If so, uncomment the line below, and change the path where you have
-# Python-OpenID.
-# sys.path.append('/path/to/openid/')
+try:
+    import openid
+except ImportError:
+    print >>sys.stderr, """
+Failed to import the OpenID library. In order to use this example, you
+must either install the library (see INSTALL in the root of the
+distribution) or else add the library to python's import path (the
+PYTHONPATH environment variable).
+
+For more information, see the README in the root of the library
+distribution or http://www.openidenabled.com/
+"""
+    sys.exit(1)
 
 from openid.store import filestore
 from openid.consumer import consumer
