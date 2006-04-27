@@ -232,15 +232,18 @@ class OpenIDConsumer(object):
             response = FailureResponse(None, 'No session state found')
         else:
             response = self.consumer.complete(query, token)
+            del self.session[self._token_key]
 
-        if response.status in ['success',
-                               'cancel'#maybe
-                               ]:
-            if yadis_available and response.identity_url is not None:
-                disco = Discovery(self.session, response.identity_url)
-                # This is OK to do even if we did not do discovery in
-                # the first place.
-                disco.cleanup()
+        if (response.status in ['success', 'cancel'] and
+            yadis_available and
+            response.identity_url is not None):
+
+            disco = Discovery(self.session,
+                              response.identity_url,
+                              self.session_key_prefix)
+            # This is OK to do even if we did not do discovery in
+            # the first place.
+            disco.cleanup()
 
         return response
 
