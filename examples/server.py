@@ -155,7 +155,17 @@ class ServerHandler(BaseHTTPRequestHandler):
         return approval is not None
 
     def serverEndPoint(self, query):
-        request = self.server.openid.decodeRequest(query)
+        try:
+            request = self.server.openid.decodeRequest(query)
+        except server.ProtocolError, why:
+            self.displayResponse(why)
+            return
+
+        if request is None:
+            # Display text indicating that this is an endpoint.
+            self.showAboutPage()
+            return
+
         if request.mode in ["checkid_immediate", "checkid_setup"]:
             if (self.user and
                 self.isAuthorized(request.identity, request.trust_root)):
@@ -175,7 +185,13 @@ class ServerHandler(BaseHTTPRequestHandler):
         self.displayResponse(response)
 
     def displayResponse(self, response):
-        webresponse = self.server.openid.encodeResponse(response)
+        try:
+            webresponse = self.server.openid.encodeResponse(response)
+        except server.EncodingError, why:
+            text = why.response.encodeToKVForm()
+            self.showErrorPage('<pre>%s</pre>' % cgi.escape(text))
+            return
+
         self.send_response(webresponse.code)
         for header, value in webresponse.headers.iteritems():
             self.send_header(header, value)
