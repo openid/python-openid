@@ -205,7 +205,9 @@ class OpenIDConsumer(object):
     def begin(self, user_url):
         openid_url = oidutil.normalizeUrl(user_url)
         if yadis_available:
-            disco = Discovery(self.session, openid_url, 'XXX')
+            disco = Discovery(self.session,
+                              openid_url,
+                              self.session_key_prefix)
             endpoint = disco.getNextService(openIDDiscover)
         else:
             _, endpoints = openIDDiscover(openid_url)
