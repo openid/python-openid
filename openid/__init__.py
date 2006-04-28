@@ -7,7 +7,7 @@ implementing an OpenID server, see the C{L{openid.server.server}}
 module.
 """
 
-__version__ = '[unreleased development version:]'
+__version__ = '[library version:1.1.0-pre1]'[17:-1]
 
 # Parse the version info
 try:
