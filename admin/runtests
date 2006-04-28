@@ -25,6 +25,7 @@ def otherTests():
     for module_name in test_modules:
         print 'Testing %s...' % (module_name,) ,
         sys.stdout.flush()
+        module_name = 'openid.test.' + module_name
         try:
             test_mod = __import__(module_name, {}, {}, [None])
         except ImportError:
@@ -45,16 +46,16 @@ def otherTests():
     return failed
 
 def pyunitTests():
-    import test_htmldiscover
-    import test_openidyadis
-    import test_discover
     import unittest
-    import consumer
-    import kvform
-    import server
-    import oidutil
-    import linkparse
-    import trustroot
+    from openid.test import test_htmldiscover
+    from openid.test import test_openidyadis
+    from openid.test import test_discover
+    from openid.test import consumer
+    from openid.test import kvform
+    from openid.test import server
+    from openid.test import oidutil
+    from openid.test import linkparse
+    from openid.test import trustroot
 
     pyunit_modules = [
         server,
