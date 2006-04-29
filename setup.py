@@ -4,7 +4,7 @@ import os
 from distutils.core import setup
 
 if 'sdist' in sys.argv:
-    os.system('./makedoc')
+    os.system('./admin/makedoc')
 
 def getLicense():
     f = open('COPYING', 'r')
