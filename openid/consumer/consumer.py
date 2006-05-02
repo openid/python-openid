@@ -475,7 +475,7 @@ class GenericOpenIDConsumer(object):
         response = self._makeKVPost(request, server_url)
         if response is None:
             return False
-        return self._processCheckAuthResponse(response)
+        return self._processCheckAuthResponse(response, server_url)
 
     def _createCheckAuthRequest(self, query):
         signed = query.get('openid.signed')
@@ -494,7 +494,7 @@ class GenericOpenIDConsumer(object):
         check_args['openid.mode'] = 'check_authentication'
         return check_args
 
-    def _processCheckAuthResponse(self, response):
+    def _processCheckAuthResponse(self, response, server_url):
         is_valid = response.get('is_valid', 'false')
 
         if is_valid == 'true':
