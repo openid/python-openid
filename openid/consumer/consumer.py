@@ -263,8 +263,8 @@ class DiffieHellmanConsumerSession(object):
 
         if not self.dh.usingDefaultValues():
             args.update({
-                'openid.dh_modulus': cryptutil.longToBase64(dh.modulus),
-                'openid.dh_gen': cryptutil.longToBase64(dh.generator),
+                'openid.dh_modulus': cryptutil.longToBase64(self.dh.modulus),
+                'openid.dh_gen': cryptutil.longToBase64(self.dh.generator),
                 })
 
         return args
