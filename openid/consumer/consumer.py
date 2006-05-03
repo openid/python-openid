@@ -605,7 +605,8 @@ class GenericOpenIDConsumer(object):
             if session_type is None:
                 oidutil.log('Falling back to plain text association '
                             'session from %s' % assoc_session.session_type)
-                assoc_session = PlainTextSession()
+                # FIXME: This branch doesn't have unit test coverage
+                assoc_session = PlainTextConsumerSession()
             else:
                 oidutil.log('Session type mismatch. Expected %r, got %r' %
                             (assoc_session.session_type, session_type))
