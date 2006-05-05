@@ -1,3 +1,4 @@
+# -*- test-case-name: openid.test.server -*-
 """OpenID server protocol and logic.
 
 Overview
@@ -1357,7 +1358,7 @@ class ProtocolError(Exception):
             raise ValueError("I have no return_to URL.")
         return oidutil.appendArgs(return_to, {
             'openid.mode': 'error',
-            'error': str(self),
+            'openid.error': str(self),
             })
 
 

@@ -43,7 +43,7 @@ class TestProtocolError(unittest.TestCase):
         self.failUnless(e.hasReturnTo())
         expected_args = {
             'openid.mode': ['error'],
-            'error': ['plucky'],
+            'openid.error': ['plucky'],
             }
 
         rt_base, result_args = e.encodeToURL().split('?', 1)
