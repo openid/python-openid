@@ -2,10 +2,10 @@
 This module documents the main interface with the OpenID consumer
 libary.  The only part of the library which has to be used and isn't
 documented in full here is the store required to create an
-C{L{OpenIDConsumer}} instance.  More on the abstract store type and
+C{L{Consumer}} instance.  More on the abstract store type and
 concrete implementations of it that are provided in the documentation
-for the C{L{__init__<OpenIDConsumer.__init__>}} method of the
-C{L{OpenIDConsumer}} class.
+for the C{L{__init__<Consumer.__init__>}} method of the
+C{L{Consumer}} class.
 
 
 OVERVIEW
@@ -52,10 +52,10 @@ LIBRARY DESIGN
     which cover a wide variety of situations in which consumers may
     use the library.
 
-    This module contains a class, C{L{OpenIDConsumer}}, with methods
+    This module contains a class, C{L{Consumer}}, with methods
     corresponding to the actions necessary in each of steps 2, 3, and
     4 described in the overview.  Use of this library should be as easy
-    as creating an C{L{OpenIDConsumer}} instance and calling the methods
+    as creating an C{L{Consumer}} instance and calling the methods
     appropriate for the action the site wants to take.
 
 
@@ -77,7 +77,7 @@ STORES AND DUMB MODE
 
     Several store implementation are provided, and the interface is
     fully documented so that custom stores can be used as well.  See
-    the documentation for the C{L{OpenIDConsumer}} class for more
+    the documentation for the C{L{Consumer}} class for more
     information on the interface for stores.  The implementations that
     are provided allow the consumer site to store the necessary data
     in several different ways, including several SQL databases and
@@ -124,8 +124,8 @@ USING THIS LIBRARY
     is entered in that field and the form is submitted, it should make
     a request to the your site which includes that OpenID URL.
 
-    To start, the application should get an C{L{OpenIDConsumer}}
-    instance, and call its C{L{begin<OpenIDConsumer.begin>}} method.
+    To start, the application should get an C{L{Consumer}}
+    instance, and call its C{L{begin<Consumer.begin>}} method.
     This method takes the OpenID URL and, optionally, a session
     object.  If the application has any sort of session framework that
     provides per-client state management, that should be used here.
@@ -133,8 +133,8 @@ USING THIS LIBRARY
     C{dict}-like interface, if it provided.  If no session object is
     provided, the application code needs to store the information that
     would have been put in the session in an alternate location.  See
-    the documentation for the C{L{begin<OpenIDConsumer.begin>}} call
-    for more information.  The C{L{begin<OpenIDConsumer.begin>}}
+    the documentation for the C{L{begin<Consumer.begin>}} call
+    for more information.  The C{L{begin<Consumer.begin>}}
     method returns an C{L{OpenIDRequestBuilder}} object.
 
     Next, the application should call the
@@ -158,8 +158,8 @@ USING THIS LIBRARY
     the URL by the identity server as the information necessary to
     finish the request.
 
-    Get an C{L{OpenIDConsumer}} instance, and call its
-    C{L{complete<OpenIDConsumer.complete>}} method, passing in all the
+    Get an C{L{Consumer}} instance, and call its
+    C{L{complete<Consumer.complete>}} method, passing in all the
     received query arguments and either the user's session object or
     the token saved earlier.  See the documentation for
     C{L{OpenIDRequestBuilder}} for more information about the token.
@@ -186,13 +186,13 @@ from openid import oidutil
 from openid.association import Association
 from openid.dh import DiffieHellman
 
-__all__ = ['OpenIDAuthRequest', 'OpenIDConsumer', 'SuccessResponse',
+__all__ = ['OpenIDAuthRequest', 'Consumer', 'SuccessResponse',
            'SetupNeededResponse', 'CancelResponse', 'FailureResponse']
 
 if yadis_available:
     from yadis.manager import Discovery
 
-class OpenIDConsumer(object):
+class Consumer(object):
     """
     @ivar consumer: an instance of an object implementing the OpenID
         protocol, but doing no discovery or session management.
@@ -316,7 +316,7 @@ class GenericOpenIDConsumer(object):
 
     def __init__(self, store):
         """
-        This method initializes a new C{L{OpenIDConsumer}} instance to
+        This method initializes a new C{L{Consumer}} instance to
         access the library.
 
         @param store: This must be an object that implements the

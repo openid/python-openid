@@ -63,7 +63,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
     session = None
 
     def getConsumer(self):
-        return consumer.OpenIDConsumer(self.getSession(), self.server.store)
+        return consumer.Consumer(self.getSession(), self.server.store)
 
     def getSession(self):
         """Return the existing session or a new session"""
