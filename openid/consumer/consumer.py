@@ -691,10 +691,10 @@ class AuthRequest(object):
         redir_args.update(self.extra_args)
         return oidutil.appendArgs(self.endpoint.server_url, redir_args)
 
-class OpenIDConsumerResponse(object):
+class Response(object):
     status = None
 
-class SuccessResponse(OpenIDConsumerResponse):
+class SuccessResponse(Response):
     status = 'success'
 
     def __init__(self, identity_url, signed_args):
@@ -724,20 +724,20 @@ class SuccessResponse(OpenIDConsumerResponse):
     def getReturnTo(self):
         return self.signed_args['openid.return_to']
 
-class FailureResponse(OpenIDConsumerResponse):
+class FailureResponse(Response):
     status = 'failure'
 
     def __init__(self, identity_url=None, message=None):
         self.identity_url = identity_url
         self.message = message
 
-class CancelResponse(OpenIDConsumerResponse):
+class CancelResponse(Response):
     status = 'cancelled'
 
     def __init__(self, identity_url=None):
         self.identity_url = identity_url
 
-class SetupNeededResponse(OpenIDConsumerResponse):
+class SetupNeededResponse(Response):
     status = 'setup_needed'
 
     def __init__(self, identity_url=None, setup_url=None):
