@@ -220,7 +220,7 @@ class Consumer(object):
         @see: openid.store.interface
         """
         self.session = session
-        self.consumer = GenericOpenIDConsumer(store)
+        self.consumer = GenericConsumer(store)
         self._token_key = self.session_key_prefix + self._token
 
     def begin(self, user_url):
@@ -304,7 +304,7 @@ class PlainTextConsumerSession(object):
     def extractSecret(self, response):
         return oidutil.fromBase64(response['mac_key'])
 
-class GenericOpenIDConsumer(object):
+class GenericConsumer(object):
     """This is the implementation of the common logic for OpenID
     consumers. It is unaware of the application in which it is
     running.

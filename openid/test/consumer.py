@@ -4,7 +4,7 @@ import time
 
 from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.discover import OpenIDServiceEndpoint
-from openid.consumer.consumer import GenericOpenIDConsumer
+from openid.consumer.consumer import GenericConsumer
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanServerSession
@@ -102,7 +102,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     def run():
         trust_root = consumer_url
 
-        consumer = GenericOpenIDConsumer(store)
+        consumer = GenericConsumer(store)
         request = consumer.begin(endpoint)
 
         return_to = consumer_url
@@ -200,15 +200,15 @@ class TestConstruct(unittest.TestCase):
         self.store_sentinel = object()
 
     def test_construct(self):
-        oidc = GenericOpenIDConsumer(self.store_sentinel)
+        oidc = GenericConsumer(self.store_sentinel)
         self.failUnless(oidc.store is self.store_sentinel)
 
     def test_nostore(self):
-        self.failUnlessRaises(TypeError, GenericOpenIDConsumer)
+        self.failUnlessRaises(TypeError, GenericConsumer)
 
 
 class TestIdRes(unittest.TestCase):
-    consumer_class = GenericOpenIDConsumer
+    consumer_class = GenericConsumer
 
     def setUp(self):
         self.store = _memstore.MemoryStore()
@@ -235,7 +235,7 @@ class TestSetupNeeded(TestIdRes):
 
 class CheckAuthHappened(Exception): pass
 
-class CheckAuthDetectingConsumer(GenericOpenIDConsumer):
+class CheckAuthDetectingConsumer(GenericConsumer):
     def _checkAuth(self, *args):
         raise CheckAuthHappened(args)
 
@@ -420,7 +420,7 @@ class ExceptionRaisingMockFetcher(object):
     def fetch(self, url, body=None, headers=None):
         raise Exception('mock fetcher exception')
 
-class BadArgCheckingConsumer(GenericOpenIDConsumer):
+class BadArgCheckingConsumer(GenericConsumer):
     def _makeKVPost(self, args, _):
         assert args == {
             'openid.mode':'check_authentication',
@@ -429,7 +429,7 @@ class BadArgCheckingConsumer(GenericOpenIDConsumer):
         return None
 
 class TestCheckAuth(unittest.TestCase, CatchLogs):
-    consumer_class = GenericOpenIDConsumer
+    consumer_class = GenericConsumer
 
     def setUp(self):
         CatchLogs.setUp(self)
@@ -457,7 +457,7 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
         consumer._checkAuth(query, 'does://not.matter')
 
 class TestFetchAssoc(unittest.TestCase, CatchLogs):
-    consumer_class = GenericOpenIDConsumer
+    consumer_class = GenericConsumer
 
     def setUp(self):
         CatchLogs.setUp(self)
