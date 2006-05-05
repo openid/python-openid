@@ -874,7 +874,7 @@ class Counter(object):
 class TestServer(unittest.TestCase, CatchLogs):
     def setUp(self):
         self.store = _memstore.MemoryStore()
-        self.server = server.OpenIDServer(self.store)
+        self.server = server.Server(self.store)
         CatchLogs.setUp(self)
 
     def test_dispatch(self):

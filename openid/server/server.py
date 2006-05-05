@@ -13,9 +13,9 @@ Overview
         3. Format the response according to the protocol.
 
     The first and last of these tasks may performed by
-    the L{decodeRequest<OpenIDServer.decodeRequest>} and
-    L{encodeResponse<OpenIDServer.encodeResponse>} methods of the
-    L{OpenIDServer} object.  Who gets to do the intermediate task -- deciding
+    the L{decodeRequest<Server.decodeRequest>} and
+    L{encodeResponse<Server.encodeResponse>} methods of the
+    L{Server} object.  Who gets to do the intermediate task -- deciding
     how to respond to the request -- will depend on what type of request it
     is.
 
@@ -34,8 +34,8 @@ Overview
 
     Other types of requests relate to establishing associations between client
     and server and verifing the authenticity of previous communications.
-    L{OpenIDServer} contains all the logic and data necessary to respond to
-    such requests; just pass it to L{OpenIDServer.handleRequest}.
+    L{Server} contains all the logic and data necessary to respond to
+    such requests; just pass it to L{Server.handleRequest}.
 
 
 OpenID Extensions
@@ -848,7 +848,7 @@ class WebResponse(object):
     """I am a response to an OpenID request in terms a web server understands.
 
     I generally come from an L{Encoder}, either directly or from
-    L{OpenIDServer.encodeResponse}.
+    L{Server.encodeResponse}.
 
     @ivar code: The HTTP code of this response.
     @type code: int
@@ -1184,7 +1184,7 @@ class Decoder(object):
 
 
 
-class OpenIDServer(object):
+class Server(object):
     """I handle requests for an OpenID server.
 
     Some types of requests (those which are not C{checkid} requests) may be
@@ -1201,7 +1201,7 @@ class OpenIDServer(object):
 
     Example::
 
-        oserver = OpenIDServer(FileOpenIDStore(data_path))
+        oserver = Server(FileOpenIDStore(data_path))
         request = oserver.decodeRequest(query)
         if request.mode in ["checkid_immediate", "checkid_setup"]:
             if self.isAuthorized(request.identity, request.trust_root):
@@ -1231,7 +1231,7 @@ class OpenIDServer(object):
     decoderClass = Decoder
 
     def __init__(self, store):
-        """A new L{OpenIDServer}.
+        """A new L{Server}.
 
         @param store: The back-end where my associations are stored.
         @type store: L{openid.store.interface.OpenIDStore}
