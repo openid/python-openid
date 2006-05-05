@@ -186,7 +186,7 @@ from openid import oidutil
 from openid.association import Association
 from openid.dh import DiffieHellman
 
-__all__ = ['OpenIDAuthRequest', 'Consumer', 'SuccessResponse',
+__all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
            'SetupNeededResponse', 'CancelResponse', 'FailureResponse']
 
 if yadis_available:
@@ -347,7 +347,7 @@ class GenericConsumer(object):
             service_endpoint.server_url,
             )
         assoc = self._getAssociation(service_endpoint.server_url)
-        request = OpenIDAuthRequest(token, assoc, service_endpoint)
+        request = AuthRequest(token, assoc, service_endpoint)
         request.return_to_args['nonce'] = nonce
         return request
 
@@ -650,10 +650,10 @@ class GenericConsumer(object):
 
         return assoc
 
-class OpenIDAuthRequest(object):
+class AuthRequest(object):
     def __init__(self, token, assoc, endpoint  ):
         """
-        Creates a new OpenIDAuthRequest object.  This just stores each
+        Creates a new AuthRequest object.  This just stores each
         argument in an appropriately named field.
 
         Users of this library should not create instances of this
