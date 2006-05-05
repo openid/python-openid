@@ -193,11 +193,32 @@ if yadis_available:
     from yadis.manager import Discovery
 
 class OpenIDConsumer(object):
+    """
+    @ivar consumer: an instance of an object implementing the OpenID
+        protocol, but doing no discovery or session management.
+
+    @type consumer: GenericConsumer
+
+    @ivar session: A dictionary-like object representing the user's
+        session data.  This is used for keeping state of the OpenID
+        transaction when the user is redirected to the server.
+    """
     session_key_prefix = "_openid_consumer_"
 
     _token = 'last_token'
 
     def __init__(self, session, store):
+        """Initialize a Consumer instance.
+
+        You should create a new instance of the Consumer object with
+        every HTTP request that handles OpenID transactions.
+
+        @param store: an object that implements the OpenID Store
+            interface.  Several concrete implementations are provided,
+            to cover most common use cases.
+
+        @see: openid.store.interface
+        """
         self.session = session
         self.consumer = GenericOpenIDConsumer(store)
         self._token_key = self.session_key_prefix + self._token
