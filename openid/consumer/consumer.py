@@ -355,6 +355,10 @@ class GenericConsumer(object):
     def complete(self, query, token):
         mode = query.get('openid.mode', '<no mode specified>')
 
+        if isinstance(mode, list):
+            raise TypeError("query dict must have one value for each key, "
+                            "not lists of values.  Query is %r" % (query,))
+
         # Get the current request's state
         try:
             pieces = self._splitToken(token)

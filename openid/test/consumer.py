@@ -218,6 +218,18 @@ class TestIdRes(unittest.TestCase):
         self.server_url = "serlie"
         self.consumer_id = "consu"
 
+class TestQueryFormat(TestIdRes):
+    def test_notAList(self):
+        # Value should be a single string.  If it's a list, it should generate
+        # an exception.
+        query = {'openid.mode': ['cancel']}
+        try:
+            r = self.consumer.complete(query, 'badtoken')
+        except TypeError, err:
+            self.failUnless(str(err).find('values') != -1, err)
+        else:
+            self.fail("expected TypeError, got this instead: %s" % (r,))
+
 class TestSetupNeeded(TestIdRes):
     def test_setupNeeded(self):
         setup_url = 'http://unittest/setup-here'
