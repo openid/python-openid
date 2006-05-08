@@ -125,27 +125,23 @@ USING THIS LIBRARY
     is entered in that field and the form is submitted, it should make
     a request to the your site which includes that OpenID URL.
 
-    To start, the application should get an C{L{Consumer}}
-    instance, and call its C{L{begin<Consumer.begin>}} method.
-    This method takes the OpenID URL and, optionally, a session
-    object.  If the application has any sort of session framework that
-    provides per-client state management, that should be used here.
-    The library just expects the session object to support a
-    C{dict}-like interface, if it provided.  If no session object is
-    provided, the application code needs to store the information that
-    would have been put in the session in an alternate location.  See
-    the documentation for the C{L{begin<Consumer.begin>}} call
-    for more information.  The C{L{begin<Consumer.begin>}}
-    method returns an C{L{AuthRequest}} object.
+    To start, the application should get an C{L{Consumer}} instance,
+    and call its C{L{begin<Consumer.begin>}} method.  This method
+    takes the OpenID URL and a session object.  If the application has
+    any sort of session framework that provides per-client state
+    management, that should be used here.  The library just expects
+    the session object to support a C{dict}-like interface, if it
+    provided. The C{L{begin<Consumer.begin>}} method returns an
+    C{L{AuthRequest}} object.
 
     Next, the application should call the
-    C{L{redirectURL<AuthRequest.redirectURL>}} method on
-    the C{L{AuthRequest}} object.  The return_to URL is the
-    URL that the OpenID server will send the user back to after
-    attempting to verify his or her identity.  The trust_root is the
-    URL (or URL pattern) that identifies your web site to the user
-    when he or she is authorizing it.  Send a redirect to the
-    resulting URL to the user's browser.
+    C{L{redirectURL<AuthRequest.redirectURL>}} method on the
+    C{L{AuthRequest}} object.  The C{return_to} URL is the URL that
+    the OpenID server will send the user back to after attempting to
+    verify his or her identity.  The C{trust_root} is the URL (or URL
+    pattern) that identifies your web site to the user when he or she
+    is authorizing it.  Send a redirect to the resulting URL to the
+    user's browser.
 
     That's the first half of the authentication process.  The second
     half of the process is done after the user's ID server sends the
@@ -161,12 +157,10 @@ USING THIS LIBRARY
 
     Get an C{L{Consumer}} instance, and call its
     C{L{complete<Consumer.complete>}} method, passing in all the
-    received query arguments and either the user's session object or
-    the token saved earlier.  See the documentation for
-    C{L{AuthRequest}} for more information about the token.
+    received query arguments.
 
     There are multiple possible return types possible from that
-    method.  These indicate the whether or not the login was
+    method. These indicate the whether or not the login was
     successful, and include any additional information appropriate for
     their type.
 
