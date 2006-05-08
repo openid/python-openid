@@ -1,3 +1,4 @@
+# -*- test-case-name: openid.test.consumer -*-
 """
 This module documents the main interface with the OpenID consumer
 libary.  The only part of the library which has to be used and isn't
