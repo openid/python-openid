@@ -169,6 +169,19 @@ USING THIS LIBRARY
     method.  These indicate the whether or not the login was
     successful, and include any additional information appropriate for
     their type.
+
+@var SUCCESS: constant used as the status for
+    L{SuccessResponse<openid.consumer.consumer.SuccessResponse>} objects.
+
+@var FAILURE: constant used as the status for
+    L{FailureResponse<openid.consumer.consumer.FailureResponse>} objects.
+
+@var CANCEL: constant used as the status for
+    L{CancelResponse<openid.consumer.consumer.CancelResponse>} objects.
+
+@var SETUP_NEEDED: constant used as the status for
+    L{SetupNeededResponse<openid.consumer.consumer.SetupNeededResponse>}
+    objects.
 """
 
 import string
@@ -196,7 +209,9 @@ if yadis_available:
     from yadis.manager import Discovery
 
 class Consumer(object):
-    """
+    """An OpenID consumer implementation that performs discovery and
+    does session management.
+
     @ivar consumer: an instance of an object implementing the OpenID
         protocol, but doing no discovery or session management.
 
@@ -205,6 +220,10 @@ class Consumer(object):
     @ivar session: A dictionary-like object representing the user's
         session data.  This is used for keeping state of the OpenID
         transaction when the user is redirected to the server.
+
+    @cvar session_key_prefix: A string that is prepended to session
+        keys to ensure that they are unique. This variable may be
+        changed to suit your application.
     """
     session_key_prefix = "_openid_consumer_"
 
@@ -216,11 +235,17 @@ class Consumer(object):
         You should create a new instance of the Consumer object with
         every HTTP request that handles OpenID transactions.
 
-        @param store: an object that implements the OpenID Store
-            interface.  Several concrete implementations are provided,
-            to cover most common use cases.
+        @param session: See L{the session instance variable<openid.consumer.consumer.Consumer.session>}
+
+        @param store: an object that implements the interface in
+            C{L{openid.store.interface.OpenIDStore}}.  Several
+            implementations are provided, to cover common database
+            environments.
+
+        @type store: C{L{openid.store.interface.OpenIDStore}}
 
         @see: L{openid.store.interface}
+        @see: L{openid.store}
         """
         self.session = session
         self.consumer = GenericConsumer(store)
@@ -273,7 +298,7 @@ class Consumer(object):
             return self.beginWithoutDiscovery(service)
 
     def beginWithoutDiscovery(self, service):
-        """Start the OpenID transaction without doing OpenID server
+        """Start OpenID verification without doing OpenID server
         discovery. This method is used internally by Consumer.begin
         after discovery is performed, and exists to provide an
         interface for library users needing to perform their own
@@ -288,9 +313,9 @@ class Consumer(object):
 
         @returns: an OpenID authentication request object.
 
-        @rtype: AuthRequest
+        @rtype: L{AuthRequest<openid.consumer.consumer.AuthRequest>}
 
-        @see: openid.consumer.consumer.Consumer.begin
+        @See: Openid.consumer.consumer.Consumer.begin
         @see: openid.consumer.discover
         """
         auth_req = self.consumer.begin(service)
@@ -309,10 +334,10 @@ class Consumer(object):
             indicated by the status attribute, which will be one of
             SUCCESS, CANCEL, FAILURE, or SETUP_NEEDED.
 
-        @see: openid.consumer.consumer.SuccessResponse
-        @see: openid.consumer.consumer.CancelResponse
-        @see: openid.consumer.consumer.SetupNeededResponse
-        @see: openid.consumer.consumer.FailureResponse
+        @see: L{SuccessResponse<openid.consumer.consumer.SuccessResponse>}
+        @see: L{CancelResponse<openid.consumer.consumer.CancelResponse>}
+        @see: L{SetupNeededResponse<openid.consumer.consumer.SetupNeededResponse>}
+        @see: L{FailureResponse<openid.consumer.consumer.FailureResponse>}
         """
 
         token = self.session.get(self._token_key)
@@ -382,28 +407,6 @@ class GenericConsumer(object):
     NONCE_CHRS = string.letters + string.digits
 
     def __init__(self, store):
-        """
-        This method initializes a new C{L{Consumer}} instance to
-        access the library.
-
-        @param store: This must be an object that implements the
-            interface in C{L{openid.store.interface.OpenIDStore}}.
-            Several concrete implementations are provided, to cover
-            most common use cases.  For stores backed by MySQL or
-            SQLite, see the C{L{openid.store.sqlstore.SQLStore}}
-            class and its sublcasses.  For a filesystem-backed store,
-            see the C{L{openid.store.filestore}} module.
-
-            As a last resort, if it isn't possible for the server to
-            store state at all, an instance of
-            C{L{openid.store.dumbstore.DumbStore}} can be used.  This
-            should be an absolute last resort, though, as it makes the
-            consumer vulnerable to replay attacks over the lifespan of
-            the tokens the library creates.
-
-        @type store: C{L{openid.store.interface.OpenIDStore}}
-
-        """
         self.store = store
 
     def begin(self, service_endpoint):
