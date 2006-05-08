@@ -180,7 +180,7 @@ from urlparse import urlparse
 from urljr import fetchers
 
 from openid.consumer.discover import discover as openIDDiscover
-from openid.consumer.discover import yadis_available
+from openid.consumer.discover import yadis_available, DiscoveryFailure
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
