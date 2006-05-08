@@ -261,22 +261,40 @@ class Consumer(object):
             disco = Discovery(self.session,
                               openid_url,
                               self.session_key_prefix)
-            endpoint = disco.getNextService(openIDDiscover)
+            service = disco.getNextService(openIDDiscover)
         else:
-            _, endpoints = openIDDiscover(openid_url)
-            if not endpoints:
-                endpoint = None
+            _, services = openIDDiscover(openid_url)
+            if not services:
+                service = None
             else:
-                endpoint = endpoints[0]
+                service = services[0]
 
-        if endpoint is None:
+        if service is None:
             raise DiscoveryFailure(
                 'No usable OpenID services found for that URL', None)
         else:
-            return self.beginWithoutDiscovery(endpoint)
+            return self.beginWithoutDiscovery(service)
 
-    def beginWithoutDiscovery(self, endpoint):
-        auth_req = self.consumer.begin(endpoint)
+    def beginWithoutDiscovery(self, service):
+        """Start the OpenID transaction without doing OpenID server
+        discovery. This method is used internally by Consumer.begin
+        after discovery is performed, and exists to provide an
+        interface for library users needing to perform their own
+        discovery.
+
+        @param service: an OpenID service endpoint descriptor.  This
+            object and factories for it are found in the
+            openid.consumer.discover module.
+        @type service: openid.consumer.discover.OpenIDServiceEndpoint
+
+        @returns: an OpenID authentication request object.
+
+        @rtype: AuthRequest
+
+        @see: openid.consumer.consumer.Consumer.begin
+        @see: openid.consumer.discover
+        """
+        auth_req = self.consumer.begin(service)
         self.session[self._token_key] = auth_req.token
         return auth_req
 
