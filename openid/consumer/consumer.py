@@ -188,7 +188,9 @@ from openid.association import Association
 from openid.dh import DiffieHellman
 
 __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
-           'SetupNeededResponse', 'CancelResponse', 'FailureResponse']
+           'SetupNeededResponse', 'CancelResponse', 'FailureResponse',
+           'SUCCESS', 'FAILURE', 'CANCEL', 'SETUP_NEEDED',
+           ]
 
 if yadis_available:
     from yadis.manager import Discovery
