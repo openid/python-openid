@@ -225,6 +225,37 @@ class Consumer(object):
         self._token_key = self.session_key_prefix + self._token
 
     def begin(self, user_url):
+        """Start the OpenID verification process.  See steps 1-2 in
+        the overview at the top of this file.
+
+        @param user_url: Identity URL given by the user. This method
+            performs a textual transformation of the URL to try and
+            make sure it is normalized. For example, a user_url of
+            example.com will be normalized to http://example.com/
+            normalizing and resolving any redirects the server might
+            issue.
+
+        @type user_url: str
+
+        @returns: a subclass of OpenIDStatus, which is an object that
+            has a +status+ method.  The status methodfor this object
+            will either return OpenID::SUCCESS, or OpenID::FAILURE.
+            Generally +begin+ will fail if the users' OpenID page
+            cannot be retrieved or OpenID server information cannot be
+            determined.
+
+        @returns: An object containing the discovered information will
+            be returned, with a method for building a redirect URL to
+            the server, as described in step 3 of the overview. This
+            object may also be used to add extension arguments to the
+            request, using its addExtensionArg method.
+
+        @returntype: AuthRequest
+
+        @raises: yadis.discovery.DiscoveryFailure -or-
+            openid.consumer.discover.DiscoveryFailure if the yadis
+            library is not available.
+        """
         openid_url = oidutil.normalizeUrl(user_url)
         if yadis_available:
             disco = Discovery(self.session,
@@ -239,7 +270,8 @@ class Consumer(object):
                 endpoint = endpoints[0]
 
         if endpoint is None:
-            return None
+            raise DiscoveryFailure(
+                'No usable OpenID services found for that URL', None)
         else:
             return self.beginWithoutDiscovery(endpoint)
 
