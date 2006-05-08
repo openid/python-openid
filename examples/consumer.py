@@ -196,13 +196,13 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         info = oidconsumer.complete(self.query)
 
         css_class = 'error'
-        if info.status == 'failure' and info.identity_url:
+        if info.status == consumer.FAILURE and info.identity_url:
             # In the case of failure, if info is non-None, it is the
             # URL that we were verifying. We include it in the error
             # message to help the user figure out what happened.
             fmt = "Verification of %s failed."
             message = fmt % (cgi.escape(info.identity_url),)
-        elif info.status == 'success':
+        elif info.status == consumer.SUCCESS:
             # Success means that the transaction completed without
             # error. If info is None, it means that the user cancelled
             # the verification.
@@ -213,7 +213,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # comment posting, etc. here.
             fmt = "You have successfully verified %s as your identity."
             message = fmt % (cgi.escape(info.identity_url),)
-        elif info.status == 'cancelled':
+        elif info.status == consumer.CANCEL:
             # cancelled
             message = 'Verification cancelled'
         else:

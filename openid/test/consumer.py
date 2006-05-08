@@ -4,7 +4,8 @@ import time
 
 from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.discover import OpenIDServiceEndpoint
-from openid.consumer.consumer import GenericConsumer
+from openid.consumer.consumer import \
+     GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanServerSession
@@ -135,7 +136,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         assoc.addSignature(['mode', 'return_to', 'identity'], query)
 
         info = consumer.complete(query, request.token)
-        assert info.status == 'success', info.message
+        assert info.status == SUCCESS, info.message
         assert info.identity_url == user_url
 
     assert fetcher.num_assocs == 0
@@ -242,7 +243,7 @@ class TestSetupNeeded(TestIdRes):
                                      self.server_id,
                                      self.server_url,
                                      )
-        self.failUnlessEqual(ret.status, 'setup_needed')
+        self.failUnlessEqual(ret.status, SETUP_NEEDED)
         self.failUnlessEqual(ret.setup_url, setup_url)
 
 class CheckAuthHappened(Exception): pass
@@ -285,7 +286,7 @@ class NonceIdResTest(TestIdRes):
                                      self.server_id,
                                      self.server_url,
                                      )
-        self.failUnlessEqual(ret.status, 'failure')
+        self.failUnlessEqual(ret.status, FAILURE)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
 
     def test_badNonce(self):
@@ -301,7 +302,7 @@ class NonceIdResTest(TestIdRes):
                                      self.server_id,
                                      self.server_url,
                                      )
-        self.failUnlessEqual(ret.status, 'failure')
+        self.failUnlessEqual(ret.status, FAILURE)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
 
     def test_twoNonce(self):
@@ -317,7 +318,7 @@ class NonceIdResTest(TestIdRes):
                                      self.server_id,
                                      self.server_url,
                                      )
-        self.failUnlessEqual(ret.status, 'failure')
+        self.failUnlessEqual(ret.status, FAILURE)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
 
 class TestCheckAuthTriggered(TestIdRes, CatchLogs):
@@ -386,7 +387,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.assoc_handle':handle,
             }
         info = self._doIdRes(query)
-        self.failUnlessEqual('failure', info.status)
+        self.failUnlessEqual(FAILURE, info.status)
         self.failUnlessEqual(self.consumer_id, info.identity_url)
         info.message.index('expired') # raises an exception if it's not there
 
@@ -415,7 +416,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
 
         good_assoc.addSignature(['return_to', 'identity'], query)
         info = self._doIdRes(query)
-        self.failUnlessEqual(info.status, 'success')
+        self.failUnlessEqual(info.status, SUCCESS)
         self.failUnlessEqual(self.consumer_id, info.identity_url)
 
 
