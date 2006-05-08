@@ -136,11 +136,11 @@ USING THIS LIBRARY
     would have been put in the session in an alternate location.  See
     the documentation for the C{L{begin<Consumer.begin>}} call
     for more information.  The C{L{begin<Consumer.begin>}}
-    method returns an C{L{OpenIDRequestBuilder}} object.
+    method returns an C{L{AuthRequest}} object.
 
     Next, the application should call the
-    C{L{buildRedirect<OpenIDRequestBuilder.buildRedirect>}} method on
-    the C{L{OpenIDRequestBuilder}} object.  The return_to URL is the
+    C{L{redirectURL<AuthRequest.redirectURL>}} method on
+    the C{L{AuthRequest}} object.  The return_to URL is the
     URL that the OpenID server will send the user back to after
     attempting to verify his or her identity.  The trust_root is the
     URL (or URL pattern) that identifies your web site to the user
@@ -154,7 +154,7 @@ USING THIS LIBRARY
 
     When that happens, the user will contact your site at the URL
     given as the C{return_to} URL to the
-    C{L{buildRedirect<OpenIDRequestBuilder.buildRedirect>}} call made
+    C{L{redirectURL<AuthRequest.redirectURL>}} call made
     above.  The request will have several query parameters added to
     the URL by the identity server as the information necessary to
     finish the request.
@@ -163,7 +163,7 @@ USING THIS LIBRARY
     C{L{complete<Consumer.complete>}} method, passing in all the
     received query arguments and either the user's session object or
     the token saved earlier.  See the documentation for
-    C{L{OpenIDRequestBuilder}} for more information about the token.
+    C{L{AuthRequest}} for more information about the token.
 
     There are multiple possible return types possible from that
     method.  These indicate the whether or not the login was
@@ -220,14 +220,14 @@ class Consumer(object):
             interface.  Several concrete implementations are provided,
             to cover most common use cases.
 
-        @see: openid.store.interface
+        @see: L{openid.store.interface}
         """
         self.session = session
         self.consumer = GenericConsumer(store)
         self._token_key = self.session_key_prefix + self._token
 
     def begin(self, user_url):
-        """Start the OpenID verification process.  See steps 1-2 in
+        """Start the OpenID authentication process. See steps 1-2 in
         the overview at the top of this file.
 
         @param user_url: Identity URL given by the user. This method
@@ -239,23 +239,18 @@ class Consumer(object):
 
         @type user_url: str
 
-        @returns: a subclass of OpenIDStatus, which is an object that
-            has a +status+ method.  The status methodfor this object
-            will either return OpenID::SUCCESS, or OpenID::FAILURE.
-            Generally +begin+ will fail if the users' OpenID page
-            cannot be retrieved or OpenID server information cannot be
-            determined.
-
         @returns: An object containing the discovered information will
             be returned, with a method for building a redirect URL to
             the server, as described in step 3 of the overview. This
             object may also be used to add extension arguments to the
-            request, using its addExtensionArg method.
+            request, using its
+            L{addExtensionArg<openid.consumer.consumer.AuthRequest.addExtensionArg>}
+            method.
 
-        @returntype: AuthRequest
+        @returntype: L{AuthRequest<openid.consumer.consumer.AuthRequest>}
 
-        @raises: yadis.discovery.DiscoveryFailure -or-
-            openid.consumer.discover.DiscoveryFailure if the yadis
+        @raises: L{yadis.discovery.DiscoveryFailure} -or-
+            L{openid.consumer.discover.DiscoveryFailure} if the yadis
             library is not available.
         """
         openid_url = oidutil.normalizeUrl(user_url)
@@ -286,8 +281,10 @@ class Consumer(object):
 
         @param service: an OpenID service endpoint descriptor.  This
             object and factories for it are found in the
-            openid.consumer.discover module.
-        @type service: openid.consumer.discover.OpenIDServiceEndpoint
+            L{openid.consumer.discover} module.
+
+        @type service:
+            L{OpenIDServiceEndpoint<openid.consumer.discover.OpenIDServiceEndpoint>}
 
         @returns: an OpenID authentication request object.
 
