@@ -301,6 +301,23 @@ class Consumer(object):
         return auth_req
 
     def complete(self, query):
+        """Called to interpret the server's response to an OpenID
+        request. It is called in step 4 of the flow described in the
+        consumer overview.
+
+        @param query: A dictionary of the query parameters for this
+            HTTP request.
+
+        @returns: a subclass of Response. The type of response is
+            indicated by the status attribute, which will be one of
+            SUCCESS, CANCEL, FAILURE, or SETUP_NEEDED.
+
+        @see: openid.consumer.consumer.SuccessResponse
+        @see: openid.consumer.consumer.CancelResponse
+        @see: openid.consumer.consumer.SetupNeededResponse
+        @see: openid.consumer.consumer.FailureResponse
+        """
+
         token = self.session.get(self._token_key)
         if token is None:
             response = FailureResponse(None, 'No session state found')
@@ -757,6 +774,18 @@ class Response(object):
     status = None
 
 class SuccessResponse(Response):
+    """A response with a status of SUCCESS. Indicates that this request is a
+    successful acknowledgement from the OpenID server that the
+    supplied URL is, indeed controlled by the requesting agent.
+
+    @ivar identity_url: The identity URL that has been authenticated
+
+    @ivar signed_args: The arguments in the server's response that
+        were signed and verified.
+
+    @cvar status: SUCCESS
+    """
+
     status = SUCCESS
 
     def __init__(self, identity_url, signed_args):
@@ -773,6 +802,11 @@ class SuccessResponse(Response):
     fromQuery = classmethod(fromQuery)
 
     def extensionResponse(self, prefix):
+        """extract signed extension data from the server's response.
+
+        @param prefix: The extension namespace from which to extract
+            the extension data.
+        """
         response = {}
         prefix = 'openid.%s.' % (prefix,)
         prefix_len = len(prefix)
@@ -784,9 +818,36 @@ class SuccessResponse(Response):
         return response
 
     def getReturnTo(self):
+        """Get the openid.return_to argument from this response.
+
+        This is useful for verifying that this request was initiated
+        by this consumer.
+
+        If the response does not contain an openid.return_to argument,
+        this method will raise a KeyError.
+
+        @returns: The return_to URL supplied to the server on the
+            initial request.
+
+        @returntype: str
+
+        @raises: KeyError
+        """
         return self.signed_args['openid.return_to']
 
 class FailureResponse(Response):
+    """A response with a status of FAILURE. Indicates that the OpenID
+    protocol has failed. This could be locally or remotely triggered.
+
+    @ivar identity_url:  The identity URL for which authenitcation was
+        attempted, if it can be determined. Otherwise, None.
+
+    @ivar message: A message indicating why the request failed, if one
+        is supplied. otherwise, None.
+
+    @cvar status: FAILURE
+    """
+
     status = FAILURE
 
     def __init__(self, identity_url=None, message=None):
@@ -794,12 +855,36 @@ class FailureResponse(Response):
         self.message = message
 
 class CancelResponse(Response):
+    """A response with a status of CANCEL. Indicates that the user
+    cancelled the OpenID authentication request.
+
+    @ivar identity_url: The identity URL for which authenitcation was
+        attempted, if it can be determined. Otherwise, None.
+
+    @cvar status: CANCEL
+    """
+
     status = CANCEL
 
     def __init__(self, identity_url=None):
         self.identity_url = identity_url
 
 class SetupNeededResponse(Response):
+    """A response with a status of SETUP_NEEDED. Indicates that the
+    request was in immediate mode, and the server is unable to
+    authenticate the user without further interaction.
+
+    @ivar identity_url:  The identity URL for which authenitcation was
+        attempted.
+
+    @ivar setup_url: A URL that can be used to send the user to the
+        server to set up for authentication. The user should be
+        redirected in to the setup_url, either in the current window
+        or in a new browser window.
+
+    @cvar status: SETUP_NEEDED
+    """
+
     status = SETUP_NEEDED
 
     def __init__(self, identity_url=None, setup_url=None):
