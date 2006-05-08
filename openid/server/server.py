@@ -277,8 +277,8 @@ class PlainTextServerSession(object):
 
 
 class DiffieHellmanServerSession(object):
-    """An object that knows how to handle association requests with no
-    session type.
+    """An object that knows how to handle association requests with the
+    Diffie-Hellman session type.
 
     @cvar session_type: The session_type for this association
         session.
@@ -306,9 +306,10 @@ class DiffieHellmanServerSession(object):
         @param query: The associate request's query parameters
         @type query: {str:str}
 
-        @returntype: DiffieHellmanServerSession
+        @returntype: L{DiffieHellmanServerSession}
 
-        @raises: ValueError
+        @raises ValueError: When parameters required to establish the session
+            are missing.
         """
         dh_modulus = query.get('openid.dh_modulus')
         dh_gen = query.get('openid.dh_gen')
