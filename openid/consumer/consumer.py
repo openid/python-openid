@@ -735,6 +735,30 @@ class AuthRequest(object):
         self.token = token
 
     def addExtensionArg(self, namespace, key, value):
+        """Add an extension argument to this OpenID authentication
+        request.
+
+        Use caution when adding arguments, because they will be
+        URL-escaped and appended to the redirect URL, which can easily
+        get quite long.
+
+        @param namespace: The namespace for the extension. For
+            example, the simple registration extension uses the
+            namespace C{sreg}.
+
+        @type namespace: str
+
+        @param key: The key within the extension namespace. For
+            example, the nickname field in the simple registration
+            extension's key is C{nickname}.
+
+        @type key: str
+
+        @param value: The value to provide to the server for this
+            argument.
+
+        @type value: str
+        """
         arg_name = '.'.join('openid', namespace, key)
         self.extra_args[arg_name] = value
 
