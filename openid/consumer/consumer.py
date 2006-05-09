@@ -268,9 +268,10 @@ class Consumer(object):
 
         @returntype: L{AuthRequest<openid.consumer.consumer.AuthRequest>}
 
-        @raises: L{yadis.discovery.DiscoveryFailure} -or-
-            L{openid.consumer.discover.DiscoveryFailure} if the yadis
-            library is not available.
+        @raises openid.consumer.discover.DiscoveryFailure: when I fail to
+            find an OpenID server for this URL.  If the C{yadis} package
+            is available, L{openid.consumer.discover.DiscoveryFailure} is
+            an alias for C{yadis.discover.DiscoveryFailure}.
         """
         openid_url = oidutil.normalizeUrl(user_url)
         if yadis_available:
