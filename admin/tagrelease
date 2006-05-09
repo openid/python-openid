@@ -10,4 +10,4 @@ echo "$VERSION" | grep -e "$VERSION_PATTERN" 2>&1 >/dev/null || {
 
 cd $(dirname $(dirname $(readlink --canonicalize "$0")))
 ./admin/setversion "$VERSION"
-darcs record -m 'Set version number to '"$VERSION" && darcs tag "$VERSION"
+darcs record -m 'Set version number to '"$VERSION" && darcs tag "release-$VERSION"
