@@ -1,7 +1,7 @@
 # -*- test-case-name: openid.test.consumer -*-
 """
 This module documents the main interface with the OpenID consumer
-libary.  The only part of the library which has to be used and isn't
+library.  The only part of the library which has to be used and isn't
 documented in full here is the store required to create an
 C{L{Consumer}} instance.  More on the abstract store type and
 concrete implementations of it that are provided in the documentation
