@@ -130,7 +130,7 @@ USING THIS LIBRARY
     session framework that provides per-client state management, a
     dict-like object to access the session should be passed as the
     optional second parameter.  The library just expects the session
-    object to support a C{dict}-like interface, if it is xprovided.
+    object to support a C{dict}-like interface, if it is provided.
 
     Next, the application should call the 'begin' method on the
     C{L{Consumer}} instance.  This method takes the OpenID URL.  The
