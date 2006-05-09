@@ -64,14 +64,14 @@ support extension arguments.
  * OpenIDConsumer(store, [fetcher], [immediate]) is now
    Consumer(session, store)
 
-  - The session object is a dictionary-like object that should be tied
-    to the requesting HTTP agent, for example, using a session ID
-    cookie. It is used for Yadis fallback and holding the state of the
-    OpenID transaction between the redirect to the server and the
-    response. The values that are placed in the session are
-    namespaced, so there should not be a conflict with other uses of
-    the same session. The session namespace is an attribute of the
-    Consumer object.
+  - The session object is a dictionary-like object that should be
+    tied to the requesting HTTP agent, for example, using a session
+    ID cookie. It is used for Yadis fallback and holding the state
+    of the OpenID transaction between the redirect to the server
+    and the response. The values that are placed in the session are
+    namespaced, so there should not be a conflict with other uses
+    of the same session. The session namespace is an attribute of
+    the Consumer object.
 
   - Because the consumer object now does session management, it is
     necessary to construct a new consumer object for every
