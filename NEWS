@@ -1,41 +1,93 @@
-What's New in Python OpenID 1.2.0
+What's New in Python OpenID 1.1.0
 =================================
+
+Version 1.1 of the Python OpenID library implements recent changes to
+the OpenID specification as well as making API changes that should
+make integration with applications easier.
 
 Yadis Support
 -------------
 
-XXX: yeah yeah
+One of the major changes to OpenID since the last release has been the
+approval of Yadis discovery as the preferred way to specify the OpenID
+metadata for an identity URL instead of using <link> tags in
+HTML. This library does Yadis discovery, and if that fails, it falls
+back to old-style discovery.
+
+Some advantages of Yadis support are:
+
+ * Support for fallback if your primary OpenID provider is not available
+
+ * Support for load-balancing between OpenID servers
+
+ * Easy interoperability for different identity services
+
+For more information about Yadis, see http://yadis.org/ or
+http://www.openidenabled.com/yadis/
 
 Extension Support
 -----------------
 
-XXX: ???
+OpenID also has formalized support for extensions. Extensions are a
+mechanism for transferring information from the consumer to the server
+and from the server to the consumer in the process of performing
+OpenID authentication. Extensions are implemented as additional
+namespaced query arguments that go along with standard OpenID requests
+and responses. This library provides a simple API for adding extension
+arguments to requests and extracting extension responses from replies.
 
 Dependencies
 ------------
 
- * urljr
+These dependencies should be available from wherever you acquired the
+OpenID library.
 
- * yadis
+ * urljr - The store abstraction from the previous OpenID library has
+   been extended and is also used for the Yadis library. Because the
+   Yadis library is useful without the OpenID library, the HTTP
+   fetching code has been rolled into its own package. Additionally,
+   the library now has the concept of a default fetcher to make APIs
+   simpler.
+
+ * yadis - The Yadis library provides a general discovery layer that
+   has been adopted by OpenID as well as other identity-related
+   protocols. Most OpenID identity URLs will work without the Yadis
+   library, but as time goes on, this library will be more and more
+   important.
 
 Consumer API
 ------------
 
+The consumer API has been changed for more natural use as well as to
+support extension arguments.
+
  * OpenIDConsumer(store, [fetcher], [immediate]) is now
-   OpenIDConsumer(trust_root, store, session, [fetcher])
+   Consumer(session, store)
 
-  - construct on every request
-  - XXX: describe session object, key prefix
+  - The session object is a dictionary-like object that should be tied
+    to the requesting HTTP agent, for example, using a session ID
+    cookie. It is used for Yadis fallback and holding the state of the
+    OpenID transaction between the redirect to the server and the
+    response. The values that are placed in the session are
+    namespaced, so there should not be a conflict with other uses of
+    the same session. The session namespace is an attribute of the
+    Consumer object.
 
- * OpenIDConsumer.beginAuth(user_url) is now
-   OpenIDConsumer.beginAuth(user_url, return_to, [immediate])
+  - Because the consumer object now does session management, it is
+    necessary to construct a new consumer object for every
+    request. Creating consumer objects is light-weight.
+
+ * OpenIDConsumer.beginAuth(user_url) is now Consumer.begin(user_url)
+   and either returns an AuthRequest object or raises an
+   exception. There is no more tuple unpacking or status codes.
 
  * OpenIDConsumer.constructRedirect(authreq, return_to, trust_root) is
-   no longer used -- the redirect_url is an attribute of the return value
-   from beginAuth.
+   now AuthRequest.redirectURL(trust_root, return_to, [immediate]).
 
  * OpenIDConsumer.completeAuth(token, query) is now
-   OpenIDConsumer.completeAuth(query)
+   Consumer.complete(query). It no longer returns a tuple. Instead it
+   returns an object that has a status code and additional information
+   about the response. See the API documentation for more information.
 
 Fetcher API
 -----------
@@ -43,8 +95,3 @@ Fetcher API
  * fetcher was openid.consumer.fetchers.OpenIDHTTPFetcher, is now
    urljr.fetchers.HTTPFetcher.  get() and post() have been replaced by
    fetch(), see urljr.fetchers for details.
-
-Store API
----------
-
- * XXX: nonce storage simplified
