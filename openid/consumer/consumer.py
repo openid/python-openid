@@ -125,14 +125,17 @@ USING THIS LIBRARY
     is entered in that field and the form is submitted, it should make
     a request to the your site which includes that OpenID URL.
 
-    To start, the application should get an C{L{Consumer}} instance,
-    and call its C{L{begin<Consumer.begin>}} method.  This method
-    takes the OpenID URL and a session object.  If the application has
-    any sort of session framework that provides per-client state
-    management, that should be used here.  The library just expects
-    the session object to support a C{dict}-like interface, if it
-    provided. The C{L{begin<Consumer.begin>}} method returns an
-    C{L{AuthRequest}} object.
+    First, the application should instantiate the C{L{Consumer}} class
+    using the store of choice.  If the application has any sort of
+    session framework that provides per-client state management, a
+    dict-like object to access the session should be passed as the
+    optional second parameter.  The library just expects the session
+    object to support a C{dict}-like interface, if it is xprovided.
+
+    Next, the application should call the 'begin' method on the
+    C{L{Consumer}} instance.  This method takes the OpenID URL.  The
+    C{L{begin<Consumer.begin>}} method returns an C{L{AuthRequest}}
+    object.
 
     Next, the application should call the
     C{L{redirectURL<AuthRequest.redirectURL>}} method on the
