@@ -139,12 +139,12 @@ USING THIS LIBRARY
 
     Next, the application should call the
     C{L{redirectURL<AuthRequest.redirectURL>}} method on the
-    C{L{AuthRequest}} object.  The C{return_to} URL is the URL that
-    the OpenID server will send the user back to after attempting to
-    verify his or her identity.  The C{trust_root} is the URL (or URL
-    pattern) that identifies your web site to the user when he or she
-    is authorizing it.  Send a redirect to the resulting URL to the
-    user's browser.
+    C{L{AuthRequest}} object.  The parameter C{return_to} is the URL
+    that the OpenID server will send the user back to after attempting
+    to verify his or her identity.  The C{trust_root} parameter is the
+    URL (or URL pattern) that identifies your web site to the user
+    when he or she is authorizing it.  Send a redirect to the
+    resulting URL to the user's browser.
 
     That's the first half of the authentication process.  The second
     half of the process is done after the user's ID server sends the
