@@ -42,9 +42,9 @@ Dependencies
 These dependencies should be available from wherever you acquired the
 OpenID library.
 
- * urljr - The store abstraction from the previous OpenID library has
-   been extended and is also used for the Yadis library. Because the
-   Yadis library is useful without the OpenID library, the HTTP
+ * urljr - The fetcher abstraction from the previous OpenID library
+   has been extended and is also used for the Yadis library. Because
+   the Yadis library is useful without the OpenID library, the HTTP
    fetching code has been rolled into its own package. Additionally,
    the library now has the concept of a default fetcher to make APIs
    simpler.
