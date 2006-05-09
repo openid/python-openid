@@ -842,17 +842,15 @@ class SuccessResponse(Response):
         This is useful for verifying that this request was initiated
         by this consumer.
 
-        If the response does not contain an openid.return_to argument,
-        this method will raise a KeyError.
-
         @returns: The return_to URL supplied to the server on the
-            initial request.
+            initial request, or C{None} if the response did not contain
+            an C{openid.return_to} argument.
 
         @returntype: str
-
-        @raises: KeyError
         """
-        return self.signed_args['openid.return_to']
+        return self.signed_args.get('openid.return_to', None)
+
+
 
 class FailureResponse(Response):
     """A response with a status of FAILURE. Indicates that the OpenID
