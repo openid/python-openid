@@ -89,6 +89,15 @@ support extension arguments.
    returns an object that has a status code and additional information
    about the response. See the API documentation for more information.
 
+Server API
+----------
+
+The server API has been changed for greater extensibility.  Instead
+of taking an "is_authorized" callback, processing happens in several
+stages, allowing you to insert extension data into the response
+before it is signed and returned.  See the documentation for the
+openid.server.server module.
+
 Fetcher API
 -----------
 
