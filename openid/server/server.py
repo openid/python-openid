@@ -308,8 +308,8 @@ class DiffieHellmanServerSession(object):
 
         @returntype: L{DiffieHellmanServerSession}
 
-        @raises ValueError: When parameters required to establish the session
-            are missing.
+        @raises ProtocolError: When parameters required to establish the
+            session are missing.
         """
         dh_modulus = query.get('openid.dh_modulus')
         dh_gen = query.get('openid.dh_gen')
@@ -321,9 +321,9 @@ class DiffieHellmanServerSession(object):
             else:
                 missing = 'generator'
 
-            raise ValueError('If non-default modulus or generator is '
-                             'supplied, both must be supplied. Missing %s'
-                             % (missing,))
+            raise ProtocolError('If non-default modulus or generator is '
+                                'supplied, both must be supplied. Missing %s'
+                                % (missing,))
 
         if dh_modulus or dh_gen:
             dh_modulus = cryptutil.base64ToLong(dh_modulus)
@@ -334,8 +334,8 @@ class DiffieHellmanServerSession(object):
 
         consumer_pubkey = query.get('openid.dh_consumer_public')
         if consumer_pubkey is None:
-            raise ValueError("Public key for DH-SHA1 session "
-                             "not found in query %s" % (query,))
+            raise ProtocolError("Public key for DH-SHA1 session "
+                                "not found in query %s" % (query,))
 
         consumer_pubkey = cryptutil.base64ToLong(consumer_pubkey)
 
