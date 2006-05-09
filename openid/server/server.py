@@ -534,7 +534,7 @@ class CheckIDRequest(OpenIDRequest):
         # There's a case for making self.trust_root be a TrustRoot
         # here.  But if TrustRoot isn't currently part of the "public" API,
         # I'm not sure it's worth doing.
-        self.trust_root = query.get(OPENID_PREFIX + 'trust_root')
+        self.trust_root = query.get(OPENID_PREFIX + 'trust_root', self.return_to)
         self.assoc_handle = query.get(OPENID_PREFIX + 'assoc_handle')
 
         # Using TrustRoot.parse here is a bit misleading, as we're not
