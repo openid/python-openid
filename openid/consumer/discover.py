@@ -13,7 +13,10 @@ except ImportError:
                 '(failed to import Yadis library)')
 
     class DisccoveryFailure(RuntimeError):
-        """Stand-in in case we don't have Yadis"""
+        """A failure to discover an OpenID server.
+
+        When the C{yadis} package is available, this is
+        C{yadis.discover.DiscoveryFailure}."""
 else:
     yadis_available = True
     from yadis.etxrd import nsTag, XRDSError
