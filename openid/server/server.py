@@ -33,7 +33,7 @@ Overview
     L{CheckIDRequest.answer}.
 
     Other types of requests relate to establishing associations between client
-    and server and verifing the authenticity of previous communications.
+    and server and verifying the authenticity of previous communications.
     L{Server} contains all the logic and data necessary to respond to
     such requests; just pass it to L{Server.handleRequest}.
 
