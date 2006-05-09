@@ -104,3 +104,12 @@ Fetcher API
  * fetcher was openid.consumer.fetchers.OpenIDHTTPFetcher, is now
    urljr.fetchers.HTTPFetcher.  get() and post() have been replaced by
    fetch(), see urljr.fetchers for details.
+
+Upgrading
+---------
+
+The server changed the way it indexes associations in the store, so if
+you're upgrading a server installation, we recommend you clear the old
+records from your store when you do so.  As a consequence, consumers
+will re-establish associations with your server a little sooner than
+they would have otherwise.
