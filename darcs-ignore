@@ -37,3 +37,4 @@
 (^|/)sstore$
 (^|/)cstore$
 ^build$
+(^|/)_trial_temp($|/)
