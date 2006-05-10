@@ -17,7 +17,7 @@ class BadLinksTestCase(datadriven.DataDrivenTestCase):
     def callFunc(self):
         return parseOpenIDLinkRel(self.data)
 
-    def runTest(self):
+    def runOneTest(self):
         self.failUnlessRaises(ParseError, self.callFunc)
 
 class BadLinksThroughEndpoint(BadLinksTestCase):

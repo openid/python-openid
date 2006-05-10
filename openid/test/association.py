@@ -55,12 +55,12 @@ class DiffieHellmanSessionTest(datadriven.DataDrivenTestCase):
     generateCases = classmethod(generateCases)
 
     def __init__(self, csess_fact, ssess_fact, secret):
-        unittest.TestCase.__init__(self)
+        datadriven.DataDrivenTestCase.__init__(self, csess_fact.__name__)
         self.secret = secret
         self.csess_fact = csess_fact
         self.ssess_fact = ssess_fact
 
-    def runTest(self):
+    def runOneTest(self):
         csess = self.csess_fact()
         ssess = self.ssess_fact.fromQuery(csess.getRequest())
         check_secret = csess.extractSecret(ssess.answer(self.secret))

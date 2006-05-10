@@ -24,7 +24,7 @@ class DataDrivenTestCase(unittest.TestCase):
     loadTests = classmethod(loadTests)
 
     def __init__(self, description):
-        unittest.TestCase.__init__(self)
+        unittest.TestCase.__init__(self, 'runOneTest')
         self.description = description
 
     def shortDescription(self):

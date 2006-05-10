@@ -41,7 +41,7 @@ class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
     def tearDown(self):
         fetchers.setDefaultFetcher(None)
 
-    def runTest(self):
+    def runOneTest(self):
         expected_status = self.responses[-1].status
         try:
             discover.discover(self.url)
@@ -89,7 +89,7 @@ class TestFetchException(datadriven.DataDrivenTestCase):
     def tearDown(self):
         fetchers.setDefaultFetcher(None)
 
-    def runTest(self):
+    def runOneTest(self):
         try:
             discover.discover('http://doesnt.matter/')
         except:
