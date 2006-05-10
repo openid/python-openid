@@ -49,7 +49,6 @@ class OpenIDStore(object):
         @rtype: C{NoneType}
         """
         raise NotImplementedError
-    
 
     def getAssociation(self, server_url, handle=None):
         """
