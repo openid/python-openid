@@ -590,15 +590,15 @@ class GenericConsumer(object):
     def _processCheckAuthResponse(self, response, server_url):
         is_valid = response.get('is_valid', 'false')
 
+        invalidate_handle = response.get('invalidate_handle')
+        if invalidate_handle is not None:
+            self.store.removeAssociation(server_url, invalidate_handle)
+
         if is_valid == 'true':
-            invalidate_handle = response.get('invalidate_handle')
-            if invalidate_handle is not None:
-                self.store.removeAssociation(server_url, invalidate_handle)
-
             return True
-
-        oidutil.log('Server responds that checkAuth call is not valid')
-        return False
+        else:
+            oidutil.log('Server responds that checkAuth call is not valid')
+            return False
 
     def _genToken(self, consumer_id, server_id, server_url):
         timestamp = str(int(time.time()))
