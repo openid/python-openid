@@ -6,7 +6,7 @@ from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.discover import OpenIDServiceEndpoint
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
-     SuccessResponse
+     SuccessResponse, DiffieHellmanConsumerSession
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanServerSession
@@ -696,6 +696,84 @@ class TestSuccessResponse(unittest.TestCase):
     def test_returnTo(self):
         resp = SuccessResponse('identity_url', {'openid.return_to':'return_to'})
         self.failUnlessEqual(resp.getReturnTo(), 'return_to')
+
+class TestParseAssociation(TestIdRes):
+    secret = 'x' * 20
+
+    def test_missing(self):
+        # Missing required arguments
+        result = self.consumer._parseAssociation({}, None, 'server_url')
+        self.failUnless(result is None)
+
+    def _setUpDH(self):
+        sess, args = \
+                    self.consumer._createAssociateRequest(self.server_url)
+        server_sess = DiffieHellmanServerSession.fromQuery(args)
+        server_resp = server_sess.answer(self.secret)
+        server_resp['assoc_type'] = 'HMAC-SHA1'
+        server_resp['assoc_handle'] = 'handle'
+        server_resp['expires_in'] = '1000'
+        server_resp['session_type'] = 'DH-SHA1'
+        return sess, server_resp
+
+    def test_success(self):
+        sess, server_resp = self._setUpDH()
+        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
+        self.failIf(ret is None)
+        self.failUnlessEqual(ret.assoc_type, 'HMAC-SHA1')
+        self.failUnlessEqual(ret.secret, self.secret)
+        self.failUnlessEqual(ret.handle, 'handle')
+        self.failUnlessEqual(ret.lifetime, 1000)
+
+    def test_badAssocType(self):
+        sess, server_resp = self._setUpDH()
+        server_resp['assoc_type'] = 'Crazy Low Prices!!!'
+        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
+        self.failUnless(ret is None)
+
+    def test_badExpiresIn(self):
+        sess, server_resp = self._setUpDH()
+        server_resp['expires_in'] = 'Crazy Low Prices!!!'
+        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
+        self.failUnless(ret is None)
+
+    def test_badSessionType(self):
+        sess, server_resp = self._setUpDH()
+        server_resp['session_type'] = '|/iA6rA'
+        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
+        self.failUnless(ret is None)
+
+    def test_plainFallback(self):
+        sess = DiffieHellmanConsumerSession()
+        server_resp = {
+            'assoc_type': 'HMAC-SHA1',
+            'assoc_handle': 'handle',
+            'expires_in': '1000',
+            'mac_key': oidutil.toBase64(self.secret),
+            }
+        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
+        self.failIf(ret is None)
+        self.failUnlessEqual(ret.assoc_type, 'HMAC-SHA1')
+        self.failUnlessEqual(ret.secret, self.secret)
+        self.failUnlessEqual(ret.handle, 'handle')
+        self.failUnlessEqual(ret.lifetime, 1000)
+
+    def test_plainFallbackFailure(self):
+        sess = DiffieHellmanConsumerSession()
+        # missing mac_key
+        server_resp = {
+            'assoc_type': 'HMAC-SHA1',
+            'assoc_handle': 'handle',
+            'expires_in': '1000',
+            }
+        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
+        self.failUnless(ret is None)
+
+    def test_badDHValues(self):
+        sess, server_resp = self._setUpDH()
+        server_resp['enc_mac_key'] = '\x00\x00\x00'
+        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
+        self.failUnless(ret is None)
 
 if __name__ == '__main__':
     unittest.main()

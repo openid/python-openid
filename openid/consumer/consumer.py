@@ -698,7 +698,6 @@ class GenericConsumer(object):
             if session_type is None:
                 oidutil.log('Falling back to plain text association '
                             'session from %s' % assoc_session.session_type)
-                # FIXME: This branch doesn't have unit test coverage
                 assoc_session = PlainTextConsumerSession()
             else:
                 oidutil.log('Session type mismatch. Expected %r, got %r' %
@@ -713,7 +712,7 @@ class GenericConsumer(object):
             return None
         except KeyError, why:
             fmt = 'Getting association: missing key in response from %s: %s'
-            oidutil.log(fmt % (server_url, e[0]))
+            oidutil.log(fmt % (server_url, why[0]))
             return None
 
         assoc = Association.fromExpiresIn(
