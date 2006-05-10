@@ -5,7 +5,7 @@ import time
 from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.discover import OpenIDServiceEndpoint
 from openid.consumer.consumer import \
-     GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED
+     AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanServerSession
@@ -502,6 +502,29 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
                               self.consumer._checkAuth,
                               {'openid.signed':''},
                               'some://url')
+
+
+class TestAuthRequest(unittest.TestCase):
+    def setUp(self):
+        self.endpoint = OpenIDServiceEndpoint()
+        self.endpoint.delegate = 'http://server.unittest/joe'
+        self.endpoint.server_url = 'http://server.unittest/'
+        self.assoc = self
+        self.assoc.handle = 'assoc@handle'
+        self.authreq = AuthRequest('toooken', self.assoc, self.endpoint)
+
+    def test_addExtensionArg(self):
+        self.authreq.addExtensionArg('bag', 'color', 'brown')
+        self.authreq.addExtensionArg('bag', 'material', 'paper')
+        self.failUnlessEqual(self.authreq.extra_args,
+                             {'openid.bag.color': 'brown',
+                              'openid.bag.material': 'paper'})
+        url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
+        self.failUnless(url.find('openid.bag.color=brown') != -1,
+                        'extension arg not found in %s' % (url,))
+        self.failUnless(url.find('openid.bag.material=paper') != -1,
+                        'extension arg not found in %s' % (url,))
+
 
 if __name__ == '__main__':
     unittest.main()
