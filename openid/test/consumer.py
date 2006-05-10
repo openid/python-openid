@@ -231,6 +231,29 @@ class TestQueryFormat(TestIdRes):
         else:
             self.fail("expected TypeError, got this instead: %s" % (r,))
 
+class TestComplete(TestIdRes):
+    def test_badToken(self):
+        query = {'openid.mode': 'id_res'}
+        r = self.consumer.complete(query, 'badtoken')
+        self.failUnlessEqual(r.status, FAILURE)
+        self.failUnless(r.identity_url is None)
+
+    def test_cancel(self):
+        query = {'openid.mode': 'cancel'}
+        r = self.consumer.complete(query, 'badtoken')
+        self.failUnlessEqual(r.status, CANCEL)
+        self.failUnless(r.identity_url is None)
+
+    def test_error(self):
+        msg = 'an error message'
+        query = {'openid.mode': 'error',
+                 'openid.error': msg,
+                 }
+        r = self.consumer.complete(query, 'badtoken')
+        self.failUnlessEqual(r.status, FAILURE)
+        self.failUnless(r.identity_url is None)
+        self.failUnlessEqual(r.message, msg)
+
 class TestSetupNeeded(TestIdRes):
     def test_setupNeeded(self):
         setup_url = 'http://unittest/setup-here'
