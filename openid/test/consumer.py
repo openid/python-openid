@@ -12,7 +12,7 @@ from openid.server.server import \
 
 from openid.consumer import parse
 
-from urljr.fetchers import HTTPResponse
+from urljr.fetchers import HTTPResponse, HTTPFetchingError
 from urljr import fetchers
 
 import _memstore
@@ -218,6 +218,13 @@ class TestIdRes(unittest.TestCase):
         self.server_id = "sirod"
         self.server_url = "serlie"
         self.consumer_id = "consu"
+        self.token = self.consumer._genToken(
+            self.consumer_id,
+            self.server_id,
+            self.server_url,
+            )
+
+
 
 class TestQueryFormat(TestIdRes):
     def test_notAList(self):
@@ -232,9 +239,22 @@ class TestQueryFormat(TestIdRes):
             self.fail("expected TypeError, got this instead: %s" % (r,))
 
 class TestComplete(TestIdRes):
-    def test_badToken(self):
+    def test_badTokenLength(self):
         query = {'openid.mode': 'id_res'}
         r = self.consumer.complete(query, 'badtoken')
+        self.failUnlessEqual(r.status, FAILURE)
+        self.failUnless(r.identity_url is None)
+
+    def test_badTokenSig(self):
+        query = {'openid.mode': 'id_res'}
+        r = self.consumer.complete(query, 'badtoken' + self.token)
+        self.failUnlessEqual(r.status, FAILURE)
+        self.failUnless(r.identity_url is None)
+
+    def test_expiredToken(self):
+        self.consumer.TOKEN_LIFETIME = -1 # in the past
+        query = {'openid.mode': 'id_res'}
+        r = self.consumer.complete(query, self.token)
         self.failUnlessEqual(r.status, FAILURE)
         self.failUnless(r.identity_url is None)
 
@@ -253,6 +273,112 @@ class TestComplete(TestIdRes):
         self.failUnlessEqual(r.status, FAILURE)
         self.failUnless(r.identity_url is None)
         self.failUnlessEqual(r.message, msg)
+
+    def test_noMode(self):
+        query = {}
+        r = self.consumer.complete(query, 'badtoken')
+        self.failUnlessEqual(r.status, FAILURE)
+        self.failUnless(r.identity_url is None)
+
+    def test_idResMissingField(self):
+        query = {'openid.mode': 'id_res'}
+        r = self.consumer.complete(query, self.token)
+        self.failUnlessEqual(r.status, FAILURE)
+        self.failUnlessEqual(r.identity_url, self.consumer_id)
+
+    def test_idResURLMismatch(self):
+        query = {'openid.mode': 'id_res',
+                 'openid.return_to': 'return_to (just anything)',
+                 'openid.identity': 'something wrong (not self.consumer_id)',
+                 'openid.assoc_handle': 'does not matter',
+                 }
+        r = self.consumer.complete(query, self.token)
+        self.failUnlessEqual(r.status, FAILURE)
+        self.failUnlessEqual(r.identity_url, self.consumer_id)
+        r.message.index('delegate')
+
+class TestCheckAuthResponse(TestIdRes):
+    def _createAssoc(self):
+        issued = time.time()
+        lifetime = 1000
+        assoc = association.Association(
+            'handle', 'secret', issued, lifetime, 'HMAC-SHA1')
+        store = self.consumer.store
+        store.storeAssociation(self.server_url, assoc)
+        assoc2 = store.getAssociation(self.server_url)
+        self.failUnlessEqual(assoc, assoc2)
+
+    def test_goodResponse(self):
+        """successful response to check_authentication"""
+        response = {
+            'is_valid':'true',
+            }
+        r = self.consumer._processCheckAuthResponse(response, self.server_url)
+        self.failUnless(r)
+
+    def test_missingAnswer(self):
+        """check_authentication returns false when the server sends no answer"""
+        response = {
+            }
+        r = self.consumer._processCheckAuthResponse(response, self.server_url)
+        self.failIf(r)
+
+    def test_badResponse(self):
+        """check_authentication returns false when is_valid is false"""
+        response = {
+            'is_valid':'false',
+            }
+        r = self.consumer._processCheckAuthResponse(response, self.server_url)
+        self.failIf(r)
+
+    def test_badResponseInvalidate(self):
+        """Make sure that the handle is invalidated when is_valid is false"""
+        self._createAssoc()
+        response = {
+            'is_valid':'false',
+            'invalidate_handle':'handle',
+            }
+        r = self.consumer._processCheckAuthResponse(response, self.server_url)
+        self.failIf(r)
+        self.failUnless(
+            self.consumer.store.getAssociation(self.server_url) is None)
+
+    def test_invalidateMissing(self):
+        """invalidate_handle with a handle that is not present"""
+        response = {
+            'is_valid':'true',
+            'invalidate_handle':'missing',
+            }
+        r = self.consumer._processCheckAuthResponse(response, self.server_url)
+        self.failUnless(r)
+
+    def test_invalidatePresent(self):
+        """invalidate_handle with a handle that exists"""
+        self._createAssoc()
+        response = {
+            'is_valid':'true',
+            'invalidate_handle':'handle',
+            }
+        r = self.consumer._processCheckAuthResponse(response, self.server_url)
+        self.failUnless(r)
+        self.failUnless(
+            self.consumer.store.getAssociation(self.server_url) is None)
+
+class IdResFetchFailingConsumer(GenericConsumer):
+    message = 'fetch failed'
+
+    def _doIdRes(self, *args, **kwargs):
+        raise HTTPFetchingError(self.message)
+
+class TestFetchErrorInIdRes(TestIdRes):
+    consumer_class = IdResFetchFailingConsumer
+
+    def test_idResFailure(self):
+        query = {'openid.mode': 'id_res'}
+        r = self.consumer.complete(query, self.token)
+        self.failUnlessEqual(r.status, FAILURE)
+        self.failUnlessEqual(r.identity_url, self.consumer_id)
+        r.message.index(IdResFetchFailingConsumer.message)
 
 class TestSetupNeeded(TestIdRes):
     def test_setupNeeded(self):
@@ -454,7 +580,7 @@ class MockFetcher(object):
 
 class ExceptionRaisingMockFetcher(object):
     def fetch(self, url, body=None, headers=None):
-        raise Exception('mock fetcher exception')
+        raise HTTPFetchingError('mock fetcher exception')
 
 class BadArgCheckingConsumer(GenericConsumer):
     def _makeKVPost(self, args, _):
