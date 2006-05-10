@@ -3,7 +3,6 @@ import sys
 
 test_modules = [
     'cryptutil',
-    'association',
     'storetest',
     'oidutil',
     'dh',
@@ -56,10 +55,12 @@ def pyunitTests():
     from openid.test import oidutil
     from openid.test import linkparse
     from openid.test import trustroot
+    from openid.test import association
 
     pyunit_modules = [
         server,
         consumer,
+        association,
         ]
 
     # Some modules have data-driven tests, and they use custom methods
