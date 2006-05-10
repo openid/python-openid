@@ -722,7 +722,7 @@ class GenericConsumer(object):
         return assoc
 
 class AuthRequest(object):
-    def __init__(self, token, assoc, endpoint  ):
+    def __init__(self, token, assoc, endpoint):
         """
         Creates a new AuthRequest object.  This just stores each
         argument in an appropriately named field.
