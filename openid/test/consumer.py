@@ -5,7 +5,8 @@ import time
 from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.discover import OpenIDServiceEndpoint
 from openid.consumer.consumer import \
-     AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED
+     AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
+     SuccessResponse
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanServerSession
@@ -674,6 +675,27 @@ class TestAuthRequest(unittest.TestCase):
         self.failUnless(url.find('openid.bag.material=paper') != -1,
                         'extension arg not found in %s' % (url,))
 
+
+class TestSuccessResponse(unittest.TestCase):
+    def test_extensionResponse(self):
+        resp = SuccessResponse('identity_url', {
+            'openid.unittest.one':'1',
+            'openid.unittest.two':'2',
+            'openid.sreg.nickname':'j3h',
+            'openid.return_to':'return_to',
+            })
+        utargs = resp.extensionResponse('unittest')
+        self.failUnlessEqual(utargs, {'one':'1', 'two':'2'})
+        sregargs = resp.extensionResponse('sreg')
+        self.failUnlessEqual(sregargs, {'nickname':'j3h'})
+
+    def test_noReturnTo(self):
+        resp = SuccessResponse('identity_url', {})
+        self.failUnless(resp.getReturnTo() is None)
+
+    def test_returnTo(self):
+        resp = SuccessResponse('identity_url', {'openid.return_to':'return_to'})
+        self.failUnlessEqual(resp.getReturnTo(), 'return_to')
 
 if __name__ == '__main__':
     unittest.main()
