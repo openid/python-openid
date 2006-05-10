@@ -763,7 +763,7 @@ class AuthRequest(object):
 
         @type value: str
         """
-        arg_name = '.'.join('openid', namespace, key)
+        arg_name = '.'.join(['openid', namespace, key])
         self.extra_args[arg_name] = value
 
     def redirectURL(self, trust_root, return_to, immediate=False):
