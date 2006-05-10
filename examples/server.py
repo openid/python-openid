@@ -185,11 +185,8 @@ class ServerHandler(BaseHTTPRequestHandler):
                 self.isAuthorized(request.identity, request.trust_root)):
                 response = request.answer(True)
             elif request.immediate:
-                retry_query = dict(query)
-                retry_query['openid.mode'] = 'checkid_setup'
-                setup_url = oidutil.appendArgs(
-                    self.server.base_url + 'openidserver', retry_query)
-                response = request.answer(False, setup_url=setup_url)
+                response = request.answer(
+                    False, server_url=self.server.base_url + 'openidserver')
             else:
                 self.server.lastCheckIDRequest[self.user] = request
                 self.showDecidePage(request)
