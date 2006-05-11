@@ -416,62 +416,60 @@ class CatchLogs(object):
     def tearDown(self):
         oidutil.log = self.old_logger
 
-class NonceIdResTest(TestIdRes):
+class CheckNonceTest(TestIdRes, CatchLogs):
     def setUp(self):
-        self.old_logger = oidutil.log
-        oidutil.log = lambda *args: None
+        CatchLogs.setUp(self)
         TestIdRes.setUp(self)
+        self.nonce = self.id()
+        self.store.storeNonce(self.nonce)
+
 
     def tearDown(self):
-        oidutil.log = self.old_logger
+        CatchLogs.tearDown(self)
 
-    def test_missingNonce(self):
-        setup_url = 'http://unittest/setup-here'
-        query = {
-            'openid.mode': 'id_res',
-            'openid.return_to': 'return_to', # No nonce parameter on return_to
-            'openid.identity': self.server_id,
-            'openid.assoc_handle': 'not_found',
-            }
-        ret = self.consumer._doIdRes(query,
-                                     self.consumer_id,
-                                     self.server_id,
-                                     self.server_url,
-                                     )
-        self.failUnlessEqual(ret.status, FAILURE)
+
+    def test_goodNonce(self):
+        self.return_to = 'http://rt.unittest/?nonce=%s' % (self.nonce,)
+        self.response = SuccessResponse(self.consumer_id,
+                                        {'openid.return_to': self.return_to})
+        ret = self.consumer._checkNonce(self.response, self.nonce)
+        self.failUnlessEqual(ret.status, SUCCESS)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
+
 
     def test_badNonce(self):
-        setup_url = 'http://unittest/setup-here'
-        query = {
-            'openid.mode': 'id_res',
-            'openid.return_to': 'return_to?nonce=xxx',
-            'openid.identity': self.server_id,
-            'openid.assoc_handle': 'not_found',
-            }
-        ret = self.consumer._doIdRes(query,
-                                     self.consumer_id,
-                                     self.server_id,
-                                     self.server_url,
-                                     )
+        # remove the nonce from the store
+        self.store.useNonce(self.nonce)
+        self.return_to = 'http://rt.unittest/?nonce=%s' % (self.nonce,)
+        self.response = SuccessResponse(self.consumer_id,
+                                        {'openid.return_to': self.return_to})
+        ret = self.consumer._checkNonce(self.response, self.nonce)
         self.failUnlessEqual(ret.status, FAILURE)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
+        self.failUnless(ret.message.startswith('Nonce missing from store'),
+                        ret.message)
 
-    def test_twoNonce(self):
-        setup_url = 'http://unittest/setup-here'
-        query = {
-            'openid.mode': 'id_res',
-            'openid.return_to': 'return_to?nonce=nonny&nonce=xxx',
-            'openid.identity': self.server_id,
-            'openid.assoc_handle': 'not_found',
-            }
-        ret = self.consumer._doIdRes(query,
-                                     self.consumer_id,
-                                     self.server_id,
-                                     self.server_url,
-                                     )
+
+    def test_tamperedNonce(self):
+        self.return_to = 'http://rt.unittest/?nonce=HACKED-%s' % (self.nonce,)
+        self.response = SuccessResponse(self.consumer_id,
+                                        {'openid.return_to': self.return_to})
+        ret = self.consumer._checkNonce(self.response, self.nonce)
         self.failUnlessEqual(ret.status, FAILURE)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
+        self.failUnless(ret.message.startswith('Nonce mismatch'), ret.message)
+
+
+    def test_missingNonce(self):
+        # no nonce parameter on the return_to
+        self.response = SuccessResponse(self.consumer_id,
+                                        {'openid.return_to': self.return_to})
+        ret = self.consumer._checkNonce(self.response, self.nonce)
+        self.failUnlessEqual(ret.status, FAILURE)
+        self.failUnlessEqual(ret.identity_url, self.consumer_id)
+        self.failUnless(ret.message.startswith('Nonce missing from return_to'))
+
+
 
 class TestCheckAuthTriggered(TestIdRes, CatchLogs):
     consumer_class = CheckAuthDetectingConsumer
