@@ -6,10 +6,12 @@ from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.discover import OpenIDServiceEndpoint
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
-     SuccessResponse, DiffieHellmanConsumerSession, Consumer
+     SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
+     DiffieHellmanConsumerSession, Consumer
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanServerSession
+from yadis.manager import Discovery
 
 from openid.consumer import parse
 
@@ -779,7 +781,7 @@ class StubConsumer(object):
     def __init__(self):
         self.assoc = object()
         self.token = object()
-        self.identity_url = object()
+        self.response = None
 
     def begin(self, service):
         auth_req = AuthRequest(self.token, self.assoc, service)
@@ -787,20 +789,23 @@ class StubConsumer(object):
 
     def complete(self, query, token):
         assert token is self.token
-        return SuccessResponse(self.identity_url, {})
+        return self.response
 
 class ConsumerTest(unittest.TestCase):
     def setUp(self):
+        self.endpoint = object()
+        self.identity_url = 'http://identity.url/'
         self.store = None
         self.session = {}
         self.consumer = Consumer(self.session, self.store)
         self.consumer.consumer = StubConsumer()
+        self.discovery = Discovery(self.session,
+                                   self.identity_url,
+                                   self.consumer.session_key_prefix)
 
     def test_beginWithoutDiscovery(self):
         # Does this really test anything non-trivial?
-        endpoint = object()
-
-        result = self.consumer.beginWithoutDiscovery(endpoint)
+        result = self.consumer.beginWithoutDiscovery(self.endpoint)
 
         # The result is an auth request
         self.failUnless(isinstance(result, AuthRequest))
@@ -810,20 +815,101 @@ class ConsumerTest(unittest.TestCase):
         self.failUnless(self.session[self.consumer._token_key] is result.token)
 
         # The endpoint that we passed in is the endpoint on the auth_request
-        self.failUnless(result.endpoint is endpoint)
+        self.failUnless(result.endpoint is self.endpoint)
 
     def test_completeEmptySession(self):
         response = self.consumer.complete({})
         self.failUnlessEqual(response.status, FAILURE)
         self.failUnless(response.identity_url is None)
 
-    def test_completeWithToken(self):
-        endpoint = object()
-        auth_req = self.consumer.beginWithoutDiscovery(endpoint)
+    def _doResp(self, auth_req, exp_resp):
+        """complete a transaction, using the expected response from
+        the generic consumer."""
+        self.consumer.consumer.response = exp_resp
+
+        # Token is stored in the session
+        self.failUnless(self.session)
         resp = self.consumer.complete({})
-        self.failUnlessEqual(resp.status, SUCCESS)
-        self.failUnless(resp.identity_url is
-                        self.consumer.consumer.identity_url)
+
+        # All responses should have the same identity URL, and the
+        # session should be cleaned out
+        self.failUnless(resp.identity_url is self.identity_url)
+        self.failIf(self.consumer._token_key in self.session)
+
+        # Expected status response
+        self.failUnlessEqual(resp.status, exp_resp.status)
+
+        return resp
+
+    def _doRespNoDisco(self, exp_resp):
+        """Set up a transaction without discovery"""
+        auth_req = self.consumer.beginWithoutDiscovery(self.endpoint)
+        resp = self._doResp(auth_req, exp_resp)
+        # There should be nothing left in the session once we have completed.
+        self.failIf(self.session)
+        return resp
+
+    def test_noDiscoCompleteSuccessWithToken(self):
+        self._doRespNoDisco(SuccessResponse(self.identity_url, {}))
+
+    def test_noDiscoCompleteCancelWithToken(self):
+        self._doRespNoDisco(CancelResponse(self.identity_url))
+
+    def test_noDiscoCompleteFailureWithToken(self):
+        msg = 'failed!'
+        resp = self._doRespNoDisco(FailureResponse(self.identity_url, msg))
+        self.failUnless(resp.message is msg)
+
+    def test_noDiscoCompleteSetupNeededWithToken(self):
+        setup_url = 'http://setup.url/'
+        resp = self._doRespNoDisco(
+            SetupNeededResponse(self.identity_url, setup_url))
+        self.failUnless(resp.setup_url is setup_url)
+
+    # To test that discovery is cleaned up, we need to initialize a
+    # Yadis manager, and have it put its values in the session.
+    def _doRespDisco(self, is_clean, exp_resp):
+        """Set up and execute a transaction, with discovery"""
+        self.discovery.createManager([self.endpoint], self.identity_url)
+        auth_req = self.consumer.begin(self.identity_url)
+        resp = self._doResp(auth_req, exp_resp)
+
+        manager = self.discovery.getManager()
+        if is_clean:
+            self.failUnless(self.discovery.getManager() is None, manager)
+        else:
+            self.failIf(self.discovery.getManager() is None, manager)
+
+        return resp
+
+    # Cancel and success DO clean up the discovery process
+    def test_completeSuccessWithToken(self):
+        self._doRespDisco(True, SuccessResponse(self.identity_url, {}))
+
+    def test_completeCancelWithToken(self):
+        self._doRespDisco(True, CancelResponse(self.identity_url))
+
+    # Failure and setup_needed don't clean up the discovery process
+    def test_completeFailureWithToken(self):
+        msg = 'failed!'
+        resp = self._doRespDisco(False, FailureResponse(self.identity_url, msg))
+        self.failUnless(resp.message is msg)
+
+    def test_completeSetupNeededWithToken(self):
+        setup_url = 'http://setup.url/'
+        resp = self._doRespDisco(
+            False,
+            SetupNeededResponse(self.identity_url, setup_url))
+        self.failUnless(resp.setup_url is setup_url)
+
+    def test_begin(self):
+        self.discovery.createManager([self.endpoint], self.identity_url)
+        # Should not raise an exception
+        auth_req = self.consumer.begin(self.identity_url)
+        self.failUnless(isinstance(auth_req, AuthRequest))
+        self.failUnless(auth_req.endpoint is self.endpoint)
+        self.failUnless(auth_req.token is self.consumer.consumer.token)
+        self.failUnless(auth_req.assoc is self.consumer.consumer.assoc)
 
 if __name__ == '__main__':
     unittest.main()
