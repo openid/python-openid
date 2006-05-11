@@ -6,7 +6,7 @@ from openid import cryptutil, dh, oidutil, kvform
 from openid.consumer.discover import OpenIDServiceEndpoint
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
-     SuccessResponse, DiffieHellmanConsumerSession
+     SuccessResponse, DiffieHellmanConsumerSession, Consumer
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanServerSession
@@ -774,6 +774,56 @@ class TestParseAssociation(TestIdRes):
         server_resp['enc_mac_key'] = '\x00\x00\x00'
         ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
         self.failUnless(ret is None)
+
+class StubConsumer(object):
+    def __init__(self):
+        self.assoc = object()
+        self.token = object()
+        self.identity_url = object()
+
+    def begin(self, service):
+        auth_req = AuthRequest(self.token, self.assoc, service)
+        return auth_req
+
+    def complete(self, query, token):
+        assert token is self.token
+        return SuccessResponse(self.identity_url, {})
+
+class ConsumerTest(unittest.TestCase):
+    def setUp(self):
+        self.store = None
+        self.session = {}
+        self.consumer = Consumer(self.session, self.store)
+        self.consumer.consumer = StubConsumer()
+
+    def test_beginWithoutDiscovery(self):
+        # Does this really test anything non-trivial?
+        endpoint = object()
+
+        result = self.consumer.beginWithoutDiscovery(endpoint)
+
+        # The result is an auth request
+        self.failUnless(isinstance(result, AuthRequest))
+
+        # Side-effect of calling beginWithoutDiscovery is setting the
+        # session value to the token attribute of the result
+        self.failUnless(self.session[self.consumer._token_key] is result.token)
+
+        # The endpoint that we passed in is the endpoint on the auth_request
+        self.failUnless(result.endpoint is endpoint)
+
+    def test_completeEmptySession(self):
+        response = self.consumer.complete({})
+        self.failUnlessEqual(response.status, FAILURE)
+        self.failUnless(response.identity_url is None)
+
+    def test_completeWithToken(self):
+        endpoint = object()
+        auth_req = self.consumer.beginWithoutDiscovery(endpoint)
+        resp = self.consumer.complete({})
+        self.failUnlessEqual(resp.status, SUCCESS)
+        self.failUnless(resp.identity_url is
+                        self.consumer.consumer.identity_url)
 
 if __name__ == '__main__':
     unittest.main()
