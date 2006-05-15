@@ -12,7 +12,7 @@ except ImportError:
     oidutil.log('Consumer operating without Yadis support '
                 '(failed to import Yadis library)')
 
-    class DisccoveryFailure(RuntimeError):
+    class DiscoveryFailure(RuntimeError):
         """A failure to discover an OpenID server.
 
         When the C{yadis} package is available, this is
