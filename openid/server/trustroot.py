@@ -84,31 +84,42 @@ class TrustRoot(object):
         if self.host == 'localhost':
             return True
 
-        if self.host == '':
-            return False
-
         host_parts = self.host.split('.')
         if self.wildcard:
+            assert host_parts[0] == '', host_parts
             del host_parts[0]
 
-        ends_in_tld = False
-        for tld in _top_level_domains:
-            if host_parts[-1].endswith(tld):
-                ends_in_tld = True
-                break
+        # If it's an absolute domain name, remove the empty string
+        # from the end.
+        if host_parts and not host_parts[-1]:
+            del host_parts[-1]
 
-        if not ends_in_tld:
+        if not host_parts:
             return False
 
-        # extract sane "top-level-domain"
-        host = []
-        if len(host_parts[-1]) == 2:
-            if len(host_parts[-2]) <= 3:
-                host = host_parts[:-2]
-        elif len(host_parts[-1]) == 3:
-            host = host_parts[:-1]
+        # Do not allow adjacent dots
+        if '' in host_parts:
+            return False
 
-        return bool(len(host))
+        tld = host_parts[-1]
+        if tld not in _top_level_domains:
+            return False
+
+        if len(tld) == 2:
+            if len(host_parts) == 1:
+                # entire host part is 2-letter tld
+                return False
+
+            if len(host_parts[-2]) <= 3:
+                # It's a 2-letter tld, so there needs to be more than two
+                # segments specified (e.g. *.co.uk is insane)
+                return len(host_parts) > 2
+        else:
+            # It's a regular tld, so it needs at least one more segment
+            return len(host_parts) > 1
+
+        # Fell through, so not sane
+        return False
 
     def validateURL(self, url):
         """
@@ -192,12 +203,12 @@ class TrustRoot(object):
         url_parts = _parseURL(trust_root)
         if url_parts is None:
             return None
-        
+
         proto, host, port, path = url_parts
 
         # check for valid prototype
         if proto not in _protocols:
-            return None        
+            return None
 
         # extract wildcard if it is there
         if host.find('*', 1) != -1:
@@ -214,7 +225,6 @@ class TrustRoot(object):
             wilcard = True
         else:
             wilcard = False
-        
 
         # we have a valid trust root
         tr = cls(trust_root, proto, wilcard, host, port, path)

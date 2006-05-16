@@ -21,8 +21,9 @@ http://*foo.com/
 5
 
 ----------------------------------------
-12: Insane
+17: Insane
 ----------------------------------------
+http:///
 http://*/
 https://*/
 http://*.com
@@ -35,14 +36,20 @@ https://*.foo.notatld/
 http://*.museum/
 https://*.museum/
 http://kink.fm/should/be/sane
+http://www.schtuffcom/
+http://it/
+http://..it/
+http://.it/
 
 ----------------------------------------
-14: Sane
+16: Sane
 ----------------------------------------
+http://*.schtuff.com./
 http://*.schtuff.com/
 http://*.foo.schtuff.com/
 http://*.schtuff.com
 http://www.schtuff.com/
+http://www.schtuff.com./
 http://www.schutff.com
 http://*.this.that.schtuff.com/
 http://*.foo.com/path
