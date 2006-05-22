@@ -819,7 +819,7 @@ class OpenIDResponse(object):
         @returntype: str
         """
         fields = dict(
-            [(OPENID_PREFIX + k, v) for k, v in self.fields.iteritems()])
+            [(OPENID_PREFIX + k, v.encode('UTF8')) for k, v in self.fields.iteritems()])
         return oidutil.appendArgs(self.request.return_to, fields)
 
 
