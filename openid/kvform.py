@@ -9,7 +9,7 @@ def seqToKV(seq, strict=False):
     key:value pairs. The pairs are generated in the order given.
 
     @param seq: The pairs
-    @type seq: [(str, str)]
+    @type seq: [(str, (unicode|str))]
 
     @return: A string representation of the sequence
     @rtype: str
@@ -38,6 +38,8 @@ def seqToKV(seq, strict=False):
         if k.strip() != k:
             err('Key has whitespace at beginning or end: %r' % k)
 
+        if isinstance(v, types.UnicodeType):
+            v = v.encode('UTF8')
         if not isinstance(v, types.StringType):
             err('Converting value to string: %r' % v)
             v = str(v)
