@@ -231,6 +231,7 @@ class FileOpenIDStore(OpenIDStore):
                 else:
                     raise
         finally:
+            file_obj.close()
             _removeIfPresent(tmp)
 
         return auth_key
