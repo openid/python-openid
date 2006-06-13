@@ -1,3 +1,5 @@
+# -*- test-case-name: openid.test.test_discover -*-
+
 from urljr import fetchers
 
 from openid import oidutil
