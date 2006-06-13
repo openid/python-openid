@@ -25,6 +25,7 @@ else:
     from yadis.services import applyFilter as extractServices
     from yadis.discover import discover as yadisDiscover
     from yadis.discover import DiscoveryFailure
+    from yadis import xri, filters
 
 from openid.consumer.parse import openIDDiscover as parseOpenIDLinkRel
 from openid.consumer.parse import ParseError
@@ -172,6 +173,18 @@ def discoverYadis(uri):
             openid_services = [service]
 
     return (identity_url, openid_services)
+
+
+def discoverXRI(iname):
+    services = xri.ProxyResolver().query(
+        iname, OpenIDServiceEndpoint.openid_type_uris)
+    endpoints = []
+    flt = filters.mkFilter(OpenIDServiceEndpoint)
+    for service_element in services:
+        endpoints.extend(flt.getServiceEndpoints(iname, service_element))
+    # FIXME: returned xri should probably be in some normal form
+    return iname, endpoints
+
 
 def discoverNoYadis(uri):
     http_resp = fetchers.fetch(uri)

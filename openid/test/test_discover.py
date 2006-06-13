@@ -5,6 +5,8 @@ from urljr import fetchers
 from urljr.fetchers import HTTPResponse
 from yadis.discover import DiscoveryFailure
 from openid.consumer import discover
+from yadis import xri
+from urlparse import urlsplit
 
 ### Tests for conditions that trigger DiscoveryFailure
 
@@ -137,10 +139,11 @@ class BaseTestDiscovery(unittest.TestCase):
     id_url = "http://someuser.unittest/"
 
     documents = {}
+    fetcherClass = DiscoveryMockFetcher
 
     def setUp(self):
         self.documents = self.documents.copy()
-        self.fetcher = DiscoveryMockFetcher(self.documents)
+        self.fetcher = self.fetcherClass(self.documents)
         fetchers.setDefaultFetcher(self.fetcher)
 
     def tearDown(self):
@@ -291,7 +294,6 @@ class TestDiscovery(BaseTestDiscovery):
                              "http://www.livejournal.com/openid/server.bml")
         self._usedYadis(services[1])
 
-
     def test_redirect(self):
         expected_final_url = "http://elsewhere.unittest/"
         self.fetcher.redirect = expected_final_url
@@ -360,6 +362,55 @@ class TestDiscovery(BaseTestDiscovery):
                         (services[0].delegate,))
 
         self._notUsedYadis(services[0])
+
+
+class MockFetcherForXRIProxy(object):
+
+    def __init__(self, documents, proxy_url=xri.DEFAULT_PROXY):
+        self.documents = documents
+        self.fetchlog = []
+        self.proxy_url = None
+
+
+    def fetch(self, url, body=None, headers=None):
+        self.fetchlog.append((url, body, headers))
+
+        u = urlsplit(url)
+        proxy_host = u[1]
+        xri = u[2]
+        query = u[3]
+
+        if not headers and not query:
+            raise ValueError("No headers or query; you probably didn't "
+                             "mean to do that.")
+
+        if xri.startswith('/'):
+            xri = xri[1:]
+
+        try:
+            ctype, body = self.documents[xri]
+        except KeyError:
+            status = 404
+            ctype = 'text/plain'
+            body = ''
+        else:
+            status = 200
+
+        return HTTPResponse(url, status, {'content-type': ctype}, body)
+
+
+class TestXRIDiscovery(BaseTestDiscovery):
+    fetcherClass = MockFetcherForXRIProxy
+
+    documents = {'=smoker': ('application/xrds+xml', yadis_2entries) }
+
+    def test_xri(self):
+        user_xri, services = discover.discoverXRI('=smoker')
+        self.failUnless(services)
+        self.failUnlessEqual(services[0].server_url,
+                             "http://www.myopenid.com/server")
+        self.failUnlessEqual(services[1].server_url,
+                             "http://www.livejournal.com/openid/server.bml")
 
 def pyUnitTests():
     return datadriven.loadTests(__name__)
