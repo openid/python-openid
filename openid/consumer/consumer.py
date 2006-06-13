@@ -190,6 +190,7 @@ from urlparse import urlparse
 from urljr import fetchers
 
 from openid.consumer.discover import discover as openIDDiscover
+from openid.consumer.discover import discoverXRI
 from openid.consumer.discover import yadis_available, DiscoveryFailure
 from openid import cryptutil
 from openid import kvform
@@ -204,6 +205,7 @@ __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
 
 if yadis_available:
     from yadis.manager import Discovery
+    from yadis import xri
 
 class Consumer(object):
     """An OpenID consumer implementation that performs discovery and
@@ -276,12 +278,19 @@ class Consumer(object):
             is available, L{openid.consumer.discover.DiscoveryFailure} is
             an alias for C{yadis.discover.DiscoveryFailure}.
         """
-        openid_url = oidutil.normalizeUrl(user_url)
+        if yadis_available and xri.identifierScheme(user_url) == "XRI":
+            discoverMethod = discoverXRI
+            openid_url = user_url
+        else:
+            discoverMethod = openIDDiscover
+            openid_url = oidutil.normalizeUrl(user_url)
+
         if yadis_available:
             disco = Discovery(self.session,
                               openid_url,
                               self.session_key_prefix)
-            service = disco.getNextService(openIDDiscover)
+
+            service = disco.getNextService(discoverMethod)
         else:
             _, services = openIDDiscover(openid_url)
             if not services:
