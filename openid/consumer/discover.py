@@ -28,7 +28,6 @@ else:
 
 from openid.consumer.parse import openIDDiscover as parseOpenIDLinkRel
 from openid.consumer.parse import ParseError
-from openid.oidutil import normalizeUrl
 
 OPENID_1_0_NS = 'http://openid.net/xmlns/1.0'
 OPENID_1_2_TYPE = 'http://openid.net/signon/1.2'
