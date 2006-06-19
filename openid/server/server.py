@@ -1341,7 +1341,10 @@ class ProtocolError(Exception):
 
         @returntype: bool
         """
-        return (OPENID_PREFIX + 'return_to') in self.query
+        if self.query is None:
+            return False
+        else:
+            return (OPENID_PREFIX + 'return_to') in self.query
 
 
     # implements IEncodable
@@ -1389,6 +1392,9 @@ class ProtocolError(Exception):
         """
         if self.hasReturnTo():
             return ENCODE_URL
+
+        if self.query is None:
+            return None
 
         mode = self.query.get('openid.mode')
         if mode:
