@@ -20,7 +20,7 @@ def generateHandle(n):
 
 generateSecret = randomString
 
-allowed_nonce = string.letters + string.digits
+allowed_nonce = string.ascii_letters + string.digits
 def generateNonce():
     return randomString(8, allowed_nonce)
 

@@ -411,7 +411,7 @@ class GenericConsumer(object):
 
     TOKEN_LIFETIME = 60 * 5 # five minutes
     NONCE_LEN = 8
-    NONCE_CHRS = string.letters + string.digits
+    NONCE_CHRS = string.ascii_letters + string.digits
 
     def __init__(self, store):
         self.store = store

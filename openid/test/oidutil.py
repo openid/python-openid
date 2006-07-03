@@ -5,7 +5,7 @@ import random
 from openid import oidutil
 
 def test_base64():
-    allowed_s = string.letters + string.digits + '+/='
+    allowed_s = string.ascii_letters + string.digits + '+/='
     allowed_d = {}
     for c in allowed_s:
         allowed_d[c] = None

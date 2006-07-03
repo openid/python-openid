@@ -38,7 +38,7 @@ from openid.association import Association
 from openid.store.interface import OpenIDStore
 from openid import cryptutil, oidutil
 
-_filename_allowed = string.letters + string.digits + '.'
+_filename_allowed = string.ascii_letters + string.digits + '.'
 try:
     # 2.4
     set
