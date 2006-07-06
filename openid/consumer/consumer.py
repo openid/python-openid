@@ -289,8 +289,7 @@ class Consumer(object):
             disco = Discovery(self.session,
                               openid_url,
                               self.session_key_prefix)
-
-            service = disco.getNextService(discoverMethod)
+            service = disco.getNextService(openIDDiscover)
         else:
             _, services = openIDDiscover(openid_url)
             if not services:
