@@ -407,49 +407,30 @@ class FileOpenIDStore(OpenIDStore):
             filename = self.getAssociationFilename(server_url, handle)
             return _removeIfPresent(filename)
 
-    def storeNonce(self, nonce):
-        """Mark this nonce as present.
-
-        str -> NoneType
-        """
-        filename = os.path.join(self.nonce_dir, nonce)
-        nonce_file = file(filename, 'w')
-        nonce_file.close()
-
-    def useNonce(self, nonce):
-        """Return whether this nonce is present. As a side effect,
-        mark it as no longer present.
+    def useNonce(self, server_url, timestamp, salt):
+        """Return whether this nonce is valid.
 
         str -> bool
         """
-        filename = os.path.join(self.nonce_dir, nonce)
+        proto, rest = server_url.split('://', 1)
+        domain = _filenameEscape(rest.split('/', 1)[0])
+        url_hash = _safe64(server_url)
+        salt_hash = _safe64(salt)
+
+        filename = '%08x-%s-%s-%s-%s' % (timestamp, proto, domain,
+                                         url_hash, salt_hash)
+
+        filename = os.path.join(self.nonce_dir, filename)
         try:
-            st = os.stat(filename)
+            fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0200)
         except OSError, why:
-            if why[0] == ENOENT:
-                # File was not present, so nonce is no good
-                return 0
+            if why[0] == EEXIST:
+                return False
             else:
                 raise
         else:
-            # Either it is too old or we are using it. Either way, we
-            # must remove the file.
-            try:
-                os.unlink(filename)
-            except OSError, why:
-                if why[0] == ENOENT:
-                    # someone beat us to it, so we cannot use this
-                    # nonce anymore.
-                    return 0
-                else:
-                    raise
-
-            now = time.time()
-            nonce_age = now - st.st_mtime
-
-            # We can us it if the age of the file is less than the
-            # expiration time.
-            return nonce_age <= self.max_nonce_age
+            os.close(fd)
+            return True
 
     def clean(self):
         """Remove expired entries from the database. This is
@@ -463,21 +444,9 @@ class FileOpenIDStore(OpenIDStore):
 
         # Check all nonces for expiry
         for nonce in nonces:
-            filename = os.path.join(self.nonce_dir, nonce)
-            try:
-                st = os.stat(filename)
-            except OSError, why:
-                if why[0] == ENOENT:
-                    # The file did not exist by the time we tried to
-                    # stat it.
-                    pass
-                else:
-                    raise
-            else:
-                # Remove the nonce if it has expired
-                nonce_age = now - st.st_mtime
-                if nonce_age > self.max_nonce_age:
-                    _removeIfPresent(filename)
+            if not checkTimestamp(nonce, now=now):
+                filename = os.path.join(self.nonce_dir, nonce)
+                _removeIfPresent(filename)
 
         association_filenames = os.listdir(self.association_dir)
         for association_filename in association_filenames:

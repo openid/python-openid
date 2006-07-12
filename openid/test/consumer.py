@@ -5,6 +5,7 @@ import cgi
 import time
 
 from openid import cryptutil, dh, oidutil, kvform
+from openid.store.nonce import mkNonce, split as splitNonce
 from openid.consumer.discover import OpenIDServiceEndpoint
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
@@ -394,30 +395,36 @@ class CheckNonceTest(TestIdRes, CatchLogs):
     def setUp(self):
         CatchLogs.setUp(self)
         TestIdRes.setUp(self)
-        self.nonce = self.id()
-        self.store.storeNonce(self.nonce)
-
 
     def tearDown(self):
         CatchLogs.tearDown(self)
 
-
-    def test_goodNonce(self):
-        self.return_to = 'http://rt.unittest/?nonce=%s' % (self.nonce,)
+    def test_consumerNonce(self):
+        """use consumer-generated nonce"""
+        self.return_to = 'http://rt.unittest/?nonce=%s' % (mkNonce(),)
         self.response = SuccessResponse(self.endpoint,
                                         {'openid.return_to': self.return_to})
-        ret = self.consumer._checkNonce(self.response, self.nonce)
+        ret = self.consumer._checkNonce(None, self.response)
+        self.failUnlessEqual(ret.status, SUCCESS)
+        self.failUnlessEqual(ret.identity_url, self.consumer_id)
+
+    def test_serverNonce(self):
+        """use server-generated nonce"""
+        self.response = SuccessResponse(self.consumer_id,
+                                        {'openid.nonce': mkNonce(),})
+        ret = self.consumer._checkNonce(self.server_url, self.response)
         self.failUnlessEqual(ret.status, SUCCESS)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
 
 
     def test_badNonce(self):
-        # remove the nonce from the store
-        self.store.useNonce(self.nonce)
-        self.return_to = 'http://rt.unittest/?nonce=%s' % (self.nonce,)
+        """remove the nonce from the store"""
+        nonce = mkNonce()
+        stamp, salt = splitNonce(nonce)
+        self.store.useNonce(self.server_url, stamp, salt)
         self.response = SuccessResponse(self.endpoint,
-                                        {'openid.return_to': self.return_to})
-        ret = self.consumer._checkNonce(self.response, self.nonce)
+                                        {'openid.nonce': nonce})
+        ret = self.consumer._checkNonce(self.server_url, self.response)
         self.failUnlessEqual(ret.status, FAILURE)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
         self.failUnless(ret.message.startswith('Nonce missing from store'),
@@ -425,20 +432,19 @@ class CheckNonceTest(TestIdRes, CatchLogs):
 
 
     def test_tamperedNonce(self):
-        self.return_to = 'http://rt.unittest/?nonce=HACKED-%s' % (self.nonce,)
+        """Malformed nonce"""
         self.response = SuccessResponse(self.endpoint,
-                                        {'openid.return_to': self.return_to})
-        ret = self.consumer._checkNonce(self.response, self.nonce)
+                                        {'openid.nonce':'malformed'})
+        ret = self.consumer._checkNonce(self.server_url, self.response)
         self.failUnlessEqual(ret.status, FAILURE)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
-        self.failUnless(ret.message.startswith('Nonce mismatch'), ret.message)
-
+        self.failUnless(ret.message.startswith('Malformed nonce'), ret.message)
 
     def test_missingNonce(self):
-        # no nonce parameter on the return_to
+        """no nonce parameter on the return_to"""
         self.response = SuccessResponse(self.endpoint,
                                         {'openid.return_to': self.return_to})
-        ret = self.consumer._checkNonce(self.response, self.nonce)
+        ret = self.consumer._checkNonce(self.server_url, self.response)
         self.failUnlessEqual(ret.status, FAILURE)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
         self.failUnless(ret.message.startswith('Nonce missing from return_to'))

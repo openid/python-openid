@@ -70,13 +70,7 @@ class DumbStore(OpenIDStore):
         """
         return False
 
-    def storeNonce(self, nonce):
-        """
-        This implementation does nothing.
-        """
-        pass
-
-    def useNonce(self, nonce):
+    def useNonce(self, server_url, timestamp, salt):
         """
         In a system truly limited to dumb mode, nonces must all be
         accepted.  This therefore always returns C{True}, which makes

@@ -67,16 +67,13 @@ class MemoryStore(object):
         assocs = self._getServerAssocs(server_url)
         return assocs.remove(handle)
 
-    def useNonce(self, nonce):
-        try:
-            del self.nonces[nonce]
-        except KeyError:
+    def useNonce(self, server_url, timestamp, salt):
+        nonce = (str(server_url), int(timestamp), str(salt))
+        if nonce in self.nonces:
             return False
         else:
+            self.nonces[nonce] = None
             return True
-
-    def storeNonce(self, nonce):
-        self.nonces[nonce] = None
 
     def getAuthKey(self):
         return self.auth_key

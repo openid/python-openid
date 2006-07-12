@@ -2,6 +2,7 @@
 This module contains C{L{OpenIDStore}} implementations that use
 various SQL databases to back them.
 """
+import re
 import time
 
 from openid import cryptutil
@@ -46,10 +47,10 @@ class SQLStore(OpenIDStore):
 
     @cvar settings_table: This is the default name of the table to
         keep this store's settings in.
-    
+
     @cvar associations_table: This is the default name of the table to
         keep associations in
-    
+
     @cvar nonces_table: This is the default name of the table to keep
         nonces in.
 
@@ -264,37 +265,19 @@ class SQLStore(OpenIDStore):
 
     removeAssociation = _inTxn(txn_removeAssociation)
 
-    def txn_storeNonce(self, nonce):
-        """Add this nonce to the set of extant nonces, ignoring if it
-        is already present.
-
-        str -> NoneType
-        """
-        now = int(time.time())
-        self.db_add_nonce(nonce, now)
-
-    storeNonce = _inTxn(txn_storeNonce)
-
-    def txn_useNonce(self, nonce):
+    def txn_useNonce(self, server_url, timestamp, salt):
         """Return whether this nonce is present, and if it is, then
         remove it from the set.
 
         str -> bool"""
-        self.db_get_nonce(nonce)
-        row = self.cur.fetchone()
-        if row is not None:
-            (nonce, timestamp) = row
-            nonce_age = int(time.time()) - timestamp
-            if nonce_age > self.max_nonce_age:
-                present = 0
-            else:
-                present = 1
-
-            self.db_remove_nonce(nonce)
+        try:
+            self.db_add_nonce(server_url, timestamp, salt)
+        except self.dbapi.IntegrityError:
+            # The key uniqueness check failed
+            return False
         else:
-            present = 0
-
-        return present
+            # The nonce was successfully added
+            return True
 
     useNonce = _inTxn(txn_useNonce)
 
@@ -307,12 +290,18 @@ class SQLiteStore(SQLStore):
 
     All other methods are implementation details.
     """
-    
+
+    try:
+        from pysqlite2 import dbapi2 as dbapi
+    except ImportError:
+        pass
+
     create_nonce_sql = """
-    CREATE TABLE %(nonces)s
-    (
-        nonce CHAR(8) UNIQUE PRIMARY KEY,
-        expires INTEGER
+    CREATE TABLE %(nonces)s (
+        server_url VARCHAR,
+        timestamp INTEGER,
+        salt CHAR(40),
+        UNIQUE(server_url, timestamp, salt)
     );
     """
 
@@ -351,15 +340,25 @@ class SQLiteStore(SQLStore):
     remove_assoc_sql = ('DELETE FROM %(associations)s '
                         'WHERE server_url = ? AND handle = ?;')
 
-    add_nonce_sql = 'INSERT OR REPLACE INTO %(nonces)s VALUES (?, ?);'
-    get_nonce_sql = 'SELECT * FROM %(nonces)s WHERE nonce = ?;'
-    remove_nonce_sql = 'DELETE FROM %(nonces)s WHERE nonce = ?;'
+    add_nonce_sql = 'INSERT INTO %(nonces)s VALUES (?, ?, ?);'
 
     def blobDecode(self, buf):
         return str(buf)
 
     def blobEncode(self, s):
         return buffer(s)
+
+    def useNonce(self, *args, **kwargs):
+        # Older versions of the sqlite wrapper do not raise
+        # IntegrityError as they should, so we have to detect the
+        # message from the OperationalError.
+        try:
+            return super(SQLiteStore, self).useNonce(*args, **kwargs)
+        except self.dbapi.OperationalError, why:
+            if re.match('^columns .* are not unique$', why[0]):
+                return False
+            else:
+                raise
 
 class MySQLStore(SQLStore):
     """
@@ -373,11 +372,17 @@ class MySQLStore(SQLStore):
     All other methods are implementation details.
     """
 
+    try:
+        import MySQLdb as dbapi
+    except ImportError:
+        pass
+
     create_nonce_sql = """
-    CREATE TABLE %(nonces)s
-    (
-        nonce CHAR(8) UNIQUE PRIMARY KEY,
-        expires INTEGER
+    CREATE TABLE %(nonces)s (
+        server_url BLOB,
+        timestamp INTEGER,
+        salt CHAR(40),
+        PRIMARY KEY (server_url(255), timestamp, salt)
     )
     TYPE=InnoDB;
     """
@@ -418,9 +423,7 @@ class MySQLStore(SQLStore):
     remove_assoc_sql = ('DELETE FROM %(associations)s '
                         'WHERE server_url = %%s AND handle = %%s;')
 
-    add_nonce_sql = 'REPLACE INTO %(nonces)s VALUES (%%s, %%s);'
-    get_nonce_sql = 'SELECT * FROM %(nonces)s WHERE nonce = %%s;'
-    remove_nonce_sql = 'DELETE FROM %(nonces)s WHERE nonce = %%s;'
+    add_nonce_sql = 'INSERT INTO %(nonces)s VALUES (%%s, %%s, %%s);'
 
     def blobDecode(self, blob):
         return blob.tostring()
@@ -435,11 +438,17 @@ class PostgreSQLStore(SQLStore):
     All other methods are implementation details.
     """
 
+    try:
+        import psycopg as dbapi
+    except ImportError:
+        pass
+
     create_nonce_sql = """
-    CREATE TABLE %(nonces)s
-    (
-        nonce CHAR(8) UNIQUE PRIMARY KEY,
-        expires INTEGER
+    CREATE TABLE %(nonces)s (
+        server_url VARCHAR(2047),
+        timestamp INTEGER,
+        salt CHAR(40),
+        PRIMARY KEY (server_url, timestamp, salt)
     );
     """
 
@@ -501,24 +510,7 @@ class PostgreSQLStore(SQLStore):
     remove_assoc_sql = ('DELETE FROM %(associations)s '
                         'WHERE server_url = %%s AND handle = %%s;')
 
-    def db_add_nonce(self, nonce, expires):
-        """
-        Set a nonce.  This is implemented as a method because REPLACE
-        INTO is not supported by PostgreSQL (and is not standard SQL).
-        """
-        self.db_get_nonce(nonce)
-        rows = self.cur.fetchall()
-        if len(rows):
-            # Update the table since this nonce already exists.
-            return self.db_update_nonce(expires, nonce)
-        else:
-            # Insert a new record because this nonce wasn't found.
-            return self.db_new_nonce(nonce, expires)
-
-    update_nonce_sql = 'UPDATE %(nonces)s SET expires = %%s WHERE nonce = %%s;'
-    new_nonce_sql = 'INSERT INTO %(nonces)s VALUES (%%s, %%s);'
-    get_nonce_sql = 'SELECT * FROM %(nonces)s WHERE nonce = %%s;'
-    remove_nonce_sql = 'DELETE FROM %(nonces)s WHERE nonce = %%s;'
+    add_nonce_sql = 'INSERT INTO %(nonces)s VALUES (%%s, %%s, %%s);'
 
     def blobEncode(self, blob):
         import psycopg

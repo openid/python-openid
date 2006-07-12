@@ -1,5 +1,6 @@
 from openid.association import Association
 from openid.cryptutil import randomString
+from openid.store.nonce import *
 
 import string
 import time
@@ -20,9 +21,7 @@ def generateHandle(n):
 
 generateSecret = randomString
 
-allowed_nonce = string.ascii_letters + string.digits
-def generateNonce():
-    return randomString(8, allowed_nonce)
+allowed_nonce = string.letters + string.digits
 
 def getTmpDbName():
     hostname = socket.gethostname()
@@ -154,26 +153,20 @@ def testStore(store):
     ### Nonce functions
 
     def checkUseNonce(nonce, expected):
-        actual = store.useNonce(nonce)
+        stamp, salt = split(nonce)
+        actual = store.useNonce(server_url, stamp, salt)
         expected = store.isDumb() or expected
         assert bool(actual) == bool(expected)
 
     # Random nonce (not in store)
-    nonce1 = generateNonce()
+    nonce1 = mkNonce()
 
-    # A nonce is not present by default
-    checkUseNonce(nonce1, False)
+    # A nonce is allowed by default
+    checkUseNonce(nonce1, True)
 
     # Storing once causes useNonce to return True the first, and only
     # the first, time it is called after the store.
-    store.storeNonce(nonce1)
-    checkUseNonce(nonce1, True)
     checkUseNonce(nonce1, False)
-
-    # Storing twice has the same effect as storing once.
-    store.storeNonce(nonce1)
-    store.storeNonce(nonce1)
-    checkUseNonce(nonce1, True)
     checkUseNonce(nonce1, False)
 
     ### Auth key functions
