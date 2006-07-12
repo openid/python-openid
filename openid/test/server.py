@@ -585,27 +585,35 @@ class TestCheckID(unittest.TestCase):
     def test_answerAllow(self):
         answer = self.request.answer(True)
         self.failUnlessEqual(answer.request, self.request)
-        self.failUnlessEqual(answer.fields, {
-            'mode': 'id_res',
-            'identity': self.request.identity,
-            'return_to': self.request.return_to,
-            })
+        for k, v in  [
+            ('mode', 'id_res'),
+            ('identity', self.request.identity),
+            ('return_to', self.request.return_to),
+            ]:
+            self.failUnlessEqual(answer.fields[k], v, "%s: %s" % (k, v))
+        self.failUnless('nonce' in answer.fields)
+        self.failUnlessEqual(len(answer.fields), 4)
         signed = answer.signed[:]
         signed.sort()
-        self.failUnlessEqual(signed, ["identity", "mode", "return_to"])
+        self.failUnlessEqual(signed,
+                             ["identity", "mode", "nonce", "return_to"])
 
     def test_answerAllowNoTrustRoot(self):
         self.request.trust_root = None
         answer = self.request.answer(True)
         self.failUnlessEqual(answer.request, self.request)
-        self.failUnlessEqual(answer.fields, {
-            'mode': 'id_res',
-            'identity': self.request.identity,
-            'return_to': self.request.return_to,
-            })
+        for k, v in  [
+            ('mode', 'id_res'),
+            ('identity', self.request.identity),
+            ('return_to', self.request.return_to),
+            ]:
+            self.failUnlessEqual(answer.fields[k], v, "%s: %s" % (k, v))
+        self.failUnless('nonce' in answer.fields)
+        self.failUnlessEqual(len(answer.fields), 4)
         signed = answer.signed[:]
         signed.sort()
-        self.failUnlessEqual(signed, ["identity", "mode", "return_to"])
+        self.failUnlessEqual(signed,
+                             ["identity", "mode", "nonce", "return_to"])
 
     def test_answerImmediateDeny(self):
         self.request.mode = 'checkid_immediate'

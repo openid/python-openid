@@ -102,6 +102,7 @@ from openid import cryptutil
 from openid import kvform
 from openid import oidutil
 from openid.dh import DiffieHellman
+from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot
 from openid.association import Association
 
@@ -604,6 +605,7 @@ class CheckIDRequest(OpenIDRequest):
                 'mode': mode,
                 'identity': self.identity,
                 'return_to': self.return_to,
+                'nonce': mkNonce(),
                 })
         else:
             response.addField(None, 'mode', mode, False)
