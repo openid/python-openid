@@ -204,9 +204,10 @@ class TestDecode(unittest.TestCase):
             'openid.mode': 'check_authentication',
             'openid.assoc_handle': '{dumb}{handle}',
             'openid.sig': 'sigblob',
-            'openid.signed': 'foo,bar,mode',
-            'openid.foo': 'signedval1',
-            'openid.bar': 'signedval2',
+            'openid.signed': 'identity,return_to,nonce,mode',
+            'openid.identity': 'signedval1',
+            'openid.return_to': 'signedval2',
+            'openid.nonce': 'signedval3',
             'openid.baz': 'unsigned',
             }
         r = self.decode(args)
@@ -214,11 +215,26 @@ class TestDecode(unittest.TestCase):
         self.failUnlessEqual(r.mode, 'check_authentication')
         self.failUnlessEqual(r.sig, 'sigblob')
         self.failUnlessEqual(r.signed, [
-            ('foo', 'signedval1'),
-            ('bar', 'signedval2'),
+            ('identity', 'signedval1'),
+            ('return_to', 'signedval2'),
+            ('nonce', 'signedval3'),
             ('mode', 'id_res'),
             ])
         # XXX: test error cases (i.e. missing required fields)
+
+    def test_checkAuthMissingRequiredField(self):
+        # Missing openid.nonce in signed list
+        args = {
+            'openid.mode': 'check_authentication',
+            'openid.assoc_handle': '{dumb}{handle}',
+            'openid.sig': 'sigblob',
+            'openid.signed': 'identity,return_to,mode',
+            'openid.identity': 'signedval1',
+            'openid.return_to': 'signedval2',
+            'openid.nonce': 'unsigned',
+            'openid.baz': 'unsigned',
+            }
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
 
     def test_checkAuthMissingSignedField(self):
@@ -226,8 +242,9 @@ class TestDecode(unittest.TestCase):
             'openid.mode': 'check_authentication',
             'openid.assoc_handle': '{dumb}{handle}',
             'openid.sig': 'sigblob',
-            'openid.signed': 'foo,bar,mode',
-            'openid.foo': 'signedval1',
+            'openid.signed': 'identity,return_to,nonce,mode',
+            'openid.identity': 'signedval1',
+            'openid.return_to': 'signedval2',
             'openid.baz': 'unsigned',
             }
         self.failUnlessRaises(server.ProtocolError, self.decode, args)
@@ -251,9 +268,10 @@ class TestDecode(unittest.TestCase):
             'openid.assoc_handle': '{dumb}{handle}',
             'openid.invalidate_handle': '[[SMART_handle]]',
             'openid.sig': 'sigblob',
-            'openid.signed': 'foo,bar,mode',
-            'openid.foo': 'signedval1',
-            'openid.bar': 'signedval2',
+            'openid.signed': 'identity,return_to,nonce,mode',
+            'openid.identity': 'signedval1',
+            'openid.return_to': 'signedval2',
+            'openid.nonce': 'signedval3',
             'openid.baz': 'unsigned',
             }
         r = self.decode(args)

@@ -147,6 +147,7 @@ class CheckAuthRequest(OpenIDRequest):
     """
     mode = "check_authentication"
 
+    required_fields = ["identity", "return_to", "nonce"]
 
     def __init__(self, assoc_handle, sig, signed, invalidate_handle=None):
         """Construct me.
@@ -188,6 +189,13 @@ class CheckAuthRequest(OpenIDRequest):
         self.invalidate_handle = query.get(OPENID_PREFIX + 'invalidate_handle')
 
         signed_list = signed_list.split(',')
+
+        for required_field in self.required_fields:
+            if required_field not in signed_list:
+                msg = "Required signed field %r missing from signature" % (
+                    required_field,)
+                raise ProtocolError(query, text=msg,)
+
         signed_pairs = []
         for field in signed_list:
             try:
