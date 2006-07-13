@@ -192,6 +192,7 @@ from urljr import fetchers
 from openid.consumer.discover import discover as openIDDiscover
 from openid.consumer.discover import discoverXRI
 from openid.consumer.discover import yadis_available, DiscoveryFailure
+from openid.extensions import ExtensionCollection
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
@@ -748,20 +749,7 @@ class AuthRequest(object):
 
         @type value: str
         """
-        ns_args = self.ns_args.get(namespace)
-        if ns_args is None:
-            ns_args = self.ns_args[namespace] = {}
-
-        ns_args[key] = value
-
-    def _flattenNamespaces(self):
-        extra_args = {}
-        for i, (ns_uri, ns) in enumerate(self.ns_args.iteritems()):
-            ns_alias = self.namespace_aliases.get(ns_uri, str(i))
-            extra_args['openid.ns.%s' % (ns_alias,)] = ns_uri
-            for ns_key, ns_val in ns.iteritems():
-                extra_args['openid.%s.%s' % (ns_alias, ns_key)] = ns_val
-        return extra_args
+        self.ns_args.addArg(namespace, key, value)
 
     def redirectURL(self, trust_root, return_to, immediate=False):
         if immediate:
@@ -782,7 +770,7 @@ class AuthRequest(object):
             redir_args['openid.assoc_handle'] = self.assoc.handle
 
         redir_args.update(self.extra_args)
-        redir_args.update(self._flattenNamespaces())
+        redir_args.update(self.ns_args.toQueryArgs())
         return oidutil.appendArgs(self.endpoint.server_url, redir_args)
 
 FAILURE = 'failure'
