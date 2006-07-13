@@ -18,11 +18,14 @@ class ExtensionCollection(object):
         @returntype: {unicode:unicode}
         """
         query_args = {}
-        for i, (ns_uri, ns) in enumerate(self.args.iteritems()):
+        i = 0
+        for (ns_uri, ns) in self.args.iteritems():
             ns_alias = self.namespace_aliases.get(ns_uri, str(i))
             query_args['openid.ns.%s' % (ns_alias,)] = ns_uri
             for ns_key, ns_val in ns.iteritems():
                 query_args['openid.%s.%s' % (ns_alias, ns_key)] = ns_val
+
+            i += 1
 
         return query_args
 
