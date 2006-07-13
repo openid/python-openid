@@ -642,13 +642,16 @@ class TestAuthRequest(unittest.TestCase):
     def test_addExtensionArg(self):
         self.authreq.addExtensionArg('bag', 'color', 'brown')
         self.authreq.addExtensionArg('bag', 'material', 'paper')
-        self.failUnlessEqual(self.authreq.extra_args,
-                             {'openid.bag.color': 'brown',
-                              'openid.bag.material': 'paper'})
+        self.failUnlessEqual(self.authreq.ns_args.keys(), ['bag'])
+        self.failUnlessEqual(self.authreq.ns_args['bag'],
+                             {'color': 'brown',
+                              'material': 'paper'})
         url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
-        self.failUnless(url.find('openid.bag.color=brown') != -1,
+        self.failUnless(url.find('openid.ns.0=bag') != -1,
+                        'extension bag namespace not found in %s' % (url,))
+        self.failUnless(url.find('openid.0.color=brown') != -1,
                         'extension arg not found in %s' % (url,))
-        self.failUnless(url.find('openid.bag.material=paper') != -1,
+        self.failUnless(url.find('openid.0.material=paper') != -1,
                         'extension arg not found in %s' % (url,))
 
 
@@ -658,15 +661,15 @@ class TestSuccessResponse(unittest.TestCase):
         self.endpoint.identity_url = 'identity_url'
 
     def test_extensionResponse(self):
-        resp = SuccessResponse(self.endpoint, {
+        resp = SuccessResponse('identity_url', {
             'openid.unittest.one':'1',
             'openid.unittest.two':'2',
             'openid.sreg.nickname':'j3h',
             'openid.return_to':'return_to',
             })
-        utargs = resp.extensionResponse('unittest')
+        utargs = resp.extensionResponse('urn:unittest')
         self.failUnlessEqual(utargs, {'one':'1', 'two':'2'})
-        sregargs = resp.extensionResponse('sreg')
+        sregargs = resp.extensionResponse('urn:sreg')
         self.failUnlessEqual(sregargs, {'nickname':'j3h'})
 
     def test_noReturnTo(self):

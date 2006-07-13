@@ -708,7 +708,7 @@ class GenericConsumer(object):
         return assoc
 
 class AuthRequest(object):
-    def __init__(self, endpoint, assoc):
+    def __init__(self, token, assoc, endpoint):
         """
         Creates a new AuthRequest object.  This just stores each
         argument in an appropriately named field.
@@ -721,6 +721,7 @@ class AuthRequest(object):
         self.endpoint = endpoint
         self.extra_args = {}
         self.return_to_args = {}
+        self.token = token
 
     def addExtensionArg(self, namespace, key, value):
         """Add an extension argument to this OpenID authentication
@@ -747,8 +748,20 @@ class AuthRequest(object):
 
         @type value: str
         """
-        arg_name = '.'.join(['openid', namespace, key])
-        self.extra_args[arg_name] = value
+        ns_args = self.ns_args.get(namespace)
+        if ns_args is None:
+            ns_args = self.ns_args[namespace] = {}
+
+        ns_args[key] = value
+
+    def _flattenNamespaces(self):
+        extra_args = {}
+        for i, (ns_uri, ns) in enumerate(self.ns_args.iteritems()):
+            ns_alias = self.namespace_aliases.get(ns_uri, str(i))
+            extra_args['openid.ns.%s' % (ns_alias,)] = ns_uri
+            for ns_key, ns_val in ns.iteritems():
+                extra_args['openid.%s.%s' % (ns_alias, ns_key)] = ns_val
+        return extra_args
 
     def redirectURL(self, trust_root, return_to, immediate=False):
         if immediate:
@@ -769,6 +782,7 @@ class AuthRequest(object):
             redir_args['openid.assoc_handle'] = self.assoc.handle
 
         redir_args.update(self.extra_args)
+        redir_args.update(self._flattenNamespaces())
         return oidutil.appendArgs(self.endpoint.server_url, redir_args)
 
 FAILURE = 'failure'
@@ -813,19 +827,36 @@ class SuccessResponse(Response):
 
     fromQuery = classmethod(fromQuery)
 
-    def extensionResponse(self, prefix):
+    def getExtensionAlias(self, extension_uri):
+        for k, v in self.signed_args.iteritems():
+            if k.startswith('openid.ns.') and v == extension_uri:
+                return k[10:]
+        else:
+            return None
+
+    def getExtensionArgument(self, extension_uri, key):
+        alias = self.getExtensionAlias(extension_uri)
+        if alias is None:
+            return None
+
+        arg_name = 'openid.%s.%s' % (alias, key)
+        return self.signed_args.get(arg_name)
+
+    def extensionResponse(self, extension_uri):
         """extract signed extension data from the server's response.
 
-        @param prefix: The extension namespace from which to extract
+        @param extension_uri: The extension namespace from which to extract
             the extension data.
         """
         response = {}
-        prefix = 'openid.%s.' % (prefix,)
-        prefix_len = len(prefix)
-        for k, v in self.signed_args.iteritems():
-            if k.startswith(prefix):
-                response_key = k[prefix_len:]
-                response[response_key] = v
+        alias = self.getExtensionAlias(extension_uri)
+        if alias is not None:
+            prefix = 'openid.%s.' % (alias,)
+            prefix_len = len(prefix)
+            for k, v in self.signed_args.iteritems():
+                if k.startswith(prefix):
+                    response_key = k[prefix_len:]
+                    response[response_key] = v
 
         return response
 
