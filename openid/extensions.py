@@ -1,12 +1,23 @@
+"""Extension argument processing code
+"""
+
+__all__ = ['ExtensionCollection']
 
 SREG_URI = 'http://openid.net/sreg/1.0'
 
 class ExtensionCollection(object):
+    """A container for the extension arguments for an OpenID message.
+
+    @cvar namespace_alaises: A dictionary specifying specific
+        namespace-URI to alias mappings that should be used when
+        generating namespace aliases.
+    """
     # namespaces that should use a certain alias (for
     # backwards-compatibility or beauty)
     namespace_aliases = {SREG_URI:'sreg'}
 
     def __init__(self):
+        """Create an empty ExtensionCollection"""
         # two-level dictionary. The first level is the namespace URI.
         self.args = {}
 
@@ -99,7 +110,13 @@ class ExtensionCollection(object):
         ns_args.update(values)
 
     def isNamespaceDefined(self, namespace_uri):
+        """Does this namespace have any arguments defined for it?"""
         return namespace_uri in self.args
 
     def getNamespaceArgs(self, namespace_uri):
+        """Get the arguments that are defined for this namespace URI
+
+        @returns: mapping from namespaced keys to values
+        @returntype: dict
+        """
         return self.args.get(namespace_uri, {})
