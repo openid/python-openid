@@ -192,7 +192,7 @@ from urljr import fetchers
 from openid.consumer.discover import discover as openIDDiscover
 from openid.consumer.discover import discoverXRI
 from openid.consumer.discover import yadis_available, DiscoveryFailure
-from openid.extensions import ExtensionCollection
+from openid.message import Message
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
@@ -749,7 +749,7 @@ class AuthRequest(object):
 
         @type value: str
         """
-        self.ns_args.addArg(namespace, key, value)
+        self.message.addNSArg(namespace, key, value)
 
     def redirectURL(self, trust_root, return_to, immediate=False):
         if immediate:
@@ -770,7 +770,7 @@ class AuthRequest(object):
             redir_args['openid.assoc_handle'] = self.assoc.handle
 
         redir_args.update(self.extra_args)
-        redir_args.update(self.ns_args.toQueryArgs())
+        redir_args.update(self.message.toQueryArgs())
         return oidutil.appendArgs(self.endpoint.server_url, redir_args)
 
 FAILURE = 'failure'

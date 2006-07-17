@@ -642,8 +642,8 @@ class TestAuthRequest(unittest.TestCase):
     def test_addExtensionArg(self):
         self.authreq.addExtensionArg('bag', 'color', 'brown')
         self.authreq.addExtensionArg('bag', 'material', 'paper')
-        self.failUnless(self.authreq.ns_args.isNamespaceDefined('bag'))
-        self.failUnlessEqual(self.authreq.ns_args.getNamespaceArgs('bag'),
+        self.failUnless(self.authreq.message.isNamespaceDefined('bag'))
+        self.failUnlessEqual(self.authreq.message.getNamespaceArgs('bag'),
                              {'color': 'brown',
                               'material': 'paper'})
         url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
