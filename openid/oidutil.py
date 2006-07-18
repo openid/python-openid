@@ -14,6 +14,8 @@ def appendArgs(url, args):
     if hasattr(args, 'items'):
         args = args.items()
         args.sort()
+    else:
+        args = list(args)
 
     if len(args) == 0:
         return url
@@ -22,6 +24,19 @@ def appendArgs(url, args):
         sep = '&'
     else:
         sep = '?'
+
+    # Map unicode to UTF-8 if present. Do not make any assumptions
+    # about the encodings of plain bytes (str).
+    i = 0
+    for k, v in args:
+        if type(k) is not str:
+            k = k.encode('UTF-8')
+
+        if type(v) is not str:
+            v = v.encode('UTF-8')
+
+        args[i] = (k, v)
+        i += 1
 
     return '%s%s%s' % (url, sep, urlencode(args))
 
