@@ -899,6 +899,27 @@ class TestAssociate(unittest.TestCase):
         self.failIf(rfg("enc_mac_key"))
         self.failIf(rfg("dh_server_public"))
 
+    def test_unsupportedPrefer(self):
+        allowed_assoc = 'COLD-PET-RAT'
+        allowed_sess = 'FROG-BONES'
+        message = 'This is a unit test'
+        response = self.request.answerUnsupported(
+            message=message,
+            preferred_session_type=allowed_sess,
+            preferred_association_type=allowed_assoc,
+            )
+        self.failUnlessEqual(response.fields['error_code'], 'unsupported-type')
+        self.failUnlessEqual(response.fields['assoc_type'], allowed_assoc)
+        self.failUnlessEqual(response.fields['error'], message)
+        self.failUnlessEqual(response.fields['session_type'], allowed_sess)
+
+    def test_unsupported(self):
+        response = self.request.answerUnsupported()
+        self.failUnlessEqual(response.fields['error_code'], 'unsupported-type')
+        self.failUnlessEqual(response.fields.get('assoc_type'), None)
+        self.failUnlessEqual(response.fields.get('error'), None)
+        self.failUnlessEqual(response.fields.get('session_type'), None)
+
 class Counter(object):
     def __init__(self):
         self.count = 0

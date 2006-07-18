@@ -444,6 +444,22 @@ class AssociateRequest(OpenIDRequest):
 
         return response
 
+    def answerUnsupported(self, message=None, preferred_session_type=None,
+                          preferred_association_type=None):
+        """Respond to this request indicating that the association
+        type or association session type is not supported."""
+        response = OpenIDResponse(self)
+        response.fields['error_code'] = 'unsupported-type'
+        if message:
+            response.fields['error'] = message
+
+        if preferred_association_type:
+            response.fields['assoc_type'] = preferred_association_type
+
+        if preferred_session_type:
+            response.fields['session_type'] = preferred_session_type
+
+        return response
 
 class CheckIDRequest(OpenIDRequest):
     """A request to confirm the identity of a user.
