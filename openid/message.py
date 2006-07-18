@@ -8,6 +8,9 @@ SREG_URI = 'http://openid.net/sreg/1.0'
 
 class Message(object):
     """
+    In the implementation of this object, None represents the global
+    namespace as well as a namespace with no key.
+
     @cvar namespace_alaises: A dictionary specifying specific
         namespace-URI to alias mappings that should be used when
         generating namespace aliases.
@@ -16,7 +19,8 @@ class Message(object):
         grouped by namespace URI. The first level is the namespace
         URI.
 
-    @ivar signed: list of fields to sign. The namespaces are
+    @ivar signed: list of fields to sign. It contains pairs of
+        namespace and key. The namespace alias declarations are
         automatically signed.
     """
 
