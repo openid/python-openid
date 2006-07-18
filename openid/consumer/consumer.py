@@ -191,7 +191,7 @@ from urljr import fetchers
 from openid.consumer.discover import discover as openIDDiscover
 from openid.consumer.discover import discoverXRI
 from openid.consumer.discover import yadis_available, DiscoveryFailure
-from openid.message import Message
+from openid.message import Message, fixNamespaceURI, SREG_URI
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
@@ -815,11 +815,17 @@ class SuccessResponse(Response):
     fromQuery = classmethod(fromQuery)
 
     def getExtensionAlias(self, extension_uri):
+        # XXX: hopefully we can use more of the machinery from
+        # openid.message.Message in here.
+        extension_uri = fixNamespaceURI(extension_uri)
         for k, v in self.signed_args.iteritems():
             if k.startswith('openid.ns.') and v == extension_uri:
                 return k[10:]
         else:
-            return None
+            if extension_uri == SREG_URI:
+                return 'sreg'
+            else:
+                return None
 
     def getExtensionArgument(self, extension_uri, key):
         alias = self.getExtensionAlias(extension_uri)

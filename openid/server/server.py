@@ -61,7 +61,8 @@ OpenID Extensions
         # when request is a checkid_* request
         response = request.answer(True)
         # this will a signed 'openid.sreg.timezone' parameter to the response
-        response.addField('sreg', 'timezone', 'America/Los_Angeles')
+        # as well as a namespace declaration for the openid.sreg namespace
+        response.addField('http://openid.net/sreg/1.0', 'timezone', 'America/Los_Angeles')
 
 
 Stores

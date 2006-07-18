@@ -2,10 +2,13 @@
 """
 import warnings
 
-__all__ = ['Message', 'NamespaceMap']
+__all__ = ['Message', 'NamespaceMap', 'SREG_URI']
 
+# URI for Simple Registration extension, the only commonly deployed
+# OpenID 1.x extension, and so a special case
 SREG_URI = 'http://openid.net/sreg/1.0'
 
+# XXX: testme!
 def fixNamespaceURI(ns_uri, stacklevel=2):
     """Check for deprecated API usage and fix the namespace URI if
     it's 'sreg'
@@ -31,6 +34,7 @@ def fixNamespaceURI(ns_uri, stacklevel=2):
 
     return ns_uri
 
+# XXX: TESTME!
 class Message(object):
     """
     In the implementation of this object, None represents the global
@@ -156,6 +160,7 @@ class Message(object):
         else:
             return dict(self.ns_args.get(namespace_uri, {}))
 
+#XXX: testme!
 class NamespaceMap(object):
     # namespaces that should use a certain alias (for
     # backwards-compatibility or beauty)
