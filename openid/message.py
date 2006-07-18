@@ -237,7 +237,7 @@ class NamespaceMap(object):
         default_alias = self.default_aliases.get(namespace_uri)
         if default_alias is not None:
             try:
-                self._addAlias(namespace_uri, desired_alias)
+                self._addAlias(namespace_uri, default_alias)
             except KeyError:
                 pass
             else:
