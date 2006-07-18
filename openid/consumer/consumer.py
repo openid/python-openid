@@ -181,7 +181,6 @@ USING THIS LIBRARY
     objects.
 """
 
-import string
 import time
 import urllib
 import cgi
