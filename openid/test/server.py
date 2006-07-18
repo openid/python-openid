@@ -692,14 +692,16 @@ class TestCheckIDExtension(unittest.TestCase):
 
 
     def test_addField(self):
-        namespace = 'mj12'
+        namespace = 'something:'
+        self.response.namespaces.addAlias('something:', 'mj12')
         self.response.addField(namespace, 'bright', 'potato')
         self.failUnlessEqual(self.response.fields,
                              {'blue': 'star',
                               'mode': 'id_res',
-                              'mj12.bright': 'potato'})
+                              'mj12.bright': 'potato',
+                              'ns.mj12':namespace})
         self.failUnlessEqual(self.response.signed,
-                             ['mode', 'identity', 'return_to', 'mj12.bright'])
+                             ['mode', 'identity', 'return_to', 'ns.mj12', 'mj12.bright'])
 
 
     def test_addFieldNoNamespace(self):
@@ -710,32 +712,37 @@ class TestCheckIDExtension(unittest.TestCase):
                               'dark': 'pages'})
 
     def test_addFieldUnsigned(self):
-        namespace = 'mj12'
+        namespace = 'mj12:'
+        self.response.namespaces.addAlias('mj12:', 'mj12')
         self.response.addField(namespace, 'dull', 'lemon', signed=False)
         self.failUnlessEqual(self.response.fields,
                              {'blue': 'star',
                               'mode': 'id_res',
-                              'mj12.dull': 'lemon'})
+                              'mj12.dull': 'lemon',
+                              'ns.mj12':'mj12:'})
         self.failUnlessEqual(self.response.signed,
                              ['mode', 'identity', 'return_to'])
 
 
     def test_addFields(self):
-        namespace = 'mi5'
+        namespace = 'mi5:'
+        self.response.namespaces.addAlias(namespace, 'mi5')
         self.response.addFields(namespace, {'tangy': 'suspenders',
-                                           'bravo': 'inclusion'})
+                                            'bravo': 'inclusion'})
         self.failUnlessEqual(self.response.fields,
                              {'blue': 'star',
                               'mode': 'id_res',
                               'mi5.tangy': 'suspenders',
-                              'mi5.bravo': 'inclusion'})
+                              'mi5.bravo': 'inclusion',
+                              'ns.mi5':namespace})
         self.failUnlessEqual(self.response.signed,
                              ['mode', 'identity', 'return_to',
-                              'mi5.tangy', 'mi5.bravo'])
+                              'ns.mi5', 'mi5.tangy', 'mi5.bravo'])
 
 
     def test_addFieldsUnsigned(self):
-        namespace = 'mi5'
+        namespace = 'mi5:'
+        self.response.namespaces.addAlias(namespace, 'mi5')
         self.response.addFields(namespace, {'strange': 'conditioner',
                                            'elemental': 'blender'},
                                 signed=False)
@@ -743,7 +750,8 @@ class TestCheckIDExtension(unittest.TestCase):
                              {'blue': 'star',
                               'mode': 'id_res',
                               'mi5.strange': 'conditioner',
-                              'mi5.elemental': 'blender'})
+                              'mi5.elemental': 'blender',
+                              'ns.mi5':'mi5:'})
         self.failUnlessEqual(self.response.signed,
                              ['mode', 'identity', 'return_to'])
 

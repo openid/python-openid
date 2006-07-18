@@ -642,7 +642,7 @@ class TestAuthRequest(unittest.TestCase):
     def test_addExtensionArg(self):
         self.authreq.addExtensionArg('bag:', 'color', 'brown')
         self.authreq.addExtensionArg('bag:', 'material', 'paper')
-        self.failUnless(self.authreq.message.isNamespaceDefined('bag:'))
+        self.failUnless('bag:' in self.authreq.message.namespaces)
         self.failUnlessEqual(self.authreq.message.getNamespaceArgs('bag:'),
                              {'color': 'brown',
                               'material': 'paper'})

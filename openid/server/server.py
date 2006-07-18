@@ -105,6 +105,7 @@ from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot
 from openid.association import Association
+from openid.message import NamespaceMap
 
 HTTP_OK = 200
 HTTP_REDIRECT = 302
@@ -715,6 +716,7 @@ class OpenIDResponse(object):
         self.request = request
         self.fields = {}
         self.signed = []
+        self.namespaces = NamespaceMap()
 
     def __str__(self):
         return "%s for %s: %s" % (
@@ -740,7 +742,14 @@ class OpenIDResponse(object):
         @type signed: bool
         """
         if namespace:
-            key = '%s.%s' % (namespace, key)
+            alias = self.namespaces.add(namespace)
+            ns_key = 'ns.' + alias
+            if ns_key not in self.fields:
+                self.fields[ns_key] = namespace
+            if signed and ns_key not in self.signed:
+                self.signed.append(ns_key)
+            key = '%s.%s' % (alias, key)
+
         self.fields[key] = value
         if signed and key not in self.signed:
             self.signed.append(key)
