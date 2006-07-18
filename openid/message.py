@@ -1,5 +1,6 @@
 """Extension argument processing code
 """
+import warnings
 
 __all__ = ['Message']
 
@@ -193,8 +194,29 @@ class Message(object):
 
     fromQueryArgs = classmethod(fromQueryArgs)
 
+    def _fixNamespaceURI(self, ns_uri):
+        """Check for deprecated API usage and fix the namespace URI if
+        it's 'sreg'
+
+        @param ns_uri: The string to check as a namespace URI
+
+        @returns: The namespace URI, possibly cleaned up
+        """
+        if ns_uri is not None and ':' not in ns_uri:
+            fmt = 'OpenID 2.0 namespace identifiers SHOULD be URIs. Got %r'
+            warnings.warn(fmt % (ns_uri,), DeprecationWarning, stacklevel=3)
+
+            if ns_uri == 'sreg':
+                fmt = 'Using %r instead of "sreg" as namespace'
+                warnings.warn(fmt % (SREG_URI,), DeprecationWarning,
+                              stacklevel=3)
+                return SREG_URI
+
+        return ns_uri
+
     def addNSArg(self, namespace_uri, key, value, signed=True):
         """Add a single argument to this namespace"""
+        namespace_uri = self._fixNamespaceURI(namespace_uri)
         try:
             ns_args = self.ns_args[namespace_uri]
         except KeyError:
@@ -208,6 +230,8 @@ class Message(object):
     def addNSArgs(self, namespace_uri, values, signed=True):
         """Add a set of values to this namespace. Takes the same
         type as a second parameter as dict.update."""
+        namespace_uri = self._fixNamespaceURI(namespace_uri)
+
         try:
             ns_args = self.ns_args[namespace_uri]
         except KeyError:
