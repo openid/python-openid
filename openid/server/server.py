@@ -105,7 +105,7 @@ from openid import oidutil
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot
-from openid.association import Association
+from openid.association import Association, default_negotiator
 from openid.message import NamespaceMap
 
 HTTP_OK = 200
@@ -268,14 +268,14 @@ class PlainTextServerSession(object):
 
     @cvar session_type: The session_type for this association
         session. There is no type defined for plain-text in the OpenID
-        specification, so we use 'plaintext'.
+        specification, so we use 'no-encryption'.
     @type session_type: str
 
     @see: U{OpenID Specs, Mode: associate
         <http://openid.net/specs.bml#mode-associate>}
     @see: AssociateRequest
     """
-    session_type = 'plaintext'
+    session_type = 'no-encryption'
 
     def fromQuery(cls, unused_request):
         return cls()
@@ -439,7 +439,7 @@ class AssociateRequest(OpenIDRequest):
             'assoc_handle': assoc.handle,
             })
         response.fields.update(self.session.answer(assoc.secret))
-        if self.session.session_type != 'plaintext':
+        if self.session.session_type != 'no-encryption':
             response.fields['session_type'] = self.session.session_type
 
         return response
@@ -1276,6 +1276,7 @@ class Server(object):
         self.signatory = self.signatoryClass(self.store)
         self.encoder = self.encoderClass(self.signatory)
         self.decoder = self.decoderClass()
+        self.negotiator = default_negotiator
 
 
     def handleRequest(self, request):
@@ -1311,8 +1312,20 @@ class Server(object):
 
         @returntype: L{OpenIDResponse}
         """
-        assoc = self.signatory.createAssociation(dumb=False)
-        return request.answer(assoc)
+        assoc_type = request.assoc_type
+        session_type = request.session.session_type
+        if self.negotiator.isAllowed(assoc_type, session_type):
+            assoc = self.signatory.createAssociation(dumb=False)
+            return request.answer(assoc)
+        else:
+            message = ('Association type %r is not supported with '
+                       'session type %r' % (assoc_type, session_type))
+            (preferred_assoc_type, preferred_session_type) = \
+                                   self.negotiator.getAllowedType()
+            return request.answerUnsupported(
+                message,
+                preferred_assoc_type,
+                preferred_session_type)
 
 
     def decodeRequest(self, query):

@@ -9,6 +9,83 @@ from openid import cryptutil
 from openid import kvform
 from openid import oidutil
 
+all_association_types = ['HMAC-SHA1', 'HMAC-SHA256']
+
+def getSessionTypes(assoc_type):
+    """Return the allowed session types for a given association type"""
+    if assoc_type == 'HMAC-SHA1':
+        return ['DH-SHA1', 'no-encryption']
+    elif assoc_type == 'HMAC-SHA256':
+        return ['DH-SHA256', 'no-encryption']
+    else:
+        return []
+
+def checkSessionType(assoc_type, session_type):
+    """Check to make sure that this pair of assoc type and session
+    type are allowed"""
+    if session_type not in getSessionTypes(assoc_type):
+        raise ValueError(
+            'Session type %r not valid for assocation type %r'
+            % (session_type, assoc_type))
+
+class SessionNegotiator(object):
+    def __init__(self, allowed_types):
+        self.allowed_types = allowed_types
+
+    def setAllowedTypes(self, allowed_types):
+        """Set the allowed association types, checking to make sure
+        each combination is valid."""
+        for (assoc_type, session_type) in allowed_types:
+            checkSessionType(assoc_type, session_type)
+
+        self.allowed_types = allowed_types
+
+    def addAllowedType(self, assoc_type, session_type=None):
+        """Add an association type and session type to the allowed
+        types list. The assocation/session pairs are tried in the
+        order that they are added."""
+        if self.allowed_types is None:
+            self.allowed_types = []
+
+        if session_type is None:
+            for session_type in getSessionTypes(assoc_type):
+                self.addAllowedType(assoc_type, session_type)
+            else:
+                raise ValueError('No session available for association type %r'
+                                 % (assoc_type,))
+        else:
+            checkSessionType(assoc_type, session_type)
+            self.allowed_types.append((assoc_type, session_type))
+
+
+    def isAllowed(self, assoc_type, session_type):
+        """Is this combination of association type and session type allowed?"""
+        assoc_good = (assoc_type, session_type) in self.allowed_types
+        matches = session_type in getSessionTypes(assoc_type)
+        return assoc_good and matches
+
+    def getAllowedType(self):
+        """Get a pair of assocation type and session type that are supported"""
+        for pair in self.allowed_types:
+            return pair
+
+        return (None, None)
+
+default_association_order = [
+    ('HMAC-SHA256', 'DH-SHA256'),
+    ('HMAC-SHA1', 'DH-SHA1'),
+    ('HMAC-SHA256', 'no-encryption'),
+    ('HMAC-SHA1', 'no-encryption'),
+    ]
+
+only_encrypted_association_order = [
+    ('HMAC-SHA256', 'DH-SHA256'),
+    ('HMAC-SHA1', 'DH-SHA1'),
+    ]
+
+default_negotiator = SessionNegotiator(default_association_order)
+encrypted_negotiator = SessionNegotiator(only_encrypted_association_order)
+
 class Association(object):
     """
     This class represents an association between a server and a
@@ -68,6 +145,8 @@ class Association(object):
         'lifetime',
         'assoc_type',
         ]
+
+    allowed_session_types = ['no-encryption', 'DH-SHA1']
 
     def fromExpiresIn(cls, expires_in, handle, secret, assoc_type):
         """
