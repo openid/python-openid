@@ -640,14 +640,14 @@ class TestAuthRequest(unittest.TestCase):
         self.authreq = AuthRequest(self.endpoint, self.assoc)
 
     def test_addExtensionArg(self):
-        self.authreq.addExtensionArg('bag', 'color', 'brown')
-        self.authreq.addExtensionArg('bag', 'material', 'paper')
-        self.failUnless(self.authreq.message.isNamespaceDefined('bag'))
-        self.failUnlessEqual(self.authreq.message.getNamespaceArgs('bag'),
+        self.authreq.addExtensionArg('bag:', 'color', 'brown')
+        self.authreq.addExtensionArg('bag:', 'material', 'paper')
+        self.failUnless(self.authreq.message.isNamespaceDefined('bag:'))
+        self.failUnlessEqual(self.authreq.message.getNamespaceArgs('bag:'),
                              {'color': 'brown',
                               'material': 'paper'})
         url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
-        self.failUnless(url.find('openid.ns.0=bag') != -1,
+        self.failUnless(url.find('openid.ns.0=bag%3A') != -1,
                         'extension bag namespace not found in %s' % (url,))
         self.failUnless(url.find('openid.0.color=brown') != -1,
                         'extension arg not found in %s' % (url,))
