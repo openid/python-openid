@@ -286,10 +286,13 @@ class Consumer(object):
             openid_url = oidutil.normalizeUrl(user_url)
 
         if yadis_available:
-            disco = Discovery(self.session,
-                              openid_url,
-                              self.session_key_prefix)
-            service = disco.getNextService(openIDDiscover)
+            try:
+                disco = Discovery(self.session,
+                                  openid_url,
+                                  self.session_key_prefix)
+                service = disco.getNextService(discoverMethod)
+            except fetchers.HTTPFetchingError, e:
+                raise DiscoveryFailure('Error fetching XRDS document', e)
         else:
             _, services = openIDDiscover(openid_url)
             if not services:
