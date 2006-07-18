@@ -226,6 +226,10 @@ class Message(object):
         except KeyError:
             ns_args = self.ns_args[namespace_uri] = {}
 
+        if signed:
+            k = (namespace_uri, key)
+            if k not in self.signed:
+                self.signed.append(k)
         ns_args[key] = value
 
     def addArg(self, key, value, signed=True):
