@@ -250,6 +250,17 @@ class Message(object):
     def addArgs(self, values, signed=True):
         self.addNSArgs(None, values, signed)
 
+    def getNS(self, ns_uri, key, default=None):
+        try:
+            args = self.ns_args[ns_uri]
+        except KeyError:
+            return default
+        else:
+            return args.get(key, default)
+
+    def get(self, key, default=None):
+        return self.getNS(None, key, default)
+
     def undefineNamespace(self, namespace_uri):
         """XXX: does this do what it should?
         """
@@ -279,3 +290,16 @@ class Message(object):
         @returntype: dict
         """
         return self.ns_args.get(namespace_uri, {})
+
+    def update(self, other):
+        for p in other.signed:
+            if p not in self.signed:
+                self.signed.append(p)
+
+        for ns, other_values in other.ns_args.iteritems():
+            try:
+                my_values = self.ns_args[ns]
+            except KeyError:
+                my_values = self.ns_args[ns] = {}
+
+            my_values.update(other_values)
