@@ -446,6 +446,12 @@ class GenericConsumer(object):
 
         (identity_url, delegate, server_url) = pieces
 
+        if yadis_available and xri.identifierScheme(identity_url) == 'XRI':
+            identity_url = unicode(identity_url, 'utf-8')
+
+        if yadis_available and xri.identifierScheme(delegate) == 'XRI':
+            delegate = unicode(delegate, 'utf-8')
+
         if mode == 'cancel':
             return CancelResponse(identity_url)
         elif mode == 'error':
@@ -612,6 +618,12 @@ class GenericConsumer(object):
             return False
 
     def _genToken(self, consumer_id, server_id, server_url):
+        if isinstance(consumer_id, unicode):
+            consumer_id = consumer_id.encode('utf-8')
+
+        if isinstance(server_id, unicode):
+            server_id = server_id.encode('utf-8')
+
         timestamp = str(int(time.time()))
         elements = [timestamp, consumer_id, server_id, server_url]
         joined = '\x00'.join(elements)
