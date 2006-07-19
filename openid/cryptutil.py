@@ -19,9 +19,43 @@ __all__ = ['randrange', 'hmacSha1', 'sha1', 'randomString',
 import hmac
 import os
 import random
-import sha
 
 from openid.oidutil import toBase64, fromBase64
+
+try:
+    import hashlib
+except ImportError:
+    import sha as sha1_module
+
+    try:
+        from Crypto.Hash import SHA256 as sha256_module
+    except ImportError:
+        sha256_module = None
+
+else:
+    class HashContainer(object):
+        def __init__(self, hash_constructor):
+            self.new = hash_constructor
+
+    sha1_module = HashContainer(hashlib.sha1)
+    sha256_module = HashContainer(hashlib.sha256)
+
+def hmacSha1(key, text):
+    return hmac.new(key, text, sha1_module).digest()
+
+def sha1(s):
+    return sha1_module.new(s).digest()
+
+if sha256_module is not None:
+    def hmacSha256(key, text):
+        return hmac.new(key, text, sha256_module).digest()
+
+    __all__.append('hmacSha256')
+
+    def sha256(s):
+        return sha256_module.new(s).digest()
+
+    __all__.append('sha256')
 
 try:
     from Crypto.Util.number import long_to_bytes, bytes_to_long
@@ -149,12 +183,6 @@ except AttributeError:
                 break
 
         return start + (n % r) * step
-
-def hmacSha1(key, text):
-    return hmac.new(key, text, sha).digest()
-
-def sha1(s):
-    return sha.new(s).digest()
 
 def longToBase64(l):
     return toBase64(longToBinary(l))
