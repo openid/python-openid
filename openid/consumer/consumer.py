@@ -446,10 +446,12 @@ class GenericConsumer(object):
 
         (identity_url, delegate, server_url) = pieces
 
-        if yadis_available and xri.identifierScheme(identity_url) == 'XRI':
+        if (identity_url and yadis_available
+            and xri.identifierScheme(identity_url) == 'XRI'):
             identity_url = unicode(identity_url, 'utf-8')
 
-        if yadis_available and xri.identifierScheme(delegate) == 'XRI':
+        if (delegate and yadis_available
+            and xri.identifierScheme(delegate) == 'XRI'):
             delegate = unicode(delegate, 'utf-8')
 
         if mode == 'cancel':
