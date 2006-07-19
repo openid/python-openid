@@ -56,6 +56,14 @@ class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
 ### Tests for raising/catching exceptions from the fetcher through the
 ### discover function
 
+# Python 2.5 displays a message when running this test, which is
+# testing the behaviour in the presence of string exceptions,
+# deprecated or not, so tell it no to complain when this particular
+# string exception is raised.
+import warnings
+warnings.filterwarnings('ignore', 'raising a string.*', DeprecationWarning,
+                        r'^openid\.test\.test_discover$', 74)
+
 class ErrorRaisingFetcher(object):
     """Just raise an exception when fetch is called"""
 
