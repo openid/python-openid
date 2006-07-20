@@ -10,6 +10,31 @@ from openid import kvform
 from openid import oidutil
 
 all_association_types = ['HMAC-SHA1', 'HMAC-SHA256']
+if hasattr(cryptutil, 'hmacSha256'):
+    supported_association_types = list(all_association_types)
+
+    default_association_order = [
+        ('HMAC-SHA256', 'DH-SHA256'),
+        ('HMAC-SHA1', 'DH-SHA1'),
+        ('HMAC-SHA256', 'no-encryption'),
+        ('HMAC-SHA1', 'no-encryption'),
+        ]
+
+    only_encrypted_association_order = [
+        ('HMAC-SHA256', 'DH-SHA256'),
+        ('HMAC-SHA1', 'DH-SHA1'),
+        ]
+else:
+    supported_association_types = ['HMAC-SHA1']
+
+    default_association_order = [
+        ('HMAC-SHA1', 'DH-SHA1'),
+        ('HMAC-SHA1', 'no-encryption'),
+        ]
+
+    only_encrypted_association_order = [
+        ('HMAC-SHA1', 'DH-SHA1'),
+        ]
 
 def getSessionTypes(assoc_type):
     """Return the allowed session types for a given association type"""
@@ -71,18 +96,6 @@ class SessionNegotiator(object):
 
         return (None, None)
 
-default_association_order = [
-    ('HMAC-SHA256', 'DH-SHA256'),
-    ('HMAC-SHA1', 'DH-SHA1'),
-    ('HMAC-SHA256', 'no-encryption'),
-    ('HMAC-SHA1', 'no-encryption'),
-    ]
-
-only_encrypted_association_order = [
-    ('HMAC-SHA256', 'DH-SHA256'),
-    ('HMAC-SHA1', 'DH-SHA1'),
-    ]
-
 default_negotiator = SessionNegotiator(default_association_order)
 encrypted_negotiator = SessionNegotiator(only_encrypted_association_order)
 
@@ -133,9 +146,6 @@ class Association(object):
         handle, secret, issued, lifetime, assoc_type
     """
 
-    # This is a HMAC-SHA1 specific value.
-    SIG_LENGTH = 20
-
     # The ordering and name of keys as stored by serialize
     assoc_keys = [
         'version',
@@ -145,8 +155,6 @@ class Association(object):
         'lifetime',
         'assoc_type',
         ]
-
-    allowed_session_types = ['no-encryption', 'DH-SHA1']
 
     def fromExpiresIn(cls, expires_in, handle, secret, assoc_type):
         """
@@ -226,8 +234,8 @@ class Association(object):
 
         @type assoc_type: C{str}
         """
-        if assoc_type != 'HMAC-SHA1':
-            fmt = 'HMAC-SHA1 is the only supported association type (got %r)'
+        if assoc_type not in all_association_types:
+            fmt = '%r is not a supported association type'
             raise ValueError(fmt % (assoc_type,))
 
         self.handle = handle
@@ -353,9 +361,16 @@ class Association(object):
 
         @rtype: str
         """
-        assert self.assoc_type == 'HMAC-SHA1'
         kv = kvform.seqToKV(pairs)
-        return cryptutil.hmacSha1(self.secret, kv)
+        if self.assoc_type == 'HMAC-SHA1':
+            mac = cryptutil.hmacSha1
+        elif self.assoc_type == 'HMAC-SHA256':
+            mac = cryptutil.hmacSha256
+        else:
+            raise ValueError(
+                'Unkown association type: %r' % (self.assoc_type,))
+
+        return mac(self.secret, kv)
 
     def signDict(self, fields, data, prefix='openid.'):
         """
