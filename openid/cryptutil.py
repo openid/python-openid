@@ -14,7 +14,8 @@ http://www.amk.ca/python/code/crypto
 """
 
 __all__ = ['randrange', 'hmacSha1', 'sha1', 'randomString',
-           'binaryToLong', 'longToBinary', 'longToBase64', 'base64ToLong']
+           'binaryToLong', 'longToBinary', 'longToBase64', 'base64ToLong',
+           'hmacSha256', 'sha256']
 
 import hmac
 import os
@@ -50,12 +51,15 @@ if sha256_module is not None:
     def hmacSha256(key, text):
         return hmac.new(key, text, sha256_module).digest()
 
-    __all__.append('hmacSha256')
-
     def sha256(s):
         return sha256_module.new(s).digest()
 
-    __all__.append('sha256')
+else:
+    def hmacSha256(unused_key, unused_text):
+        raise NotImplementedError
+
+    def sha256(s):
+        raise NotImplementedError
 
 try:
     from Crypto.Util.number import long_to_bytes, bytes_to_long
