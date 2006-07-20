@@ -860,15 +860,16 @@ class TestAssociate(unittest.TestCase):
         self.request = server.AssociateRequest.fromQuery({})
         self.store = _memstore.MemoryStore()
         self.signatory = server.Signatory(self.store)
-        self.assoc = self.signatory.createAssociation(dumb=False)
 
-    def test_dh(self):
+    def test_dhSHA1(self):
+        self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA1')
         from openid.dh import DiffieHellman
-        from openid.server.server import DiffieHellmanServerSession
+        from openid.server.server import DiffieHellmanSHA1ServerSession
         consumer_dh = DiffieHellman.fromDefaults()
         cpub = consumer_dh.public
-        session = DiffieHellmanServerSession(DiffieHellman.fromDefaults(), cpub)
-        self.request = server.AssociateRequest(session)
+        server_dh = DiffieHellman.fromDefaults()
+        session = DiffieHellmanSHA1ServerSession(server_dh, cpub)
+        self.request = server.AssociateRequest(session, 'HMAC-SHA1')
         response = self.request.answer(self.assoc)
         rfg = response.fields.get
         self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA1")
@@ -880,11 +881,88 @@ class TestAssociate(unittest.TestCase):
 
         enc_key = rfg("enc_mac_key").decode('base64')
         spub = cryptutil.base64ToLong(rfg("dh_server_public"))
-        secret = consumer_dh.xorSecret(spub, enc_key)
+        secret = consumer_dh.xorSecret(spub, enc_key, cryptutil.sha1)
         self.failUnlessEqual(secret, self.assoc.secret)
 
 
+    def test_dhSHA256(self):
+        self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA256')
+        from openid.dh import DiffieHellman
+        from openid.server.server import DiffieHellmanSHA256ServerSession
+        consumer_dh = DiffieHellman.fromDefaults()
+        cpub = consumer_dh.public
+        server_dh = DiffieHellman.fromDefaults()
+        session = DiffieHellmanSHA256ServerSession(server_dh, cpub)
+        self.request = server.AssociateRequest(session, 'HMAC-SHA256')
+        response = self.request.answer(self.assoc)
+        rfg = response.fields.get
+        self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA256")
+        self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
+        self.failIf(rfg("mac_key"))
+        self.failUnlessEqual(rfg("session_type"), "DH-SHA256")
+        self.failUnless(rfg("enc_mac_key"))
+        self.failUnless(rfg("dh_server_public"))
+
+        enc_key = rfg("enc_mac_key").decode('base64')
+        spub = cryptutil.base64ToLong(rfg("dh_server_public"))
+        secret = consumer_dh.xorSecret(spub, enc_key, cryptutil.sha256)
+        self.failUnlessEqual(secret, self.assoc.secret)
+
+
+    def test_protoError(self):
+        from openid.consumer.consumer import DiffieHellmanSHA1ConsumerSession
+        from openid.consumer.consumer import DiffieHellmanSHA256ConsumerSession
+        s256_session = DiffieHellmanSHA256ConsumerSession()
+
+        invalid_s256 = {'openid.assoc_type':'HMAC-SHA1',
+                        'openid.session_type':'DH-SHA256',}
+        invalid_s256.update(s256_session.getRequest())
+
+        invalid_s256_2 = {'openid.assoc_type':'MONKEY-PIRATE',
+                          'openid.session_type':'DH-SHA256',}
+        invalid_s256_2.update(s256_session.getRequest())
+
+        s1_session = DiffieHellmanSHA1ConsumerSession()
+
+        invalid_s1 = {'openid.assoc_type':'HMAC-SHA256',
+                      'openid.session_type':'DH-SHA1',}
+        invalid_s1.update(s1_session.getRequest())
+
+        invalid_s1_2 = {'openid.assoc_type':'ROBOT-NINJA',
+                      'openid.session_type':'DH-SHA1',}
+        invalid_s1_2.update(s1_session.getRequest())
+        
+        bad_request_argss = [
+            {'openid.assoc_type':'Wha?'},
+            invalid_s256,
+            invalid_s256_2,
+            invalid_s1,
+            invalid_s1_2,
+            ]
+            
+        for request_args in bad_request_argss:
+            self.failUnlessRaises(server.ProtocolError,
+                                  server.AssociateRequest.fromQuery,
+                                  request_args)
+
     def test_plaintext(self):
+        self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA1')
+        response = self.request.answer(self.assoc)
+        rfg = response.fields.get
+
+        self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA1")
+        self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
+
+        self.failUnlessEqual(
+            rfg("expires_in"), "%d" % (self.signatory.SECRET_LIFETIME,))
+        self.failUnlessEqual(
+            rfg("mac_key"), oidutil.toBase64(self.assoc.secret))
+        self.failIf(rfg("session_type"))
+        self.failIf(rfg("enc_mac_key"))
+        self.failIf(rfg("dh_server_public"))
+
+    def test_plaintext256(self):
+        self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA256')
         response = self.request.answer(self.assoc)
         rfg = response.fields.get
 

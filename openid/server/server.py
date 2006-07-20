@@ -105,7 +105,7 @@ from openid import oidutil
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot
-from openid.association import Association, default_negotiator
+from openid.association import Association, default_negotiator, getSecretSize
 from openid.message import NamespaceMap
 
 HTTP_OK = 200
@@ -276,6 +276,7 @@ class PlainTextServerSession(object):
     @see: AssociateRequest
     """
     session_type = 'no-encryption'
+    allowed_assoc_types = ['HMAC-SHA1', 'HMAC-SHA256']
 
     def fromQuery(cls, unused_request):
         return cls()
@@ -286,7 +287,7 @@ class PlainTextServerSession(object):
         return {'mac_key': oidutil.toBase64(secret)}
 
 
-class DiffieHellmanServerSession(object):
+class DiffieHellmanSHA1ServerSession(object):
     """An object that knows how to handle association requests with the
     Diffie-Hellman session type.
 
@@ -306,6 +307,8 @@ class DiffieHellmanServerSession(object):
     @see: AssociateRequest
     """
     session_type = 'DH-SHA1'
+    hash_func = staticmethod(cryptutil.sha1)
+    allowed_assoc_types = ['HMAC-SHA1']
 
     def __init__(self, dh, consumer_pubkey):
         self.dh = dh
@@ -354,12 +357,18 @@ class DiffieHellmanServerSession(object):
     fromQuery = classmethod(fromQuery)
 
     def answer(self, secret):
-        mac_key = self.dh.xorSecret(self.consumer_pubkey, secret)
+        mac_key = self.dh.xorSecret(self.consumer_pubkey,
+                                    secret,
+                                    self.hash_func)
         return {
             'dh_server_public': cryptutil.longToBase64(self.dh.public),
             'enc_mac_key': oidutil.toBase64(mac_key),
             }
 
+class DiffieHellmanSHA256ServerSession(DiffieHellmanSHA1ServerSession):
+    session_type = 'DH-SHA256'
+    hash_func = staticmethod(cryptutil.sha256)
+    allowed_assoc_types = ['HMAC-SHA256']
 
 class AssociateRequest(OpenIDRequest):
     """A request to establish an X{association}.
@@ -379,14 +388,14 @@ class AssociateRequest(OpenIDRequest):
     """
 
     mode = "associate"
-    assoc_type = 'HMAC-SHA1'
 
     session_classes = {
         None: PlainTextServerSession,
-        'DH-SHA1': DiffieHellmanServerSession,
+        'DH-SHA1': DiffieHellmanSHA1ServerSession,
+        'DH-SHA256': DiffieHellmanSHA256ServerSession,
         }
 
-    def __init__(self, session):
+    def __init__(self, session, assoc_type):
         """Construct me.
 
         The session is assigned directly as a class attribute. See my
@@ -394,6 +403,7 @@ class AssociateRequest(OpenIDRequest):
         """
         super(AssociateRequest, self).__init__()
         self.session = session
+        self.assoc_type = assoc_type
 
 
     def fromQuery(klass, query):
@@ -418,7 +428,12 @@ class AssociateRequest(OpenIDRequest):
             raise ProtocolError(query, 'Error parsing %s session: %s' %
                                 (session_class.session_type, why[0]))
 
-        return klass(session)
+        assoc_type = query.get(OPENID_PREFIX + 'assoc_type', 'HMAC-SHA1')
+        if assoc_type not in session.allowed_assoc_types:
+            fmt = 'Session type %s does not support association type %s'
+            raise ProtocolError(query, fmt % (session_type, assoc_type))
+
+        return klass(session, assoc_type)
 
     fromQuery = classmethod(fromQuery)
 
@@ -435,7 +450,7 @@ class AssociateRequest(OpenIDRequest):
         response = OpenIDResponse(self)
         response.fields.update({
             'expires_in': '%d' % (assoc.getExpiresIn(),),
-            'assoc_type': 'HMAC-SHA1',
+            'assoc_type': self.assoc_type,
             'assoc_handle': assoc.handle,
             })
         response.fields.update(self.session.answer(assoc.secret))
@@ -1021,7 +1036,7 @@ class Signatory(object):
         @returns: the new association.
         @returntype: L{openid.association.Association}
         """
-        secret = cryptutil.getBytes(20)
+        secret = cryptutil.getBytes(getSecretSize(assoc_type))
         uniq = oidutil.toBase64(cryptutil.getBytes(4))
         handle = '{%s}{%x}{%s}' % (assoc_type, int(time.time()), uniq)
 
@@ -1318,6 +1333,7 @@ class Server(object):
             assoc = self.signatory.createAssociation(dumb=False)
             return request.answer(assoc)
         else:
+            # XXX: TESTME
             message = ('Association type %r is not supported with '
                        'session type %r' % (assoc_type, session_type))
             (preferred_assoc_type, preferred_session_type) = \

@@ -10,10 +10,10 @@ from openid.consumer.discover import OpenIDServiceEndpoint
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
-     DiffieHellmanConsumerSession, Consumer
+     DiffieHellmanSHA1ConsumerSession, Consumer
 from openid import association
 from openid.server.server import \
-     PlainTextServerSession, DiffieHellmanServerSession
+     PlainTextServerSession, DiffieHellmanSHA1ServerSession
 from yadis.manager import Discovery
 
 from openid.consumer import parse
@@ -49,7 +49,7 @@ def associate(qs, assoc_secret, assoc_handle):
 
     if q.get('openid.session_type') == 'DH-SHA1':
         assert len(q) == 6 or len(q) == 4
-        session = DiffieHellmanServerSession.fromQuery(q)
+        session = DiffieHellmanSHA1ServerSession.fromQuery(q)
         reply_dict['session_type'] = 'DH-SHA1'
     else:
         assert len(q) == 2
@@ -79,11 +79,7 @@ class TestFetcher(object):
             except ValueError:
                 pass # fall through
             else:
-                if urlparse.urlparse(url)[0] == 'https':
-                    # Should not be doing DH-SHA1 when using HTTPS.
-                    assert body.find('DH-SHA1') == -1
-                else:
-                    assert body.find('DH-SHA1') != -1
+                assert body.find('DH-SHA1') != -1
                 response = associate(
                     body, self.assoc_secret, self.assoc_handle)
                 self.num_assocs += 1
@@ -690,8 +686,10 @@ class TestParseAssociation(TestIdRes):
 
     def _setUpDH(self):
         sess, args = \
-                    self.consumer._createAssociateRequest(self.server_url)
-        server_sess = DiffieHellmanServerSession.fromQuery(args)
+                    self.consumer._createAssociateRequest(self.server_url,
+                                                          'HMAC-SHA1',
+                                                          'DH-SHA1')
+        server_sess = DiffieHellmanSHA1ServerSession.fromQuery(args)
         server_resp = server_sess.answer(self.secret)
         server_resp['assoc_type'] = 'HMAC-SHA1'
         server_resp['assoc_handle'] = 'handle'
@@ -727,7 +725,7 @@ class TestParseAssociation(TestIdRes):
         self.failUnless(ret is None)
 
     def test_plainFallback(self):
-        sess = DiffieHellmanConsumerSession()
+        sess = DiffieHellmanSHA1ConsumerSession()
         server_resp = {
             'assoc_type': 'HMAC-SHA1',
             'assoc_handle': 'handle',
@@ -742,7 +740,7 @@ class TestParseAssociation(TestIdRes):
         self.failUnlessEqual(ret.lifetime, 1000)
 
     def test_plainFallbackFailure(self):
-        sess = DiffieHellmanConsumerSession()
+        sess = DiffieHellmanSHA1ConsumerSession()
         # missing mac_key
         server_resp = {
             'assoc_type': 'HMAC-SHA1',

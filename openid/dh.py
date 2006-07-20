@@ -36,7 +36,7 @@ class DiffieHellman(object):
     def getSharedSecret(self, composite):
         return pow(composite, self.private, self.modulus)
 
-    def xorSecret(self, composite, secret):
+    def xorSecret(self, composite, secret, hash_func):
         dh_shared = self.getSharedSecret(composite)
-        sha1_dh_shared = cryptutil.sha1(cryptutil.longToBinary(dh_shared))
-        return strxor(secret, sha1_dh_shared)
+        hashed_dh_shared = hash_func(cryptutil.longToBinary(dh_shared))
+        return strxor(secret, hashed_dh_shared)

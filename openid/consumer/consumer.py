@@ -195,7 +195,7 @@ from openid.message import Message, fixNamespaceURI, SREG_URI
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
-from openid.association import Association
+from openid.association import Association, default_negotiator
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce, split as splitNonce
 
@@ -371,8 +371,10 @@ class Consumer(object):
 
         return response
 
-class DiffieHellmanConsumerSession(object):
+class DiffieHellmanSHA1ConsumerSession(object):
     session_type = 'DH-SHA1'
+    hash_func = staticmethod(cryptutil.sha1)
+    allowed_assoc_types = ['HMAC-SHA1']
 
     def __init__(self, dh=None):
         if dh is None:
@@ -396,16 +398,32 @@ class DiffieHellmanConsumerSession(object):
     def extractSecret(self, response):
         spub = cryptutil.base64ToLong(response['dh_server_public'])
         enc_mac_key = oidutil.fromBase64(response['enc_mac_key'])
-        return self.dh.xorSecret(spub, enc_mac_key)
+        return self.dh.xorSecret(spub, enc_mac_key, self.hash_func)
+
+class DiffieHellmanSHA256ConsumerSession(DiffieHellmanSHA1ConsumerSession):
+    session_type = 'DH-SHA256'
+    hash_func = staticmethod(cryptutil.sha256)
+    allowed_assoc_types = ['HMAC-SHA256']
 
 class PlainTextConsumerSession(object):
-    session_type = None
+    session_type = 'no-encryption'
+    allowed_assoc_types = ['HMAC-SHA1', 'HMAC-SHA256']
 
     def getRequest(self):
         return {}
 
     def extractSecret(self, response):
         return oidutil.fromBase64(response['mac_key'])
+
+class UnsupportedAssocType(Exception):
+    """Exception raised when the server tells us that the session type
+    in our request was not supported."""
+    def __init__(self, message,
+                 supported_assoc_type=None, supported_session_type=None):
+        Exception.__init__(self, message)
+        self.message = message
+        self.supported_assoc_type = supported_assoc_type
+        self.supported_session_type = supported_session_type
 
 class GenericConsumer(object):
     """This is the implementation of the common logic for OpenID
@@ -417,8 +435,15 @@ class GenericConsumer(object):
     NONCE_LEN = 8
     NONCE_CHRS = string.ascii_letters + string.digits
 
+    session_types = {
+        'DH-SHA1':DiffieHellmanSHA1ConsumerSession,
+        'DH-SHA256':DiffieHellmanSHA256ConsumerSession,
+        'no-encryption':PlainTextConsumerSession,
+        }
+
     def __init__(self, store):
         self.store = store
+        self.negotiator = default_negotiator
 
     def begin(self, service_endpoint):
         nonce = self._createNonce()
@@ -624,40 +649,72 @@ class GenericConsumer(object):
         assoc = self.store.getAssociation(server_url)
 
         if assoc is None or assoc.expiresIn <= 0:
-            assoc_session, args = self._createAssociateRequest(server_url)
-            try:
-                response = self._makeKVPost(args, server_url)
-            except fetchers.HTTPFetchingError, why:
-                oidutil.log('openid.associate request failed: %s' %
-                            (str(why),))
-                assoc = None
+            (assoc_type, session_type) = self.negotiator.getAllowedType()
+            tried_types = []
+            while (assoc_type, session_type) not in tried_types:
+                assoc_session, args = self._createAssociateRequest(
+                    server_url,
+                    assoc_type,
+                    session_type)
+                try:
+                    response = self._makeKVPost(args, server_url)
+                except fetchers.HTTPFetchingError, why:
+                    oidutil.log('openid.associate request failed: %s' %
+                                (str(why),))
+                    assoc = None
+                    break
+                else:
+                    try:
+                        assoc = self._parseAssociation(
+                            response, assoc_session, server_url)
+                    except UnsupportedAssocType, why:
+                        oidutil.log(
+                            'Unsupported assoc type: %s' % (why.message,))
+                        assoc_type = why.supported_assoc_type
+                        session_type = why.supported_session_type
+                        if assoc_type is None or session_type is None:
+                            oidutil.log('No allowed session type specified')
+                            assoc = None
+                            break
+
+                        if not self.negotiator.isAllowed(assoc_type,
+                                                         session_type):
+                            msg = (
+                                'Server sent unsupported session type %s '
+                                'for association type %s'
+                                ) % (session_type, assoc_type)
+                            oidutil.log(msg)
+                            assoc = None
+                            break
+                    else:
+                        break
             else:
-                assoc = self._parseAssociation(
-                    response, assoc_session, server_url)
+                fmt = 'No association created. Tried types: %s'
+                oidutil.log(fmt % (tried_types,))
+                assoc = None
 
         return assoc
 
-    def _createAssociateRequest(self, server_url):
-        proto = urlparse(server_url)[0]
-        if proto == 'https':
-            session_type = PlainTextConsumerSession
-        else:
-            session_type = DiffieHellmanConsumerSession
-
-        assoc_session = session_type()
+    def _createAssociateRequest(self, server_url, assoc_type, session_type):
+        session_type_class = self.session_types[session_type]
+        assoc_session = session_type_class()
 
         args = {
             'openid.mode': 'associate',
-            'openid.assoc_type':'HMAC-SHA1',
+            'openid.assoc_type': assoc_type,
             }
 
-        if assoc_session.session_type is not None:
+        if assoc_session.session_type != 'no-encryption':
             args['openid.session_type'] = assoc_session.session_type
 
         args.update(assoc_session.getRequest())
         return assoc_session, args
 
     def _parseAssociation(self, results, assoc_session, server_url):
+        error_code = results.get('error_code')
+        if error_code is not None:
+            return self._associateError(results)
+        
         try:
             assoc_type = results['assoc_type']
             assoc_handle = results['assoc_handle']
@@ -667,9 +724,23 @@ class GenericConsumer(object):
             oidutil.log(fmt % (server_url, e[0]))
             return None
 
-        if assoc_type != 'HMAC-SHA1':
-            fmt = 'Unsupported assoc_type returned from server %s: %s'
-            oidutil.log(fmt % (server_url, assoc_type))
+        session_type = results.get('session_type')
+        if session_type != assoc_session.session_type:
+            if session_type is None or session_type == 'no-encryption':
+                oidutil.log('Falling back to no-encryption association '
+                            'session from %s' % assoc_session.session_type)
+                assoc_session = PlainTextConsumerSession()
+            else:
+                oidutil.log('Session type mismatch. Expected %r, got %r' %
+                            (assoc_session.session_type, session_type))
+                return None
+
+        if assoc_type not in assoc_session.allowed_assoc_types:
+            msg = (
+                'Unsupported assoc_type for session %s returned '
+                'from server %s: %s'
+                ) % (server_url, assoc_session.session_type, assoc_type)
+            oidutil.log(msg)
             return None
 
         try:
@@ -678,17 +749,6 @@ class GenericConsumer(object):
             fmt = 'Getting Association: invalid expires_in field: %s'
             oidutil.log(fmt % (e[0],))
             return None
-
-        session_type = results.get('session_type')
-        if session_type != assoc_session.session_type:
-            if session_type is None:
-                oidutil.log('Falling back to plain text association '
-                            'session from %s' % assoc_session.session_type)
-                assoc_session = PlainTextConsumerSession()
-            else:
-                oidutil.log('Session type mismatch. Expected %r, got %r' %
-                            (assoc_session.session_type, session_type))
-                return None
 
         try:
             secret = assoc_session.extractSecret(results)
@@ -706,6 +766,23 @@ class GenericConsumer(object):
         self.store.storeAssociation(server_url, assoc)
 
         return assoc
+
+    def _associateError(self, results):
+        error_code = results['error_code']
+        default_message = 'associate error from server: %s' % (error_code,)
+        message = results.get('error', default_message)
+        if error_code == 'unsupported-type':
+            supported_assoc_type = results.get('assoc_type')
+            supported_session_type = results.get('session_type')
+            raise UnsupportedAssocType(
+                message,
+                supported_assoc_type,
+                supported_session_type,
+                )
+        else:
+            fmt = 'Error response to associate request from server: %s'
+            oidutil.log(fmt % (message,))
+            return None
 
 class AuthRequest(object):
     def __init__(self, token, assoc, endpoint):

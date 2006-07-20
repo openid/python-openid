@@ -20,18 +20,20 @@ class AssociationSerializationTest(unittest.TestCase):
         self.failUnlessEqual(assoc.assoc_type, assoc2.assoc_type)
 
 from openid.server.server import \
-     DiffieHellmanServerSession, \
+     DiffieHellmanSHA1ServerSession, \
+     DiffieHellmanSHA256ServerSession, \
      PlainTextServerSession
 
 from openid.consumer.consumer import \
-     DiffieHellmanConsumerSession, \
+     DiffieHellmanSHA1ConsumerSession, \
+     DiffieHellmanSHA256ConsumerSession, \
      PlainTextConsumerSession
 
 from openid.dh import DiffieHellman
 
 def createNonstandardConsumerDH():
     nonstandard_dh = DiffieHellman(1315291, 2)
-    return DiffieHellmanConsumerSession(nonstandard_dh)
+    return DiffieHellmanSHA1ConsumerSession(nonstandard_dh)
 
 class DiffieHellmanSessionTest(datadriven.DataDrivenTestCase):
     secrets = [
@@ -42,8 +44,8 @@ class DiffieHellmanSessionTest(datadriven.DataDrivenTestCase):
         ]
 
     session_factories = [
-        (DiffieHellmanConsumerSession, DiffieHellmanServerSession),
-        (createNonstandardConsumerDH, DiffieHellmanServerSession),
+        (DiffieHellmanSHA1ConsumerSession, DiffieHellmanSHA1ServerSession),
+        (createNonstandardConsumerDH, DiffieHellmanSHA1ServerSession),
         (PlainTextConsumerSession, PlainTextServerSession),
         ]
 

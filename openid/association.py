@@ -14,15 +14,15 @@ if hasattr(cryptutil, 'hmacSha256'):
     supported_association_types = list(all_association_types)
 
     default_association_order = [
-        ('HMAC-SHA256', 'DH-SHA256'),
         ('HMAC-SHA1', 'DH-SHA1'),
-        ('HMAC-SHA256', 'no-encryption'),
+        ('HMAC-SHA256', 'DH-SHA256'),
         ('HMAC-SHA1', 'no-encryption'),
+        ('HMAC-SHA256', 'no-encryption'),
         ]
 
     only_encrypted_association_order = [
-        ('HMAC-SHA256', 'DH-SHA256'),
         ('HMAC-SHA1', 'DH-SHA1'),
+        ('HMAC-SHA256', 'DH-SHA256'),
         ]
 else:
     supported_association_types = ['HMAC-SHA1']
@@ -99,6 +99,14 @@ class SessionNegotiator(object):
 default_negotiator = SessionNegotiator(default_association_order)
 encrypted_negotiator = SessionNegotiator(only_encrypted_association_order)
 
+def getSecretSize(assoc_type):
+    if assoc_type == 'HMAC-SHA1':
+        return 20
+    elif assoc_type == 'HMAC-SHA256':
+        return 32
+    else:
+        raise ValueError('Unsupported association type: %r' % (assoc_type,))
+
 class Association(object):
     """
     This class represents an association between a server and a
@@ -155,6 +163,7 @@ class Association(object):
         'lifetime',
         'assoc_type',
         ]
+
 
     def fromExpiresIn(cls, expires_in, handle, secret, assoc_type):
         """
@@ -237,6 +246,11 @@ class Association(object):
         if assoc_type not in all_association_types:
             fmt = '%r is not a supported association type'
             raise ValueError(fmt % (assoc_type,))
+
+#         secret_size = getSecretSize(assoc_type)
+#         if len(secret) != secret_size:
+#             fmt = 'Wrong size secret (%s bytes) for association type %s'
+#             raise ValueError(fmt % (len(secret), assoc_type))
 
         self.handle = handle
         self.secret = secret
