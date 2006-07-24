@@ -152,22 +152,23 @@ def testStore(store):
 
     ### Nonce functions
 
-    def checkUseNonce(nonce, expected):
+    def checkUseNonce(nonce, expected, server_url):
         stamp, salt = split(nonce)
         actual = store.useNonce(server_url, stamp, salt)
         expected = store.isDumb() or expected
         assert bool(actual) == bool(expected)
 
-    # Random nonce (not in store)
-    nonce1 = mkNonce()
+    for url in [server_url, '']:
+        # Random nonce (not in store)
+        nonce1 = mkNonce()
 
-    # A nonce is allowed by default
-    checkUseNonce(nonce1, True)
+        # A nonce is allowed by default
+        checkUseNonce(nonce1, True, url)
 
-    # Storing once causes useNonce to return True the first, and only
-    # the first, time it is called after the store.
-    checkUseNonce(nonce1, False)
-    checkUseNonce(nonce1, False)
+        # Storing once causes useNonce to return True the first, and only
+        # the first, time it is called after the store.
+        checkUseNonce(nonce1, False, url)
+        checkUseNonce(nonce1, False, url)
 
     ### Auth key functions
 

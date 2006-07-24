@@ -412,7 +412,13 @@ class FileOpenIDStore(OpenIDStore):
 
         str -> bool
         """
-        proto, rest = server_url.split('://', 1)
+        if server_url:
+            proto, rest = server_url.split('://', 1)
+        else:
+            # Create empty proto / rest values for empty server_url,
+            # which is part of a consumer-generated nonce.
+            proto, rest = '', ''
+
         domain = _filenameEscape(rest.split('/', 1)[0])
         url_hash = _safe64(server_url)
         salt_hash = _safe64(salt)
