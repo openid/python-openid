@@ -1,3 +1,4 @@
+# -*- test-case-name: openid.test.server -*-
 """Tests for openid.server.
 """
 from openid.server import server
