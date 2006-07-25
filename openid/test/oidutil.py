@@ -39,53 +39,6 @@ def test_base64():
         s_prime = oidutil.fromBase64(b64)
         assert s_prime == s, (s, b64, s_prime)
 
-def test_normalizeUrl():
-    n = oidutil.normalizeUrl
-
-    assert 'http://foo.com/' == n('foo.com')
-
-    assert 'http://foo.com/' == n('http://foo.com')
-    assert 'https://foo.com/' == n('https://foo.com')
-    assert 'http://foo.com/bar' == n('foo.com/bar')
-    assert 'http://foo.com/bar' == n('http://foo.com/bar')
-
-    assert 'http://foo.com/' == n('http://foo.com/')
-    assert 'https://foo.com/' == n('https://foo.com/')
-    assert 'https://foo.com/bar'  == n('https://foo.com/bar')
-
-    assert 'http://foo.com/%E8%8D%89' == n(u'foo.com/\u8349')
-    assert 'http://foo.com/%E8%8D%89' == n(u'http://foo.com/\u8349')
-
-    non_ascii_domain_cases = [
-        ('http://xn--vl1a.com/', u'\u8349.com'),
-        ('http://xn--vl1a.com/', u'http://\u8349.com'),
-        ('http://xn--vl1a.com/', u'\u8349.com/'),
-        ('http://xn--vl1a.com/', u'http://\u8349.com/'),
-        ('http://xn--vl1a.com/%E8%8D%89', u'\u8349.com/\u8349'),
-        ('http://xn--vl1a.com/%E8%8D%89', u'http://\u8349.com/\u8349'),
-        ]
-
-    try:
-        codecs.getencoder('idna')
-    except LookupError:
-        # If there is no idna codec, these cases with
-        # non-ascii-representable domain names should fail.
-        should_raise = True
-    else:
-        should_raise = False
-
-    for expected, case in non_ascii_domain_cases:
-        try:
-            actual = n(case)
-        except UnicodeError:
-            assert should_raise
-        else:
-            assert not should_raise and actual == expected, case
-
-    assert n(None) is None
-    assert n('') is None
-    assert n('http://') is None
-
 class AppendArgsTest(unittest.TestCase):
     def __init__(self, desc, args, expected):
         unittest.TestCase.__init__(self)
@@ -199,7 +152,6 @@ def test_appendArgs():
 
 def test(skipPyUnit=True):
     test_base64()
-    test_normalizeUrl()
     if not skipPyUnit:
         test_appendArgs()
 

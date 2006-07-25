@@ -51,58 +51,6 @@ def fromBase64(s):
         # Convert to a common exception type
         raise ValueError(why[0])
 
-def quoteMinimal(s):
-    """Turn a str or unicode object into an ASCII string
-
-    Replace non-ascii characters with a %-encoded, UTF-8
-    encoding. This function will fail if the input is a str and there
-    are non-7-bit-safe characters. It is assumed that the caller will
-    have already translated the input into a Unicode character
-    sequence, according to the encoding of the HTTP POST or GET.
-
-    Do not escape anything that is already 7-bit safe, so we do the
-    minimal transform on the input
-    """
-    res = []
-    for c in s:
-        if c >= u'\x80':
-            for b in c.encode('utf8'):
-                res.append('%%%02X' % ord(b))
-        else:
-            res.append(c)
-    return str(''.join(res))
-
-def normalizeUrl(url):
-    if not isinstance(url, (str, unicode)):
-        return None
-
-    url = url.strip()
-    parsed = urlparse.urlparse(url)
-
-    if parsed[0] == '' or parsed[1] == '':
-        if parsed[2:] == ('', '', '', ''):
-            return None
-
-        url = 'http://' + url
-        parsed = urlparse.urlparse(url)
-
-    if isinstance(url, unicode):
-        try:
-            authority = parsed[1].encode('idna')
-        except LookupError:
-            authority = parsed[1].encode('us-ascii')
-    else:
-        authority = str(parsed[1])
-
-    tail = map(quoteMinimal, parsed[2:])
-    if tail[0] == '':
-        tail[0] = '/'
-    encoded = (str(parsed[0]), authority) + tuple(tail)
-    url = urlparse.urlunparse(encoded)
-    assert type(url) is str
-
-    return url
-
 def isAbsoluteHTTPURL(url):
     """Does this URL look like a http or https URL that has a host?
 

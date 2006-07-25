@@ -1,6 +1,7 @@
 # -*- test-case-name: openid.test.test_discover -*-
 
-from urljr import fetchers
+import urlparse
+from urljr import fetchers, urinorm
 
 from openid import oidutil
 
@@ -130,6 +131,14 @@ def findDelegate(service_element):
 
     return delegate
 
+def normalizeURL(url):
+    """Normalize a URL, converting normalization failures to
+    DiscoveryFailure"""
+    try:
+        return urinorm.urinorm(url)
+    except ValueError, why:
+        raise DiscoveryFailure('Normalizing identifier: %s' % (why[0],), None)
+
 def discoverYadis(uri):
     """Discover OpenID services for a URI. Tries Yadis and falls back
     on old-style <link rel='...'> discovery if Yadis fails.
@@ -179,7 +188,6 @@ def discoverYadis(uri):
 
     return (identity_url, openid_services)
 
-
 def discoverXRI(iname):
     endpoints = []
     try:
@@ -219,7 +227,20 @@ def discoverNoYadis(uri):
 
     return identity_url, openid_services
 
+def discover(uri):
+    parsed = urlparse.urlparse(uri)
+    if parsed[0]:
+        if parsed[0] not in ['http', 'https']:
+            raise DiscoveryFailure('URI scheme is not HTTP or HTTPS', None)
+    else:
+        uri = 'http://' + uri
+    
+    uri = normalizeURL(uri)
+    identity_url, openid_services = discoverRaw(uri)
+    identity_url = normalizeURL(identity_url)
+    return identity_url, openid_services
+
 if yadis_available:
-    discover = discoverYadis
+    discoverRaw = discoverYadis
 else:
-    discover = discoverNoYadis
+    discoverRaw = discoverNoYadis

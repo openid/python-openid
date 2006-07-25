@@ -281,15 +281,13 @@ class Consumer(object):
         """
         if yadis_available and xri.identifierScheme(user_url) == "XRI":
             discoverMethod = discoverXRI
-            openid_url = user_url
         else:
             discoverMethod = openIDDiscover
-            openid_url = oidutil.normalizeUrl(user_url)
 
         if yadis_available:
             try:
                 disco = Discovery(self.session,
-                                  openid_url,
+                                  user_url,
                                   self.session_key_prefix)
                 service = disco.getNextService(discoverMethod)
             except fetchers.HTTPFetchingError, e:
