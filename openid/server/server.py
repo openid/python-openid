@@ -558,19 +558,14 @@ class CheckIDRequest(OpenIDRequest):
             self.immediate = False
             self.mode = "checkid_setup"
 
-        required = [
-            'identity',
-            'return_to',
-            ]
+        self.return_to = query.get(OPENID_PREFIX + 'return_to')
+        if not self.return_to:
+            raise ProtocolError(
+                query,
+                text="Missing required field 'return_to' from %r"
+                % (query,))
 
-        for field in required:
-            value = query.get(OPENID_PREFIX + field)
-            if not value:
-                raise ProtocolError(
-                    query,
-                    text="Missing required field %s from %r"
-                    % (field, query))
-            setattr(self, field, value)
+        self.identity = query.get(OPENID_PREFIX + 'identity')
 
         # There's a case for making self.trust_root be a TrustRoot
         # here.  But if TrustRoot isn't currently part of the "public" API,

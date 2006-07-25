@@ -151,13 +151,13 @@ class TestDecode(unittest.TestCase):
             'openid.return_to': self.rt_url,
             'openid.trust_root': self.tr_url,
             }
-        try:
-            result = self.decode(args)
-        except server.ProtocolError, err:
-            self.failUnless(err.query)
-        else:
-            self.fail("Expected ProtocolError, instead returned with %s" %
-                      (result,))
+        r = self.decode(args)
+        self.failUnless(isinstance(r, server.CheckIDRequest))
+        self.failUnlessEqual(r.mode, "checkid_setup")
+        self.failUnlessEqual(r.immediate, False)
+        self.failUnlessEqual(r.identity, None)
+        self.failUnlessEqual(r.trust_root, self.tr_url)
+        self.failUnlessEqual(r.return_to, self.rt_url)
 
     def test_checkidSetupNoReturn(self):
         args = {
