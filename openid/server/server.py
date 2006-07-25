@@ -118,6 +118,12 @@ OPENID_PREFIX = 'openid.'
 ENCODE_KVFORM = ('kvform',)
 ENCODE_URL = ('URL/redirect',)
 
+class _AnonymousReplySentinel(object):
+    """Pass to CheckIDRequest.answer when you want to answer with no identifer.
+    """
+
+ANONYMOUS_REPLY = _AnonymousReplySentinel()
+
 class OpenIDRequest(object):
     """I represent an incoming OpenID request.
 
@@ -608,7 +614,7 @@ class CheckIDRequest(OpenIDRequest):
         return tr.validateURL(self.return_to)
 
 
-    def answer(self, allow, server_url=None):
+    def answer(self, allow, server_url=None, identity=None):
         """Respond to this request.
 
         @param allow: Allow this user to claim this identity, and allow the
@@ -627,6 +633,12 @@ class CheckIDRequest(OpenIDRequest):
 
         @type server_url: str
 
+        @param identity: The identifier to answer with.  Only for use when
+            there was no identifier provided with the request, i.e. when
+            my C{identity} attribute is None.
+
+        @type identity: str or ANONYMOUS_REPLY
+
         @returntype: L{OpenIDResponse}
         """
         if allow or self.immediate:
@@ -639,10 +651,23 @@ class CheckIDRequest(OpenIDRequest):
         if allow:
             response.addFields(None, {
                 'mode': mode,
-                'identity': self.identity,
                 'return_to': self.return_to,
                 'nonce': mkNonce(),
                 })
+            if (self.identity and identity) and (self.identity != identity):
+                raise ValueError("Request was for identity %r, cannot reply "
+                                 "with identity %r" % (self.identity, identity))
+            response_identity = self.identity or identity
+            if not response_identity:
+                raise ValueError(
+                    "This request specified no identity; must supply one to "
+                    "answer. Use %s.ANONYMOUS_REPLY if you want to "
+                    "send this response without an identity "
+                    "parameter." % (__name__,))
+            elif response_identity is ANONYMOUS_REPLY:
+                pass
+            else:
+                response.addField(None, 'identity', response_identity)
         else:
             response.addField(None, 'mode', mode, False)
             if self.immediate:

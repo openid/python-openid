@@ -616,6 +616,47 @@ class TestCheckID(unittest.TestCase):
         self.failUnlessEqual(signed,
                              ["identity", "mode", "nonce", "return_to"])
 
+    def test_answerAllowWithoutIdentityOops(self):
+        self.request.identity = None
+        self.failUnlessRaises(ValueError, self.request.answer, True)
+
+    def test_answerAllowWithoutIdentityReally(self):
+        self.request.identity = None
+        answer = self.request.answer(True, identity=server.ANONYMOUS_REPLY)
+        self.failUnlessEqual(answer.request, self.request)
+        for k, v in  [
+            ('mode', 'id_res'),
+            ('return_to', self.request.return_to),
+            ]:
+            self.failUnlessEqual(answer.fields[k], v, "%s: %s" % (k, v))
+        self.failUnless('nonce' in answer.fields)
+        self.failUnlessEqual(len(answer.fields), 3)
+        signed = answer.signed[:]
+        signed.sort()
+        self.failUnlessEqual(signed,
+                             ["mode", "nonce", "return_to"])
+
+    def test_answerAllowWithIdentity(self):
+        self.request.identity = None
+        answer = self.request.answer(True, identity="=V")
+        self.failUnlessEqual(answer.request, self.request)
+        for k, v in  [
+            ('mode', 'id_res'),
+            ('identity', '=V'),
+            ('return_to', self.request.return_to),
+            ]:
+            self.failUnlessEqual(answer.fields[k], v, "%s: %s" % (k, v))
+        self.failUnless('nonce' in answer.fields)
+        self.failUnlessEqual(len(answer.fields), 4)
+        signed = answer.signed[:]
+        signed.sort()
+        self.failUnlessEqual(signed,
+                             ["identity", "mode", "nonce", "return_to"])
+
+    def test_answerAllowWithAnotherIdentity(self):
+        self.failUnlessRaises(ValueError, self.request.answer, True,
+                              identity="http://pebbles.unittest/")
+
     def test_answerAllowNoTrustRoot(self):
         self.request.trust_root = None
         answer = self.request.answer(True)
