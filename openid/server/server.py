@@ -95,7 +95,6 @@ Upgrading
 @group Response Encodings: ENCODE_KVFORM, ENCODE_URL
 """
 
-import binascii
 import time
 from copy import deepcopy
 
