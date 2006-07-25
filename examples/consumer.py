@@ -148,7 +148,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         # First, make sure that the user entered something
         openid_url = self.query.get('openid_url')
         if not openid_url:
-            self.render('Enter an identity URL to verify.',
+            self.render('Enter an OpenID Identifier to verify.',
                         css_class='error', form_contents=openid_url)
             return
 
@@ -156,13 +156,13 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         try:
             request = oidconsumer.begin(openid_url)
         except HTTPFetchingError, exc:
-            fetch_error_string = 'Error retrieving identity URL: %s' % (
+            fetch_error_string = 'Error in discovery: %s' % (
                 cgi.escape(str(exc.why)))
             self.render(fetch_error_string,
                         css_class='error',
                         form_contents=openid_url)
         except DiscoveryFailure, exc:
-            fetch_error_string = 'Error retrieving identity URL: %s' % (
+            fetch_error_string = 'Error in discovery: %s' % (
                 cgi.escape(str(exc[0])))
             self.render(fetch_error_string,
                         css_class='error',
@@ -303,7 +303,7 @@ Content-type: text/html
     <p>
       This example consumer uses the <a
       href="http://openid.schtuff.com/">Python OpenID</a> library. It
-      just verifies that the URL that you enter is your identity URL.
+      just verifies that the identifier that you enter is your identifier.
     </p>
 ''' % (title, title))
 
@@ -315,7 +315,7 @@ Content-type: text/html
         self.wfile.write('''\
     <div id="verify-form">
       <form method="get" action=%s>
-        Identity&nbsp;URL:
+        Identifier:
         <input type="text" name="openid_url" value=%s />
         <input type="submit" value="Verify" />
       </form>
