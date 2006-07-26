@@ -650,6 +650,12 @@ class TestAuthRequest(unittest.TestCase):
         self.failUnless(url.find('openid.0.material=paper') != -1,
                         'extension arg not found in %s' % (url,))
 
+    def test_idpEndpoint(self):
+        self.endpoint.delegate = None
+        self.endpoint.identity_url = None
+        url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
+        self.failUnless(url.find('openid.identity') == -1,
+                        'unwanted openid.identity arg appeared in %s' % (url,))
 
 class TestSuccessResponse(unittest.TestCase):
     def setUp(self):

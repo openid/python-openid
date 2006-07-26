@@ -640,6 +640,43 @@ class GenericConsumer(object):
             oidutil.log('Server responds that checkAuth call is not valid')
             return False
 
+    def _genToken(self, consumer_id, server_id, server_url):
+        if isinstance(consumer_id, unicode):
+            consumer_id = consumer_id.encode('utf-8')
+
+        if isinstance(server_id, unicode):
+            server_id = server_id.encode('utf-8')
+
+        timestamp = str(int(time.time()))
+        elements = [timestamp, consumer_id, server_id, server_url]
+        joined = '\x00'.join(elements)
+        sig = cryptutil.hmacSha1(self.store.getAuthKey(), joined)
+
+        return oidutil.toBase64('%s%s' % (sig, joined))
+
+    def _splitToken(self, token):
+        token = oidutil.fromBase64(token)
+        if len(token) < 20:
+            raise ValueError('Bad token length: %d' % len(token))
+
+        sig, joined = token[:20], token[20:]
+        if cryptutil.hmacSha1(self.store.getAuthKey(), joined) != sig:
+            raise ValueError('Bad token signature')
+
+        split = joined.split('\x00')
+        if len(split) != 4:
+            raise ValueError('Bad token contents (not enough fields)')
+
+        try:
+            ts = int(split[0])
+        except ValueError:
+            raise ValueError('Bad token contents (timestamp bad)')
+
+        if ts + self.TOKEN_LIFETIME < time.time():
+            raise ValueError('Token expired')
+
+        return tuple(split[1:])
+
     def _getAssociation(self, server_url):
         if self.store.isDumb():
             return None
@@ -841,10 +878,14 @@ class AuthRequest(object):
 
         redir_args = {
             'openid.mode': mode,
-            'openid.identity': self.endpoint.getServerID(),
             'openid.return_to': return_to,
             'openid.trust_root': trust_root,
             }
+
+        identity = self.endpoint.getServerID()
+
+        if identity:
+            redir_args['openid.identity'] = identity
 
         if self.assoc:
             redir_args['openid.assoc_handle'] = self.assoc.handle
