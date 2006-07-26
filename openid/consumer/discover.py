@@ -32,6 +32,8 @@ from openid.consumer.parse import openIDDiscover as parseOpenIDLinkRel
 from openid.consumer.parse import ParseError
 
 OPENID_1_0_NS = 'http://openid.net/xmlns/1.0'
+OPENID_IDP_2_0_TYPE = 'http://openid.net/server/2.0'
+OPENID_2_0_TYPE = 'http://openid.net/signon/2.0'
 OPENID_1_2_TYPE = 'http://openid.net/signon/1.2'
 OPENID_1_1_TYPE = 'http://openid.net/signon/1.1'
 OPENID_1_0_TYPE = 'http://openid.net/signon/1.0'
@@ -43,6 +45,9 @@ class OpenIDServiceEndpoint(object):
     @ivar canonicalID: For XRI, the persistent identifier.
     """
     openid_type_uris = [
+        OPENID_IDP_2_0_TYPE,
+
+        OPENID_2_0_TYPE,
         OPENID_1_2_TYPE,
         OPENID_1_1_TYPE,
         OPENID_1_0_TYPE,
@@ -63,10 +68,16 @@ class OpenIDServiceEndpoint(object):
         """Set the state of this object based on the contents of the
         service element."""
         self.type_uris = type_uris
-        self.identity_url = yadis_url
         self.server_url = uri
-        self.delegate = findDelegate(service_element)
         self.used_yadis = True
+
+        if not (OPENID_IDP_2_0_TYPE in self.type_uris):            
+            # XXX: This has crappy implications for Service elements
+            # that contain both 'server' and 'signon' Types.  But
+            # that's a pathological configuration anyway, so I don't
+            # think I care.
+            self.delegate = findDelegate(service_element)
+            self.identity_url = yadis_url
 
     def getServerID(self):
         """Return the identifier that should be sent as the

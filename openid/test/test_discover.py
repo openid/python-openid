@@ -182,6 +182,36 @@ yadis_2entries = '''<?xml version="1.0" encoding="UTF-8"?>
 </xrds:XRDS>
 '''
 
+yadis_idp = '''<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds"
+           xmlns="xri://$xrd*($v*2.0)"
+           xmlns:openid="http://openid.net/xmlns/1.0"
+           >
+  <XRD>
+    <Service priority="10">
+      <Type>http://openid.net/server/2.0</Type>
+      <URI>http://www.myopenid.com/server</URI>
+    </Service>
+  </XRD>
+</xrds:XRDS>
+'''
+
+yadis_idp_delegate = '''<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds"
+           xmlns="xri://$xrd*($v*2.0)"
+           xmlns:openid="http://openid.net/xmlns/1.0"
+           >
+  <XRD>
+    <Service>
+      <Type>http://openid.net/server/2.0</Type>
+      <URI>http://www.myopenid.com/server</URI>
+      <openid:Delegate>http://smoker.myopenid.com/</openid:Delegate>
+    </Service>
+  </XRD>
+</xrds:XRDS>
+'''
+
+
 yadis_another = '''<?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
@@ -357,6 +387,38 @@ class TestDiscovery(BaseTestDiscovery):
                         'Delegate should be None. Got %r' %
                         (services[0].delegate,))
         self._usedYadis(services[0])
+
+    def test_yadisIDP(self):
+        self.fetcher.documents = {
+            self.id_url: ('application/xrds+xml', yadis_idp),
+        }
+        id_url, services = discover.discover(self.id_url)
+        self.failUnlessEqual(len(services), 1,
+                             "Not 1 service in %r" % (services,))
+        self.failUnlessEqual(services[0].server_url,
+                             "http://www.myopenid.com/server")
+        self.failUnlessEqual(services[0].identity_url, None)
+        self.failUnless(services[0].delegate is None,
+                        'Delegate should be None. Got %r' %
+                        (services[0].delegate,))
+        self._usedYadis(services[0])
+
+    def test_yadisIDPdelegate(self):
+        # The delegate tag isn't meaningful for IdP entries.
+        self.fetcher.documents = {
+            self.id_url: ('application/xrds+xml', yadis_idp_delegate),
+        }
+        id_url, services = discover.discover(self.id_url)
+        self.failUnlessEqual(len(services), 1,
+                             "Not 1 service in %r" % (services,))
+        self.failUnlessEqual(services[0].server_url,
+                             "http://www.myopenid.com/server")
+        self.failUnlessEqual(services[0].identity_url, None)
+        self.failUnless(services[0].delegate is None,
+                        'Delegate should be None. Got %r' %
+                        (services[0].delegate,))
+        self._usedYadis(services[0])
+
 
     def test_openidNoDelegate(self):
         self.fetcher.documents = {
