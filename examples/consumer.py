@@ -41,6 +41,9 @@ from openid.cryptutil import randomString
 from yadis.discover import DiscoveryFailure
 from urljr.fetchers import HTTPFetchingError
 
+SREG_URI = 'http://openid.net/sreg/1.0'
+
+
 class OpenIDHTTPServer(HTTPServer):
     """http server that contains a reference to an OpenID consumer and
     knows its base URL.
@@ -178,11 +181,19 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                 # user's identity, and get a token that allows us to
                 # communicate securely with the identity server.
 
+                self.requestRegistrationData(request)
+
                 trust_root = self.server.base_url
                 return_to = self.buildURL('process')
                 redirect_url = request.redirectURL(trust_root, return_to)
 
                 self.redirect(redirect_url)
+
+    def requestRegistrationData(self, request):
+        required = ','.join(['nickname'])
+        optional = ','.join(['fullname', 'email'])
+        request.addExtensionArg(SREG_URI, 'required', required)
+        request.addExtensionArg(SREG_URI, 'optional', optional)
 
     def doProcess(self):
         """Handle the redirect from the OpenID server.
@@ -195,6 +206,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         # the return type.
         info = oidconsumer.complete(self.query)
 
+        sreg = None
         css_class = 'error'
         if info.status == consumer.FAILURE and info.identity_url:
             # In the case of failure, if info is non-None, it is the
@@ -213,13 +225,6 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # comment posting, etc. here.
             fmt = "You have successfully verified %s as your identity."
             message = fmt % (cgi.escape(info.identity_url),)
-            if info.endpoint.canonicalID:
-                # You should authorize i-name users by their canonicalID,
-                # rather than their more human-friendly identifiers.  That
-                # way their account with you is not compromised if their
-                # i-name registration expires and is bought by someone else.
-                message += ("  This is an i-name, and its persistent ID is %s"
-                            % (cgi.escape(info.endpoint.canonicalID),))
         elif info.status == consumer.CANCEL:
             # cancelled
             message = 'Verification cancelled'
@@ -230,7 +235,44 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # information in a log.
             message = 'Verification failed.'
 
-        self.render(message, css_class, info.identity_url)
+        self.render(message, css_class, info.identity_url, sreg_data=sreg)
+
+    def renderSREG(self, sreg_data):
+        if not sreg_data:
+            self.wfile.write(
+                '<div class="alert">No registration data was returned</div>')
+        else:
+            sreg_list = sreg_data.items()
+            sreg_list.sort()
+            sreg_fields = {
+                'fullname':'Full Name',
+                'nickname':'Nickname',
+                'dob':'Date of Birth',
+                'email':'E-mail Address',
+                'gender':'Gender',
+                'postcode':'Postal Code',
+                'country':'Country',
+                'language':'Language',
+                'timezone':'Time Zone',
+                }
+            self.wfile.write(
+                '<h2>Registration Data</h2>'
+                '<table class="sreg">'
+                '<thead><tr><th>Field</th><th>Value</th></tr></thead>'
+                '<tbody>')
+
+            odd = ' class="odd"'
+            for k, v in sreg_list:
+                field_name = sreg_fields.get(k, k)
+                value = cgi.escape(v)
+                self.wfile.write(
+                    '<tr%s><td>%s</td><td>%s</td></tr>' % (odd, field_name, value))
+                if odd:
+                    odd = ''
+                else:
+                    odd = ' class="odd"'
+
+            self.wfile.write('</tbody></table>')
 
     def buildURL(self, action, **query):
         """Build a URL relative to the server base_url, with the given
@@ -257,7 +299,8 @@ Redirecting to %s""" % (redirect_url, redirect_url)
         self.render(msg, 'error', openid_url, status=404)
 
     def render(self, message=None, css_class='alert', form_contents=None,
-               status=200, title="Python OpenID Consumer Example"):
+               status=200, title="Python OpenID Consumer Example",
+               sreg_data=None):
         """Render a page."""
         self.send_response(status)
         self.pageHeader(title)
@@ -265,6 +308,10 @@ Redirecting to %s""" % (redirect_url, redirect_url)
             self.wfile.write("<div class='%s'>" % (css_class,))
             self.wfile.write(message)
             self.wfile.write("</div>")
+
+        if sreg_data is not None:
+            self.renderSREG(sreg_data)
+
         self.pageFooter(form_contents)
 
     def pageHeader(self, title):
@@ -285,6 +332,20 @@ Content-type: text/html
       }
       div {
         padding: .5em;
+      }
+      tr.odd td {
+        background-color: #dddddd;
+      }
+      table.sreg {
+        border: 1px solid black;
+        border-collapse: collapse;
+      }
+      table.sreg th {
+        border-bottom: 1px solid black;
+      }
+      table.sreg td, table.sreg th {
+        padding: 0.5em;
+        text-align: left;
       }
       table {
         margin: none;
