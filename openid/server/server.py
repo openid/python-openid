@@ -1350,7 +1350,8 @@ class Server(object):
         assoc_type = request.assoc_type
         session_type = request.session.session_type
         if self.negotiator.isAllowed(assoc_type, session_type):
-            assoc = self.signatory.createAssociation(dumb=False)
+            assoc = self.signatory.createAssociation(dumb=False,
+                                                     assoc_type=assoc_type)
             return request.answer(assoc)
         else:
             # XXX: TESTME
