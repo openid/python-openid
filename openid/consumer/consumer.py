@@ -662,6 +662,12 @@ class GenericConsumer(object):
                     assoc = None
                     break
                 else:
+                    if response is None:
+                        oidutil.log('openid.associate request failed: ' +
+                                    'no reason given.')
+                        assoc = None
+                        break
+
                     try:
                         assoc = self._parseAssociation(
                             response, assoc_session, server_url)
