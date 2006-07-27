@@ -465,8 +465,8 @@ class AssociateRequest(OpenIDRequest):
 
         return response
 
-    def answerUnsupported(self, message=None, preferred_session_type=None,
-                          preferred_association_type=None):
+    def answerUnsupported(self, message=None, preferred_association_type=None,
+                          preferred_session_type=None):
         """Respond to this request indicating that the association
         type or association session type is not supported."""
         response = OpenIDResponse(self)
