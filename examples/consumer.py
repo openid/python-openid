@@ -303,7 +303,7 @@ Content-type: text/html
     <p>
       This example consumer uses the <a
       href="http://openid.schtuff.com/">Python OpenID</a> library. It
-      just verifies that the identifier that you enter is your identifier.
+      just verifies that the URL that you enter is your identity URL.
     </p>
 ''' % (title, title))
 
