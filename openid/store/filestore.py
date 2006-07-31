@@ -214,7 +214,8 @@ class FileOpenIDStore(OpenIDStore):
         file_obj, tmp = self._mktemp()
         try:
             file_obj.write(auth_key)
-            os.fsync(file_obj.fileno())
+            # Must close the file before linking or renaming it on win32.
+            file_obj.close()
 
             try:
                 if hasattr(os, 'link'):
