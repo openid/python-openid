@@ -1347,6 +1347,7 @@ class Server(object):
 
         @returntype: L{OpenIDResponse}
         """
+        # XXX: TESTME
         assoc_type = request.assoc_type
         session_type = request.session.session_type
         if self.negotiator.isAllowed(assoc_type, session_type):
@@ -1354,7 +1355,6 @@ class Server(object):
                                                      assoc_type=assoc_type)
             return request.answer(assoc)
         else:
-            # XXX: TESTME
             message = ('Association type %r is not supported with '
                        'session type %r' % (assoc_type, session_type))
             (preferred_assoc_type, preferred_session_type) = \

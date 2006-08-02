@@ -1085,6 +1085,50 @@ class TestServer(unittest.TestCase, CatchLogs):
         response = self.server.openid_associate(request)
         self.failUnless(response.fields.has_key("assoc_handle"))
 
+    def test_associate2(self):
+        """Associate when the server has no allowed association types
+
+        Gives back an error with error_code and no fallback session or
+        assoc types."""
+        self.server.negotiator.setAllowedTypes([])
+        request = server.AssociateRequest.fromQuery({})
+        response = self.server.openid_associate(request)
+        self.failUnless(response.fields.has_key("error"))
+        self.failUnless(response.fields.has_key("error_code"))
+        self.failIf(response.fields.has_key("assoc_handle"))
+        self.failIf(response.fields.has_key("assoc_type"))
+        self.failIf(response.fields.has_key("session_type"))
+
+    def test_associate3(self):
+        """Request an assoc type that is not supported when there are
+        supported types.
+
+        Should give back an error message with a fallback type.
+        """
+        self.server.negotiator.setAllowedTypes([('HMAC-SHA256', 'DH-SHA256')])
+        request = server.AssociateRequest.fromQuery({})
+        response = self.server.openid_associate(request)
+        self.failUnless(response.fields.has_key("error"))
+        self.failUnless(response.fields.has_key("error_code"))
+        self.failIf(response.fields.has_key("assoc_handle"))
+        self.failUnlessEqual(response.fields["assoc_type"], 'HMAC-SHA256')
+        self.failUnlessEqual(response.fields["session_type"], 'DH-SHA256')
+
+    def test_associate4(self):
+        """DH-SHA256 association session"""
+        self.server.negotiator.setAllowedTypes([('HMAC-SHA256', 'DH-SHA256')])
+        query = {
+            'openid.dh_consumer_public':
+                'ALZgnx8N5Lgd7pCj8K86T/DDMFjJXSss1SKoLmxE72kJTzOtG6I2PaYrHX'
+                'xku4jMQWSsGfLJxwCZ6280uYjUST/9NWmuAfcrBfmDHIBc3H8xh6RBnlXJ'
+                '1WxJY3jHd5k1/ZReyRZOxZTKdF/dnIqwF8ZXUwI6peV0TyS/K1fOfF/s',
+            'openid.assoc_type': 'HMAC-SHA256',
+            'openid.session_type': 'DH-SHA256',
+            }
+        request = server.AssociateRequest.fromQuery(query)
+        response = self.server.openid_associate(request)
+        self.failUnless(response.fields.has_key("assoc_handle"))
+
     def test_checkAuth(self):
         request = server.CheckAuthRequest('arrrrrf', '0x3999', [])
         response = self.server.openid_check_authentication(request)
