@@ -188,7 +188,7 @@ from urlparse import urlparse
 
 from urljr import fetchers
 
-from openid.consumer.discover import discover as openIDDiscover
+from openid.consumer.discover import discover as discoverURL
 from openid.consumer.discover import discoverXRI
 from openid.consumer.discover import yadis_available, DiscoveryFailure
 from openid.message import Message, fixNamespaceURI, SREG_URI
@@ -282,7 +282,7 @@ class Consumer(object):
         if yadis_available and xri.identifierScheme(user_url) == "XRI":
             discoverMethod = discoverXRI
         else:
-            discoverMethod = openIDDiscover
+            discoverMethod = discoverURL
 
         if yadis_available:
             try:
