@@ -844,7 +844,6 @@ class AuthRequest(object):
         """
         self.assoc = assoc
         self.endpoint = endpoint
-        self.extra_args = {}
         self.return_to_args = {}
         self.token = token
 
@@ -888,24 +887,19 @@ class AuthRequest(object):
         else:
             mode = 'checkid_setup'
 
-        redir_args = {
-            'openid.mode': mode,
-            'openid.return_to': return_to,
-            'openid.trust_root': trust_root,
-            }
+        self.message.addArgs(
+            dict(mode=mode, return_to=return_to, trust_root=trust_root,),
+            )
 
         identity = self.endpoint.getServerID()
 
         if identity:
-            redir_args['openid.identity'] = identity
+            self.message.addArg('identity', identity)
 
         if self.assoc:
-            redir_args['openid.assoc_handle'] = self.assoc.handle
+            self.message.addArg('assoc_handle', self.assoc.handle)
 
-        redir_args.update(self.extra_args)
-        redir_args.update(self.message.toQueryArgs())
-
-        return self.endpoint.server_url, redir_args
+        return self.endpoint.server_url, self.message.toQueryArgs()
 
     def formMarkup(self, trust_root, return_to, immediate=False,
                    form_tag_attrs=None, submit_text="Continue"):
