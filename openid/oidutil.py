@@ -6,6 +6,23 @@ import urlparse
 
 from urllib import urlencode
 
+elementtree_modules = [
+    'lxml.etree',
+    'xml.etree.cElementTree',
+    'xml.etree.ElementTree',
+    'cElementTree',
+    'elementtree.ElementTree',
+    ]
+
+def importElementTree():
+    for mod_name in elementtree_modules:
+        try:
+            return __import__(mod_name, None, None, ['unused'])
+        except ImportError:
+            pass
+    else:
+        raise
+
 def log(message, unused_level=0):
     sys.stderr.write(message)
     sys.stderr.write('\n')

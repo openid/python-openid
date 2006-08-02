@@ -204,6 +204,13 @@ __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
            'SUCCESS', 'FAILURE', 'CANCEL', 'SETUP_NEEDED',
            ]
 
+try:
+    ElementTree = oidutil.importElementTree()
+except ImportError:
+    # No elementtree found, so give up, but don't fail to import,
+    # since we have fallbacks.
+    ElementTree = None
+
 if yadis_available:
     from yadis.manager import Discovery
     from yadis import xri
@@ -869,12 +876,17 @@ class AuthRequest(object):
         self.message.addNSArg(namespace, key, value)
 
     def redirectURL(self, trust_root, return_to, immediate=False):
+        server_url, redir_args = self.formValues(
+            trust_root, return_to, immediate)
+        return oidutil.appendArgs(server_url, redir_args)
+
+    def formValues(self, trust_root, return_to, immediate=False):
+        return_to = oidutil.appendArgs(return_to, self.return_to_args)
+        
         if immediate:
             mode = 'checkid_immediate'
         else:
             mode = 'checkid_setup'
-
-        return_to = oidutil.appendArgs(return_to, self.return_to_args)
 
         redir_args = {
             'openid.mode': mode,
@@ -892,7 +904,38 @@ class AuthRequest(object):
 
         redir_args.update(self.extra_args)
         redir_args.update(self.message.toQueryArgs())
-        return oidutil.appendArgs(self.endpoint.server_url, redir_args)
+
+        return self.endpoint.server_url, redir_args
+
+    def formMarkup(self, trust_root, return_to, immediate=False,
+                   form_tag_attrs=None, submit_text="Continue"):
+        if ElementTree is None:
+            raise RuntimeError('This function requires ElementTree.')
+
+        server_url, redir_args = self.formValues(
+            trust_root, return_to, immediate)
+
+        form = ElementTree.Element('form', {
+            'accept-charset':'UTF-8',
+            'enctype':'application/x-www-form-urlencoded',
+            })
+
+        if form_tag_attrs:
+            for name, attr in form_tag_attrs.iteritems():
+                form.attrib[name] = attr
+
+        form.attrib['action'] = server_url
+        form.attrib['method'] = 'post'
+
+        for name, value in redir_args.iteritems():
+            attrs = dict(type='hidden', name=name, value=value) 
+            form.append(ElementTree.Element('input', attrs))
+
+        submit = ElementTree.Element(
+                'input', {'type':'submit', 'value':submit_text})
+        form.append(submit)
+
+        return ElementTree.tostring(form)
 
 FAILURE = 'failure'
 SUCCESS = 'success'
