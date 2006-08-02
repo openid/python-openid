@@ -34,6 +34,8 @@ def fixNamespaceURI(ns_uri, stacklevel=2):
 
     return ns_uri
 
+undecided = object()
+
 # XXX: TESTME!
 class Message(object):
     """
@@ -59,6 +61,7 @@ class Message(object):
         self.args = {}
         self.signed = []
         self.namespaces = NamespaceMap()
+        self.sign_added_args = True
 
     def toArgs(self):
         """Build a dictionary out of the arguments defined for this
@@ -103,8 +106,11 @@ class Message(object):
         return dict([('openid.' + k, v)
                      for k, v in self.toArgs().iteritems()])
 
-    def addNSArg(self, namespace_uri, key, value, signed=True):
+    def addNSArg(self, namespace_uri, key, value, signed=undecided):
         """Add a single argument to this namespace"""
+        if signed is undecided:
+            signed = self.sign_added_args
+
         if namespace_uri is None:
             ns_args = self.args
         else:
@@ -123,16 +129,16 @@ class Message(object):
 
         ns_args[key] = value
 
-    def addArg(self, key, value, signed=True):
+    def addArg(self, key, value, signed=undecided):
         self.addNSArg(None, key, value, signed)
 
-    def addNSArgs(self, namespace_uri, values, signed=True):
+    def addNSArgs(self, namespace_uri, values, signed=undecided):
         """Add a set of values to this namespace. Takes the same
         type as a second parameter as dict.update."""
         for k, v in values.iteritems():
             self.addNSArg(namespace_uri, k, v, signed)
 
-    def addArgs(self, values, signed=True):
+    def addArgs(self, values, signed=undecided):
         self.addNSArgs(None, values, signed)
 
     def getNS(self, ns_uri, key, default=None):
