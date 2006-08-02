@@ -573,6 +573,12 @@ class GenericConsumer(object):
             return FailureResponse(consumer_id, 'Missing argument signature')
 
         signed_list = signed.split(',')
+
+        # Fail if the identity field is present but not signed
+        if consumer_id is not None and 'identity' not in signed_list:
+            msg = '"openid.identity" not signed'
+            return FailureResponse(consumer_id, msg)
+
         v_sig = assoc.signDict(signed_list, query)
 
         if v_sig != sig:
