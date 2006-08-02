@@ -1311,7 +1311,7 @@ class Server(object):
         self.signatory = self.signatoryClass(self.store)
         self.encoder = self.encoderClass(self.signatory)
         self.decoder = self.decoderClass()
-        self.negotiator = default_negotiator
+        self.negotiator = default_negotiator.copy()
 
 
     def handleRequest(self, request):

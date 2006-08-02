@@ -57,6 +57,9 @@ class SessionNegotiator(object):
     def __init__(self, allowed_types):
         self.allowed_types = allowed_types
 
+    def copy(self):
+        return self.__class__(list(self.allowed_types))
+
     def setAllowedTypes(self, allowed_types):
         """Set the allowed association types, checking to make sure
         each combination is valid."""

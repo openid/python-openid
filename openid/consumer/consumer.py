@@ -441,7 +441,7 @@ class GenericConsumer(object):
 
     def __init__(self, store):
         self.store = store
-        self.negotiator = default_negotiator
+        self.negotiator = default_negotiator.copy()
 
     def begin(self, service_endpoint):
         nonce = self._createNonce()
