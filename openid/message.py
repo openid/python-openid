@@ -1,8 +1,17 @@
 """Extension argument processing code
 """
+__all__ = ['Message', 'NamespaceMap', 'SREG_URI']
+
+import copy
 import warnings
 
-__all__ = ['Message', 'NamespaceMap', 'SREG_URI']
+from openid import oidutil
+try:
+    ElementTree = oidutil.importElementTree()
+except ImportError:
+    # No elementtree found, so give up, but don't fail to import,
+    # since we have fallbacks.
+    ElementTree = None
 
 # URI for Simple Registration extension, the only commonly deployed
 # OpenID 1.x extension, and so a special case
@@ -62,6 +71,9 @@ class Message(object):
         self.signed = []
         self.namespaces = NamespaceMap()
         self.sign_added_args = True
+
+    def copy(self):
+        return copy.deepcopy(self)
 
     def toArgs(self):
         """Build a dictionary out of the arguments defined for this
@@ -165,6 +177,37 @@ class Message(object):
             return dict(self.args)
         else:
             return dict(self.ns_args.get(namespace_uri, {}))
+
+    def toFormMarkup(self, action_url, form_tag_attrs=None,
+                     submit_text="Continue"):
+        if ElementTree is None:
+            raise RuntimeError('This function requires ElementTree.')
+
+        form = ElementTree.Element('form', {
+            'accept-charset':'UTF-8',
+            'enctype':'application/x-www-form-urlencoded',
+            })
+
+        if form_tag_attrs:
+            for name, attr in form_tag_attrs.iteritems():
+                form.attrib[name] = attr
+
+        form.attrib['action'] = server_url
+        form.attrib['method'] = 'post'
+
+        for name, value in self.toQueryArgs().iteritems():
+            attrs = dict(type='hidden', name=name, value=value) 
+            form.append(ElementTree.Element('input', attrs))
+
+        submit = ElementTree.Element(
+                'input', {'type':'submit', 'value':submit_text})
+        form.append(submit)
+
+        return ElementTree.tostring(form)
+
+    def toURL(self, base_url):
+        return oidutil.appendArgs(base_url, self.toQueryArgs())
+
 
 #XXX: testme!
 class NamespaceMap(object):
