@@ -1114,20 +1114,26 @@ class TestServer(unittest.TestCase, CatchLogs):
         self.failUnlessEqual(response.fields["assoc_type"], 'HMAC-SHA256')
         self.failUnlessEqual(response.fields["session_type"], 'DH-SHA256')
 
-    def test_associate4(self):
-        """DH-SHA256 association session"""
-        self.server.negotiator.setAllowedTypes([('HMAC-SHA256', 'DH-SHA256')])
-        query = {
-            'openid.dh_consumer_public':
+    try:
+        cryptutil.sha256('')
+    except NotImplementedError:
+        pass
+    else:
+        def test_associate4(self):
+            """DH-SHA256 association session"""
+            self.server.negotiator.setAllowedTypes(
+                [('HMAC-SHA256', 'DH-SHA256')])
+            query = {
+                'openid.dh_consumer_public':
                 'ALZgnx8N5Lgd7pCj8K86T/DDMFjJXSss1SKoLmxE72kJTzOtG6I2PaYrHX'
                 'xku4jMQWSsGfLJxwCZ6280uYjUST/9NWmuAfcrBfmDHIBc3H8xh6RBnlXJ'
                 '1WxJY3jHd5k1/ZReyRZOxZTKdF/dnIqwF8ZXUwI6peV0TyS/K1fOfF/s',
-            'openid.assoc_type': 'HMAC-SHA256',
-            'openid.session_type': 'DH-SHA256',
-            }
-        request = server.AssociateRequest.fromQuery(query)
-        response = self.server.openid_associate(request)
-        self.failUnless(response.fields.has_key("assoc_handle"))
+                'openid.assoc_type': 'HMAC-SHA256',
+                'openid.session_type': 'DH-SHA256',
+                }
+            request = server.AssociateRequest.fromQuery(query)
+            response = self.server.openid_associate(request)
+            self.failUnless(response.fields.has_key("assoc_handle"))
 
     def test_checkAuth(self):
         request = server.CheckAuthRequest('arrrrrf', '0x3999', [])
