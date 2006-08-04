@@ -272,6 +272,25 @@ class TestQueryFormat(TestIdRes):
             self.fail("expected TypeError, got this instead: %s" % (r,))
 
 class TestComplete(TestIdRes):
+    def test_badTokenLength(self):
+        query = {'openid.mode': 'id_res'}
+        r = self.consumer.complete(query, 'badtoken')
+        self.failUnlessEqual(r.status, FAILURE)
+        self.failUnless(r.identity_url is None)
+
+    def test_badTokenSig(self):
+        query = {'openid.mode': 'id_res'}
+        r = self.consumer.complete(query, 'badtoken' + self.token)
+        self.failUnlessEqual(r.status, FAILURE)
+        self.failUnless(r.identity_url is None)
+
+    def test_expiredToken(self):
+        self.consumer.TOKEN_LIFETIME = -1 # in the past
+        query = {'openid.mode': 'id_res'}
+        r = self.consumer.complete(query, self.token)
+        self.failUnlessEqual(r.status, FAILURE)
+        self.failUnless(r.identity_url is None)
+
     def test_cancel(self):
         query = {'openid.mode': 'cancel'}
         r = self.consumer.complete(query, self.endpoint)
