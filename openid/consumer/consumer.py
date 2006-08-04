@@ -294,7 +294,7 @@ class Consumer(object):
                 raise DiscoveryFailure('Error fetching XRDS document', e)
         else:
             # XXX - Untested branch!
-            _, services = openIDDiscover(user_url)
+            _, services = discoverURL(user_url)
             if not services:
                 service = None
             else:
