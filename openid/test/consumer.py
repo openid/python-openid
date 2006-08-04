@@ -324,11 +324,14 @@ class TestComplete(TestIdRes):
                  'openid.return_to': 'return_to (just anything)',
                  'openid.identity': 'something wrong (not self.consumer_id)',
                  'openid.assoc_handle': 'does not matter',
+                 'openid.sig': GOODSIG,
+                 'openid.signed': 'identity,return_to',
                  }
         r = self.consumer.complete(query, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
         self.failUnlessEqual(r.identity_url, self.consumer_id)
-        r.message.index('delegate')
+        self.failUnless(r.message.find('delegate') != -1,
+                        r.message)
 
 
 
