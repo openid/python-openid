@@ -294,7 +294,8 @@ class Consumer(object):
             except fetchers.HTTPFetchingError, e:
                 raise DiscoveryFailure('Error fetching XRDS document', e)
         else:
-            _, services = openIDDiscover(openid_url)
+            # XXX - Untested branch!
+            _, services = openIDDiscover(user_url)
             if not services:
                 service = None
             else:
