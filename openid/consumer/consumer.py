@@ -592,7 +592,7 @@ class GenericConsumer(object):
         # Fail if the identity field is present but not signed
         if consumer_id is not None and 'identity' not in signed_list:
             msg = '"openid.identity" not signed'
-            return FailureResponse(endpoint, msg)
+            return FailureResponse(consumer_id, msg)
 
         v_sig = assoc.signDict(signed_list, query)
 

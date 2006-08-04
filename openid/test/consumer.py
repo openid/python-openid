@@ -373,6 +373,12 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
         self.failUnlessEqual(r.status, FAILURE)
 
 
+    def test_idResMissingReturnToSig(self):
+        self.query['openid.signed'] = 'identity,nonce'
+        r = self.consumer.complete(self.query, self.token)
+        self.failUnlessEqual(r.status, FAILURE)
+
+
     def failUnlessSuccess(self, response):
         if response.status != SUCCESS:
             self.fail("Non-successful response: %s" % (response,))
