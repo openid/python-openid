@@ -550,27 +550,44 @@ class GenericConsumer(object):
         if user_setup_url is not None:
             return SetupNeededResponse(endpoint, user_setup_url)
 
+        required_fields = ['return_to', 'assoc_handle', 'sig', 'signed']
+
+        for field in required_fields:
+            if not query.get('openid.' + field):
+                return FailureResponse(consumer_id,
+                                       'Missing required field %r' % (field,))
+
         return_to = query.get('openid.return_to')
         server_id2 = query.get('openid.identity')
         assoc_handle = query.get('openid.assoc_handle')
 
-        if return_to is None or server_id2 is None or assoc_handle is None:
-            return FailureResponse(endpoint, 'Missing required field')
+        if return_to is None or server_id is None or assoc_handle is None:
+            return FailureResponse(consumer_id, 'Missing required field')
 
         if server_id != server_id2:
             return FailureResponse(consumer_id, 'Server ID (delegate) mismatch')
 
-        signed = query.get('openid.signed')
+        if server_id2 and not consumer_id:
+            # IdP-driven identifier selection, the identifier is as it
+            # is returned from the server.
+            verified_id = server_id2
+        else:
+            # The identifier we did discovery on.
+            verified_id = consumer_id
+        # It's slightly misleading to call that the "verified identifier",
+        # as it could still fail to check out, but whether it passes or fails
+        # it's not expected to *change* any more.  (Unless we haven't done
+        # discovery on this one yet and when we do we find redirects...  Crap.)
 
-        assoc = self.store.getAssociation(endpoint.server_url, assoc_handle)
+        assoc = self.store.getAssociation(server_url, assoc_handle)
 
         if assoc is None:
             # It's not an association we know about.  Dumb mode is our
             # only possible path for recovery.
-            if self._checkAuth(query, endpoint.server_url):
-                return SuccessResponse.fromQuery(endpoint, query, signed)
+            if self._checkAuth(query, server_url):
+                return SuccessResponse.fromQuery(consumer_id, query, signed)
             else:
-                return FailureResponse(endpoint,
+                return FailureResponse(consumer_id,
                                        'Server denied check_authentication')
 
         if assoc.expiresIn <= 0:
@@ -579,27 +596,28 @@ class GenericConsumer(object):
             # automatically opens the possibility for
             # denial-of-service by a server that just returns expired
             # associations (or really short-lived associations)
-            msg = 'Association with %s expired' % (endpoint.server_url,)
-            return FailureResponse(endpoint, msg)
+            msg = 'Association with %s expired' % (server_url,)
+            return FailureResponse(consumer_id, msg)
 
         # Check the signature
         sig = query.get('openid.sig')
         if sig is None or signed is None:
-            return FailureResponse(endpoint, 'Missing argument signature')
+            return FailureResponse(consumer_id, 'Missing argument signature')
 
-        signed_list = signed.split(',')
+        assoc = self.store.getAssociation(server_url, assoc_handle)
 
         # Fail if the identity field is present but not signed
         if consumer_id is not None and 'identity' not in signed_list:
             msg = '"openid.identity" not signed'
             return FailureResponse(consumer_id, msg)
 
-        v_sig = assoc.signDict(signed_list, query)
+            if v_sig != sig:
+                return FailureResponse(verified_id, 'Bad signature')
 
         if v_sig != sig:
-            return FailureResponse(endpoint, 'Bad signature')
+            return FailureResponse(consumer_id, 'Bad signature')
 
-        return SuccessResponse.fromQuery(endpoint, query, signed)
+        return SuccessResponse.fromQuery(consumer_id, query, signed)
 
     def _checkAuth(self, query, server_url):
         request = self._createCheckAuthRequest(query)
