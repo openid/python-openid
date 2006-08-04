@@ -904,6 +904,13 @@ class FailureResponse(Response):
         self.identity_url = identity_url
         self.message = message
 
+
+    def __repr__(self):
+        return "<%s.%s id=%r message=%r>" % (
+            self.__class__.__module__, self.__class__.__name__,
+            self.identity_url, self.message)
+
+
 class CancelResponse(Response):
     """A response with a status of CANCEL. Indicates that the user
     cancelled the OpenID authentication request.
