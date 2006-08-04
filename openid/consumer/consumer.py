@@ -755,7 +755,7 @@ class GenericConsumer(object):
         error_code = results.get('error_code')
         if error_code is not None:
             return self._associateError(results)
-        
+
         try:
             assoc_type = results['assoc_type']
             assoc_handle = results['assoc_handle']
@@ -869,7 +869,7 @@ class AuthRequest(object):
 
     def getMessage(self, trust_root, return_to, immediate=False):
         return_to = oidutil.appendArgs(return_to, self.return_to_args)
-        
+
         if immediate:
             mode = 'checkid_immediate'
         else:
