@@ -531,6 +531,15 @@ class GenericConsumer(object):
         return response
 
     def _doIdRes(self, query, consumer_id, server_id, server_url):
+        """Handle id_res responses.
+
+        @param query: the response paramaters.
+        @param consumer_id: The normalized Claimed Identifier.
+        @param server_id: The Delegate Identifier.
+        @param server_url: OpenID server endpoint URL.
+
+        @returntype: L{Response}
+        """
         user_setup_url = query.get('openid.user_setup_url')
         if user_setup_url is not None:
             return SetupNeededResponse(consumer_id, user_setup_url)
