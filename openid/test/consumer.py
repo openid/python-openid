@@ -58,6 +58,42 @@ def associate(qs, assoc_secret, assoc_handle):
     reply_dict.update(session.answer(assoc_secret))
     return kvform.dictToKV(reply_dict)
 
+
+GOODSIG = "[A Good Signature]"
+
+
+class GoodAssociation:
+    expiresIn = 3600
+    handle = "-blah-"
+
+    def signDict(fields, data, prefix="openid."):
+        return GOODSIG
+
+
+
+class GoodAssocStore(_memstore.MemoryStore):
+    def getAssociation(self, server_url, handle=None):
+        return GoodAssociation()
+
+
+
+class CatchLogs(object):
+
+    def setUp(self):
+        self.old_logger = oidutil.log
+        oidutil.log = self.gotLogMessage
+        self.messages = []
+
+
+    def gotLogMessage(self, message):
+        self.messages.append(message)
+
+
+    def tearDown(self):
+        oidutil.log = self.old_logger
+
+
+
 class TestFetcher(object):
     def __init__(self, user_url, user_page, (assoc_secret, assoc_handle)):
         self.get_responses = {user_url:self.response(user_url, 200, user_page)}
@@ -275,6 +311,55 @@ class TestComplete(TestIdRes):
         self.failUnlessEqual(r.identity_url, self.consumer_id)
         r.message.index('delegate')
 
+
+
+class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
+
+    def setUp(self):
+        self.store = GoodAssocStore()
+        self.consumer = GenericConsumer(self.store)
+        self.server_url = "http://idp.unittest/"
+        CatchLogs.setUp(self)
+
+        self.query = {'openid.mode': 'id_res',
+                      'openid.return_to': 'return_to (just anything)',
+                      'openid.identity': 'something something',
+                      'openid.assoc_handle': 'does not matter',
+                      'openid.sig': GOODSIG,
+                      'openid.nonce': mkNonce(),
+                      'openid.signed': 'identity,return_to,nonce'
+                      }
+        self.token = self.consumer._genToken('', '', self.server_url)
+
+
+    def tearDown(self):
+        CatchLogs.tearDown(self)
+
+
+    def test_idResMissingNoSigs(self):
+        r = self.consumer.complete(self.query, self.token)
+        self.failUnlessSuccess(r)
+
+
+    def test_idResNoIdentity(self):
+        del self.query['openid.identity']
+        self.query['openid.signed'] = 'return_to,nonce'
+        r = self.consumer.complete(self.query, self.token)
+        self.failUnlessSuccess(r)
+
+
+    def test_idResMissingIdentitySig(self):
+        self.query['openid.signed'] = 'return_to,nonce'
+        r = self.consumer.complete(self.query, self.token)
+        self.failUnlessEqual(r.status, FAILURE)
+
+
+    def failUnlessSuccess(self, response):
+        if response.status != SUCCESS:
+            self.fail("Non-successful response: %s" % (response,))
+
+
+
 class TestCheckAuthResponse(TestIdRes):
     def _createAssoc(self):
         issued = time.time()
@@ -375,17 +460,6 @@ class CheckAuthDetectingConsumer(GenericConsumer):
     def _checkAuth(self, *args):
         raise CheckAuthHappened(args)
 
-class CatchLogs(object):
-    def setUp(self):
-        self.old_logger = oidutil.log
-        oidutil.log = self.gotLogMessage
-        self.messages = []
-
-    def gotLogMessage(self, message):
-        self.messages.append(message)
-
-    def tearDown(self):
-        oidutil.log = self.old_logger
 
 class CheckNonceTest(TestIdRes, CatchLogs):
     def setUp(self):

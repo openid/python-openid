@@ -557,8 +557,8 @@ class GenericConsumer(object):
         if return_to is None or server_id2 is None or assoc_handle is None:
             return FailureResponse(endpoint, 'Missing required field')
 
-        if endpoint.getServerID() != server_id2:
-            return FailureResponse(endpoint, 'Server ID (delegate) mismatch')
+        if server_id != server_id2:
+            return FailureResponse(consumer_id, 'Server ID (delegate) mismatch')
 
         signed = query.get('openid.signed')
 
@@ -590,7 +590,7 @@ class GenericConsumer(object):
         signed_list = signed.split(',')
 
         # Fail if the identity field is present but not signed
-        if endpoint.identity_url is not None and 'identity' not in signed_list:
+        if consumer_id is not None and 'identity' not in signed_list:
             msg = '"openid.identity" not signed'
             return FailureResponse(endpoint, msg)
 
