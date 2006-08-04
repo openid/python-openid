@@ -561,6 +561,8 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.return_to':self.return_to,
             'openid.identity':self.server_id,
             'openid.assoc_handle':'not_found',
+            'openid.sig': GOODSIG,
+            'openid.signed': 'identity,return_to',
             }
         try:
             result = self._doIdRes(query)
@@ -583,6 +585,8 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.return_to':self.return_to,
             'openid.identity':self.server_id,
             'openid.assoc_handle':'not_found',
+            'openid.sig': GOODSIG,
+            'openid.signed': 'identity,return_to',
             }
         try:
             result = self._doIdRes(query)
@@ -606,11 +610,14 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.return_to':self.return_to,
             'openid.identity':self.server_id,
             'openid.assoc_handle':handle,
+            'openid.sig': GOODSIG,
+            'openid.signed': 'identity,return_to',
             }
         info = self._doIdRes(query)
         self.failUnlessEqual(FAILURE, info.status)
         self.failUnlessEqual(self.consumer_id, info.identity_url)
-        info.message.index('expired') # raises an exception if it's not there
+        self.failUnless(info.message.find('expired') != -1,
+                        info.message)
 
     def test_newerAssoc(self):
         # Store an expired association for the server with the handle
