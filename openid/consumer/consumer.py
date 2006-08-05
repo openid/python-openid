@@ -550,14 +550,6 @@ class GenericConsumer(object):
         if user_setup_url is not None:
             return SetupNeededResponse(endpoint, user_setup_url)
 
-        required_fields = ['return_to', 'assoc_handle', 'sig', 'signed']
-
-        for field in required_fields:
-            if not query.get('openid.' + field):
-                return FailureResponse(consumer_id,
-                                       'Missing required field %r' % (field,))
-
-        return_to = query.get('openid.return_to')
         server_id2 = query.get('openid.identity')
         assoc_handle = query.get('openid.assoc_handle')
 
@@ -604,14 +596,15 @@ class GenericConsumer(object):
         if sig is None or signed is None:
             return FailureResponse(consumer_id, 'Missing argument signature')
 
-        assoc = self.store.getAssociation(server_url, assoc_handle)
+        assoc = self.store.getAssociation(server_url,
+                                          query['openid.assoc_handle'])
 
         # Fail if the identity field is present but not signed
         if consumer_id is not None and 'identity' not in signed_list:
             msg = '"openid.identity" not signed'
             return FailureResponse(consumer_id, msg)
 
-            if v_sig != sig:
+            if v_sig != query['openid.sig']:
                 return FailureResponse(verified_id, 'Bad signature')
 
         if v_sig != sig:
