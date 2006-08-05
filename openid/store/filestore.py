@@ -6,6 +6,7 @@ flat files.
 import string
 import os
 import os.path
+import sys
 import time
 
 from errno import EEXIST, ENOENT
@@ -218,7 +219,10 @@ class FileOpenIDStore(OpenIDStore):
             file_obj.close()
 
             try:
-                if hasattr(os, 'link'):
+                if hasattr(os, 'link') and sys.platform != 'cygwin':
+                    # because os.link works in some cygwin environments,
+                    # but returns errno 17 on others.  Haven't figured out
+                    # how to predict when it will do that yet.
                     os.link(tmp, self.auth_key_name)
                 else:
                     os.rename(tmp, self.auth_key_name)
