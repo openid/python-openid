@@ -15,6 +15,8 @@ from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
 from yadis.manager import Discovery
+from yadis.discover import DiscoveryFailure
+
 
 from openid.consumer import parse
 
@@ -359,6 +361,7 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
 
 
     def test_idResMissingNoSigs(self):
+        self.consumer._verifyDiscoveryResults = lambda vid, surl: vid
         r = self.consumer.complete(self.query, self.token)
         self.failUnlessSuccess(r)
 
@@ -1005,6 +1008,136 @@ class ConsumerTest(unittest.TestCase):
         self.failUnless(auth_req.endpoint is self.endpoint)
         self.failUnless(auth_req.endpoint is self.consumer.consumer.endpoint)
         self.failUnless(auth_req.assoc is self.consumer.consumer.assoc)
+
+
+
+class IDPDrivenTest(unittest.TestCase):
+
+    def setUp(self):
+        self.store = GoodAssocStore()
+        self.consumer = GenericConsumer(self.store)
+        self.endpoint = OpenIDServiceEndpoint()
+        self.endpoint.server_url = "http://idp.unittest/"
+        self.endpoint.type_uris = ['http://openid.net/server/2.0']
+
+
+    def test_idpDrivenBegin(self):
+        # Testing here that the token-handling doesn't explode...
+        self.consumer.begin(self.endpoint)
+
+
+    def test_idpDrivenComplete(self):
+        query = {
+            'openid.identity': '=directed_identifier',
+            'openid.return_to': 'x',
+            'openid.assoc_handle': 'z',
+            'openid.signed': 'identity,return_to',
+            'openid.sig': GOODSIG,
+            }
+        iverified = []
+        def verifyDiscoveryResults(identifier, server_url):
+            iverified.append((identifier, server_url))
+            return identifier
+        self.consumer._verifyDiscoveryResults = verifyDiscoveryResults
+        response = self.consumer._doIdRes(query, '', '',
+                                          self.endpoint.server_url)
+
+        self.failUnlessSuccess(response)
+        self.failUnlessEqual(response.identity_url, "=directed_identifier")
+
+        # assert that discovery attempt happens and returns good
+        self.failUnlessEqual(iverified, [("=directed_identifier",
+                                          self.endpoint.server_url)])
+
+
+    def test_idpDrivenCompleteFraud(self):
+        query = {} # crap with an identifier that doesn't match discovery info
+        query = {
+            'openid.identity': '=directed_identifier',
+            'openid.return_to': 'x',
+            'openid.assoc_handle': 'z',
+            'openid.signed': 'identity,return_to',
+            'openid.sig': GOODSIG,
+            }
+        def verifyDiscoveryResults(identifier, server_url):
+            raise DiscoveryFailure("PHREAK!", None)
+        self.consumer._verifyDiscoveryResults = verifyDiscoveryResults
+        response = self.consumer._doIdRes(query, '', '',
+                                          self.endpoint.server_url)
+
+        self.failIfEqual(response.status, SUCCESS)
+
+
+    def failUnlessSuccess(self, response):
+        if response.status != SUCCESS:
+            self.fail("Non-successful response: %s" % (response,))
+
+
+
+class TestDiscoveryVerification(unittest.TestCase):
+    services = []
+
+    def setUp(self):
+        from openid.consumer import consumer
+        self._orig_discoverURL = consumer.discoverURL
+        consumer.discoverURL = self.discoveryFunc
+        self.store = GoodAssocStore()
+        self.consumer = GenericConsumer(self.store)
+
+        self.identifier = "http://idp.unittest/1337"
+        self.server_url = "http://endpoint.unittest/"
+
+
+    def tearDown(self):
+        from openid.consumer import consumer
+        consumer.discoverURL = self._orig_discoverURL
+
+
+    def test_theGoodStuff(self):
+        endpoint = OpenIDServiceEndpoint()
+        endpoint.identity_url = self.identifier
+        endpoint.server_url = self.server_url
+        endpoint.delegate = self.identifier
+        self.services = [endpoint]
+        r = self.consumer._verifyDiscoveryResults(self.identifier,
+                                                  self.server_url)
+        self.failUnlessEqual(r, self.identifier)
+
+
+    def test_otherServer(self):
+        # a set of things without the stuff
+        endpoint = OpenIDServiceEndpoint()
+        endpoint.identity_url = self.identifier
+        endpoint.server_url = "http://the-MOON.unittest/"
+        endpoint.delegate = self.identifier
+        self.services = [endpoint]
+        self.failUnlessRaises(DiscoveryFailure,
+                              self.consumer._verifyDiscoveryResults,
+                              self.identifier, self.server_url)
+
+
+    def test_foreignDelegate(self):
+        # a set of things with the server stuff but other delegate
+        endpoint = OpenIDServiceEndpoint()
+        endpoint.identity_url = self.identifier
+        endpoint.server_url = self.server_url
+        endpoint.delegate = "http://unittest/juan-carlos"
+        self.failUnlessRaises(DiscoveryFailure,
+                              self.consumer._verifyDiscoveryResults,
+                              self.identifier, self.server_url)
+
+
+    def test_nothingDiscovered(self):
+        # a set of no things.
+        self.failUnlessRaises(DiscoveryFailure,
+                              self.consumer._verifyDiscoveryResults,
+                              self.identifier, self.server_url)
+
+
+    def discoveryFunc(self, identifier):
+        return identifier, self.services
+
+
 
 if __name__ == '__main__':
     unittest.main()
