@@ -111,9 +111,13 @@ class TrustRoot(object):
                 return False
 
             if len(host_parts[-2]) <= 3:
-                # It's a 2-letter tld, so there needs to be more than two
-                # segments specified (e.g. *.co.uk is insane)
+                # It's a 2-letter tld with a short second to last segment
+                # so there needs to be more than two segments specified 
+                # (e.g. *.co.uk is insane)
                 return len(host_parts) > 2
+            else:
+                # A long second to last segment is specified.
+                return len(host_parts) > 1
         else:
             # It's a regular tld, so it needs at least one more segment
             return len(host_parts) > 1

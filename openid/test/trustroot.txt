@@ -21,7 +21,7 @@ http://*foo.com/
 5
 
 ----------------------------------------
-17: Insane
+16: Insane
 ----------------------------------------
 http:///
 http://*/
@@ -35,14 +35,13 @@ http://*.foo.notatld/
 https://*.foo.notatld/
 http://*.museum/
 https://*.museum/
-http://kink.fm/should/be/sane
 http://www.schtuffcom/
 http://it/
 http://..it/
 http://.it/
 
 ----------------------------------------
-16: Sane
+18: Sane
 ----------------------------------------
 http://*.schtuff.com./
 http://*.schtuff.com/
@@ -59,6 +58,8 @@ http://x.foo.com/path?action=%3D
 http://localhost:8081/
 http://localhost:8082/?action=openid
 https://foo.com/
+http://kink.fm/should/be/sane
+http://beta.lingu.no/
 http://goathack.livejournal.org:8020/openid/login.bml
 
 ========================================
