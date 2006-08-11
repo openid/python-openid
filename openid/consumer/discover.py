@@ -176,12 +176,16 @@ def discoverYadis(uri):
 
 
 def discoverXRI(iname):
-    services = xri.ProxyResolver().query(
-        iname, OpenIDServiceEndpoint.openid_type_uris)
     endpoints = []
-    flt = filters.mkFilter(OpenIDServiceEndpoint)
-    for service_element in services:
-        endpoints.extend(flt.getServiceEndpoints(iname, service_element))
+    try:
+        services = xri.ProxyResolver().query(
+            iname, OpenIDServiceEndpoint.openid_type_uris)
+        flt = filters.mkFilter(OpenIDServiceEndpoint)
+        for service_element in services:
+            endpoints.extend(flt.getServiceEndpoints(iname, service_element))
+    except XRDSError:
+        oidutil.log('xrds error on ' + iname)
+
     # FIXME: returned xri should probably be in some normal form
     return iname, endpoints
 
