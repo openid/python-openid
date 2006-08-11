@@ -127,4 +127,3 @@ if __name__ == '__main__':
         db_conn.close()
     else:
         parser.print_help()
-    
