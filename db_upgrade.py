@@ -44,7 +44,7 @@ def doMySQLUpgrade(db_conn, nonce_table_name='oid_nonces'):
     cur.execute(sql)
     cur.close()
 
-def doPostGreSQLUpgrade(db_conn, nonce_table_name='oid_nonces'):
+def doPostgreSQLUpgrade(db_conn, nonce_table_name='oid_nonces'):
     cur = conn.cursor()
     cur.execute('DROP TABLE %s'%nonce_table_name)
     sql = """
@@ -70,11 +70,11 @@ if __name__ == '__main__':
     parser.add_option('--mysql', dest='mysql_db_name', 
                     help='Upgrade a table from this MySQL database. Requires username for database.')
     parser.add_option('--pg', '--postgresql', dest='postgres_db_name',
-                    help='Upgrade a table from this PostGreSQL database. Requires username for database.')
+                    help='Upgrade a table from this PostgreSQL database. Requires username for database.')
     parser.add_option('--sqlite', dest='sqlite_db_name',
                     help='Upgrade a table from this SQLite database file')
     parser.add_option('--host', dest='db_host',
-                    help='Host on which to find MySQL or PostGreSQL DB')
+                    help='Host on which to find MySQL or PostgreSQL DB')
     (options, args) = parser.parse_args()
 
     db_conn = None
@@ -91,7 +91,7 @@ if __name__ == '__main__':
             
     if options.postgres_db_name:
         if not options.username:
-            print "A username is required to open a PostGreSQL Database."
+            print "A username is required to open a PostgreSQL Database."
             exit
         password = askForPassword()
         try:
@@ -104,7 +104,7 @@ if __name__ == '__main__':
                                   host = options.db_host,
                                   passwd = password)
         if askForConfirmation(options.postgres_db_name, options.tablename):
-            doPostGreSQLUpgrade(db_conn, nonce_table_name=options.tablename)
+            doPostgreSQLUpgrade(db_conn, nonce_table_name=options.tablename)
     
     if options.mysql_db_name:
         if not options.username:
