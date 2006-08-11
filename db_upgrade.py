@@ -2,6 +2,7 @@
 # doesn't depend on the openid library, so you can run this python
 # script to update databases for ruby or php as well
 
+import os
 from optparse import OptionParser
 
 
@@ -62,7 +63,7 @@ def doPostGreSQLUpgrade(db_conn, nonce_table_name='oid_nonces'):
 
 if __name__ == '__main__':
     parser = OptionParser()
-    parser.add_option("-u", "--user", dest="username", default=os.environ.get('USER')
+    parser.add_option("-u", "--user", dest="username", default=os.environ.get('USER'),
                     help="User name to use to connect to the DB. Defaults to USER environment variable.")
     parser.add_option('-t', '--table', dest='tablename', default='oid_nonces',
                     help='The name of the nonce table to drop and recreate. defaults to "oid_nonces", the default table name for the openid stores.')
@@ -99,7 +100,7 @@ if __name__ == '__main__':
             exit
         db_conn = psycopg.connect(database = options.postgres_db_name,
                                user = options.username,
-                               host = options.db_host
+                               host = options.db_host,
                                passwd = password)
         if askForConfirmation(options.postgres_db_name, options.tablename):
             doPostGreSQLUpgrade(db_conn, nonce_table_name=options.tablename)
@@ -117,7 +118,7 @@ if __name__ == '__main__':
             exit
         db_conn = MySQLdb.connect(database = options.mysql_db_name,
                                user = options.username,
-                               host = options.db_host
+                               host = options.db_host,
                                passwd = password)
         if askForConfirmation(options.mysql_db_name, options.tablename):
             doMySQLUpgrade(db_conn, nonce_table_name=options.tablename)
