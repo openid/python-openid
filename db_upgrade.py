@@ -15,7 +15,7 @@ def askForConfirmation(dbname,tablename):
     print """The table %s from the database %s will be dropped, and 
     an empty table with the new nonce table schema will replace it."""%(
     tablename, dbname)
-    return raw_input("Continue? ").lower().startswith('y')
+    return raw_input("Continue? ").lower().strip().startswith('y')
 
 def doSQLiteUpgrade(db_conn, nonce_table_name='oid_nonces'):
     cur = db_conn.cursor()
