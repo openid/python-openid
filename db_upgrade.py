@@ -77,8 +77,9 @@ if __name__ == '__main__':
                     help='Host on which to find MySQL or PostGreSQL DB')
     (options, args) = parser.parse_args()
 
+    db_conn = None
+
     if options.sqlite_db_name:
-        
         try:
             from pysqlite2 import dbapi2 as sqlite
         except ImportError:
@@ -104,7 +105,6 @@ if __name__ == '__main__':
                                passwd = password)
         if askForConfirmation(options.postgres_db_name, options.tablename):
             doPostGreSQLUpgrade(db_conn, nonce_table_name=options.tablename)
-        conn.close()
     
     if options.mysql_db_name:
         if not options.username:
@@ -123,4 +123,6 @@ if __name__ == '__main__':
         if askForConfirmation(options.mysql_db_name, options.tablename):
             doMySQLUpgrade(db_conn, nonce_table_name=options.tablename)
         
+    if db_conn:
+        db_conn.close()
     
