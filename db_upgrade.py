@@ -75,7 +75,7 @@ if __name__ == '__main__':
     parser.add_option('--sqlite', dest='sqlite_db_name',
                     help='Upgrade a table from this SQLite database file')
     parser.add_option('--host', dest='db_host',
-                    help='Host on which to find MySQL or PostgreSQL DB')
+                    help='Host on which to find MySQL or PostgreSQL DB', default='localhost')
     (options, args) = parser.parse_args()
 
     db_conn = None
@@ -116,11 +116,10 @@ if __name__ == '__main__':
             import MySQLdb
         except ImportError:
             print "You must have MySQLdb installed to update a MySQL DB."
-            exit
-        db_conn = MySQLdb.connect(database = options.mysql_db_name,
-                                  user = options.username,
-                                  host = options.db_host,
-                                  passwd = password)
+            sys.exit(1)
+
+        db_conn = MySQLdb.connect(options.db_host, options.username, password, options.mysql_db_name)
+
         if askForConfirmation(options.mysql_db_name, options.tablename):
             doMySQLUpgrade(db_conn, nonce_table_name=options.tablename)
         
