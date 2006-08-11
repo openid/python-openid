@@ -125,4 +125,6 @@ if __name__ == '__main__':
         
     if db_conn:
         db_conn.close()
+    else:
+        parser.print_help()
     
