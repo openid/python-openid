@@ -59,7 +59,7 @@ def doPostgreSQLUpgrade(db_conn, nonce_table_name='oid_nonces'):
     """%nonce_table_name
     cur.execute(sql)
     cur.close()
-    conn.commit()
+    db_conn.commit()
 
     
 
