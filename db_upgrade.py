@@ -87,7 +87,12 @@ if __name__ == '__main__':
         except ImportError:
             print "You must have pysqlite2 installed in your PYTHONPATH."
             sys.exit(1)
-        db_conn = sqlite.connect(options.sqlite_db_name)
+        try:
+            db_conn = sqlite.connect(options.sqlite_db_name)
+        except Exception, e:
+            print "Could not connect to SQLite database:", str(e)
+            sys.exit(1)
+
         if askForConfirmation(options.sqlite_db_name, options.tablename):
             doSQLiteUpgrade(db_conn, nonce_table_name=options.tablename)
             
@@ -101,10 +106,16 @@ if __name__ == '__main__':
         except ImportError:
             print "You need psycopg installed to update a postgres DB."
             sys.exit(1)
-        db_conn = psycopg.connect(database = options.postgres_db_name,
-                                  user = options.username,
-                                  host = options.db_host,
-                                  passwd = password)
+
+        try:
+            db_conn = psycopg.connect(database = options.postgres_db_name,
+                                      user = options.username,
+                                      host = options.db_host,
+                                      passwd = password)
+        except Exception, e:
+            print "Could not connect to PostgreSQL database:", str(e)
+            sys.exit(1)
+
         if askForConfirmation(options.postgres_db_name, options.tablename):
             doPostgreSQLUpgrade(db_conn, nonce_table_name=options.tablename)
     
@@ -119,7 +130,11 @@ if __name__ == '__main__':
             print "You must have MySQLdb installed to update a MySQL DB."
             sys.exit(1)
 
-        db_conn = MySQLdb.connect(options.db_host, options.username, password, options.mysql_db_name)
+        try:
+            db_conn = MySQLdb.connect(options.db_host, options.username, password, options.mysql_db_name)
+        except Exception, e:
+            print "Could not connect to MySQL database:", str(e)
+            sys.exit(1)
 
         if askForConfirmation(options.mysql_db_name, options.tablename):
             doMySQLUpgrade(db_conn, nonce_table_name=options.tablename)
