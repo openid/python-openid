@@ -111,7 +111,7 @@ if __name__ == '__main__':
             db_conn = psycopg.connect(database = options.postgres_db_name,
                                       user = options.username,
                                       host = options.db_host,
-                                      passwd = password)
+                                      password = password)
         except Exception, e:
             print "Could not connect to PostgreSQL database:", str(e)
             sys.exit(1)
