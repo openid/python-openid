@@ -3,6 +3,7 @@
 # script to update databases for ruby or php as well
 
 import os
+import sys
 from optparse import OptionParser
 
 
@@ -84,7 +85,7 @@ if __name__ == '__main__':
             from pysqlite2 import dbapi2 as sqlite
         except ImportError:
             print "You must have pysqlite2 installed in your PYTHONPATH."
-            exit
+            sys.exit(1)
         db_conn = sqlite.connect(options.sqlite_db_name)
         if askForConfirmation(options.sqlite_db_name, options.tablename):
             doSQLiteUpgrade(db_conn, nonce_table_name=options.tablename)
@@ -92,13 +93,13 @@ if __name__ == '__main__':
     if options.postgres_db_name:
         if not options.username:
             print "A username is required to open a PostgreSQL Database."
-            exit
+            sys.exit(1)
         password = askForPassword()
         try:
             import psycopg
         except ImportError:
             print "You need psycopg installed to update a postgres DB."
-            exit
+            sys.exit(1)
         db_conn = psycopg.connect(database = options.postgres_db_name,
                                   user = options.username,
                                   host = options.db_host,
@@ -109,7 +110,7 @@ if __name__ == '__main__':
     if options.mysql_db_name:
         if not options.username:
             print "A username is required to open a MySQL Database."
-            exit
+            sys.exit(1)
         password = askForPassword()
         try:
             import MySQLdb
