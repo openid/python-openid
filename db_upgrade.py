@@ -3,12 +3,13 @@
 # script to update databases for ruby or php as well
 
 import os
+import getpass
 import sys
 from optparse import OptionParser
 
 
 def askForPassword():
-    return raw_input("DB Password (not hidden): ")
+    return getpass.getpass("DB Password: ")
 
 def askForConfirmation(dbname,tablename):
     print """The table %s from the database %s will be dropped, and 
