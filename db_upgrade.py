@@ -100,9 +100,9 @@ if __name__ == '__main__':
             print "You need psycopg installed to update a postgres DB."
             exit
         db_conn = psycopg.connect(database = options.postgres_db_name,
-                               user = options.username,
-                               host = options.db_host,
-                               passwd = password)
+                                  user = options.username,
+                                  host = options.db_host,
+                                  passwd = password)
         if askForConfirmation(options.postgres_db_name, options.tablename):
             doPostGreSQLUpgrade(db_conn, nonce_table_name=options.tablename)
     
@@ -117,9 +117,9 @@ if __name__ == '__main__':
             print "You must have MySQLdb installed to update a MySQL DB."
             exit
         db_conn = MySQLdb.connect(database = options.mysql_db_name,
-                               user = options.username,
-                               host = options.db_host,
-                               passwd = password)
+                                  user = options.username,
+                                  host = options.db_host,
+                                  passwd = password)
         if askForConfirmation(options.mysql_db_name, options.tablename):
             doMySQLUpgrade(db_conn, nonce_table_name=options.tablename)
         
