@@ -17,7 +17,7 @@ def askForConfirmation(dbname,tablename):
     return raw_input("Continue? ").lower().startswith('y')
 
 def doSQLiteUpgrade(db_conn, nonce_table_name='oid_nonces'):
-    cur = conn.cursor()
+    cur = db_conn.cursor()
     cur.execute('DROP TABLE %s'%nonce_table_name)
     sql = """
     CREATE TABLE %s (
@@ -31,7 +31,7 @@ def doSQLiteUpgrade(db_conn, nonce_table_name='oid_nonces'):
     cur.close()
     
 def doMySQLUpgrade(db_conn, nonce_table_name='oid_nonces'):
-    cur = conn.cursor()
+    cur = db_conn.cursor()
     cur.execute('DROP TABLE %s'%nonce_table_name)
     sql = """
     CREATE TABLE %s (
@@ -46,7 +46,7 @@ def doMySQLUpgrade(db_conn, nonce_table_name='oid_nonces'):
     cur.close()
 
 def doPostgreSQLUpgrade(db_conn, nonce_table_name='oid_nonces'):
-    cur = conn.cursor()
+    cur = db_conn.cursor()
     cur.execute('DROP TABLE %s'%nonce_table_name)
     sql = """
     CREATE TABLE %s (
