@@ -49,7 +49,7 @@ def pyunitTests():
     from openid.test import test_htmldiscover
     from openid.test import test_openidyadis
     from openid.test import test_discover
-    from openid.test import consumer
+    from openid.test import test_consumer
     from openid.test import kvform
     from openid.test import server
     from openid.test import oidutil
@@ -59,7 +59,7 @@ def pyunitTests():
 
     pyunit_modules = [
         server,
-        consumer,
+        test_consumer,
         association,
         ]
 

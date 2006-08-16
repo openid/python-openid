@@ -1,5 +1,3 @@
-# -*- test-case-name: openid.test.consumer -*-
-
 import urlparse
 import cgi
 import time
