@@ -26,7 +26,7 @@ else:
     from yadis.services import applyFilter as extractServices
     from yadis.discover import discover as yadisDiscover
     from yadis.discover import DiscoveryFailure
-    from yadis import xrires, filters
+    from yadis import xri, filters
 
 from openid.consumer.parse import openIDDiscover as parseOpenIDLinkRel
 from openid.consumer.parse import ParseError
@@ -247,11 +247,6 @@ def discover(uri):
         uri = 'http://' + uri
     
     uri = normalizeURL(uri)
-    identity_url, openid_services = discoverRaw(uri)
+    identity_url, openid_services = discoverYadis(uri)
     identity_url = normalizeURL(identity_url)
     return identity_url, openid_services
-
-if yadis_available:
-    discoverRaw = discoverYadis
-else:
-    discoverRaw = discoverNoYadis

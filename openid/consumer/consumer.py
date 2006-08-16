@@ -190,7 +190,7 @@ from urljr import fetchers
 
 from openid.consumer.discover import discover as discoverURL
 from openid.consumer.discover import discoverXRI
-from openid.consumer.discover import yadis_available, DiscoveryFailure
+from openid.consumer.discover import DiscoveryFailure
 from openid.message import Message, fixNamespaceURI, SREG_URI
 from openid import cryptutil
 from openid import kvform
@@ -198,15 +198,14 @@ from openid import oidutil
 from openid.association import Association, default_negotiator
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce, split as splitNonce
+from yadis.manager import Discovery
+from yadis import xri
+
 
 __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
            'SetupNeededResponse', 'CancelResponse', 'FailureResponse',
            'SUCCESS', 'FAILURE', 'CANCEL', 'SETUP_NEEDED',
            ]
-
-if yadis_available:
-    from yadis.manager import Discovery
-    from yadis import xri
 
 class Consumer(object):
     """An OpenID consumer implementation that performs discovery and
@@ -279,26 +278,18 @@ class Consumer(object):
             is available, L{openid.consumer.discover.DiscoveryFailure} is
             an alias for C{yadis.discover.DiscoveryFailure}.
         """
-        if yadis_available and xri.identifierScheme(user_url) == "XRI":
+        if xri.identifierScheme(user_url) == "XRI":
             discoverMethod = discoverXRI
         else:
             discoverMethod = discoverURL
 
-        if yadis_available:
-            try:
-                disco = Discovery(self.session,
-                                  user_url,
-                                  self.session_key_prefix)
-                service = disco.getNextService(discoverMethod)
-            except fetchers.HTTPFetchingError, e:
-                raise DiscoveryFailure('Error fetching XRDS document', e)
-        else:
-            # XXX - Untested branch!
-            _, services = discoverURL(user_url)
-            if not services:
-                service = None
-            else:
-                service = services[0]
+        try:
+            disco = Discovery(self.session,
+                              user_url,
+                              self.session_key_prefix)
+            service = disco.getNextService(discoverMethod)
+        except fetchers.HTTPFetchingError, e:
+            raise DiscoveryFailure('Error fetching XRDS document', e)
 
         if service is None:
             raise DiscoveryFailure(
@@ -357,7 +348,6 @@ class Consumer(object):
             del self.session[self._token_key]
 
         if (response.status in ['success', 'cancel'] and
-            yadis_available and
             response.identity_url is not None):
 
             disco = Discovery(self.session,
@@ -461,6 +451,23 @@ class GenericConsumer(object):
         if isinstance(mode, list):
             raise TypeError("query dict must have one value for each key, "
                             "not lists of values.  Query is %r" % (query,))
+
+        # Get the current request's state
+        try:
+            pieces = self._splitToken(token)
+        except ValueError, why:
+            oidutil.log(why[0])
+            pieces = (None, None, None)
+
+        (identity_url, delegate, server_url) = pieces
+
+        if (identity_url and yadis_available
+            and xri.identifierScheme(identity_url) == 'XRI'):
+            identity_url = unicode(identity_url, 'utf-8')
+
+        if (delegate and yadis_available
+            and xri.identifierScheme(delegate) == 'XRI'):
+            delegate = unicode(delegate, 'utf-8')
 
         if mode == 'cancel':
             return CancelResponse(endpoint)
