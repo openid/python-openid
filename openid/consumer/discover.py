@@ -177,12 +177,21 @@ def discoverYadis(uri):
 
 
 def discoverXRI(iname):
-    services = xri.ProxyResolver().query(
-        iname, OpenIDServiceEndpoint.openid_type_uris)
     endpoints = []
-    flt = filters.mkFilter(OpenIDServiceEndpoint)
-    for service_element in services:
-        endpoints.extend(flt.getServiceEndpoints(iname, service_element))
+    try:
+        canonicalID, services = xrires.ProxyResolver().query(
+            iname, OpenIDServiceEndpoint.openid_type_uris)
+        flt = filters.mkFilter(OpenIDServiceEndpoint)
+        for service_element in services:
+            endpoints.extend(flt.getServiceEndpoints(iname, service_element))
+    except XRDSError:
+        oidutil.log('xrds error on ' + iname)
+
+    for endpoint in endpoints:
+        # Is there a way to pass this through the filter to the endpoint
+        # constructor instead of tacking it on after?
+        endpoint.canonicalID = canonicalID
+
     # FIXME: returned xri should probably be in some normal form
     return iname, endpoints
 
