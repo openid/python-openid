@@ -414,13 +414,15 @@ class TestXRIDiscovery(BaseTestDiscovery):
     documents = {'=smoker': ('application/xrds+xml', yadis_2entries) }
 
     def test_xri(self):
+        from yadis.xri import XRI
         user_xri, services = discover.discoverXRI('=smoker')
         self.failUnless(services)
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[1].server_url,
                              "http://www.livejournal.com/openid/server.bml")
-        self.failUnlessEqual(services[0].canonicalID, "=!1000")
+        self.failUnlessEqual(services[0].canonicalID, XRI("=!1000"))
+
 
 def pyUnitTests():
     return datadriven.loadTests(__name__)
