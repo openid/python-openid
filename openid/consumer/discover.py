@@ -7,26 +7,12 @@ from openid import oidutil
 
 # If the Yadis library is available, use it. Otherwise, only use
 # old-style discovery.
-try:
-    import yadis
-except ImportError:
-    yadis_available = False
-
-    oidutil.log('Consumer operating without Yadis support '
-                '(failed to import Yadis library)')
-
-    class DiscoveryFailure(RuntimeError):
-        """A failure to discover an OpenID server.
-
-        When the C{yadis} package is available, this is
-        C{yadis.discover.DiscoveryFailure}."""
-else:
-    yadis_available = True
-    from yadis.etxrd import nsTag, XRDSError
-    from yadis.services import applyFilter as extractServices
-    from yadis.discover import discover as yadisDiscover
-    from yadis.discover import DiscoveryFailure
-    from yadis import xri, filters
+import yadis
+from yadis.etxrd import nsTag, XRDSError
+from yadis.services import applyFilter as extractServices
+from yadis.discover import discover as yadisDiscover
+from yadis.discover import DiscoveryFailure
+from yadis import xrires, filters
 
 from openid.consumer.parse import openIDDiscover as parseOpenIDLinkRel
 from openid.consumer.parse import ParseError
