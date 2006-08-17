@@ -5,7 +5,7 @@ from urljr import fetchers
 from urljr.fetchers import HTTPResponse
 from yadis.discover import DiscoveryFailure
 from openid.consumer import discover
-from yadis import xri
+from yadis import xrires
 from urlparse import urlsplit
 
 ### Tests for conditions that trigger DiscoveryFailure
@@ -163,6 +163,7 @@ yadis_2entries = '''<?xml version="1.0" encoding="UTF-8"?>
            xmlns:openid="http://openid.net/xmlns/1.0"
            >
   <XRD>
+    <CanonicalID>=!1000</CanonicalID>
 
     <Service priority="10">
       <Type>http://openid.net/signon/1.0</Type>
@@ -374,7 +375,7 @@ class TestDiscovery(BaseTestDiscovery):
 
 class MockFetcherForXRIProxy(object):
 
-    def __init__(self, documents, proxy_url=xri.DEFAULT_PROXY):
+    def __init__(self, documents, proxy_url=xrires.DEFAULT_PROXY):
         self.documents = documents
         self.fetchlog = []
         self.proxy_url = None
