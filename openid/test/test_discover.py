@@ -420,6 +420,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[1].server_url,
                              "http://www.livejournal.com/openid/server.bml")
+        self.failUnlessEqual(services[0].canonicalID, "=!1000")
 
 def pyUnitTests():
     return datadriven.loadTests(__name__)
