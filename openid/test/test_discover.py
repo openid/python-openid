@@ -424,3 +424,8 @@ class TestXRIDiscovery(BaseTestDiscovery):
 
 def pyUnitTests():
     return datadriven.loadTests(__name__)
+
+if __name__ == '__main__':
+    suite = pyUnitTests()
+    runner = unittest.TextTestRunner()
+    runner.run(suite)
