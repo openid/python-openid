@@ -329,7 +329,7 @@ class Consumer(object):
         @see: openid.consumer.discover
         """
         auth_req = self.consumer.begin(service)
-        self.session[self._token_key] = auth_req.token
+        self.session[self._token_key] = auth_req.endpoint
         return auth_req
 
     def complete(self, query):
@@ -350,11 +350,11 @@ class Consumer(object):
         @see: L{FailureResponse<openid.consumer.consumer.FailureResponse>}
         """
 
-        token = self.session.get(self._token_key)
-        if token is None:
+        endpoint = self.session.get(self._token_key)
+        if endpoint is None:
             response = FailureResponse(None, 'No session state found')
         else:
-            response = self.consumer.complete(query, token)
+            response = self.consumer.complete(query, endpoint)
             del self.session[self._token_key]
 
         if (response.status in ['success', 'cancel'] and
@@ -412,7 +412,6 @@ class GenericConsumer(object):
     running.
     """
 
-    TOKEN_LIFETIME = 60 * 5 # five minutes
     NONCE_LEN = 8
     NONCE_CHRS = string.ascii_letters + string.digits
 
@@ -421,61 +420,38 @@ class GenericConsumer(object):
 
     def begin(self, service_endpoint):
         nonce = self._createNonce()
-        token = self._genToken(
-            service_endpoint.identity_url,
-            service_endpoint.getServerID(),
-            service_endpoint.server_url,
-            )
         assoc = self._getAssociation(service_endpoint.server_url)
-        request = AuthRequest(token, assoc, service_endpoint)
+        request = AuthRequest(service_endpoint, assoc)
         request.return_to_args['nonce'] = nonce
         return request
 
-    def complete(self, query, token):
+    def complete(self, query, endpoint):
         mode = query.get('openid.mode', '<no mode specified>')
 
         if isinstance(mode, list):
             raise TypeError("query dict must have one value for each key, "
                             "not lists of values.  Query is %r" % (query,))
 
-        # Get the current request's state
-        try:
-            pieces = self._splitToken(token)
-        except ValueError, why:
-            oidutil.log(why[0])
-            pieces = (None, None, None)
-
-        (identity_url, delegate, server_url) = pieces
-
-        if (identity_url and yadis_available
-            and xri.identifierScheme(identity_url) == 'XRI'):
-            identity_url = unicode(identity_url, 'utf-8')
-
-        if (delegate and yadis_available
-            and xri.identifierScheme(delegate) == 'XRI'):
-            delegate = unicode(delegate, 'utf-8')
-
         if mode == 'cancel':
-            return CancelResponse(identity_url)
+            return CancelResponse(endpoint)
         elif mode == 'error':
             error = query.get('openid.error')
-            return FailureResponse(identity_url, error)
+            return FailureResponse(endpoint, error)
         elif mode == 'id_res':
-            if identity_url is None:
-                return FailureResponse(identity_url, 'No session state found')
+            if endpoint.identity_url is None:
+                return FailureResponse(endpoint, 'No session state found')
             try:
-                response = self._doIdRes(
-                    query, identity_url, delegate, server_url)
+                response = self._doIdRes(query, endpoint)
             except fetchers.HTTPFetchingError, why:
                 message = 'HTTP request failed: %s' % (str(why),)
-                return FailureResponse(identity_url, message)
+                return FailureResponse(endpoint, message)
             else:
                 if response.status == 'success':
                     return self._checkNonce(response, query.get('nonce'))
                 else:
                     return response
         else:
-            return FailureResponse(identity_url,
+            return FailureResponse(endpoint,
                                    'Invalid openid.mode: %r' % (mode,))
 
     def _checkNonce(self, response, nonce):
@@ -484,19 +460,17 @@ class GenericConsumer(object):
         for k, v in cgi.parse_qsl(query):
             if k == 'nonce':
                 if v != nonce:
-                    return FailureResponse(response.identity_url,
-                                           'Nonce mismatch')
+                    return FailureResponse(response, 'Nonce mismatch')
                 else:
                     break
         else:
-            return FailureResponse(response.identity_url,
-                                   'Nonce missing from return_to: %r'
+            return FailureResponse(response, 'Nonce missing from return_to: %r'
                                    % (response.getReturnTo()))
 
         # The nonce matches the signed nonce in the openid.return_to
         # response parameter
         if not self.store.useNonce(nonce):
-            return FailureResponse(response.identity_url,
+            return FailureResponse(response,
                                    'Nonce missing from store')
 
         # If the nonce check succeeded, return the original success
@@ -531,7 +505,7 @@ class GenericConsumer(object):
 
         return response
 
-    def _doIdRes(self, query, consumer_id, server_id, server_url):
+    def _doIdRes(self, query, endpoint):
         """Handle id_res responses.
 
         @param query: the response paramaters.
@@ -543,29 +517,29 @@ class GenericConsumer(object):
         """
         user_setup_url = query.get('openid.user_setup_url')
         if user_setup_url is not None:
-            return SetupNeededResponse(consumer_id, user_setup_url)
+            return SetupNeededResponse(endpoint, user_setup_url)
 
         return_to = query.get('openid.return_to')
         server_id2 = query.get('openid.identity')
         assoc_handle = query.get('openid.assoc_handle')
 
-        if return_to is None or server_id is None or assoc_handle is None:
-            return FailureResponse(consumer_id, 'Missing required field')
+        if return_to is None or server_id2 is None or assoc_handle is None:
+            return FailureResponse(endpoint, 'Missing required field')
 
-        if server_id != server_id2:
-            return FailureResponse(consumer_id, 'Server ID (delegate) mismatch')
+        if endpoint.delegate != server_id2:
+            return FailureResponse(endpoint, 'Server ID (delegate) mismatch')
 
         signed = query.get('openid.signed')
 
-        assoc = self.store.getAssociation(server_url, assoc_handle)
+        assoc = self.store.getAssociation(endpoint.server_url, assoc_handle)
 
         if assoc is None:
             # It's not an association we know about.  Dumb mode is our
             # only possible path for recovery.
-            if self._checkAuth(query, server_url):
-                return SuccessResponse.fromQuery(consumer_id, query, signed)
+            if self._checkAuth(query, endpoint.server_url):
+                return SuccessResponse.fromQuery(endpoint, query, signed)
             else:
-                return FailureResponse(consumer_id,
+                return FailureResponse(endpoint,
                                        'Server denied check_authentication')
 
         if assoc.expiresIn <= 0:
@@ -574,27 +548,27 @@ class GenericConsumer(object):
             # automatically opens the possibility for
             # denial-of-service by a server that just returns expired
             # associations (or really short-lived associations)
-            msg = 'Association with %s expired' % (server_url,)
-            return FailureResponse(consumer_id, msg)
+            msg = 'Association with %s expired' % (endpoint.server_url,)
+            return FailureResponse(endpoint, msg)
 
         # Check the signature
         sig = query.get('openid.sig')
         if sig is None or signed is None:
-            return FailureResponse(consumer_id, 'Missing argument signature')
+            return FailureResponse(endpoint, 'Missing argument signature')
 
         signed_list = signed.split(',')
 
         # Fail if the identity field is present but not signed
-        if consumer_id is not None and 'identity' not in signed_list:
+        if endpoint.identity_url is not None and 'identity' not in signed_list:
             msg = '"openid.identity" not signed'
-            return FailureResponse(consumer_id, msg)
+            return FailureResponse(endpoint, msg)
 
         v_sig = assoc.signDict(signed_list, query)
 
         if v_sig != sig:
-            return FailureResponse(consumer_id, 'Bad signature')
+            return FailureResponse(endpoint, 'Bad signature')
 
-        return SuccessResponse.fromQuery(consumer_id, query, signed)
+        return SuccessResponse.fromQuery(endpoint, query, signed)
 
     def _checkAuth(self, query, server_url):
         request = self._createCheckAuthRequest(query)
@@ -635,50 +609,13 @@ class GenericConsumer(object):
             oidutil.log('Server responds that checkAuth call is not valid')
             return False
 
-    def _genToken(self, consumer_id, server_id, server_url):
-        if isinstance(consumer_id, unicode):
-            consumer_id = consumer_id.encode('utf-8')
-
-        if isinstance(server_id, unicode):
-            server_id = server_id.encode('utf-8')
-
-        timestamp = str(int(time.time()))
-        elements = [timestamp, consumer_id, server_id, server_url]
-        joined = '\x00'.join(elements)
-        sig = cryptutil.hmacSha1(self.store.getAuthKey(), joined)
-
-        return oidutil.toBase64('%s%s' % (sig, joined))
-
-    def _splitToken(self, token):
-        token = oidutil.fromBase64(token)
-        if len(token) < 20:
-            raise ValueError('Bad token length: %d' % len(token))
-
-        sig, joined = token[:20], token[20:]
-        if cryptutil.hmacSha1(self.store.getAuthKey(), joined) != sig:
-            raise ValueError('Bad token signature')
-
-        split = joined.split('\x00')
-        if len(split) != 4:
-            raise ValueError('Bad token contents (not enough fields)')
-
-        try:
-            ts = int(split[0])
-        except ValueError:
-            raise ValueError('Bad token contents (timestamp bad)')
-
-        if ts + self.TOKEN_LIFETIME < time.time():
-            raise ValueError('Token expired')
-
-        return tuple(split[1:])
-
     def _getAssociation(self, server_url):
         if self.store.isDumb():
             return None
 
         assoc = self.store.getAssociation(server_url)
 
-        if assoc is None or assoc.expiresIn < self.TOKEN_LIFETIME:
+        if assoc is None or assoc.expiresIn <= 0:
             assoc_session, args = self._createAssociateRequest(server_url)
             try:
                 response = self._makeKVPost(args, server_url)
@@ -763,7 +700,7 @@ class GenericConsumer(object):
         return assoc
 
 class AuthRequest(object):
-    def __init__(self, token, assoc, endpoint):
+    def __init__(self, endpoint, assoc):
         """
         Creates a new AuthRequest object.  This just stores each
         argument in an appropriately named field.
@@ -776,7 +713,6 @@ class AuthRequest(object):
         self.endpoint = endpoint
         self.extra_args = {}
         self.return_to_args = {}
-        self.token = token
 
     def addExtensionArg(self, namespace, key, value):
         """Add an extension argument to this OpenID authentication
@@ -850,16 +786,17 @@ class SuccessResponse(Response):
 
     status = SUCCESS
 
-    def __init__(self, identity_url, signed_args):
-        self.identity_url = identity_url
+    def __init__(self, endpoint, signed_args):
+        self.endpoint = endpoint
+        self.identity_url = endpoint.identity_url
         self.signed_args = signed_args
 
-    def fromQuery(cls, identity_url, query, signed):
+    def fromQuery(cls, endpoint, query, signed):
         signed_args = {}
         for field_name in signed.split(','):
             field_name = 'openid.' + field_name
             signed_args[field_name] = query.get(field_name, '')
-        return cls(identity_url, signed_args)
+        return cls(endpoint, signed_args)
 
     fromQuery = classmethod(fromQuery)
 
@@ -910,8 +847,12 @@ class FailureResponse(Response):
 
     status = FAILURE
 
-    def __init__(self, identity_url=None, message=None):
-        self.identity_url = identity_url
+    def __init__(self, endpoint, message=None):
+        self.endpoint = endpoint
+        if endpoint is not None:
+            self.identity_url = endpoint.identity_url
+        else:
+            self.identity_url = None
         self.message = message
 
 
@@ -933,8 +874,9 @@ class CancelResponse(Response):
 
     status = CANCEL
 
-    def __init__(self, identity_url=None):
-        self.identity_url = identity_url
+    def __init__(self, endpoint):
+        self.endpoint = endpoint
+        self.identity_url = endpoint.identity_url
 
 class SetupNeededResponse(Response):
     """A response with a status of SETUP_NEEDED. Indicates that the
@@ -954,6 +896,7 @@ class SetupNeededResponse(Response):
 
     status = SETUP_NEEDED
 
-    def __init__(self, identity_url=None, setup_url=None):
-        self.identity_url = identity_url
+    def __init__(self, endpoint, setup_url=None):
+        self.endpoint = endpoint
+        self.identity_url = endpoint.identity_url
         self.setup_url = setup_url

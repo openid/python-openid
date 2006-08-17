@@ -140,7 +140,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         assoc = store.getAssociation(server_url, fetcher.assoc_handle)
         assoc.addSignature(['mode', 'return_to', 'identity'], query)
 
-        info = consumer.complete(query, request.token)
+        info = consumer.complete(query, request.endpoint)
         assert info.status == SUCCESS, info.message
         assert info.identity_url == user_url
 
@@ -220,15 +220,10 @@ class TestIdRes(unittest.TestCase):
         self.store = _memstore.MemoryStore()
         self.consumer = self.consumer_class(self.store)
         self.return_to = "nonny"
-        self.server_id = "sirod"
-        self.server_url = "serlie"
-        self.consumer_id = "consu"
-        self.token = self.consumer._genToken(
-            self.consumer_id,
-            self.server_id,
-            self.server_url,
-            )
-
+        self.endpoint = OpenIDServiceEndpoint()
+        self.endpoint.identity_url = self.consumer_id = "consu"
+        self.endpoint.server_url = self.server_url = "serlie"
+        self.endpoint.delegate = self.server_id = "sirod"
 
 
 class TestQueryFormat(TestIdRes):
@@ -237,57 +232,38 @@ class TestQueryFormat(TestIdRes):
         # an exception.
         query = {'openid.mode': ['cancel']}
         try:
-            r = self.consumer.complete(query, 'badtoken')
+            r = self.consumer.complete(query, None)
         except TypeError, err:
             self.failUnless(str(err).find('values') != -1, err)
         else:
             self.fail("expected TypeError, got this instead: %s" % (r,))
 
 class TestComplete(TestIdRes):
-    def test_badTokenLength(self):
-        query = {'openid.mode': 'id_res'}
-        r = self.consumer.complete(query, 'badtoken')
-        self.failUnlessEqual(r.status, FAILURE)
-        self.failUnless(r.identity_url is None)
-
-    def test_badTokenSig(self):
-        query = {'openid.mode': 'id_res'}
-        r = self.consumer.complete(query, 'badtoken' + self.token)
-        self.failUnlessEqual(r.status, FAILURE)
-        self.failUnless(r.identity_url is None)
-
-    def test_expiredToken(self):
-        self.consumer.TOKEN_LIFETIME = -1 # in the past
-        query = {'openid.mode': 'id_res'}
-        r = self.consumer.complete(query, self.token)
-        self.failUnlessEqual(r.status, FAILURE)
-        self.failUnless(r.identity_url is None)
-
     def test_cancel(self):
         query = {'openid.mode': 'cancel'}
-        r = self.consumer.complete(query, 'badtoken')
+        r = self.consumer.complete(query, self.endpoint)
         self.failUnlessEqual(r.status, CANCEL)
-        self.failUnless(r.identity_url is None)
+        self.failUnless(r.identity_url == self.endpoint.identity_url)
 
     def test_error(self):
         msg = 'an error message'
         query = {'openid.mode': 'error',
                  'openid.error': msg,
                  }
-        r = self.consumer.complete(query, 'badtoken')
+        r = self.consumer.complete(query, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
-        self.failUnless(r.identity_url is None)
+        self.failUnless(r.identity_url == self.endpoint.identity_url)
         self.failUnlessEqual(r.message, msg)
 
     def test_noMode(self):
         query = {}
-        r = self.consumer.complete(query, 'badtoken')
+        r = self.consumer.complete(query, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
-        self.failUnless(r.identity_url is None)
+        self.failUnless(r.identity_url == self.endpoint.identity_url)
 
     def test_idResMissingField(self):
         query = {'openid.mode': 'id_res'}
-        r = self.consumer.complete(query, self.token)
+        r = self.consumer.complete(query, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
         self.failUnlessEqual(r.identity_url, self.consumer_id)
 
@@ -297,7 +273,7 @@ class TestComplete(TestIdRes):
                  'openid.identity': 'something wrong (not self.consumer_id)',
                  'openid.assoc_handle': 'does not matter',
                  }
-        r = self.consumer.complete(query, self.token)
+        r = self.consumer.complete(query, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
         self.failUnlessEqual(r.identity_url, self.consumer_id)
         r.message.index('delegate')
@@ -380,7 +356,7 @@ class TestFetchErrorInIdRes(TestIdRes):
 
     def test_idResFailure(self):
         query = {'openid.mode': 'id_res'}
-        r = self.consumer.complete(query, self.token)
+        r = self.consumer.complete(query, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
         self.failUnlessEqual(r.identity_url, self.consumer_id)
         r.message.index(IdResFetchFailingConsumer.message)
@@ -392,11 +368,7 @@ class TestSetupNeeded(TestIdRes):
             'openid.mode': 'id_res',
             'openid.user_setup_url': setup_url,
             }
-        ret = self.consumer._doIdRes(query,
-                                     self.consumer_id,
-                                     self.server_id,
-                                     self.server_url,
-                                     )
+        ret = self.consumer._doIdRes(query, self.endpoint,)
         self.failUnlessEqual(ret.status, SETUP_NEEDED)
         self.failUnlessEqual(ret.setup_url, setup_url)
 
@@ -432,7 +404,7 @@ class CheckNonceTest(TestIdRes, CatchLogs):
 
     def test_goodNonce(self):
         self.return_to = 'http://rt.unittest/?nonce=%s' % (self.nonce,)
-        self.response = SuccessResponse(self.consumer_id,
+        self.response = SuccessResponse(self.endpoint,
                                         {'openid.return_to': self.return_to})
         ret = self.consumer._checkNonce(self.response, self.nonce)
         self.failUnlessEqual(ret.status, SUCCESS)
@@ -443,7 +415,7 @@ class CheckNonceTest(TestIdRes, CatchLogs):
         # remove the nonce from the store
         self.store.useNonce(self.nonce)
         self.return_to = 'http://rt.unittest/?nonce=%s' % (self.nonce,)
-        self.response = SuccessResponse(self.consumer_id,
+        self.response = SuccessResponse(self.endpoint,
                                         {'openid.return_to': self.return_to})
         ret = self.consumer._checkNonce(self.response, self.nonce)
         self.failUnlessEqual(ret.status, FAILURE)
@@ -454,7 +426,7 @@ class CheckNonceTest(TestIdRes, CatchLogs):
 
     def test_tamperedNonce(self):
         self.return_to = 'http://rt.unittest/?nonce=HACKED-%s' % (self.nonce,)
-        self.response = SuccessResponse(self.consumer_id,
+        self.response = SuccessResponse(self.endpoint,
                                         {'openid.return_to': self.return_to})
         ret = self.consumer._checkNonce(self.response, self.nonce)
         self.failUnlessEqual(ret.status, FAILURE)
@@ -464,7 +436,7 @@ class CheckNonceTest(TestIdRes, CatchLogs):
 
     def test_missingNonce(self):
         # no nonce parameter on the return_to
-        self.response = SuccessResponse(self.consumer_id,
+        self.response = SuccessResponse(self.endpoint,
                                         {'openid.return_to': self.return_to})
         ret = self.consumer._checkNonce(self.response, self.nonce)
         self.failUnlessEqual(ret.status, FAILURE)
@@ -481,11 +453,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         CatchLogs.setUp(self)
 
     def _doIdRes(self, query):
-        return self.consumer._doIdRes(
-            query,
-            self.consumer_id,
-            self.server_id,
-            self.server_url)
+        return self.consumer._doIdRes(query, self.endpoint)
 
     def test_checkAuthTriggered(self):
         query = {
@@ -663,7 +631,7 @@ class TestAuthRequest(unittest.TestCase):
         self.endpoint.server_url = 'http://server.unittest/'
         self.assoc = self
         self.assoc.handle = 'assoc@handle'
-        self.authreq = AuthRequest('toooken', self.assoc, self.endpoint)
+        self.authreq = AuthRequest(self.endpoint, self.assoc)
 
     def test_addExtensionArg(self):
         self.authreq.addExtensionArg('bag', 'color', 'brown')
@@ -679,8 +647,12 @@ class TestAuthRequest(unittest.TestCase):
 
 
 class TestSuccessResponse(unittest.TestCase):
+    def setUp(self):
+        self.endpoint = OpenIDServiceEndpoint()
+        self.endpoint.identity_url = 'identity_url'
+
     def test_extensionResponse(self):
-        resp = SuccessResponse('identity_url', {
+        resp = SuccessResponse(self.endpoint, {
             'openid.unittest.one':'1',
             'openid.unittest.two':'2',
             'openid.sreg.nickname':'j3h',
@@ -692,11 +664,11 @@ class TestSuccessResponse(unittest.TestCase):
         self.failUnlessEqual(sregargs, {'nickname':'j3h'})
 
     def test_noReturnTo(self):
-        resp = SuccessResponse('identity_url', {})
+        resp = SuccessResponse(self.endpoint, {})
         self.failUnless(resp.getReturnTo() is None)
 
     def test_returnTo(self):
-        resp = SuccessResponse('identity_url', {'openid.return_to':'return_to'})
+        resp = SuccessResponse(self.endpoint, {'openid.return_to':'return_to'})
         self.failUnlessEqual(resp.getReturnTo(), 'return_to')
 
 class TestParseAssociation(TestIdRes):
@@ -780,21 +752,22 @@ class TestParseAssociation(TestIdRes):
 class StubConsumer(object):
     def __init__(self):
         self.assoc = object()
-        self.token = object()
         self.response = None
+        self.endpoint = None
 
     def begin(self, service):
-        auth_req = AuthRequest(self.token, self.assoc, service)
+        auth_req = AuthRequest(service, self.assoc)
+        self.endpoint = service
         return auth_req
 
-    def complete(self, query, token):
-        assert token is self.token
+    def complete(self, query, endpoint):
+        assert endpoint is self.endpoint
         return self.response
 
 class ConsumerTest(unittest.TestCase):
     def setUp(self):
-        self.endpoint = object()
-        self.identity_url = 'http://identity.url/'
+        self.endpoint = OpenIDServiceEndpoint()
+        self.endpoint.identity_url = self.identity_url = 'http://identity.url/'
         self.store = None
         self.session = {}
         self.consumer = Consumer(self.session, self.store)
@@ -811,8 +784,8 @@ class ConsumerTest(unittest.TestCase):
         self.failUnless(isinstance(result, AuthRequest))
 
         # Side-effect of calling beginWithoutDiscovery is setting the
-        # session value to the token attribute of the result
-        self.failUnless(self.session[self.consumer._token_key] is result.token)
+        # session value to the endpoint attribute of the result
+        self.failUnless(self.session[self.consumer._token_key] is result.endpoint)
 
         # The endpoint that we passed in is the endpoint on the auth_request
         self.failUnless(result.endpoint is self.endpoint)
@@ -827,7 +800,7 @@ class ConsumerTest(unittest.TestCase):
         the generic consumer."""
         self.consumer.consumer.response = exp_resp
 
-        # Token is stored in the session
+        # endpoint is stored in the session
         self.failUnless(self.session)
         resp = self.consumer.complete({})
 
@@ -850,20 +823,20 @@ class ConsumerTest(unittest.TestCase):
         return resp
 
     def test_noDiscoCompleteSuccessWithToken(self):
-        self._doRespNoDisco(SuccessResponse(self.identity_url, {}))
+        self._doRespNoDisco(SuccessResponse(self.endpoint, {}))
 
     def test_noDiscoCompleteCancelWithToken(self):
-        self._doRespNoDisco(CancelResponse(self.identity_url))
+        self._doRespNoDisco(CancelResponse(self.endpoint))
 
-    def test_noDiscoCompleteFailureWithToken(self):
+    def test_noDiscoCompleteFailure(self):
         msg = 'failed!'
-        resp = self._doRespNoDisco(FailureResponse(self.identity_url, msg))
+        resp = self._doRespNoDisco(FailureResponse(self.endpoint, msg))
         self.failUnless(resp.message is msg)
 
-    def test_noDiscoCompleteSetupNeededWithToken(self):
+    def test_noDiscoCompleteSetupNeeded(self):
         setup_url = 'http://setup.url/'
         resp = self._doRespNoDisco(
-            SetupNeededResponse(self.identity_url, setup_url))
+            SetupNeededResponse(self.endpoint, setup_url))
         self.failUnless(resp.setup_url is setup_url)
 
     # To test that discovery is cleaned up, we need to initialize a
@@ -883,23 +856,23 @@ class ConsumerTest(unittest.TestCase):
         return resp
 
     # Cancel and success DO clean up the discovery process
-    def test_completeSuccessWithToken(self):
-        self._doRespDisco(True, SuccessResponse(self.identity_url, {}))
+    def test_completeSuccess(self):
+        self._doRespDisco(True, SuccessResponse(self.endpoint, {}))
 
-    def test_completeCancelWithToken(self):
-        self._doRespDisco(True, CancelResponse(self.identity_url))
+    def test_completeCancel(self):
+        self._doRespDisco(True, CancelResponse(self.endpoint))
 
     # Failure and setup_needed don't clean up the discovery process
-    def test_completeFailureWithToken(self):
+    def test_completeFailure(self):
         msg = 'failed!'
-        resp = self._doRespDisco(False, FailureResponse(self.identity_url, msg))
+        resp = self._doRespDisco(False, FailureResponse(self.endpoint, msg))
         self.failUnless(resp.message is msg)
 
-    def test_completeSetupNeededWithToken(self):
+    def test_completeSetupNeeded(self):
         setup_url = 'http://setup.url/'
         resp = self._doRespDisco(
             False,
-            SetupNeededResponse(self.identity_url, setup_url))
+            SetupNeededResponse(self.endpoint, setup_url))
         self.failUnless(resp.setup_url is setup_url)
 
     def test_begin(self):
@@ -908,7 +881,7 @@ class ConsumerTest(unittest.TestCase):
         auth_req = self.consumer.begin(self.identity_url)
         self.failUnless(isinstance(auth_req, AuthRequest))
         self.failUnless(auth_req.endpoint is self.endpoint)
-        self.failUnless(auth_req.token is self.consumer.consumer.token)
+        self.failUnless(auth_req.endpoint is self.consumer.consumer.endpoint)
         self.failUnless(auth_req.assoc is self.consumer.consumer.assoc)
 
 if __name__ == '__main__':
