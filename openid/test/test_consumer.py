@@ -66,6 +66,9 @@ class GoodAssociation:
     expiresIn = 3600
     handle = "-blah-"
 
+    def getExpiresIn(self):
+        return self.expiresIn
+
     def signDict(fields, data, prefix="openid."):
         return GOODSIG
 
@@ -272,25 +275,6 @@ class TestQueryFormat(TestIdRes):
             self.fail("expected TypeError, got this instead: %s" % (r,))
 
 class TestComplete(TestIdRes):
-    def test_badTokenLength(self):
-        query = {'openid.mode': 'id_res'}
-        r = self.consumer.complete(query, 'badtoken')
-        self.failUnlessEqual(r.status, FAILURE)
-        self.failUnless(r.identity_url is None)
-
-    def test_badTokenSig(self):
-        query = {'openid.mode': 'id_res'}
-        r = self.consumer.complete(query, 'badtoken' + self.token)
-        self.failUnlessEqual(r.status, FAILURE)
-        self.failUnless(r.identity_url is None)
-
-    def test_expiredToken(self):
-        self.consumer.TOKEN_LIFETIME = -1 # in the past
-        query = {'openid.mode': 'id_res'}
-        r = self.consumer.complete(query, self.token)
-        self.failUnlessEqual(r.status, FAILURE)
-        self.failUnless(r.identity_url is None)
-
     def test_cancel(self):
         query = {'openid.mode': 'cancel'}
         r = self.consumer.complete(query, self.endpoint)
@@ -351,35 +335,42 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
                       'openid.nonce': mkNonce(),
                       'openid.signed': 'identity,return_to,nonce'
                       }
-        self.token = self.consumer._genToken('', '', self.server_url)
-
+        self.endpoint = OpenIDServiceEndpoint()
+        self.endpoint.server_url = self.server_url
 
     def tearDown(self):
         CatchLogs.tearDown(self)
 
 
     def test_idResMissingNoSigs(self):
-        self.consumer._verifyDiscoveryResults = lambda vid, surl: vid
-        r = self.consumer.complete(self.query, self.token)
+        def _vrfy(vid, surl):
+            endpoint = OpenIDServiceEndpoint()
+            endpoint.identity_url = vid
+            endpoint.server_url = surl
+            endpoint.delegate = vid
+            return endpoint
+
+        self.consumer._verifyDiscoveryResults = _vrfy
+        r = self.consumer.complete(self.query, self.endpoint)
         self.failUnlessSuccess(r)
 
 
     def test_idResNoIdentity(self):
         del self.query['openid.identity']
         self.query['openid.signed'] = 'return_to,nonce'
-        r = self.consumer.complete(self.query, self.token)
+        r = self.consumer.complete(self.query, self.endpoint)
         self.failUnlessSuccess(r)
 
 
     def test_idResMissingIdentitySig(self):
         self.query['openid.signed'] = 'return_to,nonce'
-        r = self.consumer.complete(self.query, self.token)
+        r = self.consumer.complete(self.query, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
 
 
     def test_idResMissingReturnToSig(self):
         self.query['openid.signed'] = 'identity,nonce'
-        r = self.consumer.complete(self.query, self.token)
+        r = self.consumer.complete(self.query, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
 
 
@@ -509,7 +500,7 @@ class CheckNonceTest(TestIdRes, CatchLogs):
 
     def test_serverNonce(self):
         """use server-generated nonce"""
-        self.response = SuccessResponse(self.consumer_id,
+        self.response = SuccessResponse(self.endpoint,
                                         {'openid.nonce': mkNonce(),})
         ret = self.consumer._checkNonce(self.server_url, self.response)
         self.failUnlessEqual(ret.status, SUCCESS)
@@ -557,9 +548,6 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         TestIdRes.setUp(self)
         CatchLogs.setUp(self)
 
-    def _doIdRes(self, query):
-        return self.consumer._doIdRes(query, self.endpoint)
-
     def test_checkAuthTriggered(self):
         query = {
             'openid.return_to':self.return_to,
@@ -569,7 +557,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.signed': 'identity,return_to',
             }
         try:
-            result = self._doIdRes(query)
+            result = self.consumer._doIdRes(query, self.endpoint)
         except CheckAuthHappened:
             pass
         else:
@@ -593,7 +581,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.signed': 'identity,return_to',
             }
         try:
-            result = self._doIdRes(query)
+            result = self.consumer._doIdRes(query, self.endpoint)
         except CheckAuthHappened:
             pass
         else:
@@ -617,15 +605,13 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.sig': GOODSIG,
             'openid.signed': 'identity,return_to',
             }
-        info = self._doIdRes(query)
+        info = self.consumer._doIdRes(query, self.endpoint)
         self.failUnlessEqual(FAILURE, info.status)
         self.failUnlessEqual(self.consumer_id, info.identity_url)
         self.failUnless(info.message.find('expired') != -1,
                         info.message)
 
     def test_newerAssoc(self):
-        # Store an expired association for the server with the handle
-        # that is in the query
         lifetime = 1000
 
         good_issued = time.time() - 10
@@ -647,7 +633,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             }
 
         good_assoc.addSignature(['return_to', 'identity'], query)
-        info = self._doIdRes(query)
+        info = self.consumer._doIdRes(query, self.endpoint)
         self.failUnlessEqual(info.status, SUCCESS)
         self.failUnlessEqual(self.consumer_id, info.identity_url)
 
@@ -773,7 +759,9 @@ class TestSuccessResponse(unittest.TestCase):
         self.endpoint.identity_url = 'identity_url'
 
     def test_extensionResponse(self):
-        resp = SuccessResponse('identity_url', {
+        resp = SuccessResponse(self.endpoint, {
+            'openid.ns.sreg':'urn:sreg',
+            'openid.ns.unittest':'urn:unittest',
             'openid.unittest.one':'1',
             'openid.unittest.two':'2',
             'openid.sreg.nickname':'j3h',
@@ -1025,6 +1013,7 @@ class IDPDrivenTest(unittest.TestCase):
 
 
     def test_idpDrivenComplete(self):
+        identifier = '=directed_identifier'
         query = {
             'openid.identity': '=directed_identifier',
             'openid.return_to': 'x',
@@ -1032,24 +1021,27 @@ class IDPDrivenTest(unittest.TestCase):
             'openid.signed': 'identity,return_to',
             'openid.sig': GOODSIG,
             }
+
+        endpoint = OpenIDServiceEndpoint()
+        endpoint.identity_url = identifier
+        endpoint.server_url = self.endpoint.server_url
+        endpoint.delegate = identifier
         iverified = []
         def verifyDiscoveryResults(identifier, server_url):
-            iverified.append((identifier, server_url))
-            return identifier
+            iverified.append(endpoint)
+            return endpoint
         self.consumer._verifyDiscoveryResults = verifyDiscoveryResults
-        response = self.consumer._doIdRes(query, '', '',
-                                          self.endpoint.server_url)
+        response = self.consumer._doIdRes(query, self.endpoint)
 
         self.failUnlessSuccess(response)
         self.failUnlessEqual(response.identity_url, "=directed_identifier")
 
         # assert that discovery attempt happens and returns good
-        self.failUnlessEqual(iverified, [("=directed_identifier",
-                                          self.endpoint.server_url)])
+        self.failUnlessEqual(iverified, [endpoint])
 
 
     def test_idpDrivenCompleteFraud(self):
-        query = {} # crap with an identifier that doesn't match discovery info
+        # crap with an identifier that doesn't match discovery info
         query = {
             'openid.identity': '=directed_identifier',
             'openid.return_to': 'x',
@@ -1060,8 +1052,7 @@ class IDPDrivenTest(unittest.TestCase):
         def verifyDiscoveryResults(identifier, server_url):
             raise DiscoveryFailure("PHREAK!", None)
         self.consumer._verifyDiscoveryResults = verifyDiscoveryResults
-        response = self.consumer._doIdRes(query, '', '',
-                                          self.endpoint.server_url)
+        response = self.consumer._doIdRes(query, self.endpoint)
 
         self.failIfEqual(response.status, SUCCESS)
 
@@ -1099,7 +1090,7 @@ class TestDiscoveryVerification(unittest.TestCase):
         self.services = [endpoint]
         r = self.consumer._verifyDiscoveryResults(self.identifier,
                                                   self.server_url)
-        self.failUnlessEqual(r, self.identifier)
+        self.failUnlessEqual(r, endpoint)
 
 
     def test_otherServer(self):
