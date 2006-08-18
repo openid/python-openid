@@ -778,6 +778,9 @@ class SuccessResponse(Response):
 
     @ivar identity_url: The identity URL that has been authenticated
 
+    @ivar endpoint: The endpoint that authenticated the identifier.
+    @type endpoint: L{OpenIDServiceEndpoint<openid.consumer.discover.OpenIDServiceEndpoint>}
+
     @ivar signed_args: The arguments in the server's response that
         were signed and verified.
 
