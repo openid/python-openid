@@ -526,7 +526,7 @@ class GenericConsumer(object):
         if return_to is None or server_id2 is None or assoc_handle is None:
             return FailureResponse(endpoint, 'Missing required field')
 
-        if endpoint.delegate != server_id2:
+        if endpoint.getServerID() != server_id2:
             return FailureResponse(endpoint, 'Server ID (delegate) mismatch')
 
         signed = query.get('openid.signed')
