@@ -303,7 +303,7 @@ class Consumer(object):
 
         if service is None:
             raise DiscoveryFailure(
-                'No usable OpenID services found for that URL', None)
+                'No usable OpenID services found for %s' % (openid_url,), None)
         else:
             return self.beginWithoutDiscovery(service)
 
