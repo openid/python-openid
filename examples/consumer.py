@@ -213,6 +213,13 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # comment posting, etc. here.
             fmt = "You have successfully verified %s as your identity."
             message = fmt % (cgi.escape(info.identity_url),)
+            if info.endpoint.canonicalID:
+                # You should authorize i-name users by their canonicalID,
+                # rather than their more human-friendly identifiers.  That
+                # way their account with you is not compromised if their
+                # i-name registration expires and is bought by someone else.
+                message += ("  This is an i-name, and its persistent ID is %s"
+                            % (cgi.escape(info.endpoint.canonicalID),))
         elif info.status == consumer.CANCEL:
             # cancelled
             message = 'Verification cancelled'
