@@ -67,7 +67,7 @@ class OpenIDServiceEndpoint(object):
         """Return the identifier that should be sent as the
         openid.identity_url parameter to the server."""
         if self.delegate is None:
-            return self.identity_url
+            return self.canonicalID or self.identity_url
         else:
             return self.delegate
 

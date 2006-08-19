@@ -6,6 +6,7 @@ from urljr.fetchers import HTTPResponse
 from yadis.discover import DiscoveryFailure
 from openid.consumer import discover
 from yadis import xrires
+from yadis.xri import XRI
 from urlparse import urlsplit
 
 ### Tests for conditions that trigger DiscoveryFailure
@@ -414,7 +415,6 @@ class TestXRIDiscovery(BaseTestDiscovery):
     documents = {'=smoker': ('application/xrds+xml', yadis_2entries) }
 
     def test_xri(self):
-        from yadis.xri import XRI
         user_xri, services = discover.discoverXRI('=smoker')
         self.failUnless(services)
         self.failUnlessEqual(services[0].server_url,
@@ -422,6 +422,15 @@ class TestXRIDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(services[1].server_url,
                              "http://www.livejournal.com/openid/server.bml")
         self.failUnlessEqual(services[0].canonicalID, XRI("=!1000"))
+
+    def test_useCanonicalID(self):
+        """When there is no delegate, the CanonicalID should be used with XRI.
+        """
+        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint.identity_url = "=example"
+        endpoint.canonicalID = XRI("=!1000")
+        self.failUnlessEqual(endpoint.getServerID(), XRI("=!1000"))
+
 
 
 def pyUnitTests():
