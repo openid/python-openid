@@ -36,7 +36,11 @@ OPENID_1_1_TYPE = 'http://openid.net/signon/1.1'
 OPENID_1_0_TYPE = 'http://openid.net/signon/1.0'
 
 class OpenIDServiceEndpoint(object):
-    """Object representing an OpenID service endpoint."""
+    """Object representing an OpenID service endpoint.
+
+    @ivar identity_url: the verified identifier.
+    @ivar canonicalID: For XRI, the persistent identifier.
+    """
     openid_type_uris = [
         OPENID_1_2_TYPE,
         OPENID_1_1_TYPE,
