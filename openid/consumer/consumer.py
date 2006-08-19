@@ -778,7 +778,9 @@ class SuccessResponse(Response):
 
     @ivar identity_url: The identity URL that has been authenticated
 
-    @ivar endpoint: The endpoint that authenticated the identifier.
+    @ivar endpoint: The endpoint that authenticated the identifier.  You
+        may access other discovered information related to this endpoint,
+        such as the CanonicalID of an XRI, through this object.
     @type endpoint: L{OpenIDServiceEndpoint<openid.consumer.discover.OpenIDServiceEndpoint>}
 
     @ivar signed_args: The arguments in the server's response that
