@@ -1,4 +1,4 @@
-include COPYING INSTALL CHANGELOG MANIFEST.in
+include COPYING INSTALL CHANGELOG MANIFEST.in NEWS
 graft admin
 recursive-include examples README *.py
 recursive-include openid/test dhpriv linkparse.txt n2b64 trustroot.txt *.py
