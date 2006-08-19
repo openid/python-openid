@@ -17,7 +17,7 @@ if sys.version < '2.2.3':
     DistributionMetadata.classifiers = None
     DistributionMetadata.download_url = None
 
-version = '[library version:1.1.1]'[17:-1]
+version = '[library version:1.1.2-rc1]'[17:-1]
 
 setup(
     name='python-openid',
