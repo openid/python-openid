@@ -1,3 +1,30 @@
+What's New in Python OpenID 1.1.2
+=================================
+
+i-name Support
+--------------
+
+This version of the library allows the use of XRI as OpenID identifiers,
+allowing users to log in with their i-names.  For full XRI compatibility,
+relying parties integrating this library should take note of the user's
+CanonicalID, as described in the "Identifying the End User" section of the
+OpenID 2.0 specification.
+
+Bug Fixes
+---------
+
+A variety of bug fixes were included in this release, mostly relating to
+international issues such as dealing with other character sets, Unicode,
+incorrectly flagging certain Norwegian trust roots as suspect, and operation
+of the filesystem-backed store on exotic platforms.
+
+Dependencies
+------------
+
+ * urljr 1.0.1
+ * yadis 1.1.0
+
+
 What's New in Python OpenID 1.1.0
 =================================
 
