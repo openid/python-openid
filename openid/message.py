@@ -1,11 +1,13 @@
 """Extension argument processing code
 """
-__all__ = ['Message', 'NamespaceMap', 'SREG_URI']
+__all__ = ['Message', 'NamespaceMap', 'NULL_NAMESPACE', 'OID1', 'SREG_URI']
 
 import copy
 import warnings
+import urllib
 
 from openid import oidutil
+from openid import kvform
 try:
     ElementTree = oidutil.importElementTree()
 except ImportError:
@@ -43,7 +45,11 @@ def fixNamespaceURI(ns_uri, stacklevel=2):
 
     return ns_uri
 
-undecided = object()
+NULL_NAMESPACE = object()
+OID1 = 'http://openid.net/sso/1.0'
+
+# XXX: not official (yet)
+OID2 = 'http://openid.net/specs/2.0/base'
 
 # XXX: TESTME!
 class Message(object):
@@ -51,135 +57,191 @@ class Message(object):
     In the implementation of this object, None represents the global
     namespace as well as a namespace with no key.
 
-    @cvar namespace_alaises: A dictionary specifying specific
+    @cvar namespaces: A dictionary specifying specific
         namespace-URI to alias mappings that should be used when
         generating namespace aliases.
 
     @ivar ns_args: two-level dictionary of the values in this message,
         grouped by namespace URI. The first level is the namespace
         URI.
-
-    @ivar signed: list of fields to sign. It contains pairs of
-        namespace and key. The namespace alias declarations are
-        automatically signed.
     """
 
     def __init__(self):
         """Create an empty Message"""
-        self.ns_args = {}
         self.args = {}
-        self.signed = []
         self.namespaces = NamespaceMap()
-        self.sign_added_args = True
+
+    def fromPostArgs(cls, args):
+        """Construct a Message containing a set of POST arguments"""
+        self = cls()
+
+        # Partition into "openid." args and bare args
+        openid_args = {}
+        for key, value in args.iteritems():
+            if isinstance(value, list):
+                raise TypeError("query dict must have one value for each key, "
+                                "not lists of values.  Query is %r" % (args,))
+
+
+            try:
+                prefix, rest = key.split('.', 1)
+            except ValueError:
+                
+                self.args[(None, key)] = value
+                continue
+            else:
+                if prefix != 'openid':
+                    self.args[(None, key)] = value
+                    continue
+
+            openid_args[rest] = value
+                    
+        self._fromOpenIDArgs(openid_args)
+
+        return self
+
+    fromPostArgs = classmethod(fromPostArgs)
+
+    def fromOpenIDArgs(cls, openid_args):
+        """Construct a Message from a parsed KVForm message"""
+        self = cls()
+        self._fromOpenIDArgs(openid_args)
+        return self
+
+    fromOpenIDArgs = classmethod(fromOpenIDArgs)
+
+    def _fromOpenIDArgs(self, openid_args):
+        ns_args = []
+
+        # Resolve namespaces
+        for rest, value in openid_args.iteritems():
+            try:
+                ns_alias, ns_key = rest.split('.', 1)
+            except ValueError:
+                ns_alias = NULL_NAMESPACE
+                ns_key = rest
+
+            if ns_alias == 'ns':
+                self.namespaces.addAlias(value, ns_key)
+            elif ns_alias is NULL_NAMESPACE and ns_key == 'ns':
+                # null namespace
+                self.namespaces.addAlias(value, None)
+            else:
+                ns_args.append((ns_alias, ns_key, value))
+
+        # Ensure that there is a null namespace definition
+        if self.namespaces.getNamespaceURI(NULL_NAMESPACE) is None:
+            # No null namespace defined
+            self.namespaces.addAlias(OID1, NULL_NAMESPACE)
+
+        # Actually put the pairs into the appropriate namespaces
+        for (ns_alias, ns_key, value) in ns_args:
+            ns_uri = self.namespaces.getNamespaceURI(ns_alias)
+            if ns_uri is None:
+                raise ValueError(
+                    'Namespace alias %r not defined' % (ns_alias,))
+            self.addArgNS(ns_uri, ns_key, value)
+
+    def fromKVForm(cls, kvform_string):
+        """Create a Message from a KVForm string"""
+        return cls.fromOpenIDArgs(kvform.kvToDict(kvform_string))
+
+    fromKVForm = classmethod(fromKVForm)
 
     def copy(self):
         return copy.deepcopy(self)
 
-    def toArgs(self):
+    def _toArgs(self):
         """Build a dictionary out of the arguments defined for this
         message (realize the namespace mappings)
 
-        @returntype: {unicode:unicode}
+        @returns: The namespaced arguments and the non-namespaced arguments
+        @returntype: ({unicode:unicode}, {unicode:unicode})
         """
-        args = dict(self.args)
+        args = {}
+        outside_args = {}
 
-        signed_s = []
-        for ns_uri, key in self.signed:
+        # Add namespace definitions to the output
+        for ns_uri, alias in self.namespaces.iteritems():
+            if alias is NULL_NAMESPACE:
+                if ns_uri != OID1:
+                    args['ns'] = ns_uri
+                else:
+                    # drop the default null namespace definition. This
+                    # potentially changes a message since we have no
+                    # way of knowing whether it was explicitly
+                    # specified at the time the message was
+                    # parsed. The vast majority of the time, this will
+                    # be the right thing to do.
+                    pass
+            else:
+                ns_key = 'ns.' + alias
+                args[ns_key] = ns_uri
+
+        # tease the namespaced, null namespaced, and explicitly
+        # namespaced arguments apart.
+        for (ns_uri, ns_key), value in self.args.iteritems():
             if ns_uri is None:
-                signed_s.append(key)
+                outside_args[ns_key] = value
             else:
                 alias = self.namespaces.getAlias(ns_uri)
-                assert alias is not None
-                if key is None:
-                    signed_s.append(alias)
+                if alias is None:
+                    raise RuntimeError('Inconsistent message (missing '
+                                       'namespace mapping for %r)' % (ns_uri,))
+
+                elif alias is NULL_NAMESPACE:
+                    key = ns_key
                 else:
-                    signed_s.append('%s.%s' % (alias, key))
+                    key = '%s.%s' % (alias, ns_key)
 
-        for ns_uri, alias in self.namespaces.iteritems():
-            ns_key = 'ns.' + alias
-            args[ns_key] = ns_uri
-            signed_s.append(ns_key)
+                args[key] = value
 
-        if signed_s:
-            args['signed'] = ','.join(signed_s)
+        return args, outside_args
 
-        for ns_uri, values in self.ns_args.iteritems():
-            alias = self.namespaces.getAlias(ns_uri)
-            for k, v in values.iteritems():
-                if k is None:
-                    args[alias] = v
-                else:
-                    args['%s.%s' % (alias, k)] = v
-
-
+    def toArgs(self):
+        """Return all namespaced arguments, failing if any
+        non-namespaced arguments exist."""
+        args, outside_args = self._toArgs()
+        if outside_args:
+            raise ValueError(
+                'This message can only be encoded as a POST, because it '
+                'contains arguments that are not prefixed with "openid."')
         return args
 
-    def toQueryArgs(self):
-        return dict([('openid.' + k, v)
-                     for k, v in self.toArgs().iteritems()])
-
-    def addNSArg(self, namespace_uri, key, value, signed=undecided):
-        """Add a single argument to this namespace"""
-        if signed is undecided:
-            signed = self.sign_added_args
-
-        if namespace_uri is None:
-            ns_args = self.args
-        else:
-            namespace_uri = fixNamespaceURI(namespace_uri)
-            try:
-                ns_args = self.ns_args[namespace_uri]
-            except KeyError:
-                ns_args = self.ns_args[namespace_uri] = {}
-
-            self.namespaces.add(namespace_uri)
-
-        if signed:
-            k = (namespace_uri, key)
-            if k not in self.signed:
-                self.signed.append(k)
-
-        ns_args[key] = value
-
-    def addArg(self, key, value, signed=undecided):
-        self.addNSArg(None, key, value, signed)
-
-    def addNSArgs(self, namespace_uri, values, signed=undecided):
-        """Add a set of values to this namespace. Takes the same
-        type as a second parameter as dict.update."""
-        for k, v in values.iteritems():
-            self.addNSArg(namespace_uri, k, v, signed)
-
-    def addArgs(self, values, signed=undecided):
-        self.addNSArgs(None, values, signed)
-
-    def getNS(self, ns_uri, key, default=None):
-        if ns_uri is None:
-            args = self.args
-        else:
-            try:
-                args = self.ns_args[ns_uri]
-            except KeyError:
-                return default
-
-        return args.get(key, default)
-
-    def get(self, key, default=None):
-        return self.args.get(key, default)
-
-    def getNamespaceArgs(self, namespace_uri):
-        """Get the arguments that are defined for this namespace URI
-
-        @returns: mapping from namespaced keys to values
-        @returntype: dict
+    def toPostArgs(self):
+        """Return all arguments with openid. in front of namespaced arguments.
         """
-        if namespace_uri is None:
-            return dict(self.args)
-        else:
-            return dict(self.ns_args.get(namespace_uri, {}))
+        args, outside_args = self._toArgs()
+        args = dict([ ('openid.' + k, v)
+                      for k, v
+                      in args.iteritems()
+                    ])
+
+        args.update(outside_args)
+        return args
 
     def toFormMarkup(self, action_url, form_tag_attrs=None,
                      submit_text="Continue"):
+        """Generate HTML form markup that contains the values in this
+        message, to be HTTP POSTed as x-www-form-urlencoded UTF-8.
+
+        @param action_url: The URL to which the form will be POSTed
+        @type action_url: str
+
+        @param form_tag_attrs: Dictionary of attributes to be added to
+            the form tag. 'accept-charset' and 'enctype' have defaults
+            that can be overridden. If a value is supplied for
+            'action' or 'method', it will be replaced.
+        @type form_tag_attrs: {unicode: unicode}
+
+        @param submit_text: The text that will appear on the submit
+            button for this form.
+        @type submit_text: unicode
+
+        @returns: A string containing (X)HTML markup for a form that
+            encodes the values in this Message object.
+        @rtype: str or unicode
+        """
         if ElementTree is None:
             raise RuntimeError('This function requires ElementTree.')
 
@@ -192,10 +254,10 @@ class Message(object):
             for name, attr in form_tag_attrs.iteritems():
                 form.attrib[name] = attr
 
-        form.attrib['action'] = server_url
+        form.attrib['action'] = action_url
         form.attrib['method'] = 'post'
 
-        for name, value in self.toQueryArgs().iteritems():
+        for name, value in self.toPostArgs().iteritems():
             attrs = dict(type='hidden', name=name, value=value) 
             form.append(ElementTree.Element('input', attrs))
 
@@ -206,8 +268,128 @@ class Message(object):
         return ElementTree.tostring(form)
 
     def toURL(self, base_url):
-        return oidutil.appendArgs(base_url, self.toQueryArgs())
+        """Generate a GET URL with the parameters in this message
+        attached as query parameters."""
+        return oidutil.appendArgs(base_url, self.toPostArgs())
 
+    def toKVForm(self):
+        """Generate a KVForm string that contains the parameters in
+        this message. This will fail if the message contains arguments
+        outside of the 'openid.' prefix.
+        """
+        return kvform.dictToKV(self.toArgs())
+
+    def toURLEncoded(self):
+        args = self.toPostArgs()
+        return urllib.urlencode(args)
+
+    def addArgNS(self, namespace_uri, key, value):
+        """Add a single argument to this namespace
+
+        To add parameters, to the null namespace, the namespace URI
+        should be NULL_NAMESPACE. To add non-namespaced parameters,
+        the namespace URI should be None.
+        """
+        namespace_uri = fixNamespaceURI(namespace_uri)
+        self.args[(namespace_uri, key)] = value
+        self.namespaces.add(namespace_uri)
+
+    def addArgsNS(self, namespace_uri, values):
+        """Add a set of values to this namespace. Takes the same
+        type as a second parameter as dict.update.
+
+        To add non-namespaced parameters, the namespace URI should be
+        None.
+        """
+        for k, v in values.iteritems():
+            self.addArgNS(namespace_uri, k, v)
+
+    def getNullNamespaceURI(self):
+        return self.namespaces.getNamespaceURI(NULL_NAMESPACE)
+
+    def getKeyNS(self, ns_uri, ns_key):
+        # non-OpenID argument
+        if ns_uri is None:
+            return key
+
+        ns_alias = self.namespaces.getAlias(ns_uri)
+
+        # No alias is defined, so no key can exist
+        if ns_alias is None:
+            return None
+
+        # 
+        if ns_alias is NULL_NAMESPACE:
+            tail = ns_key
+        else:
+            tail = '%s.%s' % (ns_alias, ns_key)
+
+        return 'openid.' + tail
+
+    def getArgNS(self, ns_uri, key, default=None):
+        """Get a value for a namespaced key.
+
+        To get non-namespaced parameters, the namespace URI should be
+        None.
+        """
+        return self.args.get((ns_uri, key), default)
+
+    def getArgsNS(self, namespace_uri):
+        """Get the arguments that are defined for this namespace URI
+
+        To get non-namespaced parameters, the namespace URI should be
+        None.
+
+        @returns: mapping from namespaced keys to values
+        @returntype: dict
+        """
+        return dict([
+            (ns_key, value)
+            for ((ns_uri, ns_key), value)
+            in self.args.iteritems()
+            if ns_uri == namespace_uri
+            ])
+
+    def get(self, ns_key, default=None):
+        """Get a value from the null namespace
+        """
+        try:
+            return self[ns_key]
+        except KeyError:
+            return default
+
+    def __getitem__(self, ns_key):
+        """Get a value from the null namespace
+        """
+        ns_uri = self.getNullNamespaceURI()
+        value = self.getArgNS(ns_uri, ns_key)
+
+        if value is None:
+            raise KeyError
+
+        return value
+
+    def __setitem__(self, ns_key, value):
+        """Set a value in the null namespace
+        """
+        ns_uri = self.getNullNamespaceURI()
+
+        self.addArgNS(ns_uri, ns_key, value)
+
+    addArgNull = __setitem__
+
+    def addArgsNull(self, args):
+        ns_uri = self.getNullNamespaceURI()
+
+        self.addArgsNS(ns_uri, args)
+
+    def __contains__(self, ns_key):
+        try:
+            _ = self[ns_key]
+        except KeyError:
+            return False
+        else:
+            return True
 
 #XXX: testme!
 class NamespaceMap(object):
@@ -223,7 +405,12 @@ class NamespaceMap(object):
         return self.namespace_to_alias.get(namespace_uri)
 
     def getNamespaceURI(self, alias):
-        return self.alias_to_namespace.get(alias)
+        ns_uri = self.alias_to_namespace.get(alias)
+        if ns_uri is None:
+            self.addAlias(OID1, NULL_NAMESPACE)
+            ns_uri = self.getNamespaceURI(NULL_NAMESPACE)
+
+        return ns_uri
 
     def iterNamespaceURIs(self):
         return iter(self.namespace_to_alias)
@@ -251,9 +438,10 @@ class NamespaceMap(object):
         if (current_namespace_uri is not None
             and current_namespace_uri != namespace_uri):
 
-            fmt = (
-                'Cannot map %r to alias %r. '
-                '%r is already mapped to alias %r') % (
+            fmt = ('Cannot map %r to alias %r. '
+                   '%r is already mapped to alias %r')
+
+            msg = fmt % (
                 namespace_uri,
                 desired_alias,
                 current_namespace_uri,
@@ -302,6 +490,8 @@ class NamespaceMap(object):
                 i += 1
             else:
                 return alias
+
+        assert False, "Not reached"
 
     def isDefined(self, namespace_uri):
         return namespace_uri in self.namespace_to_alias
