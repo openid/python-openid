@@ -565,14 +565,8 @@ class GenericConsumer(object):
             return FailureResponse(
                 endpoint, fmt % (endpoint.delegate, server_id2))
 
-        if server_id != server_id2:
-            return FailureResponse(consumer_id, 'Server ID (delegate) mismatch')
-
-        signed = query.get('openid.signed')
-        if signed:
-            signed_list = signed.split(',')
-        else:
-            signed_list = []
+        assoc = self.store.getAssociation(endpoint.server_url,
+                                          message['assoc_handle'])
 
         # Fail if the identity field is present but not signed
         if endpoint.identity_url is not None and 'identity' not in signed_list:
