@@ -365,7 +365,7 @@ class Message(object):
         value = self.getArgNS(ns_uri, ns_key)
 
         if value is None:
-            raise KeyError
+            raise KeyError((ns_uri, ns_key))
 
         return value
 

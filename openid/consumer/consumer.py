@@ -191,7 +191,7 @@ from urljr import fetchers
 from openid.consumer.discover import discover as discoverURL
 from openid.consumer.discover import discoverXRI
 from openid.consumer.discover import DiscoveryFailure
-from openid.message import Message, fixNamespaceURI, SREG_URI
+from openid.message import Message
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
@@ -425,6 +425,11 @@ class GenericConsumer(object):
         'no-encryption':PlainTextConsumerSession,
         }
 
+    allowed_null_namespaces = [
+        'http://openid.net/specs/2.0/core',
+        'http://openid.net/sso/1.0',
+        ]
+
     def __init__(self, store):
         self.store = store
         self.negotiator = default_negotiator.copy()
@@ -436,20 +441,24 @@ class GenericConsumer(object):
         return request
 
     def complete(self, query, endpoint):
-        mode = query.get('openid.mode', '<no mode specified>')
+        message = Message.fromPostArgs(query)
 
-        if isinstance(mode, list):
-            raise TypeError("query dict must have one value for each key, "
-                            "not lists of values.  Query is %r" % (query,))
+        # XXX: encapsulate the null namespace stuff
+        null_namespace_uri = message.getNullNamespaceURI()
+        if null_namespace_uri not in self.allowed_null_namespaces:
+            fmt = 'Illegal null namespace definition: %r'
+            return FailureResponse(None, fmt % (null_namespace_uri,))
+
+        mode = message.get('mode', '<No mode set>')
 
         if mode == 'cancel':
             return CancelResponse(endpoint)
         elif mode == 'error':
-            error = query.get('openid.error')
+            error = message.get('error')
             return FailureResponse(endpoint, error)
         elif mode == 'id_res':
             try:
-                response = self._doIdRes(query, endpoint)
+                response = self._doIdRes(message, endpoint)
             except fetchers.HTTPFetchingError, why:
                 message = 'HTTP request failed: %s' % (str(why),)
                 return FailureResponse(endpoint, message)
@@ -467,7 +476,8 @@ class GenericConsumer(object):
         if nonce is None:
             # Assume that this is an OpenID 1.X response and
             # use/extract the nonce that we generated.
-            parsed_url = urlparse(response.getReturnTo())
+            return_to = response.getReturnTo()
+            parsed_url = urlparse(return_to)
             query = parsed_url[4]
             for k, v in cgi.parse_qsl(query):
                 if k == 'nonce':
@@ -516,28 +526,32 @@ class GenericConsumer(object):
 
         return response
 
-    def _doIdRes(self, query, endpoint):
+    def _doIdRes(self, message, endpoint):
         """Handle id_res responses.
 
-        @param query: the response paramaters.
-        @param consumer_id: The normalized Claimed Identifier.
-        @param server_id: The Delegate Identifier.
-        @param server_url: OpenID server endpoint URL.
+        @param message: the response paramaters.
+        @param endpoint: the discovered endpoint object. May be None.
 
         @returntype: L{Response}
         """
-        user_setup_url = query.get('openid.user_setup_url')
+        user_setup_url = message.get('user_setup_url')
         if user_setup_url is not None:
             return SetupNeededResponse(endpoint, user_setup_url)
 
+        signed = message.get('signed')
+        if signed:
+            signed_list = signed.split(',')
+        else:
+            signed_list = []
+
         try:
-            self._idResCheckForFields(query)
+            self._idResCheckForFields(message, signed_list)
         except ValueError, e:
             return FailureResponse(endpoint, e.args[0])
 
-        return_to = query.get('openid.return_to')
-        server_id2 = query.get('openid.identity')
-        assoc_handle = query.get('openid.assoc_handle')
+        return_to = message.get('return_to')
+        server_id2 = message.get('identity')
+        assoc_handle = message.get('assoc_handle')
 
         # IdP-driven identifier selection requires another round of discovery:
         if not endpoint.delegate and server_id2:
@@ -576,9 +590,9 @@ class GenericConsumer(object):
                 return FailureResponse(endpoint, msg)
 
             # Check the signature
-            v_sig = assoc.signDict(signed.split(','), query)
+            v_sig = assoc.signDict(signed_list, message.toPostArgs())
 
-            if v_sig != query['openid.sig']:
+            if v_sig != message['sig']:
                 return FailureResponse(endpoint, 'Bad signature')
 
         else:
@@ -586,30 +600,25 @@ class GenericConsumer(object):
             # only possible path for recovery.
             # XXX - async framework will not want to block on this call to
             # _checkAuth.
-            if not self._checkAuth(query, endpoint.server_url):
+            if not self._checkAuth(message, endpoint.server_url):
                 return FailureResponse(endpoint,
                                        'Server denied check_authentication')
 
-        return SuccessResponse.fromQuery(endpoint, query, signed)
+        signed_fields = ['openid.' + f for f in signed_list]
+        return SuccessResponse(endpoint, message, signed_fields)
 
 
-    def _idResCheckForFields(self, query):
+    def _idResCheckForFields(self, message, signed_list):
         required_fields = ['return_to', 'assoc_handle', 'sig', 'signed']
         require_sigs = ['return_to', 'identity', 'nonce']
 
         for field in required_fields:
-            if not ('openid.' + field) in query:
-                raise ValueError(
-                    'Missing required field %r' % (field,))
-
-        signed_list = query['openid.signed'].split(',')
+            if not field in message:
+                raise ValueError('Missing required field %r' % (field,))
 
         for field in require_sigs:
-            if query.get('openid.' + field) is None:
-                # Fields that are not present are not signed.
-                continue
-
-            if field not in signed_list:
+            # Field is present and not in signed list
+            if message.get(field) is not None and field not in signed_list:
                 # I wish I could just raise a FailureResponse here, but
                 # they're not exceptions.  :-/
                 raise ValueError('"%s" not signed' % (field,))
@@ -644,8 +653,8 @@ class GenericConsumer(object):
 
         return services[0]
 
-    def _checkAuth(self, query, server_url):
-        request = self._createCheckAuthRequest(query)
+    def _checkAuth(self, message, server_url):
+        request = self._createCheckAuthRequest(message)
         if request is None:
             return False
         response = self._makeKVPost(request, server_url)
@@ -653,19 +662,26 @@ class GenericConsumer(object):
             return False
         return self._processCheckAuthResponse(response, server_url)
 
-    def _createCheckAuthRequest(self, query):
-        signed = query.get('openid.signed')
-        if signed is None:
-            oidutil.log('No signature present; checkAuth aborted')
-            return None
+    def _createCheckAuthRequest(self, message):
+        # XXX: this code is association-type specific
 
         # Arguments that are always passed to the server and not
         # included in the signature.
         whitelist = ['assoc_handle', 'sig', 'signed', 'invalidate_handle']
-        signed = signed.split(',') + whitelist
 
-        check_args = dict([(k, v) for k, v in query.iteritems()
-                           if k.startswith('openid.') and k[7:] in signed])
+        # XXX: should really build a Message object here
+        check_args = {}
+        for k in whitelist:
+            if k in message:
+                check_args['openid.' + k] = message[k]
+
+        signed = message.get('signed')
+        if signed:
+            try:
+                for k in signed.split(','):
+                    check_args['openid.' + k] = message[k]
+            except KeyError:
+                return None
 
         check_args['openid.mode'] = 'check_authentication'
         return check_args
@@ -845,7 +861,6 @@ class AuthRequest(object):
         self.endpoint = endpoint
         self.return_to_args = {}
         self.message = Message()
-        self.message.sign_added_args = False
 
     def addExtensionArg(self, namespace, key, value):
         """Add an extension argument to this OpenID authentication
@@ -872,7 +887,7 @@ class AuthRequest(object):
 
         @type value: str
         """
-        self.message.addNSArg(namespace, key, value)
+        self.message.addArgNS(namespace, key, value)
 
     def getMessage(self, trust_root, return_to, immediate=False):
         return_to = oidutil.appendArgs(return_to, self.return_to_args)
@@ -883,7 +898,7 @@ class AuthRequest(object):
             mode = 'checkid_setup'
 
         message = self.message.copy()
-        message.addArgs(
+        message.addArgsNull(
             {'mode':mode,
              'return_to':return_to,
              'trust_root':trust_root,
@@ -892,10 +907,10 @@ class AuthRequest(object):
         identity = self.endpoint.getServerID()
 
         if identity:
-            message.addArg('identity', identity)
+            message.addArgNull('identity', identity)
 
         if self.assoc:
-            message.addArg('assoc_handle', self.assoc.handle)
+            message.addArgNull('assoc_handle', self.assoc.handle)
 
         return message
 
@@ -915,6 +930,13 @@ SETUP_NEEDED = 'setup_needed'
 class Response(object):
     status = None
 
+    def setEndpoint(self, endpoint):
+        self.endpoint = endpoint
+        if endpoint is None:
+            self.identity_url = None
+        else:
+            self.identity_url = endpoint.identity_url
+
 class SuccessResponse(Response):
     """A response with a status of SUCCESS. Indicates that this request is a
     successful acknowledgement from the OpenID server that the
@@ -927,7 +949,7 @@ class SuccessResponse(Response):
         such as the CanonicalID of an XRI, through this object.
     @type endpoint: L{OpenIDServiceEndpoint<openid.consumer.discover.OpenIDServiceEndpoint>}
 
-    @ivar signed_args: The arguments in the server's response that
+    @ivar signed_fields: The arguments in the server's response that
         were signed and verified.
 
     @cvar status: SUCCESS
@@ -935,58 +957,36 @@ class SuccessResponse(Response):
 
     status = SUCCESS
 
-    def __init__(self, endpoint, signed_args):
+    def __init__(self, endpoint, message, signed_fields=None):
+        # Don't use setEndpoint, because endpoint should never be None
+        # for a successfull transaction.
         self.endpoint = endpoint
         self.identity_url = endpoint.identity_url
-        self.signed_args = signed_args
 
-    def fromQuery(cls, endpoint, query, signed):
-        signed_args = {}
-        for field_name in signed.split(','):
-            field_name = 'openid.' + field_name
-            signed_args[field_name] = query.get(field_name, '')
-        return cls(endpoint, signed_args)
+        self.message = message
 
-    fromQuery = classmethod(fromQuery)
+        # We assume that this object is created by the GenericConsumer
+        # that has already checked to make sure that the null
+        # namespace is in the acceptable range.
+        self._null_ns_uri = message.getNullNamespaceURI()
+        if signed_fields is None:
+            signed_fields = []
+        self.signed_fields = signed_fields
 
-    def getExtensionAlias(self, extension_uri):
-        # XXX: hopefully we can use more of the machinery from
-        # openid.message.Message in here.
-        extension_uri = fixNamespaceURI(extension_uri)
-        for k, v in self.signed_args.iteritems():
-            if k.startswith('openid.ns.') and v == extension_uri:
-                return k[10:]
-        else:
-            if extension_uri == SREG_URI:
-                return 'sreg'
-            else:
-                return None
-
-    def getExtensionArgument(self, extension_uri, key):
-        alias = self.getExtensionAlias(extension_uri)
-        if alias is None:
-            return None
-
-        arg_name = 'openid.%s.%s' % (alias, key)
-        return self.signed_args.get(arg_name)
-
-    def extensionResponse(self, extension_uri):
-        """extract signed extension data from the server's response.
-
-        @param extension_uri: The extension namespace from which to extract
-            the extension data.
+    def isSigned(self, ns_uri, ns_key):
+        """Return whether a particular key is signed, regardless of
+        its namespace alias
         """
-        response = {}
-        alias = self.getExtensionAlias(extension_uri)
-        if alias is not None:
-            prefix = 'openid.%s.' % (alias,)
-            prefix_len = len(prefix)
-            for k, v in self.signed_args.iteritems():
-                if k.startswith(prefix):
-                    response_key = k[prefix_len:]
-                    response[response_key] = v
+        return self.message.getKeyNS(ns_uri, ns_key) in self.signed_fields
 
-        return response
+    def getSigned(self, ns_uri, ns_key, default=None):
+        """Return a signed field, or default if no signed field is
+        available
+        """
+        if self.isSigned(ns_uri, ns_key):
+            return self.message.getArgNS(ns_uri, ns_key, default)
+        else:
+            return default
 
     def getReturnTo(self):
         """Get the openid.return_to argument from this response.
@@ -1000,7 +1000,7 @@ class SuccessResponse(Response):
 
         @returntype: str
         """
-        return self.signed_args.get('openid.return_to', None)
+        return self.getSigned(self._null_ns_uri, 'return_to')
 
     def getNonce(self):
         """Get the openid.nonce argument from this response.
@@ -1012,7 +1012,7 @@ class SuccessResponse(Response):
 
         @returntype: str
         """
-        return self.signed_args.get('openid.nonce', None)
+        return self.getSigned(self._null_ns_uri, 'nonce')
 
 class FailureResponse(Response):
     """A response with a status of FAILURE. Indicates that the OpenID
@@ -1030,13 +1030,8 @@ class FailureResponse(Response):
     status = FAILURE
 
     def __init__(self, endpoint, message=None):
-        self.endpoint = endpoint
-        if endpoint is not None:
-            self.identity_url = endpoint.identity_url
-        else:
-            self.identity_url = None
+        self.setEndpoint(endpoint)
         self.message = message
-
 
     def __repr__(self):
         return "<%s.%s id=%r message=%r>" % (
@@ -1057,8 +1052,7 @@ class CancelResponse(Response):
     status = CANCEL
 
     def __init__(self, endpoint):
-        self.endpoint = endpoint
-        self.identity_url = endpoint.identity_url
+        self.setEndpoint(endpoint)
 
 class SetupNeededResponse(Response):
     """A response with a status of SETUP_NEEDED. Indicates that the
@@ -1079,6 +1073,5 @@ class SetupNeededResponse(Response):
     status = SETUP_NEEDED
 
     def __init__(self, endpoint, setup_url=None):
-        self.endpoint = endpoint
-        self.identity_url = endpoint.identity_url
+        self.setEndpoint(endpoint)
         self.setup_url = setup_url
