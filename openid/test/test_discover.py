@@ -8,6 +8,7 @@ from openid.consumer import discover
 from yadis import xrires
 from yadis.xri import XRI
 from urlparse import urlsplit
+from openid import message
 
 ### Tests for conditions that trigger DiscoveryFailure
 
@@ -63,7 +64,7 @@ class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
 # string exception is raised.
 import warnings
 warnings.filterwarnings('ignore', 'raising a string.*', DeprecationWarning,
-                        r'^openid\.test\.test_discover$', 74)
+                        r'^openid\.test\.test_discover$', 75)
 
 class ErrorRaisingFetcher(object):
     """Just raise an exception when fetch is called"""
@@ -484,15 +485,6 @@ class TestXRIDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(services[1].server_url,
                              "http://www.livejournal.com/openid/server.bml")
         self.failUnlessEqual(services[0].canonicalID, XRI("=!1000"))
-
-    def test_useCanonicalID(self):
-        """When there is no delegate, the CanonicalID should be used with XRI.
-        """
-        endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.identity_url = "=example"
-        endpoint.canonicalID = XRI("=!1000")
-        self.failUnlessEqual(endpoint.getServerID(), XRI("=!1000"))
-
 
 
 def pyUnitTests():
