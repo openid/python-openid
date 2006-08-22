@@ -142,6 +142,9 @@ class Message(object):
         self.namespaces.addAlias(openid_ns_uri, NULL_NAMESPACE)
         self._openid_ns_uri = openid_ns_uri
 
+    def getOpenIDNamespace(self):
+        return self._openid_ns_uri
+
     def fromKVForm(cls, kvform_string):
         """Create a Message from a KVForm string"""
         return cls.fromOpenIDArgs(kvform.kvToDict(kvform_string))
