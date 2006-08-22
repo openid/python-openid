@@ -24,8 +24,8 @@ OPENID_1_2_TYPE = 'http://openid.net/signon/1.2'
 OPENID_1_1_TYPE = 'http://openid.net/signon/1.1'
 OPENID_1_0_TYPE = 'http://openid.net/signon/1.0'
 
-from openid.message import OID1 as OPENID_1_0_REQUEST_TYPE
-from openid.message import OID2 as OPENID_2_0_REQUEST_TYPE
+from openid.message import OPENID1_NS as OPENID_1_0_MESSAGE_NS
+from openid.message import OPENID2_NS as OPENID_2_0_MESSAGE_NS
 
 class OpenIDServiceEndpoint(object):
     """Object representing an OpenID service endpoint.
@@ -45,9 +45,9 @@ class OpenIDServiceEndpoint(object):
     def preferredNamespace(self):
         if (OPENID_IDP_2_0_TYPE in self.type_uris or 
             OPENID_2_0_TYPE in self.type_uris):
-            return OPENID_2_0_REQUEST_TYPE
+            return OPENID_2_0_MESSAGE_NS
         else:
-            return OPENID_1_0_REQUEST_TYPE
+            return OPENID_1_0_MESSAGE_NS
 
     def __init__(self):
         self.identity_url = None
