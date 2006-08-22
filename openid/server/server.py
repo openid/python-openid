@@ -118,11 +118,8 @@ OPENID_PREFIX = 'openid.'
 ENCODE_KVFORM = ('kvform',)
 ENCODE_URL = ('URL/redirect',)
 
-class _AnonymousReplySentinel(object):
-    """Pass to CheckIDRequest.answer when you want to answer with no identifer.
-    """
-
-ANONYMOUS_REPLY = _AnonymousReplySentinel()
+# Pass to CheckIDRequest.answer when you want to answer with no identifer.
+ANONYMOUS_REPLY = oidutil.Symbol('Anonymous reply')
 
 class OpenIDRequest(object):
     """I represent an incoming OpenID request.
@@ -664,7 +661,7 @@ class CheckIDRequest(OpenIDRequest):
                     "answer. Use %s.ANONYMOUS_REPLY if you want to "
                     "send this response without an identity "
                     "parameter." % (__name__,))
-            elif response_identity is ANONYMOUS_REPLY:
+            elif response_identity == ANONYMOUS_REPLY:
                 pass
             else:
                 response.addField(None, 'identity', response_identity)
