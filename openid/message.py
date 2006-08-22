@@ -42,7 +42,6 @@ class UndefinedOpenIDNamespace(ValueError):
     """Raised if the generic OpenID namespace is accessed when there
     is no OpenID namespace set for this message."""
 
-# XXX: TESTME!
 class Message(object):
     """
     In the implementation of this object, None represents the global
