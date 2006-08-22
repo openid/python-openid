@@ -64,7 +64,7 @@ class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
 # string exception is raised.
 import warnings
 warnings.filterwarnings('ignore', 'raising a string.*', DeprecationWarning,
-                        r'^openid\.test\.test_discover$', 75)
+                        r'^openid\.test\.test_discover$', 76)
 
 class ErrorRaisingFetcher(object):
     """Just raise an exception when fetch is called"""
@@ -485,6 +485,42 @@ class TestXRIDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(services[1].server_url,
                              "http://www.livejournal.com/openid/server.bml")
         self.failUnlessEqual(services[0].canonicalID, XRI("=!1000"))
+
+    def test_useCanonicalID(self):
+        """When there is no delegate, the CanonicalID should be used with XRI.
+        """
+        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint.identity_url = "=example"
+        endpoint.canonicalID = XRI("=!1000")
+        self.failUnlessEqual(endpoint.getServerID(), XRI("=!1000"))
+
+
+class TestPreferredNamespace(datadriven.DataDrivenTestCase):
+    def __init__(self, expected_ns, type_uris):
+        datadriven.DataDrivenTestCase.__init__(
+            self, 'Expecting %s from %s' % (expected_ns, type_uris))
+        self.expected_ns = expected_ns
+        self.type_uris = type_uris
+
+    def runOneTest(self):
+        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint.type_uris = self.type_uris
+        actual_ns = endpoint.preferredNamespace()
+        self.failUnlessEqual(actual_ns, self.expected_ns)
+
+    cases = [
+        (message.OPENID1_NS, []),
+        (message.OPENID1_NS, ['http://jyte.com/']),
+        (message.OPENID1_NS, [discover.OPENID_1_0_TYPE]),
+        (message.OPENID1_NS, [discover.OPENID_1_1_TYPE]),
+        (message.OPENID1_NS, [discover.OPENID_1_2_TYPE]),
+        (message.OPENID2_NS, [discover.OPENID_2_0_TYPE]),
+        (message.OPENID2_NS, [discover.OPENID_IDP_2_0_TYPE]),
+        (message.OPENID2_NS, [discover.OPENID_2_0_TYPE,
+                              discover.OPENID_1_0_TYPE]),
+        (message.OPENID2_NS, [discover.OPENID_1_0_TYPE,
+                              discover.OPENID_2_0_TYPE]),
+        ]
 
 
 def pyUnitTests():
