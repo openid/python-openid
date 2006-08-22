@@ -38,6 +38,10 @@ OPENID_NS = oidutil.Symbol('OpenID namespace')
 # with "openid."
 BARE_NS = oidutil.Symbol('Bare namespace')
 
+class UndefinedOpenIDNamespace(ValueError):
+    """Raised if the generic OpenID namespace is accessed when there
+    is no OpenID namespace set for this message."""
+
 # XXX: TESTME!
 class Message(object):
     """
@@ -264,7 +268,7 @@ class Message(object):
         """
         if namespace == OPENID_NS:
             if self._openid_ns_uri is None:
-                raise ValueError('OpenID namespace not set')
+                raise UndefinedOpenIDNamespace('OpenID namespace not set')
             else:
                 namespace = self._openid_ns_uri
         elif namespace == BARE_NS:
