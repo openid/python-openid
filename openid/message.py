@@ -259,7 +259,8 @@ class Message(object):
 
     def toURLEncoded(self):
         """Generate an x-www-urlencoded string"""
-        args = self.toPostArgs()
+        args = self.toPostArgs().items()
+        args.sort()
         return urllib.urlencode(args)
 
     def _fixNS(self, namespace):
