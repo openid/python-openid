@@ -79,3 +79,18 @@ def isAbsoluteHTTPURL(url):
     """
     parts = urlparse.urlparse(url)
     return parts[0] in ['http', 'https'] and parts[1]
+
+class Symbol(object):
+    """This class implements an object that compares equal to others
+    of the same type that have the same name. These are distict from
+    str or unicode objects.
+    """
+
+    def __init__(self, name):
+        self.name = name
+
+    def __eq__(self, other):
+        return type(self) is type(other) and self.name == other.name
+
+    def __repr__(self):
+        return '<Symbol %s>' % (self.name,)
