@@ -370,7 +370,14 @@ class NamespaceMap(object):
         return self.namespace_to_alias.get(namespace_uri)
 
     def getNamespaceURI(self, alias):
-        return self.alias_to_namespace.get(alias)
+        ns_uri = self.alias_to_namespace.get(alias)
+        if ns_uri is None:
+            for (ns_uri_x, ns_alias_x) in self.default_aliases.iteritems():
+                if ns_alias_x == alias:
+                    ns_uri = ns_uri_x
+                    break
+
+        return ns_uri
 
     def iterNamespaceURIs(self):
         return iter(self.namespace_to_alias)
