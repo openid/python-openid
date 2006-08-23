@@ -1,4 +1,4 @@
-# -*- test-case-name: openid.test.server -*-
+# -*- test-case-name: openid.test.test_server -*-
 """OpenID server protocol and logic.
 
 Overview

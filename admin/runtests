@@ -51,15 +51,15 @@ def pyunitTests():
     from openid.test import test_discover
     from openid.test import test_consumer
     from openid.test import test_message
+    from openid.test import test_server
     from openid.test import kvform
-    from openid.test import server
     from openid.test import oidutil
     from openid.test import linkparse
     from openid.test import trustroot
     from openid.test import association
 
     pyunit_modules = [
-        server,
+        test_server,
         test_consumer,
         test_message,
         association,
