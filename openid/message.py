@@ -133,8 +133,8 @@ class Message(object):
         for (ns_alias, ns_key, value) in ns_args:
             ns_uri = self.namespaces.getNamespaceURI(ns_alias)
             if ns_uri is None:
-                raise ValueError(
-                    'Namespace alias %r not defined' % (ns_alias,))
+                ns_uri = openid_ns_uri
+                ns_key = '%s.%s' % (ns_alias, ns_key)
             self.setArg(ns_uri, ns_key, value)
 
     def setOpenIDNamespace(self, openid_ns_uri):
