@@ -58,11 +58,14 @@ class Message(object):
 
     allowed_openid_namespaces = [OPENID1_NS, OPENID2_NS]
 
-    def __init__(self):
+    def __init__(self, openid_namespace=None):
         """Create an empty Message"""
         self.args = {}
         self.namespaces = NamespaceMap()
-        self._openid_ns_uri = None
+        if openid_namespace is None:
+            self._openid_ns_uri = None
+        else:
+            self.setOpenIDNamespace(openid_namespace)
 
     def fromPostArgs(cls, args):
         """Construct a Message containing a set of POST arguments"""
