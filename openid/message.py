@@ -58,6 +58,10 @@ class Message(object):
 
     allowed_openid_namespaces = [OPENID1_NS, OPENID2_NS]
 
+    default_namespaces = {
+        'sreg':SREG_URI,
+        }
+
     def __init__(self, openid_namespace=None):
         """Create an empty Message"""
         self.args = {}
@@ -133,8 +137,17 @@ class Message(object):
         for (ns_alias, ns_key, value) in ns_args:
             ns_uri = self.namespaces.getNamespaceURI(ns_alias)
             if ns_uri is None:
-                ns_uri = openid_ns_uri
-                ns_key = '%s.%s' % (ns_alias, ns_key)
+                # Only try to map an alias to a default if it's an
+                # OpenID 1.x message.
+                if openid_ns_uri == OPENID1_NS:
+                    ns_uri = self.default_namespaces.get(ns_alias)
+
+                if ns_uri is None:
+                    ns_uri = openid_ns_uri
+                    ns_key = '%s.%s' % (ns_alias, ns_key)
+                else:
+                    self.namespaces.addAlias(ns_uri, ns_alias)
+
             self.setArg(ns_uri, ns_key, value)
 
     def setOpenIDNamespace(self, openid_ns_uri):
@@ -359,7 +372,9 @@ class Message(object):
 #XXX: testme!
 class NamespaceMap(object):
     # namespaces that should use a certain alias (for
-    # backwards-compatibility or beauty)
+    # backwards-compatibility or beauty). If a URI in this dictionary
+    # is added to the namespace map without an explicit desired name,
+    # it will default to the value supplied here.
     default_aliases = {SREG_URI:'sreg'}
 
     def __init__(self):
@@ -370,14 +385,7 @@ class NamespaceMap(object):
         return self.namespace_to_alias.get(namespace_uri)
 
     def getNamespaceURI(self, alias):
-        ns_uri = self.alias_to_namespace.get(alias)
-        if ns_uri is None:
-            for (ns_uri_x, ns_alias_x) in self.default_aliases.iteritems():
-                if ns_alias_x == alias:
-                    ns_uri = ns_uri_x
-                    break
-
-        return ns_uri
+        return self.alias_to_namespace.get(alias)
 
     def iterNamespaceURIs(self):
         return iter(self.namespace_to_alias)
