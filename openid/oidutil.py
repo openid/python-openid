@@ -92,5 +92,8 @@ class Symbol(object):
     def __eq__(self, other):
         return type(self) is type(other) and self.name == other.name
 
+    def __ne__(self, other):
+        return not (self == other)
+
     def __repr__(self):
         return '<Symbol %s>' % (self.name,)
