@@ -369,8 +369,9 @@ class Message(object):
         namespace = self._fixNS(namespace)
         del self.args[(namespace, key)]
 
-#XXX: testme!
 class NamespaceMap(object):
+    """Maintains a bijective map between namespace uris and aliases.
+    """
     # namespaces that should use a certain alias (for
     # backwards-compatibility or beauty). If a URI in this dictionary
     # is added to the namespace map without an explicit desired name,
@@ -388,9 +389,11 @@ class NamespaceMap(object):
         return self.alias_to_namespace.get(alias)
 
     def iterNamespaceURIs(self):
+        """Return an iterator over the namespace URIs"""
         return iter(self.namespace_to_alias)
 
     def iterAliases(self):
+        """Return an iterator over the aliases"""
         return iter(self.alias_to_namespace)
 
     def iteritems(self):
