@@ -8,6 +8,7 @@ import time
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
+from openid.message import OPENID_NS
 
 all_association_types = ['HMAC-SHA1', 'HMAC-SHA256']
 if hasattr(cryptutil, 'hmacSha256'):
@@ -430,3 +431,42 @@ class Association(object):
             return False
 
         return request_sig == expected_sig
+
+    def getMessageSignature(self, message):
+        """Return the signature of a message with a signed list
+
+        XXX: this is association-type specific
+        """
+        signed = message.getArg(OPENID_NS, 'signed')
+        if not signed:
+            raise ValueError('Message has no signed list')
+
+        signed_list = signed.split(',')
+        args = message.toPostArgs()
+        return self.signDict(signed_list, args)
+
+    def signMessage(self, message):
+        """Add a signature (and a signed list) to a message
+
+        XXX: this is association-type specific
+        """
+        if (message.hasKey(OPENID_NS, 'sig') or
+            message.hasKey(OPENID_NS, 'signed')):
+            raise ValueError('Message already has signed list or signature')
+
+        signed_message = message.copy()
+        args = message.toPostArgs()
+        signed_list = [k[7:] for k in args if k.startswith('openid.')]
+        signed_list.append('signed')
+        signed_message.setArg(OPENID_NS, 'signed', ','.join(signed))
+        sig = self.getMessageSignature(signed_message)
+        signed_message.setArg(OPENID_NS, 'sig', sig)
+        return signed_message
+
+    def checkMessageSignature(self, message):
+        """Given a message with a signature, calculate a new signature
+        and return whether it matches the signature in the message.
+        """
+        calculated_sig = self.getMessageSignature(message)
+        message_sig = message.getArg(OPENID_NS, 'sig')
+        return calculated_sig == message_sig

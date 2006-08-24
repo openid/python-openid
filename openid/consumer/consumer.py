@@ -526,13 +526,9 @@ class GenericConsumer(object):
         if user_setup_url is not None:
             return SetupNeededResponse(endpoint, user_setup_url)
 
-        signed = message.getArg(OPENID_NS, 'signed')
-        if signed:
-            signed_list = signed.split(',')
-        else:
-            signed_list = []
-
         try:
+            signed_list = self._idResCheckSignature(message,
+                                                    endpoint.server_url)
             self._idResCheckForFields(message, signed_list)
         except ValueError, e:
             return FailureResponse(endpoint, e.args[0])
@@ -553,13 +549,14 @@ class GenericConsumer(object):
             return FailureResponse(
                 endpoint, fmt % (endpoint.delegate, server_id2))
 
-        assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
-        assoc = self.store.getAssociation(endpoint.server_url, assoc_handle)
+        # XXX: association-type specific
+        signed_fields = ['openid.' + f for f in signed_list]
+        return SuccessResponse(endpoint, message, signed_fields)
 
-        # Fail if the identity field is present but not signed
-        if endpoint.identity_url is not None and 'identity' not in signed_list:
-            msg = '"openid.identity" not signed'
-            return FailureResponse(endpoint, msg)
+
+    def _idResCheckSignature(self, message, server_url):
+        assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
+        assoc = self.store.getAssociation(server_url, assoc_handle)
 
         if assoc:
             if assoc.getExpiresIn() <= 0:
@@ -568,26 +565,22 @@ class GenericConsumer(object):
                 # automatically opens the possibility for
                 # denial-of-service by a server that just returns expired
                 # associations (or really short-lived associations)
-                msg = 'Association with %s expired' % (endpoint.server_url,)
-                return FailureResponse(endpoint, msg)
+                raise ValueError('Association with %s expired' % (server_url,))
 
-            # Check the signature
-            v_sig = assoc.signDict(signed_list, message.toPostArgs())
-
-            if v_sig != message.getArg(OPENID_NS, 'sig'):
-                return FailureResponse(endpoint, 'Bad signature')
+            if not assoc.checkMessageSignature(message):
+                raise ValueError('Bad signature')
 
         else:
             # It's not an association we know about.  Stateless mode is our
             # only possible path for recovery.
             # XXX - async framework will not want to block on this call to
             # _checkAuth.
-            if not self._checkAuth(message, endpoint.server_url):
-                return FailureResponse(endpoint,
-                                       'Server denied check_authentication')
+            if not self._checkAuth(message, server_url):
+                raise ValueError('Server denied check_authentication')
 
-        signed_fields = ['openid.' + f for f in signed_list]
-        return SuccessResponse(endpoint, message, signed_fields)
+        # XXX: association-type specific
+        signed = message.getArg(OPENID_NS, 'signed')
+        return signed.split(',')
 
 
     def _idResCheckForFields(self, message, signed_list):

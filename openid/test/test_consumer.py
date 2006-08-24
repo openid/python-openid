@@ -76,9 +76,8 @@ class GoodAssociation:
     def getExpiresIn(self):
         return self.expiresIn
 
-    def signDict(fields, data, prefix="openid."):
-        return GOODSIG
-
+    def checkMessageSignature(self, message):
+        return message.getArg(OPENID_NS, 'sig') == GOODSIG
 
 
 class GoodAssocStore(_memstore.MemoryStore):
@@ -324,6 +323,7 @@ class TestComplete(TestIdRes):
              'openid.sig': GOODSIG,
              'openid.signed': 'identity,return_to',
              })
+        self.consumer.store = GoodAssocStore()
         r = self.consumer.complete(message, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
         self.failUnlessEqual(r.identity_url, self.consumer_id)
