@@ -58,6 +58,15 @@ def pyunitTests():
     from openid.test import linkparse
     from openid.test import trustroot
     from openid.test import association
+    from openid.test import test_fetchers
+    from openid.test import test_urinorm
+    # yadis tests
+    from openid.test import test_parsehtml
+    from openid.test import test_discover
+    from openid.test import test_accept
+    from openid.test import test_etxrd
+    from openid.test import test_xri
+    from openid.test import test_xrires
 
     pyunit_modules = [
         test_server,
@@ -65,6 +74,10 @@ def pyunitTests():
         test_message,
         test_symbol,
         association,
+        test_etxrd,
+        test_xri,
+        test_xrires,
+        test_discover,
         ]
 
     # Some modules have data-driven tests, and they use custom methods
@@ -77,6 +90,11 @@ def pyunitTests():
         test_discover,
         test_htmldiscover,
         kvform,
+        test_parsehtml,
+        test_discover,
+        test_accept,
+        test_fetchers,
+        test_urinorm,
         ]
 
     loader = unittest.TestLoader()

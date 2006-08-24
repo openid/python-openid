@@ -186,7 +186,7 @@ import urllib
 import cgi
 from urlparse import urlparse
 
-from urljr import fetchers
+from openid import fetchers
 
 from openid.consumer.discover import discover as discoverURL
 from openid.consumer.discover import discoverXRI
@@ -198,8 +198,8 @@ from openid import oidutil
 from openid.association import Association, default_negotiator
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce, split as splitNonce
-from yadis.manager import Discovery
-from yadis import xri
+from openid.yadis.manager import Discovery
+from openid.yadis import xri
 
 
 __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',

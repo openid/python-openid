@@ -1,12 +1,12 @@
 import sys
 import unittest
 import datadriven
-from urljr import fetchers
-from urljr.fetchers import HTTPResponse
-from yadis.discover import DiscoveryFailure
+from openid import fetchers
+from openid.fetchers import HTTPResponse
+from openid.yadis.discover import DiscoveryFailure
 from openid.consumer import discover
-from yadis import xrires
-from yadis.xri import XRI
+from openid.yadis import xrires
+from openid.yadis.xri import XRI
 from urlparse import urlsplit
 from openid import message
 

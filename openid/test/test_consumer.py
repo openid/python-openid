@@ -13,14 +13,14 @@ from openid.consumer.consumer import \
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
-from yadis.manager import Discovery
-from yadis.discover import DiscoveryFailure
+from openid.yadis.manager import Discovery
+from openid.yadis.discover import DiscoveryFailure
 
 
 from openid.consumer import parse
 
-from urljr.fetchers import HTTPResponse, HTTPFetchingError
-from urljr import fetchers
+from openid.fetchers import HTTPResponse, HTTPFetchingError
+from openid import fetchers
 
 import _memstore
 

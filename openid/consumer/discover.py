@@ -1,18 +1,15 @@
 # -*- test-case-name: openid.test.test_discover -*-
 
 import urlparse
-from urljr import fetchers, urinorm
 
-from openid import oidutil
+from openid import oidutil, fetchers, urinorm
 
-# If the Yadis library is available, use it. Otherwise, only use
-# old-style discovery.
-import yadis
-from yadis.etxrd import nsTag, XRDSError
-from yadis.services import applyFilter as extractServices
-from yadis.discover import discover as yadisDiscover
-from yadis.discover import DiscoveryFailure
-from yadis import xrires, filters
+from openid import yadis
+from openid.yadis.etxrd import nsTag, XRDSError
+from openid.yadis.services import applyFilter as extractServices
+from openid.yadis.discover import discover as yadisDiscover
+from openid.yadis.discover import DiscoveryFailure
+from openid.yadis import xrires, filters
 
 from openid.consumer.parse import openIDDiscover as parseOpenIDLinkRel
 from openid.consumer.parse import ParseError

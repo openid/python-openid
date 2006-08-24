@@ -2,7 +2,7 @@ import unittest
 from openid.consumer.discover import \
      OpenIDServiceEndpoint, OPENID_1_2_TYPE, OPENID_1_1_TYPE, OPENID_1_0_TYPE
 
-from yadis.services import applyFilter
+from openid.yadis.services import applyFilter
 
 
 XRDS_BOILERPLATE = '''\

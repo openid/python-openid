@@ -38,8 +38,8 @@ from openid.store import filestore
 from openid.consumer import consumer
 from openid.oidutil import appendArgs
 from openid.cryptutil import randomString
-from yadis.discover import DiscoveryFailure
-from urljr.fetchers import HTTPFetchingError
+from openid.yadis.discover import DiscoveryFailure
+from openid.fetchers import HTTPFetchingError
 
 SREG_URI = 'http://openid.net/sreg/1.0'
 
