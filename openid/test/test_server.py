@@ -2,6 +2,7 @@
 """
 from openid.server import server
 from openid import association, cryptutil, oidutil
+from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS
 import _memstore
 import cgi
 
@@ -34,11 +35,11 @@ class TestProtocolError(unittest.TestCase):
     def test_browserWithReturnTo(self):
         return_to = "http://rp.unittest/consumer"
         # will be a ProtocolError raised by Decode or CheckIDRequest.answer
-        args = {
+        args = Message.fromPostArgs({
             'openid.mode': 'monkeydance',
             'openid.identity': 'http://wagu.unittest/',
             'openid.return_to': return_to,
-            }
+            })
         e = server.ProtocolError(args, "plucky")
         self.failUnless(e.hasReturnTo())
         expected_args = {
@@ -52,10 +53,10 @@ class TestProtocolError(unittest.TestCase):
 
     def test_noReturnTo(self):
         # will be a ProtocolError raised by Decode or CheckIDRequest.answer
-        args = {
+        args = Message.fromPostArgs({
             'openid.mode': 'zebradance',
             'openid.identity': 'http://wagu.unittest/',
-            }
+            })
         e = server.ProtocolError(args, "waffles")
         self.failIf(e.hasReturnTo())
         expected = """error:waffles
@@ -83,8 +84,7 @@ class TestDecode(unittest.TestCase):
             'pony': 'spotted',
             'sreg.mutant_power': 'decaffinator',
             }
-        r = self.decode(args)
-        self.failUnlessEqual(r, None)
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
     def test_bad(self):
         args = {
@@ -177,7 +177,7 @@ class TestDecode(unittest.TestCase):
         try:
             result = self.decode(args)
         except server.ProtocolError, err:
-            self.failUnless(err.query)
+            self.failUnless(err.openid_message)
         else:
             self.fail("Expected ProtocolError, instead returned with %s" %
                       (result,))
@@ -193,7 +193,7 @@ class TestDecode(unittest.TestCase):
         try:
             result = self.decode(args)
         except server.UntrustedReturnURL, err:
-            self.failUnless(err.query)
+            self.failUnless(err.openid_message)
         else:
             self.fail("Expected UntrustedReturnURL, instead returned with %s" %
                       (result,))
@@ -407,11 +407,11 @@ class TestEncode(unittest.TestCase):
             immediate = False,
             )
         response = server.OpenIDResponse(request)
-        response.fields = {
+        response.fields = Message.fromOpenIDArgs({
             'mode': 'id_res',
             'identity': request.identity,
             'return_to': request.return_to,
-            }
+            })
         webresponse = self.encode(response)
         self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
         self.failUnless(webresponse.headers.has_key('location'))
@@ -420,11 +420,9 @@ class TestEncode(unittest.TestCase):
         self.failUnless(location.startswith(request.return_to),
                         "%s does not start with %s" % (location,
                                                        request.return_to))
-        query = cgi.parse_qs(urlparse(location)[4])
         # argh.
-        q2 = dict([(k, v[0]) for k, v in query.iteritems()])
-        expected = dict(
-            [('openid.' + k, v) for k, v in response.fields.iteritems()])
+        q2 = dict(cgi.parse_qsl(urlparse(location)[4]))
+        expected = response.fields.toPostArgs()
         self.failUnlessEqual(q2, expected)
 
     def test_cancel(self):
@@ -435,17 +433,18 @@ class TestEncode(unittest.TestCase):
             immediate = False,
             )
         response = server.OpenIDResponse(request)
-        response.fields = {
+        response.fields = Message.fromOpenIDArgs({
             'mode': 'cancel',
-            }
+            })
         webresponse = self.encode(response)
         self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
         self.failUnless(webresponse.headers.has_key('location'))
 
     def test_assocReply(self):
-        request = server.AssociateRequest.fromQuery({})
+        request = server.AssociateRequest.fromMessage(Message(OPENID2_NS))
         response = server.OpenIDResponse(request)
-        response.fields = {'assoc_handle': "every-zig"}
+        response.fields = Message.fromPostArgs(
+            {'openid.assoc_handle': "every-zig"})
         webresponse = self.encode(response)
         body = """assoc_handle:every-zig
 """
@@ -458,10 +457,10 @@ class TestEncode(unittest.TestCase):
                                           'siggggg',
                                           [])
         response = server.OpenIDResponse(request)
-        response.fields = {
+        response.fields = Message.fromOpenIDArgs({
             'is_valid': 'true',
             'invalidate_handle': 'xXxX:xXXx'
-            }
+            })
         body = """invalidate_handle:xXxX:xXXx
 is_valid:true
 """
@@ -471,20 +470,18 @@ is_valid:true
         self.failUnlessEqual(webresponse.body, body)
 
     def test_unencodableError(self):
-        args = {
+        args = Message.fromPostArgs({
             'openid.identity': 'http://limu.unittest/',
-            }
+            })
         e = server.ProtocolError(args, "wet paint")
         self.failUnlessRaises(server.EncodingError, self.encode, e)
 
     def test_encodableError(self):
-        args = {
+        args = Message.fromPostArgs({
             'openid.mode': 'associate',
             'openid.identity': 'http://limu.unittest/',
-            }
-        body="""error:snoot
-mode:error
-"""
+            })
+        body="error:snoot\nmode:error\n"
         webresponse = self.encode(server.ProtocolError(args, "snoot"))
         self.failUnlessEqual(webresponse.code, server.HTTP_ERROR)
         self.failUnlessEqual(webresponse.headers, {})
@@ -504,12 +501,11 @@ class TestSigningEncode(unittest.TestCase):
             immediate = False,
             )
         self.response = server.OpenIDResponse(self.request)
-        self.response.fields = {
+        self.response.fields = Message.fromOpenIDArgs({
             'mode': 'id_res',
             'identity': self.request.identity,
             'return_to': self.request.return_to,
-            }
-        self.response.signed.extend(['mode','identity','return_to'])
+            })
         self.signatory = server.Signatory(self.store)
         self.encoder = server.SigningEncoder(self.signatory)
         self.encode = self.encoder.encode
@@ -554,19 +550,18 @@ class TestSigningEncode(unittest.TestCase):
             immediate = False,
             )
         response = server.OpenIDResponse(request)
-        response.fields['mode'] = 'cancel'
-        response.signed[:] = []
+        response.fields.setArg(OPENID_NS, 'mode', 'cancel')
         webresponse = self.encode(response)
         self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
         self.failUnless(webresponse.headers.has_key('location'))
         location = webresponse.headers['location']
         query = cgi.parse_qs(urlparse(location)[4])
-        self.failIf('openid.sig' in query, query.get('openid.sig'))
+        self.failIf('openid.sig' in query, response.fields.toPostArgs())
 
     def test_assocReply(self):
-        request = server.AssociateRequest.fromQuery({})
+        request = server.AssociateRequest.fromMessage(Message(OPENID2_NS))
         response = server.OpenIDResponse(request)
-        response.fields = {'assoc_handle': "every-zig"}
+        response.fields = Message.fromOpenIDArgs({'assoc_handle': "every-zig"})
         webresponse = self.encode(response)
         body = """assoc_handle:every-zig
 """
@@ -575,7 +570,7 @@ class TestSigningEncode(unittest.TestCase):
         self.failUnlessEqual(webresponse.body, body)
 
     def test_alreadySigned(self):
-        self.response.fields['sig'] = 'priorSig=='
+        self.response.fields.setArg(OPENID_NS, 'sig', 'priorSig==')
         self.failUnlessRaises(server.AlreadySigned, self.encode, self.response)
 
 
@@ -599,21 +594,28 @@ class TestCheckID(unittest.TestCase):
         self.request.return_to = "http://foo.unittest/39"
         self.failUnless(self.request.trustRootValid())
 
+    def _expectAnswer(self, answer, identity=None):
+        expected_list = [('mode', 'id_res'), ('return_to', self.request.return_to)]
+        if identity:
+            expected_list.append(('identity', identity))
+
+        for k, expected in expected_list:
+            actual = answer.fields.getArg(OPENID_NS, k)
+            self.failUnlessEqual(actual, expected, "%s: expected %s, got %s" % (k, expected, actual))
+
+        self.failUnless(answer.fields.hasKey(OPENID_NS, 'nonce'))
+        self.failUnless(answer.fields.getOpenIDNamespace() == OPENID2_NS)
+
+        # One for nonce, one for ns
+        self.failUnlessEqual(len(answer.fields.toPostArgs()),
+                             len(expected_list) + 2, answer.fields.toPostArgs())
+        
+
     def test_answerAllow(self):
         answer = self.request.answer(True)
         self.failUnlessEqual(answer.request, self.request)
-        for k, v in  [
-            ('mode', 'id_res'),
-            ('identity', self.request.identity),
-            ('return_to', self.request.return_to),
-            ]:
-            self.failUnlessEqual(answer.fields[k], v, "%s: %s" % (k, v))
-        self.failUnless('nonce' in answer.fields)
-        self.failUnlessEqual(len(answer.fields), 4)
-        signed = answer.signed[:]
-        signed.sort()
-        self.failUnlessEqual(signed,
-                             ["identity", "mode", "nonce", "return_to"])
+        self._expectAnswer(answer, self.request.identity)
+
 
     def test_answerAllowWithoutIdentityOops(self):
         self.request.identity = None
@@ -623,34 +625,12 @@ class TestCheckID(unittest.TestCase):
         self.request.identity = None
         answer = self.request.answer(True, identity=server.ANONYMOUS_REPLY)
         self.failUnlessEqual(answer.request, self.request)
-        for k, v in  [
-            ('mode', 'id_res'),
-            ('return_to', self.request.return_to),
-            ]:
-            self.failUnlessEqual(answer.fields[k], v, "%s: %s" % (k, v))
-        self.failUnless('nonce' in answer.fields)
-        self.failUnlessEqual(len(answer.fields), 3)
-        signed = answer.signed[:]
-        signed.sort()
-        self.failUnlessEqual(signed,
-                             ["mode", "nonce", "return_to"])
+        self._expectAnswer(answer)
 
     def test_answerAllowWithIdentity(self):
         self.request.identity = None
         answer = self.request.answer(True, identity="=V")
-        self.failUnlessEqual(answer.request, self.request)
-        for k, v in  [
-            ('mode', 'id_res'),
-            ('identity', '=V'),
-            ('return_to', self.request.return_to),
-            ]:
-            self.failUnlessEqual(answer.fields[k], v, "%s: %s" % (k, v))
-        self.failUnless('nonce' in answer.fields)
-        self.failUnlessEqual(len(answer.fields), 4)
-        signed = answer.signed[:]
-        signed.sort()
-        self.failUnlessEqual(signed,
-                             ["identity", "mode", "nonce", "return_to"])
+        self._expectAnswer(answer, '=V')
 
     def test_answerAllowWithAnotherIdentity(self):
         self.failUnlessRaises(ValueError, self.request.answer, True,
@@ -660,18 +640,7 @@ class TestCheckID(unittest.TestCase):
         self.request.trust_root = None
         answer = self.request.answer(True)
         self.failUnlessEqual(answer.request, self.request)
-        for k, v in  [
-            ('mode', 'id_res'),
-            ('identity', self.request.identity),
-            ('return_to', self.request.return_to),
-            ]:
-            self.failUnlessEqual(answer.fields[k], v, "%s: %s" % (k, v))
-        self.failUnless('nonce' in answer.fields)
-        self.failUnlessEqual(len(answer.fields), 4)
-        signed = answer.signed[:]
-        signed.sort()
-        self.failUnlessEqual(signed,
-                             ["identity", "mode", "nonce", "return_to"])
+        self._expectAnswer(answer, self.request.identity)
 
     def test_answerImmediateDeny(self):
         self.request.mode = 'checkid_immediate'
@@ -680,18 +649,17 @@ class TestCheckID(unittest.TestCase):
         # crappiting setup_url, you dirty my interface with your presence!
         answer = self.request.answer(False, server_url=server_url)
         self.failUnlessEqual(answer.request, self.request)
-        self.failUnlessEqual(len(answer.fields), 2, answer.fields)
-        self.failUnlessEqual(answer.fields.get('mode'), 'id_res')
-        self.failUnless(answer.fields.get('user_setup_url', '').startswith(
-            server_url))
-        self.failUnlessEqual(answer.signed, [])
+        self.failUnlessEqual(len(answer.fields.toPostArgs()), 3, answer.fields)
+        self.failUnlessEqual(answer.fields.getOpenIDNamespace(), OPENID2_NS)
+        self.failUnlessEqual(answer.fields.getArg(OPENID_NS, 'mode'), 'id_res')
+        self.failUnless(answer.fields.getArg(
+            OPENID_NS, 'user_setup_url', '').startswith(server_url))
 
     def test_answerSetupDeny(self):
         answer = self.request.answer(False)
-        self.failUnlessEqual(answer.fields, {
+        self.failUnlessEqual(answer.fields.getArgs(OPENID_NS), {
             'mode': 'cancel',
             })
-        self.failUnlessEqual(answer.signed, [])
 
     def test_encodeToURL(self):
         server_url = 'http://openid-server.unittest/'
@@ -699,15 +667,18 @@ class TestCheckID(unittest.TestCase):
 
         # How to check?  How about a round-trip test.
         base, result_args = result.split('?', 1)
-        result_args = cgi.parse_qs(result_args)
-        result_args = dict([(k, v[0]) for k, v in result_args.iteritems()])
-        rebuilt_request = server.CheckIDRequest.fromQuery(result_args)
+        result_args = dict(cgi.parse_qsl(result_args))
+        message = Message.fromPostArgs(result_args)
+        rebuilt_request = server.CheckIDRequest.fromMessage(message)
         self.failUnlessEqual(rebuilt_request.__dict__, self.request.__dict__)
 
     def test_getCancelURL(self):
         url = self.request.getCancelURL()
-        expected = self.request.return_to + '?openid.mode=cancel'
-        self.failUnlessEqual(url, expected)
+        rt, query_string = url.split('?')
+        self.failUnlessEqual(self.request.return_to, rt)
+        query = dict(cgi.parse_qsl(query_string))
+        self.failUnlessEqual(query, {'openid.mode':'cancel',
+                                     'openid.ns':OPENID2_NS})
 
     def test_getCancelURLimmed(self):
         self.request.mode = 'checkid_immediate'
@@ -726,103 +697,32 @@ class TestCheckIDExtension(unittest.TestCase):
             immediate = False,
             )
         self.response = server.OpenIDResponse(self.request)
-        self.response.fields['mode'] = 'id_res'
-        self.response.fields['blue'] = 'star'
-        self.response.signed.extend(['mode','identity','return_to'])
+        self.response.fields.setArg(OPENID_NS, 'mode', 'id_res')
+        self.response.fields.setArg(OPENID_NS, 'blue', 'star')
 
 
     def test_addField(self):
         namespace = 'something:'
-        self.response.namespaces.addAlias('something:', 'mj12')
-        self.response.addField(namespace, 'bright', 'potato')
-        self.failUnlessEqual(self.response.fields,
+        self.response.fields.setArg(namespace, 'bright', 'potato')
+        self.failUnlessEqual(self.response.fields.getArgs(OPENID_NS),
                              {'blue': 'star',
                               'mode': 'id_res',
-                              'mj12.bright': 'potato',
-                              'ns.mj12':namespace})
-        self.failUnlessEqual(self.response.signed,
-                             ['mode', 'identity', 'return_to', 'ns.mj12', 'mj12.bright'])
-
-
-    def test_addFieldNoNamespace(self):
-        self.response.addField('', 'dark', 'pages')
-        self.failUnlessEqual(self.response.fields,
-                             {'blue': 'star',
-                              'mode': 'id_res',
-                              'dark': 'pages'})
-
-    def test_addFieldUnsigned(self):
-        namespace = 'mj12:'
-        self.response.namespaces.addAlias('mj12:', 'mj12')
-        self.response.addField(namespace, 'dull', 'lemon', signed=False)
-        self.failUnlessEqual(self.response.fields,
-                             {'blue': 'star',
-                              'mode': 'id_res',
-                              'mj12.dull': 'lemon',
-                              'ns.mj12':'mj12:'})
-        self.failUnlessEqual(self.response.signed,
-                             ['mode', 'identity', 'return_to'])
+                              })
+        
+        self.failUnlessEqual(self.response.fields.getArgs(namespace),
+                             {'bright':'potato'})
 
 
     def test_addFields(self):
         namespace = 'mi5:'
-        self.response.namespaces.addAlias(namespace, 'mi5')
-        self.response.addFields(namespace, {'tangy': 'suspenders',
-                                            'bravo': 'inclusion'})
-        self.failUnlessEqual(self.response.fields,
+        args =  {'tangy': 'suspenders',
+                 'bravo': 'inclusion'}
+        self.response.fields.updateArgs(namespace, args)
+        self.failUnlessEqual(self.response.fields.getArgs(OPENID_NS),
                              {'blue': 'star',
                               'mode': 'id_res',
-                              'mi5.tangy': 'suspenders',
-                              'mi5.bravo': 'inclusion',
-                              'ns.mi5':namespace})
-        self.failUnlessEqual(self.response.signed,
-                             ['mode', 'identity', 'return_to',
-                              'ns.mi5', 'mi5.tangy', 'mi5.bravo'])
-
-
-    def test_addFieldsUnsigned(self):
-        namespace = 'mi5:'
-        self.response.namespaces.addAlias(namespace, 'mi5')
-        self.response.addFields(namespace, {'strange': 'conditioner',
-                                           'elemental': 'blender'},
-                                signed=False)
-        self.failUnlessEqual(self.response.fields,
-                             {'blue': 'star',
-                              'mode': 'id_res',
-                              'mi5.strange': 'conditioner',
-                              'mi5.elemental': 'blender',
-                              'ns.mi5':'mi5:'})
-        self.failUnlessEqual(self.response.signed,
-                             ['mode', 'identity', 'return_to'])
-
-
-    def test_update(self):
-        eresponse = server.OpenIDResponse(None)
-        eresponse.fields.update({'shape': 'heart',
-                                 'content': 'strings,wire'})
-        eresponse.signed = ['content']
-        self.response.update('box', eresponse)
-        self.failUnlessEqual(self.response.fields,
-                             {'blue': 'star',
-                              'mode': 'id_res',
-                              'box.shape': 'heart',
-                              'box.content': 'strings,wire'})
-        self.failUnlessEqual(self.response.signed,
-                             ['mode', 'identity', 'return_to', 'box.content'])
-
-    def test_updateNoNamespace(self):
-        eresponse = server.OpenIDResponse(None)
-        eresponse.fields.update({'species': 'pterodactyl',
-                                 'saturation': 'day-glo'})
-        eresponse.signed = ['species']
-        self.response.update(None, eresponse)
-        self.failUnlessEqual(self.response.fields,
-                             {'blue': 'star',
-                              'mode': 'id_res',
-                              'species': 'pterodactyl',
-                              'saturation': 'day-glo'})
-        self.failUnlessEqual(self.response.signed,
-                             ['mode', 'identity', 'return_to', 'species'])
+                              })
+        self.failUnlessEqual(self.response.fields.getArgs(namespace), args)
 
 
 
@@ -864,24 +764,27 @@ class TestCheckAuth(unittest.TestCase):
 
     def test_valid(self):
         r = self.request.answer(self.signatory)
-        self.failUnlessEqual(r.fields, {'is_valid': 'true'})
+        self.failUnlessEqual(r.fields.getArgs(OPENID_NS), {'is_valid': 'true'})
         self.failUnlessEqual(r.request, self.request)
 
     def test_invalid(self):
         self.signatory.isValid = False
         r = self.request.answer(self.signatory)
-        self.failUnlessEqual(r.fields, {'is_valid': 'false'})
+        self.failUnlessEqual(r.fields.getArgs(OPENID_NS),
+                             {'is_valid': 'false'})
 
     def test_replay(self):
         r = self.request.answer(self.signatory)
         r = self.request.answer(self.signatory)
-        self.failUnlessEqual(r.fields, {'is_valid': 'false'})
+        self.failUnlessEqual(r.fields.getArgs(OPENID_NS),
+                             {'is_valid': 'false'})
 
     def test_invalidatehandle(self):
         self.request.invalidate_handle = "bogusHandle"
         r = self.request.answer(self.signatory)
-        self.failUnlessEqual(r.fields, {'is_valid': 'true',
-                                        'invalidate_handle': "bogusHandle"})
+        self.failUnlessEqual(r.fields.getArgs(OPENID_NS),
+                             {'is_valid': 'true',
+                              'invalidate_handle': "bogusHandle"})
         self.failUnlessEqual(r.request, self.request)
 
     def test_invalidatehandleNo(self):
@@ -889,7 +792,7 @@ class TestCheckAuth(unittest.TestCase):
         self.signatory.assocs.append((False, 'goodhandle'))
         self.request.invalidate_handle = assoc_handle
         r = self.request.answer(self.signatory)
-        self.failUnlessEqual(r.fields, {'is_valid': 'true'})
+        self.failUnlessEqual(r.fields.getArgs(OPENID_NS), {'is_valid': 'true'})
 
 
 class TestAssociate(unittest.TestCase):
@@ -897,7 +800,8 @@ class TestAssociate(unittest.TestCase):
     # (important to do because we actually had it broken for a while.)
 
     def setUp(self):
-        self.request = server.AssociateRequest.fromQuery({})
+        self.request = server.AssociateRequest.fromMessage(
+            Message.fromPostArgs({}))
         self.store = _memstore.MemoryStore()
         self.signatory = server.Signatory(self.store)
 
@@ -911,7 +815,7 @@ class TestAssociate(unittest.TestCase):
         session = DiffieHellmanSHA1ServerSession(server_dh, cpub)
         self.request = server.AssociateRequest(session, 'HMAC-SHA1')
         response = self.request.answer(self.assoc)
-        rfg = response.fields.get
+        rfg = lambda f: response.fields.getArg(OPENID_NS, f)
         self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA1")
         self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
         self.failIf(rfg("mac_key"))
@@ -940,7 +844,7 @@ class TestAssociate(unittest.TestCase):
             session = DiffieHellmanSHA256ServerSession(server_dh, cpub)
             self.request = server.AssociateRequest(session, 'HMAC-SHA256')
             response = self.request.answer(self.assoc)
-            rfg = response.fields.get
+            rfg = lambda f: response.fields.getArg(OPENID_NS, f)
             self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA256")
             self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
             self.failIf(rfg("mac_key"))
@@ -973,9 +877,10 @@ class TestAssociate(unittest.TestCase):
                 ]
 
             for request_args in bad_request_argss:
+                message = Message.fromPostArgs(request_args)
                 self.failUnlessRaises(server.ProtocolError,
-                                      server.AssociateRequest.fromQuery,
-                                      request_args)
+                                      server.AssociateRequest.fromMessage,
+                                      message)
 
     def test_protoError(self):
         from openid.consumer.consumer import DiffieHellmanSHA1ConsumerSession
@@ -997,14 +902,15 @@ class TestAssociate(unittest.TestCase):
             ]
             
         for request_args in bad_request_argss:
+            message = Message.fromPostArgs(request_args)
             self.failUnlessRaises(server.ProtocolError,
-                                  server.AssociateRequest.fromQuery,
-                                  request_args)
+                                  server.AssociateRequest.fromMessage,
+                                  message)
 
     def test_plaintext(self):
         self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA1')
         response = self.request.answer(self.assoc)
-        rfg = response.fields.get
+        rfg = lambda f: response.fields.getArg(OPENID_NS, f)
 
         self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA1")
         self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
@@ -1020,7 +926,7 @@ class TestAssociate(unittest.TestCase):
     def test_plaintext256(self):
         self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA256')
         response = self.request.answer(self.assoc)
-        rfg = response.fields.get
+        rfg = lambda f: response.fields.getArg(OPENID_NS, f)
 
         self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA1")
         self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
@@ -1042,17 +948,19 @@ class TestAssociate(unittest.TestCase):
             preferred_session_type=allowed_sess,
             preferred_association_type=allowed_assoc,
             )
-        self.failUnlessEqual(response.fields['error_code'], 'unsupported-type')
-        self.failUnlessEqual(response.fields['assoc_type'], allowed_assoc)
-        self.failUnlessEqual(response.fields['error'], message)
-        self.failUnlessEqual(response.fields['session_type'], allowed_sess)
+        rfg = lambda f: response.fields.getArg(OPENID_NS, f)
+        self.failUnlessEqual(rfg('error_code'), 'unsupported-type')
+        self.failUnlessEqual(rfg('assoc_type'), allowed_assoc)
+        self.failUnlessEqual(rfg('error'), message)
+        self.failUnlessEqual(rfg('session_type'), allowed_sess)
 
     def test_unsupported(self):
         response = self.request.answerUnsupported()
-        self.failUnlessEqual(response.fields['error_code'], 'unsupported-type')
-        self.failUnlessEqual(response.fields.get('assoc_type'), None)
-        self.failUnlessEqual(response.fields.get('error'), None)
-        self.failUnlessEqual(response.fields.get('session_type'), None)
+        rfg = lambda f: response.fields.getArg(OPENID_NS, f)
+        self.failUnlessEqual(rfg('error_code'), 'unsupported-type')
+        self.failUnlessEqual(rfg('assoc_type'), None)
+        self.failUnlessEqual(rfg('error'), None)
+        self.failUnlessEqual(rfg('session_type'), None)
 
 class Counter(object):
     def __init__(self):
@@ -1076,13 +984,14 @@ class TestServer(unittest.TestCase, CatchLogs):
         self.server.openid_monkeymode = monkeyDo
         request = server.OpenIDRequest()
         request.mode = "monkeymode"
+        request.namespace = OPENID1_NS
         webresult = self.server.handleRequest(request)
         self.failUnlessEqual(monkeycalled.count, 1)
 
     def test_associate(self):
-        request = server.AssociateRequest.fromQuery({})
+        request = server.AssociateRequest.fromMessage(Message.fromPostArgs({}))
         response = self.server.openid_associate(request)
-        self.failUnless(response.fields.has_key("assoc_handle"))
+        self.failUnless(response.fields.hasKey(OPENID_NS, "assoc_handle"))
 
     def test_associate2(self):
         """Associate when the server has no allowed association types
@@ -1090,13 +999,13 @@ class TestServer(unittest.TestCase, CatchLogs):
         Gives back an error with error_code and no fallback session or
         assoc types."""
         self.server.negotiator.setAllowedTypes([])
-        request = server.AssociateRequest.fromQuery({})
+        request = server.AssociateRequest.fromMessage(Message.fromPostArgs({}))
         response = self.server.openid_associate(request)
-        self.failUnless(response.fields.has_key("error"))
-        self.failUnless(response.fields.has_key("error_code"))
-        self.failIf(response.fields.has_key("assoc_handle"))
-        self.failIf(response.fields.has_key("assoc_type"))
-        self.failIf(response.fields.has_key("session_type"))
+        self.failUnless(response.fields.hasKey(OPENID_NS, "error"))
+        self.failUnless(response.fields.hasKey(OPENID_NS, "error_code"))
+        self.failIf(response.fields.hasKey(OPENID_NS, "assoc_handle"))
+        self.failIf(response.fields.hasKey(OPENID_NS, "assoc_type"))
+        self.failIf(response.fields.hasKey(OPENID_NS, "session_type"))
 
     def test_associate3(self):
         """Request an assoc type that is not supported when there are
@@ -1105,13 +1014,15 @@ class TestServer(unittest.TestCase, CatchLogs):
         Should give back an error message with a fallback type.
         """
         self.server.negotiator.setAllowedTypes([('HMAC-SHA256', 'DH-SHA256')])
-        request = server.AssociateRequest.fromQuery({})
+        request = server.AssociateRequest.fromMessage(Message.fromPostArgs({}))
         response = self.server.openid_associate(request)
-        self.failUnless(response.fields.has_key("error"))
-        self.failUnless(response.fields.has_key("error_code"))
-        self.failIf(response.fields.has_key("assoc_handle"))
-        self.failUnlessEqual(response.fields["assoc_type"], 'HMAC-SHA256')
-        self.failUnlessEqual(response.fields["session_type"], 'DH-SHA256')
+        self.failUnless(response.fields.hasKey(OPENID_NS, "error"))
+        self.failUnless(response.fields.hasKey(OPENID_NS, "error_code"))
+        self.failIf(response.fields.hasKey(OPENID_NS, "assoc_handle"))
+        self.failUnlessEqual(response.fields.getArg(OPENID_NS, "assoc_type"),
+                             'HMAC-SHA256')
+        self.failUnlessEqual(response.fields.getArg(OPENID_NS, "session_type"),
+                             'DH-SHA256')
 
     try:
         cryptutil.sha256('')
@@ -1130,14 +1041,15 @@ class TestServer(unittest.TestCase, CatchLogs):
                 'openid.assoc_type': 'HMAC-SHA256',
                 'openid.session_type': 'DH-SHA256',
                 }
-            request = server.AssociateRequest.fromQuery(query)
+            message = Message.fromPostArgs(query)
+            request = server.AssociateRequest.fromMessage(message)
             response = self.server.openid_associate(request)
-            self.failUnless(response.fields.has_key("assoc_handle"))
+            self.failUnless(response.fields.hasKey(OPENID_NS, "assoc_handle"))
 
     def test_checkAuth(self):
         request = server.CheckAuthRequest('arrrrrf', '0x3999', [])
         response = self.server.openid_check_authentication(request)
-        self.failUnless(response.fields.has_key("is_valid"))
+        self.failUnless(response.fields.hasKey(OPENID_NS, "is_valid"))
 
 class TestSignatory(unittest.TestCase, CatchLogs):
     def setUp(self):
@@ -1155,43 +1067,46 @@ class TestSignatory(unittest.TestCase, CatchLogs):
             association.Association.fromExpiresIn(60, assoc_handle,
                                                   'sekrit', 'HMAC-SHA1'))
         request.assoc_handle = assoc_handle
+        request.namespace = OPENID1_NS
         response = server.OpenIDResponse(request)
-        response.fields = {
+        response.fields = Message.fromOpenIDArgs({
             'foo': 'amsigned',
             'bar': 'notsigned',
             'azu': 'alsosigned',
-            }
-        response.signed = ['foo', 'azu']
+            })
         sresponse = self.signatory.sign(response)
-        self.failUnlessEqual(sresponse.fields.get('assoc_handle'),
-                             assoc_handle)
-        self.failUnlessEqual(sresponse.fields.get('signed'),
-                             'foo,azu')
-        self.failUnless(sresponse.fields.get('sig'))
+        self.failUnlessEqual(
+            sresponse.fields.getArg(OPENID_NS, 'assoc_handle'),
+            assoc_handle)
+        self.failUnlessEqual(sresponse.fields.getArg(OPENID_NS, 'signed'),
+                             'assoc_handle,azu,bar,foo,signed')
+        self.failUnless(sresponse.fields.getArg(OPENID_NS, 'sig'))
         self.failIf(self.messages, self.messages)
 
     def test_signDumb(self):
         request = server.OpenIDRequest()
         request.assoc_handle = None
+        request.namespace = OPENID2_NS
         response = server.OpenIDResponse(request)
-        response.fields = {
+        response.fields = Message.fromOpenIDArgs({
             'foo': 'amsigned',
             'bar': 'notsigned',
             'azu': 'alsosigned',
-            }
-        response.signed = ['foo', 'azu']
+            'ns':OPENID2_NS,
+            })
         sresponse = self.signatory.sign(response)
-        assoc_handle = sresponse.fields.get('assoc_handle')
+        assoc_handle = sresponse.fields.getArg(OPENID_NS, 'assoc_handle')
         self.failUnless(assoc_handle)
         assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
         self.failUnless(assoc)
-        self.failUnlessEqual(sresponse.fields.get('signed'),
-                             'foo,azu')
-        self.failUnless(sresponse.fields.get('sig'))
+        self.failUnlessEqual(sresponse.fields.getArg(OPENID_NS, 'signed'),
+                             'assoc_handle,azu,bar,foo,ns,signed')
+        self.failUnless(sresponse.fields.getArg(OPENID_NS, 'sig'))
         self.failIf(self.messages, self.messages)
 
     def test_signExpired(self):
         request = server.OpenIDRequest()
+        request.namespace = OPENID2_NS
         assoc_handle = '{assoc}{lookatme}'
         self.store.storeAssociation(
             self._normal_key,
@@ -1201,24 +1116,24 @@ class TestSignatory(unittest.TestCase, CatchLogs):
 
         request.assoc_handle = assoc_handle
         response = server.OpenIDResponse(request)
-        response.fields = {
+        response.fields = Message.fromOpenIDArgs({
             'foo': 'amsigned',
             'bar': 'notsigned',
             'azu': 'alsosigned',
-            }
-        response.signed = ['foo', 'azu']
+            })
         sresponse = self.signatory.sign(response)
 
-        new_assoc_handle = sresponse.fields.get('assoc_handle')
+        new_assoc_handle = sresponse.fields.getArg(OPENID_NS, 'assoc_handle')
         self.failUnless(new_assoc_handle)
         self.failIfEqual(new_assoc_handle, assoc_handle)
 
-        self.failUnlessEqual(sresponse.fields.get('invalidate_handle'),
-                             assoc_handle)
+        self.failUnlessEqual(
+            sresponse.fields.getArg(OPENID_NS, 'invalidate_handle'),
+            assoc_handle)
 
-        self.failUnlessEqual(sresponse.fields.get('signed'),
-                             'foo,azu')
-        self.failUnless(sresponse.fields.get('sig'))
+        self.failUnlessEqual(sresponse.fields.getArg(OPENID_NS, 'signed'),
+                             'assoc_handle,azu,bar,foo,invalidate_handle,signed')
+        self.failUnless(sresponse.fields.getArg(OPENID_NS, 'sig'))
 
         # make sure the expired association is gone
         self.failIf(self.store.getAssociation(self._normal_key, assoc_handle))
@@ -1230,27 +1145,29 @@ class TestSignatory(unittest.TestCase, CatchLogs):
 
     def test_signInvalidHandle(self):
         request = server.OpenIDRequest()
+        request.namespace = OPENID2_NS
         assoc_handle = '{bogus-assoc}{notvalid}'
 
         request.assoc_handle = assoc_handle
         response = server.OpenIDResponse(request)
-        response.fields = {
+        response.fields = Message.fromOpenIDArgs({
             'foo': 'amsigned',
             'bar': 'notsigned',
             'azu': 'alsosigned',
-            }
-        response.signed = ['foo', 'azu']
+            })
         sresponse = self.signatory.sign(response)
 
-        new_assoc_handle = sresponse.fields.get('assoc_handle')
+        new_assoc_handle = sresponse.fields.getArg(OPENID_NS, 'assoc_handle')
         self.failUnless(new_assoc_handle)
         self.failIfEqual(new_assoc_handle, assoc_handle)
 
-        self.failUnlessEqual(sresponse.fields.get('invalidate_handle'),
-                             assoc_handle)
+        self.failUnlessEqual(
+            sresponse.fields.getArg(OPENID_NS, 'invalidate_handle'),
+            assoc_handle)
 
-        self.failUnlessEqual(sresponse.fields.get('signed'), 'foo,azu')
-        self.failUnless(sresponse.fields.get('sig'))
+        self.failUnlessEqual(
+            sresponse.fields.getArg(OPENID_NS, 'signed'), 'assoc_handle,azu,bar,foo,invalidate_handle,signed')
+        self.failUnless(sresponse.fields.getArg(OPENID_NS, 'sig'))
 
         # make sure the new key is a dumb mode association
         self.failUnless(self.store.getAssociation(self._dumb_key, new_assoc_handle))

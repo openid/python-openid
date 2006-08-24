@@ -56,7 +56,8 @@ def associate(qs, assoc_secret, assoc_handle):
 
     if q.get('openid.session_type') == 'DH-SHA1':
         assert len(q) == 6 or len(q) == 4
-        session = DiffieHellmanSHA1ServerSession.fromQuery(q)
+        message = Message.fromPostArgs(q)
+        session = DiffieHellmanSHA1ServerSession.fromMessage(message)
         reply_dict['session_type'] = 'DH-SHA1'
     else:
         assert len(q) == 2
@@ -814,7 +815,8 @@ class TestParseAssociation(TestIdRes):
                     self.consumer._createAssociateRequest(self.server_url,
                                                           'HMAC-SHA1',
                                                           'DH-SHA1')
-        server_sess = DiffieHellmanSHA1ServerSession.fromQuery(args)
+        message = Message.fromPostArgs(args)
+        server_sess = DiffieHellmanSHA1ServerSession.fromMessage(message)
         server_resp = server_sess.answer(self.secret)
         server_resp['assoc_type'] = 'HMAC-SHA1'
         server_resp['assoc_handle'] = 'handle'

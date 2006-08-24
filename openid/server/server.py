@@ -62,7 +62,7 @@ OpenID Extensions
         response = request.answer(True)
         # this will a signed 'openid.sreg.timezone' parameter to the response
         # as well as a namespace declaration for the openid.sreg namespace
-        response.addField('http://openid.net/sreg/1.0', 'timezone', 'America/Los_Angeles')
+        response.fields.setArg('http://openid.net/sreg/1.0', 'timezone', 'America/Los_Angeles')
 
 
 Stores
@@ -100,20 +100,18 @@ import time
 from copy import deepcopy
 
 from openid import cryptutil
-from openid import kvform
 from openid import oidutil
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot
 from openid.association import Association, default_negotiator, getSecretSize
-from openid.message import NamespaceMap
+from openid.message import Message, OPENID_NS, OPENID2_NS
 
 HTTP_OK = 200
 HTTP_REDIRECT = 302
 HTTP_ERROR = 400
 
 BROWSER_REQUEST_MODES = ['checkid_setup', 'checkid_immediate']
-OPENID_PREFIX = 'openid.'
 
 ENCODE_KVFORM = ('kvform',)
 ENCODE_URL = ('URL/redirect',)
@@ -169,29 +167,31 @@ class CheckAuthRequest(OpenIDRequest):
         self.sig = sig
         self.signed = signed
         self.invalidate_handle = invalidate_handle
+        self.namespace = OPENID2_NS
 
 
-    def fromQuery(klass, query):
-        """Construct me from a web query.
+    def fromMessage(klass, message):
+        """Construct me from an OpenID Message.
 
-        @param query: The query parameters as a dictionary with each
-            key mapping to one value.
-        @type query: dict
+        @param message: An OpenID check_authentication Message
+        @type query: openid.message.Message
 
         @returntype: L{CheckAuthRequest}
         """
         self = klass.__new__(klass)
-        try:
-            self.assoc_handle = query[OPENID_PREFIX + 'assoc_handle']
-            self.sig = query[OPENID_PREFIX + 'sig']
-            signed_list = query[OPENID_PREFIX + 'signed']
-        except KeyError, e:
-            raise ProtocolError(query,
-                                text="%s request missing required parameter %s"
-                                " from query %s" %
-                                (self.mode, e.args[0], query))
+        self.namespace = message.getOpenIDNamespace()
+        self.assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
+        self.sig = message.getArg(OPENID_NS, 'sig')
+        signed_list = message.getArg(OPENID_NS, 'signed')
 
-        self.invalidate_handle = query.get(OPENID_PREFIX + 'invalidate_handle')
+        if (self.assoc_handle is None or
+            self.sig is None or
+            signed_list is None):
+            fmt = "%s request missing required parameter from message %s"
+            raise ProtocolError(
+                message, text=fmt % (self.mode, message))
+
+        self.invalidate_handle = message.getArg(OPENID_NS, 'invalidate_handle')
 
         signed_list = signed_list.split(',')
 
@@ -199,32 +199,30 @@ class CheckAuthRequest(OpenIDRequest):
             if required_field not in signed_list:
                 msg = "Required signed field %r missing from signature" % (
                     required_field,)
-                raise ProtocolError(query, text=msg,)
+                raise ProtocolError(message, text=msg,)
 
         signed_pairs = []
         for field in signed_list:
-            try:
-                if field == 'mode':
-                    # XXX KLUDGE HAX WEB PROTOCoL BR0KENNN
-                    # openid.mode is currently check_authentication because
-                    # that's the mode of this request.  But the signature
-                    # was made on something with a different openid.mode.
-                    # http://article.gmane.org/gmane.comp.web.openid.general/537
-                    value = "id_res"
-                else:
-                    value = query[OPENID_PREFIX + field]
-            except KeyError, e:
-                raise ProtocolError(
-                    query,
-                    text="Couldn't find signed field %r in query %s"
-                    % (field, query))
+            if field == 'mode':
+                # XXX KLUDGE HAX WEB PROTOCoL BR0KENNN
+                # openid.mode is currently check_authentication because
+                # that's the mode of this request.  But the signature
+                # was made on something with a different openid.mode.
+                # http://article.gmane.org/gmane.comp.web.openid.general/537
+                value = "id_res"
+            else:
+                value = message.getArg(OPENID_NS, field)
+
+            if value is None:
+                fmt = "Couldn't find signed field %r in message %s"
+                raise ProtocolError(message, text=fmt % (field, message))
             else:
                 signed_pairs.append((field, value))
 
         self.signed = signed_pairs
         return self
 
-    fromQuery = classmethod(fromQuery)
+    fromMessage = classmethod(fromMessage)
 
 
     def answer(self, signatory):
@@ -245,12 +243,14 @@ class CheckAuthRequest(OpenIDRequest):
         # be replayed.
         signatory.invalidate(self.assoc_handle, dumb=True)
         response = OpenIDResponse(self)
-        response.fields['is_valid'] = (is_valid and "true") or "false"
+        valid_str = (is_valid and "true") or "false"
+        response.fields.setArg(OPENID_NS, 'is_valid', valid_str)
 
         if self.invalidate_handle:
             assoc = signatory.getAssociation(self.invalidate_handle, dumb=False)
             if not assoc:
-                response.fields['invalidate_handle'] = self.invalidate_handle
+                response.fields.setArg(
+                    OPENID_NS, 'invalidate_handle', self.invalidate_handle)
         return response
 
 
@@ -281,10 +281,10 @@ class PlainTextServerSession(object):
     session_type = 'no-encryption'
     allowed_assoc_types = ['HMAC-SHA1', 'HMAC-SHA256']
 
-    def fromQuery(cls, unused_request):
+    def fromMessage(cls, unused_request):
         return cls()
 
-    fromQuery = classmethod(fromQuery)
+    fromMessage = classmethod(fromMessage)
 
     def answer(self, secret):
         return {'mac_key': oidutil.toBase64(secret)}
@@ -317,18 +317,18 @@ class DiffieHellmanSHA1ServerSession(object):
         self.dh = dh
         self.consumer_pubkey = consumer_pubkey
 
-    def fromQuery(cls, query):
+    def fromMessage(cls, message):
         """
-        @param query: The associate request's query parameters
-        @type query: {str:str}
+        @param message: The associate request message
+        @type message: openid.message.Message
 
         @returntype: L{DiffieHellmanServerSession}
 
         @raises ProtocolError: When parameters required to establish the
             session are missing.
         """
-        dh_modulus = query.get('openid.dh_modulus')
-        dh_gen = query.get('openid.dh_gen')
+        dh_modulus = message.getArg(OPENID_NS, 'dh_modulus')
+        dh_gen = message.getArg(OPENID_NS, 'dh_gen')
         if (dh_modulus is None and dh_gen is not None or
             dh_gen is None and dh_modulus is not None):
 
@@ -337,7 +337,8 @@ class DiffieHellmanSHA1ServerSession(object):
             else:
                 missing = 'generator'
 
-            raise ProtocolError('If non-default modulus or generator is '
+            raise ProtocolError(message,
+                                'If non-default modulus or generator is '
                                 'supplied, both must be supplied. Missing %s'
                                 % (missing,))
 
@@ -348,16 +349,16 @@ class DiffieHellmanSHA1ServerSession(object):
         else:
             dh = DiffieHellman.fromDefaults()
 
-        consumer_pubkey = query.get('openid.dh_consumer_public')
+        consumer_pubkey = message.getArg(OPENID_NS, 'dh_consumer_public')
         if consumer_pubkey is None:
-            raise ProtocolError("Public key for DH-SHA1 session "
-                                "not found in query %s" % (query,))
+            raise ProtocolError(message, "Public key for DH-SHA1 session "
+                                "not found in message %s" % (message,))
 
         consumer_pubkey = cryptutil.base64ToLong(consumer_pubkey)
 
         return cls(dh, consumer_pubkey)
 
-    fromQuery = classmethod(fromQuery)
+    fromMessage = classmethod(fromMessage)
 
     def answer(self, secret):
         mac_key = self.dh.xorSecret(self.consumer_pubkey,
@@ -407,38 +408,40 @@ class AssociateRequest(OpenIDRequest):
         super(AssociateRequest, self).__init__()
         self.session = session
         self.assoc_type = assoc_type
+        self.namespace = OPENID2_NS
 
 
-    def fromQuery(klass, query):
-        """Construct me from a web query.
+    def fromMessage(klass, message):
+        """Construct me from an OpenID Message.
 
-        @param query: The query parameters as a dictionary with each
-            key mapping to one value.
-        @type query: dict
+        @param message: The OpenID associate request
+        @type message: openid.message.Message
 
         @returntype: L{AssociateRequest}
         """
-        session_type = query.get(OPENID_PREFIX + 'session_type')
+        session_type = message.getArg(OPENID_NS, 'session_type')
         try:
             session_class = klass.session_classes[session_type]
         except KeyError:
-            raise ProtocolError(query,
+            raise ProtocolError(message,
                                 "Unknown session type %r" % (session_type,))
 
         try:
-            session = session_class.fromQuery(query)
+            session = session_class.fromMessage(message)
         except ValueError, why:
-            raise ProtocolError(query, 'Error parsing %s session: %s' %
+            raise ProtocolError(message, 'Error parsing %s session: %s' %
                                 (session_class.session_type, why[0]))
 
-        assoc_type = query.get(OPENID_PREFIX + 'assoc_type', 'HMAC-SHA1')
+        assoc_type = message.getArg(OPENID_NS, 'assoc_type', 'HMAC-SHA1')
         if assoc_type not in session.allowed_assoc_types:
             fmt = 'Session type %s does not support association type %s'
-            raise ProtocolError(query, fmt % (session_type, assoc_type))
+            raise ProtocolError(message, fmt % (session_type, assoc_type))
 
-        return klass(session, assoc_type)
+        self = klass(session, assoc_type)
+        self.namespace = message.getOpenIDNamespace()
+        return self
 
-    fromQuery = classmethod(fromQuery)
+    fromMessage = classmethod(fromMessage)
 
     def answer(self, assoc):
         """Respond to this request with an X{association}.
@@ -451,14 +454,16 @@ class AssociateRequest(OpenIDRequest):
         @returntype: L{OpenIDResponse}
         """
         response = OpenIDResponse(self)
-        response.fields.update({
+        response.fields.updateArgs(OPENID_NS, {
             'expires_in': '%d' % (assoc.getExpiresIn(),),
             'assoc_type': self.assoc_type,
             'assoc_handle': assoc.handle,
             })
-        response.fields.update(self.session.answer(assoc.secret))
+        response.fields.updateArgs(OPENID_NS,
+                                   self.session.answer(assoc.secret))
         if self.session.session_type != 'no-encryption':
-            response.fields['session_type'] = self.session.session_type
+            response.fields.setArg(
+                OPENID_NS, 'session_type', self.session.session_type)
 
         return response
 
@@ -467,15 +472,17 @@ class AssociateRequest(OpenIDRequest):
         """Respond to this request indicating that the association
         type or association session type is not supported."""
         response = OpenIDResponse(self)
-        response.fields['error_code'] = 'unsupported-type'
+        response.fields.setArg(OPENID_NS, 'error_code', 'unsupported-type')
         if message:
-            response.fields['error'] = message
+            response.fields.setArg(OPENID_NS, 'error', message)
 
         if preferred_association_type:
-            response.fields['assoc_type'] = preferred_association_type
+            response.fields.setArg(
+                OPENID_NS, 'assoc_type', preferred_association_type)
 
         if preferred_session_type:
-            response.fields['session_type'] = preferred_session_type
+            response.fields.setArg(
+                OPENID_NS, 'session_type', preferred_session_type)
 
         return response
 
@@ -518,6 +525,7 @@ class CheckIDRequest(OpenIDRequest):
 
         @raises MalformedReturnURL: When the C{return_to} URL is not a URL.
         """
+        self.namespace = OPENID2_NS
         self.assoc_handle = assoc_handle
         self.identity = identity
         self.return_to = return_to
@@ -535,25 +543,25 @@ class CheckIDRequest(OpenIDRequest):
             raise UntrustedReturnURL(None, self.return_to, self.trust_root)
 
 
-    def fromQuery(klass, query):
-        """Construct me from a web query.
+    def fromMessage(klass, message):
+        """Construct me from an OpenID message.
 
         @raises ProtocolError: When not all required parameters are present
-            in the query.
+            in the message.
 
         @raises MalformedReturnURL: When the C{return_to} URL is not a URL.
 
         @raises UntrustedReturnURL: When the C{return_to} URL is outside
             the C{trust_root}.
 
-        @param query: The query parameters as a dictionary with each
-            key mapping to one value.
-        @type query: dict
+        @param message: An OpenID checkid_* request Message
+        @type message: openid.message.Message
 
         @returntype: L{CheckIDRequest}
         """
         self = klass.__new__(klass)
-        mode = query[OPENID_PREFIX + 'mode']
+        self.namespace = message.getOpenIDNamespace()
+        mode = message.getArg(OPENID_NS, 'mode')
         if mode == "checkid_immediate":
             self.immediate = True
             self.mode = "checkid_immediate"
@@ -561,20 +569,19 @@ class CheckIDRequest(OpenIDRequest):
             self.immediate = False
             self.mode = "checkid_setup"
 
-        self.return_to = query.get(OPENID_PREFIX + 'return_to')
+        self.return_to = message.getArg(OPENID_NS, 'return_to')
         if not self.return_to:
-            raise ProtocolError(
-                query,
-                text="Missing required field 'return_to' from %r"
-                % (query,))
+            fmt = "Missing required field 'return_to' from %r"
+            raise ProtocolError(message, text=fmt % (message,))
 
-        self.identity = query.get(OPENID_PREFIX + 'identity')
+        self.identity = message.getArg(OPENID_NS, 'identity')
 
         # There's a case for making self.trust_root be a TrustRoot
         # here.  But if TrustRoot isn't currently part of the "public" API,
         # I'm not sure it's worth doing.
-        self.trust_root = query.get(OPENID_PREFIX + 'trust_root', self.return_to)
-        self.assoc_handle = query.get(OPENID_PREFIX + 'assoc_handle')
+        self.trust_root = message.getArg(
+            OPENID_NS, 'trust_root', self.return_to)
+        self.assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
 
         # Using TrustRoot.parse here is a bit misleading, as we're not
         # parsing return_to as a trust root at all.  However, valid URLs
@@ -583,7 +590,7 @@ class CheckIDRequest(OpenIDRequest):
         # however (particularly ones with wildcards), so this is still a
         # little sketchy.
         if not TrustRoot.parse(self.return_to):
-            raise MalformedReturnURL(query, self.return_to)
+            raise MalformedReturnURL(message, self.return_to)
 
         # I first thought that checking to see if the return_to is within
         # the trust_root is premature here, a logic-not-decoding thing.  But
@@ -591,11 +598,11 @@ class CheckIDRequest(OpenIDRequest):
         # request with an invalid trust_root/return_to is broken regardless of
         # application, right?
         if not self.trustRootValid():
-            raise UntrustedReturnURL(query, self.return_to, self.trust_root)
+            raise UntrustedReturnURL(message, self.return_to, self.trust_root)
 
         return self
 
-    fromQuery = classmethod(fromQuery)
+    fromMessage = classmethod(fromMessage)
 
 
     def trustRootValid(self):
@@ -646,7 +653,7 @@ class CheckIDRequest(OpenIDRequest):
         response = OpenIDResponse(self)
 
         if allow:
-            response.addFields(None, {
+            response.fields.updateArgs(OPENID_NS, {
                 'mode': mode,
                 'return_to': self.return_to,
                 'nonce': mkNonce(),
@@ -664,9 +671,10 @@ class CheckIDRequest(OpenIDRequest):
             elif response_identity == ANONYMOUS_REPLY:
                 pass
             else:
-                response.addField(None, 'identity', response_identity)
+                response.fields.setArg(
+                    OPENID_NS, 'identity', response_identity)
         else:
-            response.addField(None, 'mode', mode, False)
+            response.fields.setArg(OPENID_NS, 'mode', mode)
             if self.immediate:
                 if not server_url:
                     raise ValueError("setup_url is required for allow=False "
@@ -676,7 +684,7 @@ class CheckIDRequest(OpenIDRequest):
                     self.identity, self.return_to, self.trust_root,
                     immediate=False, assoc_handle=self.assoc_handle)
                 setup_url = setup_request.encodeToURL(server_url)
-                response.addField(None, 'user_setup_url', setup_url, False)
+                response.fields.setArg(OPENID_NS, 'user_setup_url', setup_url)
 
         return response
 
@@ -701,9 +709,9 @@ class CheckIDRequest(OpenIDRequest):
         if self.assoc_handle:
             q['assoc_handle'] = self.assoc_handle
 
-        q = dict([(OPENID_PREFIX + k, v) for k, v in q.iteritems()])
-
-        return oidutil.appendArgs(server_url, q)
+        response = Message(self.namespace)
+        response.updateArgs(self.namespace, q)
+        return response.toURL(server_url)
 
 
     def getCancelURL(self):
@@ -722,8 +730,9 @@ class CheckIDRequest(OpenIDRequest):
         if self.immediate:
             raise ValueError("Cancel is not an appropriate response to "
                              "immediate mode requests.")
-        return oidutil.appendArgs(self.return_to, {OPENID_PREFIX + 'mode':
-                                                   'cancel'})
+        response = Message(self.namespace)
+        response.setArg(OPENID_NS, 'mode', 'cancel')
+        return response.toURL(self.return_to)
 
 
     def __str__(self):
@@ -763,9 +772,7 @@ class OpenIDResponse(object):
         @type request: L{OpenIDRequest}
         """
         self.request = request
-        self.fields = {}
-        self.signed = []
-        self.namespaces = NamespaceMap()
+        self.fields = Message(request.namespace)
 
     def __str__(self):
         return "%s for %s: %s" % (
@@ -774,94 +781,12 @@ class OpenIDResponse(object):
             self.fields)
 
 
-    def addField(self, namespace, key, value, signed=True):
-        """Add a field to this response.
-
-        @param namespace: The extension namespace the field is in, with no
-            leading "C{openid.}" e.g. "C{sreg}".
-        @type namespace: str
-
-        @param key: The field's name, e.g. "C{fullname}".
-        @type key: str
-
-        @param value: The field's value.
-        @type value: str
-
-        @param signed: Whether this field should be signed.
-        @type signed: bool
-        """
-        if namespace:
-            alias = self.namespaces.add(namespace)
-            ns_key = 'ns.' + alias
-            if ns_key not in self.fields:
-                self.fields[ns_key] = namespace
-            if signed and ns_key not in self.signed:
-                self.signed.append(ns_key)
-            key = '%s.%s' % (alias, key)
-
-        self.fields[key] = value
-        if signed and key not in self.signed:
-            self.signed.append(key)
-
-
-    def addFields(self, namespace, fields, signed=True):
-        """Add a number of fields to this response.
-
-        @param namespace: The extension namespace the field is in, with no
-            leading "C{openid.}" e.g. "C{sreg}".
-        @type namespace: str
-
-        @param fields: A dictionary with the fields to add.
-            e.g. C{{"fullname": "Frank the Goat"}}
-
-        @param signed: Whether these fields should be signed.
-        @type signed: bool
-        """
-        for key, value in fields.iteritems():
-            self.addField(namespace, key, value, signed)
-
-
-    def update(self, namespace, other):
-        """Update my fields with those from another L{OpenIDResponse}.
-
-        The idea here is that if you write an OpenID extension, it
-        could produce a Response object with C{fields} and C{signed}
-        attributes, and you could merge it with me using this method
-        before I am signed and sent.
-
-        All entries in C{other.fields} will have their keys prefixed
-        with C{namespace} and added to my fields.  All elements of
-        C{other.signed} will be prefixed with C{namespace} and added
-        to my C{signed} list.
-
-        @param namespace: The extension namespace the field is in, with no
-            leading "C{openid.}" e.g. "C{sreg}".
-        @type namespace: str
-
-        @param other: A response object to update from.
-        @type other: L{OpenIDResponse}
-        """
-        if namespace:
-            namespaced_fields = dict([('%s.%s' % (namespace, k), v) for k, v
-                                      in other.fields.iteritems()])
-            namespaced_signed = ['%s.%s' % (namespace, k) for k
-                                 in other.signed]
-        else:
-            namespaced_fields = other.fields
-            namespaced_signed = other.signed
-        self.fields.update(namespaced_fields)
-        self.signed.extend(namespaced_signed)
-
-
     def needsSigning(self):
         """Does this response require signing?
 
         @returntype: bool
         """
-        return (
-            (self.request.mode in ['checkid_setup', 'checkid_immediate'])
-            and self.signed
-            )
+        return self.fields.getArg(OPENID_NS, 'mode') == 'id_res'
 
 
     # implements IEncodable
@@ -885,9 +810,7 @@ class OpenIDResponse(object):
         @returns: A URL to direct the user agent back to.
         @returntype: str
         """
-        fields = dict(
-            [(OPENID_PREFIX + k, v.encode('UTF8')) for k, v in self.fields.iteritems()])
-        return oidutil.appendArgs(self.request.return_to, fields)
+        return self.fields.toURL(self.request.return_to)
 
 
     def encodeToKVForm(self):
@@ -901,14 +824,7 @@ class OpenIDResponse(object):
 
         @returntype: str
         """
-        return kvform.dictToKV(self.fields)
-
-
-    def __str__(self):
-        return "%s for %s: signed%s %s" % (
-            self.__class__.__name__,
-            self.request.__class__.__name__,
-            self.signed, self.fields)
+        return self.fields.toKVForm()
 
 
 
@@ -1028,15 +944,14 @@ class Signatory(object):
             assoc = self.getAssociation(assoc_handle, dumb=False)
             if not assoc:
                 # fall back to dumb mode
-                signed_response.fields['invalidate_handle'] = assoc_handle
+                signed_response.fields.setArg(
+                    OPENID_NS, 'invalidate_handle', assoc_handle)
                 assoc = self.createAssociation(dumb=True)
         else:
             # dumb mode.
             assoc = self.createAssociation(dumb=True)
 
-        signed_response.fields['assoc_handle'] = assoc.handle
-        assoc.addSignature(signed_response.signed, signed_response.fields,
-                           prefix='')
+        signed_response.fields = assoc.signMessage(signed_response.fields)
         return signed_response
 
 
@@ -1184,7 +1099,7 @@ class SigningEncoder(Encoder):
                 raise ValueError(
                     "Must have a store to sign this request: %s" %
                     (response,), response)
-            if 'sig' in response.fields:
+            if response.fields.hasKey(OPENID_NS, 'sig'):
                 raise AlreadySigned(response)
             response = self.signatory.sign(response)
         return super(SigningEncoder, self).encode(response)
@@ -1196,10 +1111,10 @@ class Decoder(object):
     """
 
     _handlers = {
-        'checkid_setup': CheckIDRequest.fromQuery,
-        'checkid_immediate': CheckIDRequest.fromQuery,
-        'check_authentication': CheckAuthRequest.fromQuery,
-        'associate': AssociateRequest.fromQuery,
+        'checkid_setup': CheckIDRequest.fromMessage,
+        'checkid_immediate': CheckIDRequest.fromMessage,
+        'check_authentication': CheckAuthRequest.fromMessage,
+        'associate': AssociateRequest.fromMessage,
         }
 
 
@@ -1220,35 +1135,27 @@ class Decoder(object):
         """
         if not query:
             return None
-        myquery = dict(filter(lambda (k, v): k.startswith(OPENID_PREFIX),
-                              query.iteritems()))
-        if not myquery:
-            return None
 
-        mode = myquery.get(OPENID_PREFIX + 'mode')
-        if isinstance(mode, list):
-            raise TypeError("query dict must have one value for each key, "
-                            "not lists of values.  Query is %r" % (query,))
+        message = Message.fromPostArgs(query)
 
+        mode = message.getArg(OPENID_NS, 'mode')
         if not mode:
-            raise ProtocolError(
-                query,
-                text="No %smode value in query %r" % (
-                OPENID_PREFIX, query))
+            fmt = "No mode value in message %s"
+            raise ProtocolError(message, text=fmt % (message,))
+
         handler = self._handlers.get(mode, self.defaultDecoder)
-        return handler(query)
+        return handler(message)
 
 
-    def defaultDecoder(self, query):
+    def defaultDecoder(self, message):
         """Called to decode queries when no handler for that mode is found.
 
         @raises ProtocolError: This implementation always raises
             L{ProtocolError}.
         """
-        mode = query[OPENID_PREFIX + 'mode']
-        raise ProtocolError(
-            query,
-            text="No decoder for mode %r" % (mode,))
+        mode = message.getArg(OPENID_NS, 'mode')
+        fmt = "No decoder for mode %r"
+        raise ProtocolError(message, text=fmt % (mode,))
 
 
 
@@ -1401,20 +1308,22 @@ class Server(object):
 class ProtocolError(Exception):
     """A message did not conform to the OpenID protocol.
 
-    @ivar query: The query that is failing to be a valid OpenID request.
-    @type query: dict
+    @ivar message: The query that is failing to be a valid OpenID request.
+    @type message: openid.message.Message
     """
 
-    def __init__(self, query, text=None):
+    def __init__(self, message, text=None):
         """When an error occurs.
 
-        @param query: The query that is failing to be a valid OpenID request.
-        @type query: dict
+        @param message: The message that is failing to be a valid
+            OpenID request.
+        @type message: openid.message.Message
 
         @param text: A message about the encountered error.  Set as C{args[0]}.
         @type text: str
         """
-        self.query = query
+        self.openid_message = message
+        assert type(message) not in [str, unicode]
         Exception.__init__(self, text)
 
 
@@ -1423,47 +1332,29 @@ class ProtocolError(Exception):
 
         @returntype: bool
         """
-        if self.query is None:
+        #assert type(self.message) not in [str, unicode], self.message
+        if self.openid_message is None:
             return False
         else:
-            return (OPENID_PREFIX + 'return_to') in self.query
+            return self.openid_message.hasKey(OPENID_NS, 'return_to')
 
+
+    def toMessage(self):
+        namespace = self.openid_message.getOpenIDNamespace()
+        reply = Message(namespace)
+        reply.setArg(OPENID_NS, 'mode', 'error')
+        reply.setArg(OPENID_NS, 'error', str(self))
+        return reply
 
     # implements IEncodable
 
     def encodeToURL(self):
-        """Encode a response as a URL for the user agent to GET.
-
-        You will generally use this URL with a HTTP redirect.
-
-        @returns: A URL to direct the user agent back to.
-        @returntype: str
-        """
-        return_to = self.query.get(OPENID_PREFIX + 'return_to')
-        if not return_to:
-            raise ValueError("I have no return_to URL.")
-        return oidutil.appendArgs(return_to, {
-            'openid.mode': 'error',
-            'openid.error': str(self),
-            })
-
+        msg = self.toMessage()
+        return_to = self.openid_message.getArg(OPENID_NS, 'return_to')
+        return msg.toURL(return_to)
 
     def encodeToKVForm(self):
-        """Encode a response in key-value colon/newline format.
-
-        This is a machine-readable format used to respond to messages which
-        came directly from the consumer and not through the user agent.
-
-        @see: OpenID Specs,
-           U{Key-Value Colon/Newline format<http://openid.net/specs.bml#keyvalue>}
-
-        @returntype: str
-        """
-        return kvform.dictToKV({
-            'mode': 'error',
-            'error': str(self),
-            })
-
+        return self.toMessage().toKVForm()
 
     def whichEncoding(self):
         """How should I be encoded?
@@ -1475,10 +1366,10 @@ class ProtocolError(Exception):
         if self.hasReturnTo():
             return ENCODE_URL
 
-        if self.query is None:
+        if self.openid_message is None:
             return None
 
-        mode = self.query.get('openid.mode')
+        mode = self.openid_message.getArg(OPENID_NS, 'mode')
         if mode:
             if mode not in BROWSER_REQUEST_MODES:
                 return ENCODE_KVFORM
@@ -1521,8 +1412,8 @@ class AlreadySigned(EncodingError):
 class UntrustedReturnURL(ProtocolError):
     """A return_to is outside the trust_root."""
 
-    def __init__(self, query, return_to, trust_root):
-        ProtocolError.__init__(self, query)
+    def __init__(self, message, return_to, trust_root):
+        ProtocolError.__init__(self, message)
         self.return_to = return_to
         self.trust_root = trust_root
 
@@ -1533,9 +1424,9 @@ class UntrustedReturnURL(ProtocolError):
 
 class MalformedReturnURL(ProtocolError):
     """The return_to URL doesn't look like a valid URL."""
-    def __init__(self, query, return_to):
+    def __init__(self, openid_message, return_to):
         self.return_to = return_to
-        ProtocolError.__init__(self, query)
+        ProtocolError.__init__(self, openid_message)
 
 
 
