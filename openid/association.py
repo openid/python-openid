@@ -454,11 +454,17 @@ class Association(object):
             message.hasKey(OPENID_NS, 'signed')):
             raise ValueError('Message already has signed list or signature')
 
+        extant_handle = message.getArg(OPENID_NS, 'assoc_handle')
+        if extant_handle and extant_handle != self.handle:
+            raise ValueError("Message has a different association handle")
+
         signed_message = message.copy()
-        args = message.toPostArgs()
-        signed_list = [k[7:] for k in args if k.startswith('openid.')]
+        signed_message.setArg(OPENID_NS, 'assoc_handle', self.handle)
+        message_keys = signed_message.toPostArgs().keys()
+        signed_list = [k[7:] for k in message_keys if k.startswith('openid.')]
         signed_list.append('signed')
-        signed_message.setArg(OPENID_NS, 'signed', ','.join(signed))
+        signed_list.sort()
+        signed_message.setArg(OPENID_NS, 'signed', ','.join(signed_list))
         sig = self.getMessageSignature(signed_message)
         signed_message.setArg(OPENID_NS, 'sig', sig)
         return signed_message
