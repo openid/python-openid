@@ -185,9 +185,10 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
 
                 trust_root = self.server.base_url
                 return_to = self.buildURL('process')
-                redirect_url = request.redirectURL(trust_root, return_to)
+                form_html = request.formMarkup(trust_root, return_to, 
+                    form_tag_attrs={'id':'openid_message'})
 
-                self.redirect(redirect_url)
+                self.autoSubmit(form_html, 'openid_message')
 
     def requestRegistrationData(self, request):
         required = ','.join(['nickname'])
@@ -288,15 +289,14 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         base = urlparse.urljoin(self.server.base_url, action)
         return appendArgs(base, query)
 
-    def redirect(self, redirect_url):
-        """Send a redirect response to the given URL to the browser."""
+    def autoSubmit(self, form, id):
+        """Send a page containing an auto-submitting form."""
         response = """\
-Location: %s
-Content-type: text/plain
-
-Redirecting to %s""" % (redirect_url, redirect_url)
-        self.send_response(302)
-        self.setSessionCookie()
+<html><head><title>OpenID transaction in progress</title></head>
+<body onload='document.getElementById("%s").submit()'>
+%s
+</body></html>
+"""%(id, form)
         self.wfile.write(response)
 
     def notFound(self):
