@@ -52,6 +52,7 @@ def pyunitTests():
     from openid.test import test_consumer
     from openid.test import test_message
     from openid.test import test_server
+    from openid.test import test_symbol
     from openid.test import kvform
     from openid.test import oidutil
     from openid.test import linkparse
@@ -62,6 +63,7 @@ def pyunitTests():
         test_server,
         test_consumer,
         test_message,
+        test_symbol,
         association,
         ]
 
