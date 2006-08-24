@@ -898,9 +898,19 @@ class AuthRequest(object):
         message = self.getMessage(trust_root, return_to, immediate)
         return message.toURL(self.endpoint.server_url)
 
-    def formMarkup(self, trust_root, return_to, immediate=False):
+    def formMarkup(self, trust_root, return_to, immediate=False,
+            form_tag_attrs=None):
+        """Get html for a form to submit this request to the IDP.
+         
+        @param form_tag_attrs: Dictionary of attributes to be added to
+            the form tag. 'accept-charset' and 'enctype' have defaults
+            that can be overridden. If a value is supplied for
+            'action' or 'method', it will be replaced.
+        @type form_tag_attrs: {unicode: unicode}
+        """
         message = self.getMessage(trust_root, return_to, immediate)
-        return message.toFormMarkup()
+        return message.toFormMarkup(self.endpoint.server_url, 
+                    form_tag_attrs)
 
 FAILURE = 'failure'
 SUCCESS = 'success'
