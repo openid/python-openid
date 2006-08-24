@@ -465,8 +465,6 @@ class GenericConsumer(object):
             # Assume that this is an OpenID 1.X response and
             # use/extract the nonce that we generated.
             return_to = response.getReturnTo()
-            if return_to is None:
-                print response.message.args
             parsed_url = urlparse(return_to)
             query = parsed_url[4]
             for k, v in cgi.parse_qsl(query):
