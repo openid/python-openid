@@ -586,6 +586,46 @@ class OpenID2MessageTest(unittest.TestCase):
     def test_delArgNS3(self):
         self._test_delArgNS('urn:nothing-significant')
 
+class NamespaceMapTest(unittest.TestCase):
+    def test_onealias(self):
+        nsm = message.NamespaceMap()
+        uri = 'http://example.com/foo'
+        alias = "foo"
+        nsm.addAlias(uri, alias)
+        self.failUnless(nsm.getNamespaceURI(alias) == uri)
+        self.failUnless(nsm.getAlias(uri) == alias)
 
+    def test_iteration(self):
+        nsm = message.NamespaceMap()
+        uripat = 'http://example.com/foo%r'
+        
+        nsm.add(uripat%0)
+        for n in range(1,23):
+            self.failUnless(uripat%(n-1) in nsm)
+            self.failUnless(nsm.isDefined(uripat%(n-1)))
+            nsm.add(uripat%n)
+
+        for (uri, alias) in nsm.iteritems():
+            self.failUnless(uri[22:]==alias)
+
+        i=0
+        it = nsm.iterAliases() 
+        try:
+            while True:
+                it.next()
+                i += 1
+        except StopIteration:
+            self.failUnless(i == 23)
+
+        i=0
+        it = nsm.iterNamespaceURIs() 
+        try:
+            while True:
+                it.next()
+                i += 1
+        except StopIteration:
+            self.failUnless(i == 23)
+
+            
 if __name__ == '__main__':
     unittest.main()
