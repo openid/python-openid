@@ -57,7 +57,7 @@ def pyunitTests():
     from openid.test import oidutil
     from openid.test import linkparse
     from openid.test import trustroot
-    from openid.test import association
+    from openid.test import test_association
     from openid.test import test_fetchers
     from openid.test import test_urinorm
     # yadis tests
@@ -72,7 +72,7 @@ def pyunitTests():
         test_server,
         test_consumer,
         test_message,
-        association,
+        test_association,
         ]
 
     # Some modules have data-driven tests, and they use custom methods
@@ -84,7 +84,7 @@ def pyunitTests():
         test_openidyadis,
         test_discover,
         test_htmldiscover,
-        association,
+        test_association,
         kvform,
         test_parsehtml,
         test_discover,
