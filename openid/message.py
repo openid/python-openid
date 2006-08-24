@@ -290,10 +290,11 @@ class Message(object):
                 raise UndefinedOpenIDNamespace('OpenID namespace not set')
             else:
                 namespace = self._openid_ns_uri
-        elif namespace == BARE_NS:
-            pass
-        elif type(namespace) not in [str, unicode]:
-            raise TypeError("Namespace must be BARE_NS, OPENID_NS or a string. got %r" % (namespace,))
+
+        if namespace != BARE_NS and type(namespace) not in [str, unicode]:
+            raise TypeError(
+                "Namespace must be BARE_NS, OPENID_NS or a string. got %r"
+                % (namespace,))
 
         if namespace != BARE_NS and ':' not in namespace:
             fmt = 'OpenID 2.0 namespace identifiers SHOULD be URIs. Got %r'
