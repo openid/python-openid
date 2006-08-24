@@ -956,8 +956,8 @@ class SuccessResponse(Response):
         return self.message.getKey(ns_uri, ns_key) in self.signed_fields
 
     def getSigned(self, ns_uri, ns_key, default=None):
-        """Return a signed field, or default if no signed field is
-        available
+        """Return the specified signed field if available,
+        otherwise return default
         """
         if self.isSigned(ns_uri, ns_key):
             return self.message.getArg(ns_uri, ns_key, default)
