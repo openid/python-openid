@@ -72,12 +72,7 @@ def pyunitTests():
         test_server,
         test_consumer,
         test_message,
-        test_symbol,
         association,
-        test_etxrd,
-        test_xri,
-        test_xrires,
-        test_discover,
         ]
 
     # Some modules have data-driven tests, and they use custom methods
@@ -89,6 +84,7 @@ def pyunitTests():
         test_openidyadis,
         test_discover,
         test_htmldiscover,
+        association,
         kvform,
         test_parsehtml,
         test_discover,
