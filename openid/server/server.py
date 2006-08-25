@@ -1327,17 +1327,22 @@ class ProtocolError(Exception):
         Exception.__init__(self, text)
 
 
+    def getReturnTo(self):
+        """Get the return_to argument from the request, if any.
+
+        @returntype: str
+        """
+        if self.openid_message is None:
+            return False
+        else:
+            return self.openid_message.getArg(OPENID_NS, 'return_to')
+
     def hasReturnTo(self):
         """Did this request have a return_to parameter?
 
         @returntype: bool
         """
-        #assert type(self.message) not in [str, unicode], self.message
-        if self.openid_message is None:
-            return False
-        else:
-            return self.openid_message.hasKey(OPENID_NS, 'return_to')
-
+        return self.getReturnTo() is not None
 
     def toMessage(self):
         namespace = self.openid_message.getOpenIDNamespace()
@@ -1349,9 +1354,7 @@ class ProtocolError(Exception):
     # implements IEncodable
 
     def encodeToURL(self):
-        msg = self.toMessage()
-        return_to = self.openid_message.getArg(OPENID_NS, 'return_to')
-        return msg.toURL(return_to)
+        return self.toMessage().toURL(self.getReturnTo())
 
     def encodeToKVForm(self):
         return self.toMessage().toKVForm()
