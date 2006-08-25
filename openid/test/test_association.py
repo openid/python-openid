@@ -2,6 +2,7 @@ from openid.test import datadriven
 
 import unittest
 
+from openid.message import Message
 from openid import association
 import time
 
@@ -64,7 +65,8 @@ class DiffieHellmanSessionTest(datadriven.DataDrivenTestCase):
 
     def runOneTest(self):
         csess = self.csess_fact()
-        ssess = self.ssess_fact.fromQuery(csess.getRequest())
+        msg = Message.fromPostArgs(csess.getRequest())
+        ssess = self.ssess_fact.fromMessage(msg)
         check_secret = csess.extractSecret(ssess.answer(self.secret))
         self.failUnlessEqual(self.secret, check_secret)
 
