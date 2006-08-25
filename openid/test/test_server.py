@@ -2,7 +2,8 @@
 """
 from openid.server import server
 from openid import association, cryptutil, oidutil
-from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS
+from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
+     IDENTIFIER_SELECT
 import _memstore
 import cgi
 
@@ -616,20 +617,20 @@ class TestCheckID(unittest.TestCase):
         self.failUnlessEqual(answer.request, self.request)
         self._expectAnswer(answer, self.request.identity)
 
-
-    def test_answerAllowWithoutIdentityOops(self):
-        self.request.identity = None
-        self.failUnlessRaises(ValueError, self.request.answer, True)
-
     def test_answerAllowWithoutIdentityReally(self):
         self.request.identity = None
-        answer = self.request.answer(True, identity=server.ANONYMOUS_REPLY)
+        answer = self.request.answer(True)
         self.failUnlessEqual(answer.request, self.request)
         self._expectAnswer(answer)
 
-    def test_answerAllowWithIdentity(self):
+    def test_answerAllowAnonymousFail(self):
         self.request.identity = None
-        answer = self.request.answer(True, identity="=V")
+        self.failUnlessRaises(
+            ValueError, self.request.answer, True, identity="=V")
+
+    def test_answerAllowWithIdentity(self):
+        self.request.identity = IDENTIFIER_SELECT
+        answer = self.request.answer(True, identity='=V')
         self._expectAnswer(answer, '=V')
 
     def test_answerAllowWithAnotherIdentity(self):

@@ -105,7 +105,7 @@ from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot
 from openid.association import Association, default_negotiator, getSecretSize
-from openid.message import Message, OPENID_NS, OPENID2_NS
+from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT
 
 HTTP_OK = 200
 HTTP_REDIRECT = 302
@@ -115,9 +115,6 @@ BROWSER_REQUEST_MODES = ['checkid_setup', 'checkid_immediate']
 
 ENCODE_KVFORM = ('kvform',)
 ENCODE_URL = ('URL/redirect',)
-
-# Pass to CheckIDRequest.answer when you want to answer with no identifer.
-ANONYMOUS_REPLY = oidutil.Symbol('Anonymous reply')
 
 class OpenIDRequest(object):
     """I represent an incoming OpenID request.
@@ -637,11 +634,10 @@ class CheckIDRequest(OpenIDRequest):
 
         @type server_url: str
 
-        @param identity: The identifier to answer with.  Only for use when
-            there was no identifier provided with the request, i.e. when
-            my C{identity} attribute is None.
+        @param identity: The identifier to answer with.  Only for use
+            when the relying party requested identifier selection.
 
-        @type identity: str or ANONYMOUS_REPLY
+        @type identity: str or None
 
         @returntype: L{OpenIDResponse}
         """
@@ -653,24 +649,34 @@ class CheckIDRequest(OpenIDRequest):
         response = OpenIDResponse(self)
 
         if allow:
+            if self.identity == IDENTIFIER_SELECT:
+                if not identity:
+                    raise ValueError(
+                        "This request uses IdP-driven identifier selection."
+                        "You must supply an identifier in the response.")
+                response_identity = identity
+
+            elif self.identity:
+                if identity and (self.identity != identity):
+                    raise ValueError(
+                        "Request was for identity %r, cannot reply "
+                        "with identity %r" % (self.identity, identity))
+                response_identity = self.identity
+
+            else:
+                if identity:
+                    raise ValueError(
+                        "This request specified no identity and you "
+                        "supplied %r" % (identity,))
+                response_identity = None
+
             response.fields.updateArgs(OPENID_NS, {
                 'mode': mode,
                 'return_to': self.return_to,
                 'nonce': mkNonce(),
                 })
-            if (self.identity and identity) and (self.identity != identity):
-                raise ValueError("Request was for identity %r, cannot reply "
-                                 "with identity %r" % (self.identity, identity))
-            response_identity = self.identity or identity
-            if not response_identity:
-                raise ValueError(
-                    "This request specified no identity; must supply one to "
-                    "answer. Use %s.ANONYMOUS_REPLY if you want to "
-                    "send this response without an identity "
-                    "parameter." % (__name__,))
-            elif response_identity == ANONYMOUS_REPLY:
-                pass
-            else:
+
+            if response_identity is not None:
                 response.fields.setArg(
                     OPENID_NS, 'identity', response_identity)
         else:
@@ -1345,6 +1351,9 @@ class ProtocolError(Exception):
         return self.getReturnTo() is not None
 
     def toMessage(self):
+        """Generate a Message object for sending to the relying party,
+        after encoding.
+        """
         namespace = self.openid_message.getOpenIDNamespace()
         reply = Message(namespace)
         reply.setArg(OPENID_NS, 'mode', 'error')
