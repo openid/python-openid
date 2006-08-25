@@ -77,8 +77,15 @@ class ServerHandler(BaseHTTPRequestHandler):
                 self.showLoginPage('/', '/')
             elif path == '/loginsubmit':
                 self.doLogin()
-            else:
+            elif path.startswith('/id/'):
                 self.showIdPage(path)
+            elif path.startswith('/yadis/'):
+                self.showYadis(path[7:])
+            elif path == '/serveryadis':
+                self.showServerYadis()
+            else:
+                self.send_response(404)
+                self.end_headers()
 
         except (KeyboardInterrupt, SystemExit):
             raise
@@ -398,8 +405,11 @@ class ServerHandler(BaseHTTPRequestHandler):
         self.showPage(200, 'Approve OpenID request?', msg=msg, form=form)
 
     def showIdPage(self, path):
-        tag = '<link rel="openid.server" href="%sopenidserver">' %\
+        link_tag = '<link rel="openid.server" href="%sopenidserver">' %\
               self.server.base_url
+        yadis_loc_tag = '<meta http-equiv="x-xrds-location" content="%s">'%\
+            (self.server.base_url+'yadis/'+path[4:])
+        disco_tags = link_tag + yadis_loc_tag
         ident = self.server.base_url + path[1:]
 
         approved_trust_roots = []
@@ -416,14 +426,64 @@ class ServerHandler(BaseHTTPRequestHandler):
         else:
             msg = ''
 
-        self.showPage(200, 'An Identity Page', link_tag=tag, msg='''\
+        self.showPage(200, 'An Identity Page', head_extras=disco_tags, msg='''\
         <p>This is an identity page for %s.</p>
         %s
         ''' % (ident, msg))
 
+    def showYadis(self, user):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/xrds+xml')
+        self.end_headers()
+        
+        endpoint_url = self.server.base_url + 'openidserver'
+        user_url = self.server.base_url + 'id/' + user
+        self.wfile.write("""\
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS
+    xmlns:xrds="xri://$xrds"
+    xmlns:openid="http://openid.net/xmlns/2.0"
+    xmlns="xri://$xrd*($v*2.0)">
+  <XRD>
+
+    <Service priority="0">
+      <Type>http://openid.net/signon/2.0</Type>
+      <URI>%s</URI>
+      <openid:Delegate>%s</openid:Delegate>
+    </Service>
+
+  </XRD>
+</xrds:XRDS>
+"""%(endpoint_url, user_url))
+
+    def showServerYadis(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/xrds+xml')
+        self.end_headers()
+        
+        endpoint_url = self.server.base_url + 'openidserver'
+        self.wfile.write("""\
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS
+    xmlns:xrds="xri://$xrds"
+    xmlns:openid="http://openid.net/xmlns/2.0"
+    xmlns="xri://$xrd*($v*2.0)">
+  <XRD>
+
+    <Service priority="0">
+      <Type>http://openid.net/server/2.0</Type>
+      <URI>%s</URI>
+    </Service>
+
+  </XRD>
+</xrds:XRDS>
+"""%endpoint_url)    
+
     def showMainPage(self):
+        yadis_tag = '<meta http-equiv="x-xrds-location" content="%s">'%\
+            (self.server.base_url + 'serveryadis')
         if self.user:
-            openid_url = self.server.base_url + self.user
+            openid_url = self.server.base_url + 'id/' + self.user
             user_message = """\
             <p>You are logged in as %s. Your OpenID identity URL is
             <tt><a href=%s>%s</a></tt>. Enter that URL at an OpenID
@@ -435,7 +495,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             order to simulate a standard Web user experience. You are
             not <a href='/login'>logged in</a>.</p>"""
 
-        self.showPage(200, 'Main Page', msg='''\
+        self.showPage(200, 'Main Page', head_extras = yadis_tag, msg='''\
         <p>This is a simple OpenID server implemented using the <a
         href="http://openid.schtuff.com/">Python OpenID
         library</a>.</p>
@@ -466,7 +526,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         ''' % (success_to, fail_to))
 
     def showPage(self, response_code, title,
-                 link_tag='', msg=None, err=None, form=None):
+                 head_extras='', msg=None, err=None, form=None):
 
         if self.user is None:
             user_link = '<a href="/login">not logged in</a>.'
@@ -499,7 +559,7 @@ class ServerHandler(BaseHTTPRequestHandler):
 
         contents = {
             'title': 'Python OpenID Server Example - ' + title,
-            'link_tag': link_tag,
+            'head_extras': head_extras,
             'body': body,
             'user_link': user_link,
             }
@@ -513,7 +573,7 @@ Content-type: text/html
 <html>
   <head>
     <title>%(title)s</title>
-    %(link_tag)s
+    %(head_extras)s
   </head>
   <style type="text/css">
       h1 a:link {
