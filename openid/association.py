@@ -421,17 +421,6 @@ class Association(object):
         data[prefix + 'sig'] = sig
         data[prefix + 'signed'] = signed
 
-    def checkSignature(self, data, prefix='openid.'):
-        try:
-            signed = data[prefix + 'signed']
-            fields = signed.split(',')
-            expected_sig = self.signDict(fields, data, prefix)
-            request_sig = data[prefix + 'sig']
-        except KeyError:
-            return False
-
-        return request_sig == expected_sig
-
     def getMessageSignature(self, message):
         """Return the signature of a message with a signed list
 
