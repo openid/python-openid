@@ -8,6 +8,7 @@ import _memstore
 import cgi
 
 import unittest
+import warnings
 
 from urlparse import urlparse
 
@@ -833,7 +834,7 @@ class TestAssociate(unittest.TestCase):
     try:
         cryptutil.sha256('')
     except NotImplementedError:
-        pass
+        warnings.warn("Not running SHA256 tests.")
     else:
         def test_dhSHA256(self):
             self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA256')
@@ -1028,7 +1029,7 @@ class TestServer(unittest.TestCase, CatchLogs):
     try:
         cryptutil.sha256('')
     except NotImplementedError:
-        pass
+        warnings.warn("Not running SHA256 tests.")
     else:
         def test_associate4(self):
             """DH-SHA256 association session"""
