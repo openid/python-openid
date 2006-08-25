@@ -124,7 +124,10 @@ class ServerHandler(BaseHTTPRequestHandler):
         request = self.server.lastCheckIDRequest.get(self.user)
 
         if 'yes' in query:
-            identity = request.identity
+            if request.identity is None:
+                identity = self.server.base_url + query['identifier']
+            else:
+                identity = request.identity
             trust_root = request.trust_root
             if self.query.get('remember', 'no') == 'yes':
                 duration = 'always'
@@ -307,9 +310,37 @@ class ServerHandler(BaseHTTPRequestHandler):
     def showDecidePage(self, request):
         expected_user = request.identity[len(self.server.base_url):]
 
-        if expected_user == self.user:
+        if expected_user is None: # We are being asked to select an ID
             msg = '''\
-            <p>A new site has asked for your identity.  If you
+            <p>A site has asked for your identity.  You may select an
+            identifier by which you would like this site to know you.
+            On a production site this would likely be a drop down list
+            of pre-created accounts or have the facility to generate
+            a random anonymous identifier.
+            </p>
+            '''
+            fdata = {
+                'url': self.server.base_url,
+                'trust_root': request.trust_root,
+                }
+            form = '''\
+            <form method="POST" action="/allow">
+            <table>
+              <tr><td>Identity:</td>
+                 <td>%(url)s<input type='text' name='identifier'></td></tr>
+              <tr><td>Trust Root:</td><td>%(trust_root)s</td></tr>
+            </table>
+            <p>Allow this authentication to proceed?</p>
+            <input type="checkbox" id="remember" name="remember" value="yes"
+                checked="checked" /><label for="remember">Remember this
+                decision</label><br />
+            <input type="submit" name="yes" value="yes" />
+            <input type="submit" name="no" value="no" />
+            </form>
+            '''%fdata
+        elif expected_user == self.user:
+            msg = '''\
+            <p>A new site has asked to confirm your identity.  If you
             approve, the site represented by the trust root below will
             be told that you control identity URL listed below. (If
             you are using a delegated identity, the site will take
