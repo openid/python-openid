@@ -1,7 +1,8 @@
 """Extension argument processing code
 """
 __all__ = ['Message', 'NamespaceMap',
-           'OPENID_NS', 'BARE_NS', 'OPENID1_NS', 'OPENID2_NS', 'SREG_URI']
+           'OPENID_NS', 'BARE_NS', 'OPENID1_NS', 'OPENID2_NS', 'SREG_URI',
+           'IDENTIFIER_SELECT']
 
 import copy
 import warnings
@@ -15,6 +16,9 @@ except ImportError:
     # No elementtree found, so give up, but don't fail to import,
     # since we have fallbacks.
     ElementTree = None
+
+# This doesn't REALLY belong here, but where is better?
+IDENTIFIER_SELECT = "http://openid.net/identifier_select/2.0"
 
 # URI for Simple Registration extension, the only commonly deployed
 # OpenID 1.x extension, and so a special case

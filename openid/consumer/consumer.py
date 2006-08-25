@@ -191,7 +191,8 @@ from openid import fetchers
 from openid.consumer.discover import discover as discoverURL
 from openid.consumer.discover import discoverXRI
 from openid.consumer.discover import DiscoveryFailure
-from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS
+from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
+     IDENTIFIER_SELECT
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
@@ -250,7 +251,7 @@ class Consumer(object):
         self.consumer = GenericConsumer(store)
         self._token_key = self.session_key_prefix + self._token
 
-    def begin(self, user_url):
+    def begin(self, user_url, anonymous=False):
         """Start the OpenID authentication process. See steps 1-2 in
         the overview at the top of this file.
 
@@ -295,9 +296,9 @@ class Consumer(object):
             raise DiscoveryFailure(
                 'No usable OpenID services found for %s' % (user_url,), None)
         else:
-            return self.beginWithoutDiscovery(service)
+            return self.beginWithoutDiscovery(service, anonymous)
 
-    def beginWithoutDiscovery(self, service):
+    def beginWithoutDiscovery(self, service, anonymous=False):
         """Start OpenID verification without doing OpenID server
         discovery. This method is used internally by Consumer.begin
         after discovery is performed, and exists to provide an
@@ -320,6 +321,7 @@ class Consumer(object):
         """
         auth_req = self.consumer.begin(service)
         self.session[self._token_key] = auth_req.endpoint
+        auth_req.anonymous = anonymous
         return auth_req
 
     def complete(self, query):
@@ -841,6 +843,7 @@ class AuthRequest(object):
         self.return_to_args = {}
         self.message = Message()
         self.message.setOpenIDNamespace(endpoint.preferredNamespace())
+        self.anonymous = False
 
     def addExtensionArg(self, namespace, key, value):
         """Add an extension argument to this OpenID authentication
@@ -884,10 +887,12 @@ class AuthRequest(object):
              'trust_root':trust_root,
              })
 
-        identity = self.endpoint.getServerID()
+        if not self.anonymous:
+            request_identity = self.endpoint.getServerID()
+            if request_identity is None:
+                request_identity = IDENTIFIER_SELECT
 
-        if identity:
-            message.setArg(OPENID_NS, 'identity', identity)
+            message.setArg(OPENID_NS, 'identity', request_identity)
 
         if self.assoc:
             message.setArg(OPENID_NS, 'assoc_handle', self.assoc.handle)

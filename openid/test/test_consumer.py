@@ -2,7 +2,7 @@ import urlparse
 import cgi
 import time
 
-from openid.message import Message, OPENID_NS, OPENID2_NS
+from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT
 from openid import cryptutil, dh, oidutil, kvform
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.consumer.discover import OpenIDServiceEndpoint
@@ -771,6 +771,21 @@ class TestAuthRequest(unittest.TestCase):
     def test_idpEndpoint(self):
         self.endpoint.delegate = None
         self.endpoint.identity_url = None
+        url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
+        _, qstring = url.split('?')
+        params = dict(cgi.parse_qsl(qstring))
+        self.failUnlessEqual(params['openid.identity'], IDENTIFIER_SELECT)
+
+    def test_idpAnonymous(self):
+        self.endpoint.delegate = None
+        self.endpoint.identity_url = None
+        self.authreq.anonymous = True
+        url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
+        self.failUnless(url.find('openid.identity') == -1,
+                        'unwanted openid.identity arg appeared in %s' % (url,))
+
+    def test_userAnonymous(self):
+        self.authreq.anonymous = True
         url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
         self.failUnless(url.find('openid.identity') == -1,
                         'unwanted openid.identity arg appeared in %s' % (url,))
