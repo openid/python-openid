@@ -104,7 +104,13 @@ def pyunitTests():
         s.addTest(loader.loadTestsFromModule(m))
 
     for m in custom_modules:
-        s.addTest(m.pyUnitTests())
+        try:
+            s.addTest(m.pyUnitTests())
+        except AttributeError, ex:
+            # because the AttributeError doesn't actually say which
+            # object it was.
+            print "Error loading tests from %s:" % (m,)
+            raise
 
     runner = unittest.TextTestRunner() # verbosity=2)
 
