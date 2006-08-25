@@ -157,7 +157,7 @@ class _TestCase(unittest.TestCase):
             n,
             self.__class__.__module__)
 
-def loadTests():
+def pyUnitTests():
     s = unittest.TestSuite()
     for success, input_name, id_name, result_name in discoverdata.testlist:
         test = _TestCase(input_name, id_name, result_name, success)
