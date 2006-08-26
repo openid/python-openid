@@ -154,6 +154,10 @@ class Association(object):
     @type assoc_type: C{str}
 
 
+    @ivar sign_all: True if this association type signs all fields, as
+        opposed to those listed in an C{openid.signed} list.
+    @type sign_all: bool
+    
     @sort: __init__, fromExpiresIn, getExpiresIn, __eq__, __ne__,
         handle, secret, issued, lifetime, assoc_type
     """
@@ -261,6 +265,7 @@ class Association(object):
         self.issued = issued
         self.lifetime = lifetime
         self.assoc_type = assoc_type
+        self.sign_all = False
 
     def getExpiresIn(self, now=None):
         """
