@@ -415,12 +415,6 @@ class Association(object):
 
         return oidutil.toBase64(self.sign(pairs))
 
-    def addSignature(self, fields, data, prefix='openid.'):
-        sig = self.signDict(fields, data, prefix)
-        signed = ','.join(fields)
-        data[prefix + 'sig'] = sig
-        data[prefix + 'signed'] = signed
-
     def getMessageSignature(self, message):
         """Return the signature of a message with a signed list
 
