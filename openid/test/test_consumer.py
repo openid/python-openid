@@ -183,9 +183,9 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
             }
 
         assoc = store.getAssociation(server_url, fetcher.assoc_handle)
-        assoc.addSignature(['mode', 'return_to', 'identity'], query)
 
         message = Message.fromPostArgs(query)
+        message = assoc.signMessage(message)
         info = consumer.complete(message, request.endpoint)
         assert info.status == SUCCESS, info.message
         assert info.identity_url == user_url
@@ -651,8 +651,8 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.assoc_handle':good_handle,
             }
 
-        good_assoc.addSignature(['return_to', 'identity'], query)
         message = Message.fromPostArgs(query)
+        message = good_assoc.signMessage(message)
         info = self.consumer._doIdRes(message, self.endpoint)
         self.failUnlessEqual(info.status, SUCCESS, info.message)
         self.failUnlessEqual(self.consumer_id, info.identity_url)
