@@ -31,6 +31,7 @@ distribution or http://www.openidenabled.com/
 
 from openid import oidutil
 from openid.server import server
+from openid.message import IDENTIFIER_SELECT
 from openid.store.filestore import FileOpenIDStore
 
 class OpenIDHTTPServer(HTTPServer):
@@ -131,22 +132,22 @@ class ServerHandler(BaseHTTPRequestHandler):
         request = self.server.lastCheckIDRequest.get(self.user)
 
         if 'yes' in query:
-            if request.identity is None:
-                identity = self.server.base_url + query['identifier']
-            else:
-                identity = request.identity
+            if 'login_as' in query:
+                self.user = self.query['login_as']
+            
             trust_root = request.trust_root
             if self.query.get('remember', 'no') == 'yes':
                 duration = 'always'
             else:
                 duration = 'once'
+            if request.identity == IDENTIFIER_SELECT:
+                identity = self.server.base_url + 'id/' + query['identifier']
+                response = request.answer(True, identity = identity)
+            else:
+                identity = request.identity
+                response = request.answer(True)
 
             self.server.approved[(identity, trust_root)] = duration
-
-            if 'login_as' in query:
-                self.user = self.query['login_as']
-
-            response = request.answer(True)
 
         elif 'no' in query:
             response = request.answer(False)
@@ -317,7 +318,7 @@ class ServerHandler(BaseHTTPRequestHandler):
     def showDecidePage(self, request):
         expected_user = request.identity[len(self.server.base_url):]
 
-        if expected_user is None: # We are being asked to select an ID
+        if request.identity == IDENTIFIER_SELECT: # We are being asked to select an ID
             msg = '''\
             <p>A site has asked for your identity.  You may select an
             identifier by which you would like this site to know you.
@@ -327,14 +328,14 @@ class ServerHandler(BaseHTTPRequestHandler):
             </p>
             '''
             fdata = {
-                'url': self.server.base_url,
+                'id_url_base': self.server.base_url+'id/',
                 'trust_root': request.trust_root,
                 }
             form = '''\
             <form method="POST" action="/allow">
             <table>
               <tr><td>Identity:</td>
-                 <td>%(url)s<input type='text' name='identifier'></td></tr>
+                 <td>%(id_url_base)s<input type='text' name='identifier'></td></tr>
               <tr><td>Trust Root:</td><td>%(trust_root)s</td></tr>
             </table>
             <p>Allow this authentication to proceed?</p>
