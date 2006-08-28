@@ -601,6 +601,13 @@ class CheckIDRequest(OpenIDRequest):
 
     fromMessage = classmethod(fromMessage)
 
+    def idSelect(self):
+        """Is the identifier to be selected by the IDP?
+
+        @returntype: bool
+        """
+        # So IDPs don't have to import the constant
+        return self.identity == IDENTIFIER_SELECT
 
     def trustRootValid(self):
         """Is my return_to under my trust_root?

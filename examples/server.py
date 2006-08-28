@@ -31,7 +31,6 @@ distribution or http://www.openidenabled.com/
 
 from openid import oidutil
 from openid.server import server
-from openid.message import IDENTIFIER_SELECT
 from openid.store.filestore import FileOpenIDStore
 
 class OpenIDHTTPServer(HTTPServer):
@@ -140,7 +139,7 @@ class ServerHandler(BaseHTTPRequestHandler):
                 duration = 'always'
             else:
                 duration = 'once'
-            if request.identity == IDENTIFIER_SELECT:
+            if request.idSelect():
                 identity = self.server.base_url + 'id/' + query['identifier']
                 response = request.answer(True, identity = identity)
             else:
@@ -318,7 +317,7 @@ class ServerHandler(BaseHTTPRequestHandler):
     def showDecidePage(self, request):
         expected_user = request.identity[len(self.server.base_url):]
 
-        if request.identity == IDENTIFIER_SELECT: # We are being asked to select an ID
+        if request.idSelect(): # We are being asked to select an ID
             msg = '''\
             <p>A site has asked for your identity.  You may select an
             identifier by which you would like this site to know you.
