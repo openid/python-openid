@@ -1,3 +1,4 @@
+# -*- test-case-name: openid.test.test_association -*-
 """
 This module contains code for dealing with associations between
 consumers and servers.
