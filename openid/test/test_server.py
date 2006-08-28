@@ -837,17 +837,17 @@ class TestAssociate(unittest.TestCase):
         warnings.warn("Not running SHA256 tests.")
     else:
         def test_dhSHA256(self):
-            self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA256')
+            self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA256-SIGNALL')
             from openid.dh import DiffieHellman
             from openid.server.server import DiffieHellmanSHA256ServerSession
             consumer_dh = DiffieHellman.fromDefaults()
             cpub = consumer_dh.public
             server_dh = DiffieHellman.fromDefaults()
             session = DiffieHellmanSHA256ServerSession(server_dh, cpub)
-            self.request = server.AssociateRequest(session, 'HMAC-SHA256')
+            self.request = server.AssociateRequest(session, 'HMAC-SHA256-SIGNALL')
             response = self.request.answer(self.assoc)
             rfg = lambda f: response.fields.getArg(OPENID_NS, f)
-            self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA256")
+            self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA256-SIGNALL")
             self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
             self.failIf(rfg("mac_key"))
             self.failUnlessEqual(rfg("session_type"), "DH-SHA256")
@@ -889,7 +889,7 @@ class TestAssociate(unittest.TestCase):
             
         s1_session = DiffieHellmanSHA1ConsumerSession()
 
-        invalid_s1 = {'openid.assoc_type':'HMAC-SHA256',
+        invalid_s1 = {'openid.assoc_type':'HMAC-SHA256-SIGNALL',
                       'openid.session_type':'DH-SHA1',}
         invalid_s1.update(s1_session.getRequest())
 
@@ -926,7 +926,7 @@ class TestAssociate(unittest.TestCase):
         self.failIf(rfg("dh_server_public"))
 
     def test_plaintext256(self):
-        self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA256')
+        self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA256-SIGNALL')
         response = self.request.answer(self.assoc)
         rfg = lambda f: response.fields.getArg(OPENID_NS, f)
 
@@ -1015,14 +1015,14 @@ class TestServer(unittest.TestCase, CatchLogs):
 
         Should give back an error message with a fallback type.
         """
-        self.server.negotiator.setAllowedTypes([('HMAC-SHA256', 'DH-SHA256')])
+        self.server.negotiator.setAllowedTypes([('HMAC-SHA256-SIGNALL', 'DH-SHA256')])
         request = server.AssociateRequest.fromMessage(Message.fromPostArgs({}))
         response = self.server.openid_associate(request)
         self.failUnless(response.fields.hasKey(OPENID_NS, "error"))
         self.failUnless(response.fields.hasKey(OPENID_NS, "error_code"))
         self.failIf(response.fields.hasKey(OPENID_NS, "assoc_handle"))
         self.failUnlessEqual(response.fields.getArg(OPENID_NS, "assoc_type"),
-                             'HMAC-SHA256')
+                             'HMAC-SHA256-SIGNALL')
         self.failUnlessEqual(response.fields.getArg(OPENID_NS, "session_type"),
                              'DH-SHA256')
 
@@ -1034,13 +1034,13 @@ class TestServer(unittest.TestCase, CatchLogs):
         def test_associate4(self):
             """DH-SHA256 association session"""
             self.server.negotiator.setAllowedTypes(
-                [('HMAC-SHA256', 'DH-SHA256')])
+                [('HMAC-SHA256-SIGNALL', 'DH-SHA256')])
             query = {
                 'openid.dh_consumer_public':
                 'ALZgnx8N5Lgd7pCj8K86T/DDMFjJXSss1SKoLmxE72kJTzOtG6I2PaYrHX'
                 'xku4jMQWSsGfLJxwCZ6280uYjUST/9NWmuAfcrBfmDHIBc3H8xh6RBnlXJ'
                 '1WxJY3jHd5k1/ZReyRZOxZTKdF/dnIqwF8ZXUwI6peV0TyS/K1fOfF/s',
-                'openid.assoc_type': 'HMAC-SHA256',
+                'openid.assoc_type': 'HMAC-SHA256-SIGNALL',
                 'openid.session_type': 'DH-SHA256',
                 }
             message = Message.fromPostArgs(query)

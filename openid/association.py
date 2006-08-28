@@ -10,20 +10,20 @@ from openid import kvform
 from openid import oidutil
 from openid.message import OPENID_NS
 
-all_association_types = ['HMAC-SHA1', 'HMAC-SHA256']
+all_association_types = ['HMAC-SHA1', 'HMAC-SHA256-SIGNALL']
 if hasattr(cryptutil, 'hmacSha256'):
     supported_association_types = list(all_association_types)
 
     default_association_order = [
         ('HMAC-SHA1', 'DH-SHA1'),
-        ('HMAC-SHA256', 'DH-SHA256'),
+        ('HMAC-SHA256-SIGNALL', 'DH-SHA256'),
         ('HMAC-SHA1', 'no-encryption'),
-        ('HMAC-SHA256', 'no-encryption'),
+        ('HMAC-SHA256-SIGNALL', 'no-encryption'),
         ]
 
     only_encrypted_association_order = [
         ('HMAC-SHA1', 'DH-SHA1'),
-        ('HMAC-SHA256', 'DH-SHA256'),
+        ('HMAC-SHA256-SIGNALL', 'DH-SHA256'),
         ]
 else:
     supported_association_types = ['HMAC-SHA1']
@@ -41,7 +41,7 @@ def getSessionTypes(assoc_type):
     """Return the allowed session types for a given association type"""
     if assoc_type == 'HMAC-SHA1':
         return ['DH-SHA1', 'no-encryption']
-    elif assoc_type == 'HMAC-SHA256':
+    elif assoc_type == 'HMAC-SHA256-SIGNALL':
         return ['DH-SHA256', 'no-encryption']
     else:
         return []
@@ -106,7 +106,7 @@ encrypted_negotiator = SessionNegotiator(only_encrypted_association_order)
 def getSecretSize(assoc_type):
     if assoc_type == 'HMAC-SHA1':
         return 20
-    elif assoc_type == 'HMAC-SHA256':
+    elif assoc_type == 'HMAC-SHA256-SIGNALL':
         return 32
     else:
         raise ValueError('Unsupported association type: %r' % (assoc_type,))
@@ -387,7 +387,7 @@ class Association(object):
         kv = kvform.seqToKV(pairs)
         if self.assoc_type == 'HMAC-SHA1':
             mac = cryptutil.hmacSha1
-        elif self.assoc_type == 'HMAC-SHA256':
+        elif self.assoc_type == 'HMAC-SHA256-SIGNALL':
             mac = cryptutil.hmacSha256
         else:
             raise ValueError(
