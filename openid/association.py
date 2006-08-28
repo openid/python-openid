@@ -11,19 +11,27 @@ from openid import kvform
 from openid import oidutil
 from openid.message import OPENID_NS
 
-all_association_types = ['HMAC-SHA1', 'HMAC-SHA256-SIGNALL']
+all_association_types = [
+    'HMAC-SHA1',
+    'HMAC-SHA1-SIGNALL',
+    'HMAC-SHA256-SIGNALL',
+    ]
+
 if hasattr(cryptutil, 'hmacSha256'):
     supported_association_types = list(all_association_types)
 
     default_association_order = [
         ('HMAC-SHA1', 'DH-SHA1'),
+        ('HMAC-SHA1-SIGNALL', 'DH-SHA1'),
         ('HMAC-SHA256-SIGNALL', 'DH-SHA256'),
         ('HMAC-SHA1', 'no-encryption'),
+        ('HMAC-SHA1-SIGNALL', 'no-encryption'),
         ('HMAC-SHA256-SIGNALL', 'no-encryption'),
         ]
 
     only_encrypted_association_order = [
         ('HMAC-SHA1', 'DH-SHA1'),
+        ('HMAC-SHA1-SIGNALL', 'DH-SHA1'),
         ('HMAC-SHA256-SIGNALL', 'DH-SHA256'),
         ]
 else:
@@ -31,21 +39,24 @@ else:
 
     default_association_order = [
         ('HMAC-SHA1', 'DH-SHA1'),
+        ('HMAC-SHA1-SIGNALL', 'DH-SHA1'),
         ('HMAC-SHA1', 'no-encryption'),
+        ('HMAC-SHA1-SIGNALL', 'no-encryption'),
         ]
 
     only_encrypted_association_order = [
         ('HMAC-SHA1', 'DH-SHA1'),
+        ('HMAC-SHA1-SIGNALL', 'DH-SHA1'),
         ]
 
 def getSessionTypes(assoc_type):
     """Return the allowed session types for a given association type"""
-    if assoc_type == 'HMAC-SHA1':
-        return ['DH-SHA1', 'no-encryption']
-    elif assoc_type == 'HMAC-SHA256-SIGNALL':
-        return ['DH-SHA256', 'no-encryption']
-    else:
-        return []
+    assoc_to_session = {
+        'HMAC-SHA1': ['DH-SHA1', 'no-encryption'],
+        'HMAC-SHA256-SIGNALL': ['DH-SHA256', 'no-encryption'],
+        }
+    assoc_to_session['HMAC-SHA1-SIGNALL'] = assoc_to_session['HMAC-SHA1']
+    return assoc_to_session.get(assoc_type, [])
 
 def checkSessionType(assoc_type, session_type):
     """Check to make sure that this pair of assoc type and session
@@ -105,7 +116,7 @@ default_negotiator = SessionNegotiator(default_association_order)
 encrypted_negotiator = SessionNegotiator(only_encrypted_association_order)
 
 def getSecretSize(assoc_type):
-    if assoc_type == 'HMAC-SHA1':
+    if assoc_type in ('HMAC-SHA1', 'HMAC-SHA1-SIGNALL'):
         return 20
     elif assoc_type == 'HMAC-SHA256-SIGNALL':
         return 32
