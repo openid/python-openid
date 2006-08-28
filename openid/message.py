@@ -374,6 +374,11 @@ class Message(object):
         namespace = self._fixNS(namespace)
         del self.args[(namespace, key)]
 
+    def __str__(self):
+        return "<%s.%s %r>" % (self.__class__.__module__,
+                               self.__class__.__name__,
+                               self.args)
+
 class NamespaceMap(object):
     """Maintains a bijective map between namespace uris and aliases.
     """
