@@ -993,7 +993,8 @@ class TestServer(unittest.TestCase, CatchLogs):
     def test_associate(self):
         request = server.AssociateRequest.fromMessage(Message.fromPostArgs({}))
         response = self.server.openid_associate(request)
-        self.failUnless(response.fields.hasKey(OPENID_NS, "assoc_handle"))
+        self.failUnless(response.fields.hasKey(OPENID_NS, "assoc_handle"),
+                        "No assoc_handle here: %s" % (response.fields,))
 
     def test_associate2(self):
         """Associate when the server has no allowed association types
