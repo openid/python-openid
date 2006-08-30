@@ -2,7 +2,7 @@ from openid.test import datadriven
 
 import unittest
 
-from openid.message import Message
+from openid.message import Message, BARE_NS, OPENID2_NS
 from openid import association
 import time
 
@@ -69,6 +69,35 @@ class DiffieHellmanSessionTest(datadriven.DataDrivenTestCase):
         ssess = self.ssess_fact.fromMessage(msg)
         check_secret = csess.extractSecret(ssess.answer(self.secret))
         self.failUnlessEqual(self.secret, check_secret)
+
+
+
+class TestMakePairs(unittest.TestCase):
+    """Check the key-value formatting methods of associations.
+    """
+
+    def setUp(self):
+        self.message = m = Message(OPENID2_NS)
+        m.updateArgs(OPENID2_NS, {
+            'mode': 'id_res',
+            'identifier': '=example',
+            'signed': 'identifier,mode',
+            })
+        m.updateArgs(BARE_NS, {'xey': 'value'})
+        self.assoc = association.Association.fromExpiresIn(
+            3600, '{sha1}', 'very_secret', "HMAC-SHA1")
+
+
+    def testMakePairsSignedList(self):
+        """Make pairs using the OpenID 1.x type signed list."""
+        pairs = self.assoc._makePairsSignedList(self.message)
+        expected = [
+            ('identifier', '=example'),
+            ('mode', 'id_res'),
+            ]
+        self.failUnlessEqual(pairs, expected)
+
+
 
 def pyUnitTests():
     return datadriven.loadTests(__name__)

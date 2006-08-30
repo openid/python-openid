@@ -434,16 +434,9 @@ class Association(object):
 
     def getMessageSignature(self, message):
         """Return the signature of a message with a signed list
-
-        XXX: this is association-type specific
         """
-        signed = message.getArg(OPENID_NS, 'signed')
-        if not signed:
-            raise ValueError('Message has no signed list')
-
-        signed_list = signed.split(',')
-        args = message.toPostArgs()
-        return self.signDict(signed_list, args)
+        pairs = self._makePairs(message)
+        return oidutil.toBase64(self.sign(pairs))
 
     def signMessage(self, message):
         """Add a signature (and a signed list) to a message
@@ -476,3 +469,23 @@ class Association(object):
         calculated_sig = self.getMessageSignature(message)
         message_sig = message.getArg(OPENID_NS, 'sig')
         return calculated_sig == message_sig
+
+
+    def _makePairsSignAll(self, message):
+        pairs = message.toPostArgs().items()
+        return pairs
+
+
+    def _makePairsSignedList(self, message):
+        signed = message.getArg(OPENID_NS, 'signed')
+        if not signed:
+            raise ValueError('Message has no signed list')
+
+        signed_list = signed.split(',')
+        pairs = []
+        data = message.toPostArgs()
+        for field in signed_list:
+            pairs.append((field, data.get('openid.' + field, '')))
+        return pairs
+
+    _makePairs = _makePairsSignedList
