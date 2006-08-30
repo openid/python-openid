@@ -17,6 +17,11 @@ all_association_types = [
     'HMAC-SHA256-SIGNALL',
     ]
 
+signall_association_types = [
+    'HMAC-SHA1-SIGNALL',
+    'HMAC-SHA256-SIGNALL',
+    ]
+
 if hasattr(cryptutil, 'hmacSha256'):
     supported_association_types = list(all_association_types)
 
@@ -277,7 +282,7 @@ class Association(object):
         self.issued = issued
         self.lifetime = lifetime
         self.assoc_type = assoc_type
-        self.sign_all = False
+        self.sign_all = assoc_type in signall_association_types
 
     def getExpiresIn(self, now=None):
         """
@@ -451,6 +456,16 @@ class Association(object):
         return calculated_sig == message_sig
 
 
+    def _makePairs(self, message):
+        # Feels a bit kludgy to dispatch here instead of of letting the class
+        # have the method appropriately defined, but this seemed to be the
+        # least complicated alternative at the time.
+        if self.sign_all:
+            return self._makePairsSignAll(message)
+        else:
+            return self._makePairsSignedList(message)
+
+
     def _makePairsSignAll(self, message):
         pairs = message.toPostArgs().items()
         pairs.sort()
@@ -468,5 +483,3 @@ class Association(object):
         for field in signed_list:
             pairs.append((field, data.get('openid.' + field, '')))
         return pairs
-
-    _makePairs = _makePairsSignedList

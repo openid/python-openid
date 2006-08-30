@@ -110,6 +110,21 @@ class TestMakePairs(unittest.TestCase):
         self.failUnlessEqual(pairs, expected)
 
 
+
+class TestIsSignAll(unittest.TestCase):
+    def test_sha1(self):
+        self.assoc = association.Association.fromExpiresIn(
+            3600, '{sha1}', 'very_secret', "HMAC-SHA1")
+        self.failUnlessEqual(self.assoc.sign_all, False)
+
+
+    def test_sha1signAll(self):
+        self.assoc = association.Association.fromExpiresIn(
+            3600, '{sha1-sa}', 'very_secret', "HMAC-SHA1-SIGNALL")
+        self.failUnlessEqual(self.assoc.sign_all, True)
+
+
+
 def pyUnitTests():
     return datadriven.loadTests(__name__)
 
