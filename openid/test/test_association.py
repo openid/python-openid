@@ -98,6 +98,17 @@ class TestMakePairs(unittest.TestCase):
         self.failUnlessEqual(pairs, expected)
 
 
+    def testMakePairsSignAll(self):
+        pairs = self.assoc._makePairsSignAll(self.message)
+        expected = [
+            ('openid.identifier', '=example'),
+            ('openid.mode', 'id_res'),
+            ('openid.ns', 'http://openid.net/specs/2.0/base'),
+            ('openid.signed', 'identifier,mode'),
+            ('xey', 'value'),
+            ]
+        self.failUnlessEqual(pairs, expected)
+
 
 def pyUnitTests():
     return datadriven.loadTests(__name__)

@@ -453,6 +453,7 @@ class Association(object):
 
     def _makePairsSignAll(self, message):
         pairs = message.toPostArgs().items()
+        pairs.sort()
         return pairs
 
 
