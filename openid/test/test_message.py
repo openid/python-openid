@@ -392,28 +392,35 @@ class OpenID2MessageTest(unittest.TestCase):
                                                  'openid.error':'unit test',
                                                  'openid.ns':message.OPENID2_NS
                                                  })
+        self.msg.setArg(message.BARE_NS, "xey", "value")
 
     def test_toPostArgs(self):
         self.failUnlessEqual(self.msg.toPostArgs(),
                              {'openid.mode':'error',
                               'openid.error':'unit test',
                               'openid.ns':message.OPENID2_NS,
+                              'xey': 'value',
                               })
 
     def test_toArgs(self):
+        # This method can't tolerate BARE_NS.
+        self.msg.delArg(message.BARE_NS, "xey")
         self.failUnlessEqual(self.msg.toArgs(), {'mode':'error',
                                                  'error':'unit test',
                                                  'ns':message.OPENID2_NS,
                                                  })
 
     def test_toKVForm(self):
+        # Can't tolerate BARE_NS in kvform
+        self.msg.delArg(message.BARE_NS, "xey")
         self.failUnlessEqual(self.msg.toKVForm(),
                              'error:unit test\nmode:error\nns:%s\n' %
                              (message.OPENID2_NS,))
 
     def _test_urlencoded(self, s):
-        expected = 'openid.error=unit+test&openid.mode=error&openid.ns=%s' % (
-            urllib.quote(message.OPENID2_NS, ''),)
+        expected = ('openid.error=unit+test&openid.mode=error&'
+                    'openid.ns=%s&xey=value' % (
+            urllib.quote(message.OPENID2_NS, ''),))
         self.failUnlessEqual(s, expected)
         
 
@@ -494,7 +501,8 @@ class OpenID2MessageTest(unittest.TestCase):
                               })
 
     def test_getArgsBARE(self):
-        self.failUnlessEqual(self.msg.getArgs(message.BARE_NS), {})
+        self.failUnlessEqual(self.msg.getArgs(message.BARE_NS),
+                             {'xey': 'value'})
 
     def test_getArgsNS1(self):
         self.failUnlessEqual(self.msg.getArgs(message.OPENID2_NS),
@@ -527,7 +535,8 @@ class OpenID2MessageTest(unittest.TestCase):
                                 before={'mode':'error', 'error':'unit test'})
 
     def test_updateArgsBARE(self):
-        self._test_updateArgsNS(message.BARE_NS)
+        self._test_updateArgsNS(message.BARE_NS,
+                                before={'xey':'value'})
 
     def test_updateArgsNS1(self):
         self._test_updateArgsNS(message.OPENID2_NS,

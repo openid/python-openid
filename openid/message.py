@@ -368,7 +368,8 @@ class Message(object):
         """Set a single argument in this namespace"""
         namespace = self._fixNS(namespace)
         self.args[(namespace, key)] = value
-        self.namespaces.add(namespace)
+        if not (namespace is BARE_NS):
+            self.namespaces.add(namespace)
 
     def delArg(self, namespace, key):
         namespace = self._fixNS(namespace)
