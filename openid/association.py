@@ -407,33 +407,13 @@ class Association(object):
 
         return mac(self.secret, kv)
 
-    def signDict(self, fields, data, prefix='openid.'):
-        """
-        Generate a signature for some fields in a dictionary
 
-
-        @param fields: The fields to sign, in order
-
-        @type fields: sequence of str
-
-
-        @param data: Dictionary of values to sign
-
-        @type data: {str:str}
-
+    def getMessageSignature(self, message):
+        """Return the signature of a message with a signed list
 
         @return: the signature, base64 encoded
 
         @rtype: str
-        """
-        pairs = []
-        for field in fields:
-            pairs.append((field, data.get(prefix + field, '')))
-
-        return oidutil.toBase64(self.sign(pairs))
-
-    def getMessageSignature(self, message):
-        """Return the signature of a message with a signed list
         """
         pairs = self._makePairs(message)
         return oidutil.toBase64(self.sign(pairs))
