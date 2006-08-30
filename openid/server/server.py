@@ -276,7 +276,7 @@ class PlainTextServerSession(object):
     @see: AssociateRequest
     """
     session_type = 'no-encryption'
-    allowed_assoc_types = ['HMAC-SHA1', 'HMAC-SHA256']
+    allowed_assoc_types = ['HMAC-SHA1', 'HMAC-SHA256-SIGNALL']
 
     def fromMessage(cls, unused_request):
         return cls()
@@ -369,7 +369,7 @@ class DiffieHellmanSHA1ServerSession(object):
 class DiffieHellmanSHA256ServerSession(DiffieHellmanSHA1ServerSession):
     session_type = 'DH-SHA256'
     hash_func = staticmethod(cryptutil.sha256)
-    allowed_assoc_types = ['HMAC-SHA256']
+    allowed_assoc_types = ['HMAC-SHA256-SIGNALL']
 
 class AssociateRequest(OpenIDRequest):
     """A request to establish an X{association}.
