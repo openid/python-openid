@@ -1139,12 +1139,59 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.failUnless(sresponse.fields.getArg(OPENID_NS, 'sig'))
 
         # make sure the expired association is gone
-        self.failIf(self.store.getAssociation(self._normal_key, assoc_handle))
+        self.failIf(self.store.getAssociation(self._normal_key, assoc_handle),
+                    "expired association is still retrievable.")
 
         # make sure the new key is a dumb mode association
         self.failUnless(self.store.getAssociation(self._dumb_key, new_assoc_handle))
         self.failIf(self.store.getAssociation(self._normal_key, new_assoc_handle))
         self.failUnless(self.messages)
+
+    def test_signExpiredSignAll(self):
+        request = server.OpenIDRequest()
+        request.namespace = OPENID2_NS
+        assoc_handle = '{assoc}{lookatme}'
+
+        expired_assoc = association.Association.fromExpiresIn(
+            -10, assoc_handle, 'sekrit', 'HMAC-SHA1-SIGNALL')
+
+        self.failUnless(expired_assoc.sign_all)
+        self.store.storeAssociation(self._normal_key, expired_assoc)
+        self.failUnless(self.store.getAssociation(self._normal_key, assoc_handle))
+
+        request.assoc_handle = assoc_handle
+        response = server.OpenIDResponse(request)
+        response.fields = Message.fromOpenIDArgs({
+            'foo': 'amsigned',
+            'bar': 'notsigned',
+            'azu': 'alsosigned',
+            })
+        sresponse = self.signatory.sign(response)
+
+        new_assoc_handle = sresponse.fields.getArg(OPENID_NS, 'assoc_handle')
+        self.failUnless(new_assoc_handle)
+        self.failIfEqual(new_assoc_handle, assoc_handle)
+
+        self.failUnlessEqual(
+            sresponse.fields.getArg(OPENID_NS, 'invalidate_handle'),
+            assoc_handle)
+
+        # make sure the new key is a dumb mode association
+        new_assoc = self.store.getAssociation(self._dumb_key, new_assoc_handle)
+        self.failUnless(new_assoc)
+        self.failIf(self.store.getAssociation(self._normal_key,
+                                              new_assoc_handle))
+        # and the new key is a sign-all key like the old one was.
+        self.failUnless(new_assoc.sign_all)
+
+        # make sure the expired association is gone
+        self.failIf(self.store.getAssociation(self._normal_key, assoc_handle))
+
+
+        self.failUnlessEqual(sresponse.fields.getArg(OPENID_NS, 'signed', None),
+                             None)
+        self.failUnless(sresponse.fields.getArg(OPENID_NS, 'sig'))
+
 
     def test_signInvalidHandle(self):
         request = server.OpenIDRequest()

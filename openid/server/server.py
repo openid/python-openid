@@ -954,12 +954,23 @@ class Signatory(object):
         assoc_handle = response.request.assoc_handle
         if assoc_handle:
             # normal mode
-            assoc = self.getAssociation(assoc_handle, dumb=False)
-            if not assoc:
+            # disabling expiration check because even if the association
+            # is expired, we still need to know some properties of the
+            # association so that we may preserve those properties when
+            # creating the fallback association.  (i.e. SIGNALL)
+            assoc = self.getAssociation(assoc_handle, dumb=False,
+                                        checkExpiration=False)
+
+            if not assoc or assoc.expiresIn <= 0:
                 # fall back to dumb mode
                 signed_response.fields.setArg(
                     OPENID_NS, 'invalidate_handle', assoc_handle)
-                assoc = self.createAssociation(dumb=True)
+                assoc_type = assoc and assoc.assoc_type or 'HMAC-SHA1'
+                if assoc and assoc.expiresIn <= 0:
+                    # now do the clean-up that the disabled checkExpiration
+                    # code didn't get to do.
+                    self.invalidate(assoc_handle, dumb=False)
+                assoc = self.createAssociation(dumb=True, assoc_type=assoc_type)
         else:
             # dumb mode.
             assoc = self.createAssociation(dumb=True)
