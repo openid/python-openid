@@ -492,3 +492,10 @@ class Association(object):
         for field in signed_list:
             pairs.append((field, data.get('openid.' + field, '')))
         return pairs
+
+    def __repr__(self):
+        return "<%s.%s %s %s>" % (
+            self.__class__.__module__,
+            self.__class__.__name__,
+            self.assoc_type,
+            self.handle)
