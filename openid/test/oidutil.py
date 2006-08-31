@@ -53,6 +53,20 @@ class AppendArgsTest(unittest.TestCase):
     def shortDescription(self):
         return self.desc
 
+
+
+class TestSymbol(unittest.TestCase):
+    def testCopyHash(self):
+        import copy
+        s = oidutil.Symbol("Foo")
+        d = {s: 1}
+        d_prime = copy.deepcopy(d)
+        self.failUnless(s in d_prime, "%r isn't in %r" % (s, d_prime))
+
+        t = oidutil.Symbol("Bar")
+        self.failIfEqual(hash(s), hash(t))
+
+
 def buildAppendTests():
     simple = 'http://www.example.com/'
     cases = [
@@ -138,10 +152,13 @@ def buildAppendTests():
     return unittest.TestSuite(tests)
 
 def pyUnitTests():
-    return buildAppendTests()
+    some = buildAppendTests()
+    some.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(TestSymbol))
+    return some
 
 def test_appendArgs():
     suite = buildAppendTests()
+    suite.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(TestSymbol))
     runner = unittest.TextTestRunner()
     result = runner.run(suite)
     assert result.wasSuccessful()
