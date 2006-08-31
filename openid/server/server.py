@@ -996,7 +996,7 @@ class Signatory(object):
         return assoc
 
 
-    def getAssociation(self, assoc_handle, dumb):
+    def getAssociation(self, assoc_handle, dumb, checkExpiration=True):
         """Get the association with the specified handle.
 
         @type assoc_handle: str
@@ -1026,8 +1026,9 @@ class Signatory(object):
             oidutil.log("requested %sdumb key %r is expired (by %s seconds)" %
                         ((not dumb) and 'not-' or '',
                          assoc_handle, assoc.expiresIn))
-            self.store.removeAssociation(key, assoc_handle)
-            assoc = None
+            if checkExpiration:
+                self.store.removeAssociation(key, assoc_handle)
+                assoc = None
         return assoc
 
 
