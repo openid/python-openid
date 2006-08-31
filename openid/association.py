@@ -476,7 +476,11 @@ class Association(object):
 
 
     def _makePairsSignAll(self, message):
-        pairs = message.toPostArgs().items()
+        pairs = message.toPostArgs()
+        if 'openid.sig' in pairs:
+            # A sig does not sign itself.
+            del pairs['openid.sig']
+        pairs = pairs.items()
         pairs.sort()
         return pairs
 

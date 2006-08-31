@@ -82,6 +82,7 @@ class TestMakePairs(unittest.TestCase):
             'mode': 'id_res',
             'identifier': '=example',
             'signed': 'identifier,mode',
+            'sig': 'cephalopod',
             })
         m.updateArgs(BARE_NS, {'xey': 'value'})
         self.assoc = association.Association.fromExpiresIn(
