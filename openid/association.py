@@ -420,11 +420,17 @@ class Association(object):
 
 
     def getMessageSignature(self, message):
-        """Return the signature of a message with a signed list
+        """Return the signature of a message.
+
+        If I am not a sign-all association, the message must have a
+        signed list.
 
         @return: the signature, base64 encoded
 
         @rtype: str
+
+        @raises ValueError: If there is no signed list and I am not a sign-all
+            type of association.
         """
         pairs = self._makePairs(message)
         return oidutil.toBase64(self.sign(pairs))
@@ -459,9 +465,14 @@ class Association(object):
     def checkMessageSignature(self, message):
         """Given a message with a signature, calculate a new signature
         and return whether it matches the signature in the message.
-        """
-        calculated_sig = self.getMessageSignature(message)
+
+        @raises ValueError: if the message has no signature or no signature
+            can be calculated for it.
+        """        
         message_sig = message.getArg(OPENID_NS, 'sig')
+        if not message_sig:
+            raise ValueError("%s has no sig." % (message,))
+        calculated_sig = self.getMessageSignature(message)
         return calculated_sig == message_sig
 
 
@@ -488,7 +499,7 @@ class Association(object):
     def _makePairsSignedList(self, message):
         signed = message.getArg(OPENID_NS, 'signed')
         if not signed:
-            raise ValueError('Message has no signed list')
+            raise ValueError('Message has no signed list: %s' % (message,))
 
         signed_list = signed.split(',')
         pairs = []

@@ -195,6 +195,19 @@ class TestMessageSigning(unittest.TestCase):
                              signed)
 
 
+class TestCheckMessageSignature(unittest.TestCase):
+    def test_aintGotSignedList(self):
+        m = Message(OPENID2_NS)
+        m.updateArgs(OPENID2_NS, {'mode': 'id_res',
+                                  'identifier': '=example',
+                                  'sig': 'coyote',
+                                  })
+        m.updateArgs(BARE_NS, {'xey': 'value'})
+        assoc = association.Association.fromExpiresIn(
+            3600, '{sha1}', 'very_secret', "HMAC-SHA1")
+        self.failUnlessRaises(ValueError, assoc.checkMessageSignature, m)
+
+
 def pyUnitTests():
     return datadriven.loadTests(__name__)
 
