@@ -445,10 +445,12 @@ class Association(object):
         signed_message = message.copy()
         signed_message.setArg(OPENID_NS, 'assoc_handle', self.handle)
         message_keys = signed_message.toPostArgs().keys()
-        signed_list = [k[7:] for k in message_keys if k.startswith('openid.')]
-        signed_list.append('signed')
-        signed_list.sort()
-        signed_message.setArg(OPENID_NS, 'signed', ','.join(signed_list))
+        if not self.sign_all:
+            signed_list = [k[7:] for k in message_keys
+                           if k.startswith('openid.')]
+            signed_list.append('signed')
+            signed_list.sort()
+            signed_message.setArg(OPENID_NS, 'signed', ','.join(signed_list))
         sig = self.getMessageSignature(signed_message)
         signed_message.setArg(OPENID_NS, 'sig', sig)
         return signed_message

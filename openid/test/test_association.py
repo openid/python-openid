@@ -2,7 +2,7 @@ from openid.test import datadriven
 
 import unittest
 
-from openid.message import Message, BARE_NS, OPENID2_NS
+from openid.message import Message, BARE_NS, OPENID_NS, OPENID2_NS
 from openid import association
 import time
 
@@ -162,6 +162,36 @@ class TestMac(unittest.TestCase):
             sig = assoc.sign(self.pairs)
             self.failUnlessEqual(sig, expected)
 
+
+
+class TestMessageSigning(unittest.TestCase):
+    def setUp(self):
+        self.message = m = Message(OPENID2_NS)
+        m.updateArgs(OPENID2_NS, {'mode': 'id_res',
+                                  'identifier': '=example'})
+        m.updateArgs(BARE_NS, {'xey': 'value'})
+        self.args = {'openid.mode': 'id_res',
+                     'openid.identifier': '=example',
+                     'xey': 'value'}
+
+
+    def test_signSHA1(self):
+        assoc = association.Association.fromExpiresIn(
+            3600, '{sha1}', 'very_secret', "HMAC-SHA1")
+        signed = assoc.signMessage(self.message)
+        self.failUnless(signed.getArg(OPENID_NS, "sig"))
+        self.failUnlessEqual(signed.getArg(OPENID_NS, "signed"),
+                             "assoc_handle,identifier,mode,ns,signed")
+
+
+    def test_signAll(self):
+        assoc = association.Association.fromExpiresIn(
+            3600, '{sha1}', 'very_secret', "HMAC-SHA1-SIGNALL")
+        signed = assoc.signMessage(self.message)
+        self.failUnless(signed.getArg(OPENID_NS, "sig"))
+        self.failUnlessEqual(signed.getArg(OPENID_NS, "signed", None), None)
+        self.failUnlessEqual(signed.getArg(BARE_NS, "xey"), "value",
+                             signed)
 
 
 def pyUnitTests():
