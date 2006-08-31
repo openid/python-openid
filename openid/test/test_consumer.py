@@ -73,6 +73,7 @@ GOODSIG = "[A Good Signature]"
 class GoodAssociation:
     expiresIn = 3600
     handle = "-blah-"
+    sign_all = False
 
     def getExpiresIn(self):
         return self.expiresIn
@@ -270,6 +271,48 @@ class TestIdRes(unittest.TestCase):
         self.endpoint.identity_url = self.consumer_id = "consu"
         self.endpoint.server_url = self.server_url = "serlie"
         self.endpoint.delegate = self.server_id = "sirod"
+
+
+
+class TestIdResCheckSignature(TestIdRes):
+    def setUp(self):
+        TestIdRes.setUp(self)
+        self.assoc = GoodAssociation()
+        self.assoc.handle = "{not_dumb}"
+        self.assoc.sign_all = True
+        self.store.storeAssociation(self.endpoint.server_url, self.assoc)
+
+        self.message = Message.fromPostArgs({
+            'openid.mode': 'id_res',
+            'openid.identity': '=example',
+            'openid.sig': GOODSIG,
+            'openid.assoc_handle': self.assoc.handle,
+            'frobboz': 'banzit',
+            })
+        self.expected_signed = ['openid.mode','openid.identity','openid.sig',
+                                'openid.assoc_handle','frobboz']
+        self.expected_signed.sort()
+
+
+    def test_signall(self):
+        # assoc_handle to assoc with good sig and sign_all = True
+        signed = self.consumer._idResCheckSignature(self.message,
+                                                    self.endpoint.server_url)
+        signed.sort()
+        self.failUnlessEqual(self.expected_signed, signed)
+
+
+    def test_signall_stateless(self):
+        # assoc_handle missing assoc, consumer._checkAuth returns goodthings
+        self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
+        self.consumer._processCheckAuthResponse = (
+            lambda response, server_url: True)
+        self.consumer._makeKVPost = lambda args, server_url: {}
+        signed = self.consumer._idResCheckSignature(self.message,
+                                                    self.endpoint.server_url)
+        signed.sort()
+        self.failUnlessEqual(self.expected_signed, signed)
+
 
 
 class TestQueryFormat(TestIdRes):

@@ -572,6 +572,11 @@ class GenericConsumer(object):
             if not assoc.checkMessageSignature(message):
                 raise ValueError('Bad signature')
 
+            if assoc.sign_all:
+                signed_list = message.toPostArgs().keys()
+            else:
+                signed_list = message.getArg(OPENID_NS, 'signed').split(',')
+                
         else:
             # It's not an association we know about.  Stateless mode is our
             # only possible path for recovery.
@@ -580,9 +585,17 @@ class GenericConsumer(object):
             if not self._checkAuth(message, server_url):
                 raise ValueError('Server denied check_authentication')
 
-        # XXX: association-type specific
-        signed = message.getArg(OPENID_NS, 'signed')
-        return signed.split(',')
+            # XXX: Danger!  We don't know what the server's signing algorithm
+            # is.  We assume that if there is no signed list, the server
+            # is not so brain-dead as to return is_valid=true unless it is
+            # using sign-all.
+            signed_list = message.getArg(OPENID_NS, 'signed')
+            if not signed_list:
+                signed_list = message.toPostArgs().keys()
+            else:
+                signed_list = signed_list.split(',')
+
+        return signed_list
 
 
     def _idResCheckForFields(self, message, signed_list):
