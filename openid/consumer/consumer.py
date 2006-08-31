@@ -586,7 +586,8 @@ class GenericConsumer(object):
 
 
     def _idResCheckForFields(self, message, signed_list):
-        required_fields = ['return_to', 'assoc_handle', 'sig', 'signed']
+        # XXX: whether or not 'signed' is required depends on the assoc type.
+        required_fields = ['return_to', 'assoc_handle', 'sig']
         require_sigs = ['return_to', 'identity', 'nonce']
 
         for field in required_fields:
