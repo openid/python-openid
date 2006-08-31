@@ -190,6 +190,13 @@ class Association(object):
         ]
 
 
+    _macs = {
+        'HMAC-SHA1': cryptutil.hmacSha1,
+        'HMAC-SHA256-SIGNALL': cryptutil.hmacSha256,
+        }
+    _macs['HMAC-SHA1-SIGNALL'] = _macs['HMAC-SHA1']
+
+
     def fromExpiresIn(cls, expires_in, handle, secret, assoc_type):
         """
         This is an alternate constructor used by the OpenID consumer
@@ -402,13 +409,12 @@ class Association(object):
         @rtype: str
         """
         kv = kvform.seqToKV(pairs)
-        if self.assoc_type == 'HMAC-SHA1':
-            mac = cryptutil.hmacSha1
-        elif self.assoc_type == 'HMAC-SHA256-SIGNALL':
-            mac = cryptutil.hmacSha256
-        else:
+
+        try:
+            mac = self._macs[self.assoc_type]
+        except KeyError:
             raise ValueError(
-                'Unkown association type: %r' % (self.assoc_type,))
+                'Unknown association type: %r' % (self.assoc_type,))
 
         return mac(self.secret, kv)
 
