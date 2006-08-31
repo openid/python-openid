@@ -380,6 +380,9 @@ class Message(object):
                                self.__class__.__name__,
                                self.args)
 
+    def __eq__(self, other):
+        return self.args == other.args
+        
 class NamespaceMap(object):
     """Maintains a bijective map between namespace uris and aliases.
     """
