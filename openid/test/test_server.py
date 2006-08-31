@@ -215,40 +215,22 @@ class TestDecode(unittest.TestCase):
         self.failUnless(isinstance(r, server.CheckAuthRequest))
         self.failUnlessEqual(r.mode, 'check_authentication')
         self.failUnlessEqual(r.sig, 'sigblob')
-        self.failUnlessEqual(r.signed, [
-            ('identity', 'signedval1'),
-            ('return_to', 'signedval2'),
-            ('nonce', 'signedval3'),
-            ('mode', 'id_res'),
-            ])
-        # XXX: test error cases (i.e. missing required fields)
 
-    def test_checkAuthMissingRequiredField(self):
-        # Missing openid.nonce in signed list
+
+    def test_checkAuthSignAll(self):
         args = {
             'openid.mode': 'check_authentication',
-            'openid.assoc_handle': '{dumb}{handle}',
+            'openid.assoc_handle': '{dumb-signall}{handle}',
             'openid.sig': 'sigblob',
-            'openid.signed': 'identity,return_to,mode',
             'openid.identity': 'signedval1',
             'openid.return_to': 'signedval2',
-            'openid.nonce': 'unsigned',
-            'openid.baz': 'unsigned',
+            'baz': 'also-signed',
             }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
-
-
-    def test_checkAuthMissingSignedField(self):
-        args = {
-            'openid.mode': 'check_authentication',
-            'openid.assoc_handle': '{dumb}{handle}',
-            'openid.sig': 'sigblob',
-            'openid.signed': 'identity,return_to,nonce,mode',
-            'openid.identity': 'signedval1',
-            'openid.return_to': 'signedval2',
-            'openid.baz': 'unsigned',
-            }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        r = self.decode(args)        
+        self.failUnless(isinstance(r, server.CheckAuthRequest))
+        expected_message = Message.fromPostArgs(args)
+        expected_message.setArg(OPENID_NS, "mode", "id_res")
+        self.failUnlessEqual(r.signed, expected_message)
 
 
     def test_checkAuthMissingSignature(self):
@@ -734,9 +716,8 @@ class MockSignatory(object):
     def __init__(self, assoc):
         self.assocs = [assoc]
 
-    def verify(self, assoc_handle, sig, signed_pairs):
-        assert sig
-        signed_pairs[:]
+    def verify(self, assoc_handle, message):
+        assert message.hasKey(OPENID_NS, "sig")
         if (True, assoc_handle) in self.assocs:
             return self.isValid
         else:
@@ -758,9 +739,13 @@ class MockSignatory(object):
 class TestCheckAuth(unittest.TestCase):
     def setUp(self):
         self.assoc_handle = 'mooooooooo'
+        self.message = Message.fromPostArgs({
+            'openid.sig': 'signarture',
+            'one': 'alpha',
+            'two': 'beta',
+            })
         self.request = server.CheckAuthRequest(
-            self.assoc_handle, 'signarture',
-            [('one', 'alpha'), ('two', 'beta')])
+            self.assoc_handle, self.message)
 
         self.signatory = MockSignatory((True, self.assoc_handle))
 
@@ -1227,41 +1212,67 @@ class TestSignatory(unittest.TestCase, CatchLogs):
 
     def test_verify(self):
         assoc_handle = '{vroom}{zoom}'
-        assoc = association.Association.fromExpiresIn(60, assoc_handle,
-                                                      'sekrit', 'HMAC-SHA1')
+        assoc = association.Association.fromExpiresIn(
+            60, assoc_handle, 'sekrit', 'HMAC-SHA1-SIGNALL')
 
         self.store.storeAssociation(self._dumb_key, assoc)
 
-        signed_pairs = [('foo', 'bar'),
-                        ('apple', 'orange')]
+        signed = Message.fromPostArgs({
+            'foo': 'bar',
+            'apple': 'orange',
+            'openid.sig': "d71xlHtqnq98DonoSgoK/nD+QRM=",
+            })
 
-        sig = "Ylu0KcIR7PvNegB/K41KpnRgJl0="
-        verified = self.signatory.verify(assoc_handle, sig, signed_pairs)
-        self.failUnless(verified)
+        verified = self.signatory.verify(assoc_handle, signed)
         self.failIf(self.messages, self.messages)
+        self.failUnless(verified)
+
 
     def test_verifyBadSig(self):
         assoc_handle = '{vroom}{zoom}'
-        assoc = association.Association.fromExpiresIn(60, assoc_handle,
-                                                      'sekrit', 'HMAC-SHA1')
+        assoc = association.Association.fromExpiresIn(
+            60, assoc_handle, 'sekrit', 'HMAC-SHA1-SIGNALL')
 
         self.store.storeAssociation(self._dumb_key, assoc)
 
-        signed_pairs = [('foo', 'bar'),
-                        ('apple', 'orange')]
+        signed = Message.fromPostArgs({
+            'foo': 'bar',
+            'apple': 'orange',
+            'openid.sig': "d71xlHtqnq98DonoSgoK/nD+QRM=".encode('rot13'),
+            })
 
-        sig = "Ylu0KcIR7PvNegB/K41KpnRgJl0=".encode('rot13')
-        verified = self.signatory.verify(assoc_handle, sig, signed_pairs)
+        verified = self.signatory.verify(assoc_handle, signed)
         self.failIf(verified)
         self.failIf(self.messages, self.messages)
 
     def test_verifyBadHandle(self):
         assoc_handle = '{vroom}{zoom}'
-        signed_pairs = [('foo', 'bar'),
-                        ('apple', 'orange')]
+        signed = Message.fromPostArgs({
+            'foo': 'bar',
+            'apple': 'orange',
+            'openid.sig': "Ylu0KcIR7PvNegB/K41KpnRgJl0=",
+            })
 
-        sig = "Ylu0KcIR7PvNegB/K41KpnRgJl0="
-        verified = self.signatory.verify(assoc_handle, sig, signed_pairs)
+        verified = self.signatory.verify(assoc_handle, signed)
+        self.failIf(verified)
+        self.failUnless(self.messages)
+
+
+    def test_verifyAssocMismatch(self):
+        """Attempt to validate sign-all message with a signed-list assoc."""
+        assoc_handle = '{vroom}{zoom}'
+        assoc = association.Association.fromExpiresIn(
+            60, assoc_handle, 'sekrit', 'HMAC-SHA1')
+
+        self.store.storeAssociation(self._dumb_key, assoc)
+
+        signed = Message.fromPostArgs({
+            'foo': 'bar',
+            'apple': 'orange',
+            'openid.sig': "d71xlHtqnq98DonoSgoK/nD+QRM=",
+            })
+
+        verified = self.signatory.verify(assoc_handle, signed)
         self.failIf(verified)
         self.failUnless(self.messages)
 

@@ -133,10 +133,8 @@ class CheckAuthRequest(OpenIDRequest):
 
     @ivar assoc_handle: The X{association handle} the response was signed with.
     @type assoc_handle: str
-    @ivar sig: The signature to check.
-    @type sig: str
-    @ivar signed: The ordered list of signed items you want to check.
-    @type signed: list of pairs
+    @ivar signed: The message with the signature which wants checking.
+    @type signed: L{Message}
 
     @ivar invalidate_handle: An X{association handle} the client is asking
         about the validity of.  Optional, may be C{None}.
@@ -149,19 +147,17 @@ class CheckAuthRequest(OpenIDRequest):
 
     required_fields = ["identity", "return_to", "nonce"]
 
-    def __init__(self, assoc_handle, sig, signed, invalidate_handle=None):
+    def __init__(self, assoc_handle, signed, invalidate_handle=None):
         """Construct me.
 
         These parameters are assigned directly as class attributes, see
         my L{class documentation<CheckAuthRequest>} for their descriptions.
 
         @type assoc_handle: str
-        @type sig: str
-        @type signed: list of pairs
+        @type signed: L{Message}
         @type invalidate_handle: str
         """
         self.assoc_handle = assoc_handle
-        self.sig = sig
         self.signed = signed
         self.invalidate_handle = invalidate_handle
         self.namespace = OPENID2_NS
@@ -179,44 +175,23 @@ class CheckAuthRequest(OpenIDRequest):
         self.namespace = message.getOpenIDNamespace()
         self.assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
         self.sig = message.getArg(OPENID_NS, 'sig')
-        signed_list = message.getArg(OPENID_NS, 'signed')
 
         if (self.assoc_handle is None or
-            self.sig is None or
-            signed_list is None):
+            self.sig is None):
             fmt = "%s request missing required parameter from message %s"
             raise ProtocolError(
                 message, text=fmt % (self.mode, message))
 
         self.invalidate_handle = message.getArg(OPENID_NS, 'invalidate_handle')
 
-        signed_list = signed_list.split(',')
+        self.signed = message.copy()
+        # openid.mode is currently check_authentication because
+        # that's the mode of this request.  But the signature
+        # was made on something with a different openid.mode.
+        # http://article.gmane.org/gmane.comp.web.openid.general/537
+        if self.signed.hasKey(OPENID_NS, "mode"):
+            self.signed.setArg(OPENID_NS, "mode", "id_res")
 
-        for required_field in self.required_fields:
-            if required_field not in signed_list:
-                msg = "Required signed field %r missing from signature" % (
-                    required_field,)
-                raise ProtocolError(message, text=msg,)
-
-        signed_pairs = []
-        for field in signed_list:
-            if field == 'mode':
-                # XXX KLUDGE HAX WEB PROTOCoL BR0KENNN
-                # openid.mode is currently check_authentication because
-                # that's the mode of this request.  But the signature
-                # was made on something with a different openid.mode.
-                # http://article.gmane.org/gmane.comp.web.openid.general/537
-                value = "id_res"
-            else:
-                value = message.getArg(OPENID_NS, field)
-
-            if value is None:
-                fmt = "Couldn't find signed field %r in message %s"
-                raise ProtocolError(message, text=fmt % (field, message))
-            else:
-                signed_pairs.append((field, value))
-
-        self.signed = signed_pairs
         return self
 
     fromMessage = classmethod(fromMessage)
@@ -235,7 +210,7 @@ class CheckAuthRequest(OpenIDRequest):
            appropriate X{C{invalidate_handle}}) field.
         @returntype: L{OpenIDResponse}
         """
-        is_valid = signatory.verify(self.assoc_handle, self.sig, self.signed)
+        is_valid = signatory.verify(self.assoc_handle, self.signed)
         # Now invalidate that assoc_handle so it this checkAuth message cannot
         # be replayed.
         signatory.invalidate(self.assoc_handle, dumb=True)
@@ -905,7 +880,7 @@ class Signatory(object):
         self.store = store
 
 
-    def verify(self, assoc_handle, sig, signed_pairs):
+    def verify(self, assoc_handle, message):
         """Verify that the signature for some data is valid.
 
         @param assoc_handle: The handle of the association used to sign the
@@ -925,16 +900,19 @@ class Signatory(object):
         """
         assoc = self.getAssociation(assoc_handle, dumb=True)
         if not assoc:
-            oidutil.log("failed to get assoc with handle %r to verify sig %r"
-                        % (assoc_handle, sig))
+            oidutil.log("failed to get assoc with handle %r to verify "
+                        "message %r"
+                        % (assoc_handle, message))
             return False
 
-        # Not using Association.checkSignature here is intentional;
-        # Association should not know things like "the list of signed pairs is
-        # in the request's 'signed' parameter and it is comma-separated."
-        expected_sig = oidutil.toBase64(assoc.sign(signed_pairs))
-
-        return sig == expected_sig
+        try:
+            valid = assoc.checkMessageSignature(message)
+        except ValueError, ex:
+            oidutil.log("Error in verifying %s with %s: %s" % (message,
+                                                               assoc,
+                                                               ex))
+            return False
+        return valid
 
 
     def sign(self, response):
@@ -973,6 +951,7 @@ class Signatory(object):
                 assoc = self.createAssociation(dumb=True, assoc_type=assoc_type)
         else:
             # dumb mode.
+            # XXX: provide the option to use a signall association here.
             assoc = self.createAssociation(dumb=True)
 
         signed_response.fields = assoc.signMessage(signed_response.fields)
