@@ -430,9 +430,10 @@ class Association(object):
         return oidutil.toBase64(self.sign(pairs))
 
     def signMessage(self, message):
-        """Add a signature (and a signed list) to a message
+        """Add a signature (and a signed list) to a message.
 
-        XXX: this is association-type specific
+        @return: a new Message object with a signature
+        @rtype: L{openid.message.Message}
         """
         if (message.hasKey(OPENID_NS, 'sig') or
             message.hasKey(OPENID_NS, 'signed')):
