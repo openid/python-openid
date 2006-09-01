@@ -283,7 +283,7 @@ class DiffieHellmanSHA1ServerSession(object):
     """
     session_type = 'DH-SHA1'
     hash_func = staticmethod(cryptutil.sha1)
-    allowed_assoc_types = ['HMAC-SHA1']
+    allowed_assoc_types = ['HMAC-SHA1', 'HMAC-SHA1-SIGNALL']
 
     def __init__(self, dh, consumer_pubkey):
         self.dh = dh
