@@ -382,7 +382,13 @@ class Message(object):
 
     def __eq__(self, other):
         return self.args == other.args
-        
+
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+
 class NamespaceMap(object):
     """Maintains a bijective map between namespace uris and aliases.
     """
