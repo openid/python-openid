@@ -731,8 +731,13 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
 
         self.consumer = self.consumer_class(self.store)
 
+        self._orig_fetcher = fetchers.getDefaultFetcher()
         self.fetcher = MockFetcher()
         fetchers.setDefaultFetcher(self.fetcher)
+
+    def tearDown(self):
+        CatchLogs.tearDown(self)
+        fetchers.setDefaultFetcher(self._orig_fetcher)
 
     def test_error(self):
         self.fetcher.response = HTTPResponse(
