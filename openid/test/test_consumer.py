@@ -353,6 +353,9 @@ class TestComplete(TestIdRes):
         self.failUnless(r.identity_url == self.endpoint.identity_url)
 
     def test_idResMissingField(self):
+        # XXX - this test is passing, but not necessarily by what it
+        # is supposed to test for.  status in FAILURE, but it's because
+        # *check_auth* failed, not because it's missing an arg, exactly.
         message = Message.fromPostArgs({'openid.mode': 'id_res'})
         r = self.consumer.complete(message, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
