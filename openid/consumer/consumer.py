@@ -654,8 +654,15 @@ class GenericConsumer(object):
         return self._processCheckAuthResponse(response, server_url)
 
     def _createCheckAuthRequest(self, message):
-        # XXX: this code is association-type specific
+        signed = message.getArg(OPENID_NS, 'signed')
+        if signed:
+            return self._createCheckAuthRequestSignedList(message)
+        else:
+            # XXX: assuming that no signed list means sign all.
+            return self._createCheckAuthRequestSignAll(message)
 
+
+    def _createCheckAuthRequestSignedList(self, message):
         # Arguments that are always passed to the server and not
         # included in the signature.
         whitelist = ['assoc_handle', 'sig', 'signed', 'invalidate_handle']
@@ -680,6 +687,13 @@ class GenericConsumer(object):
 
         check_args['openid.mode'] = 'check_authentication'
         return check_args
+
+
+    def _createCheckAuthRequestSignAll(self, message):
+        check_args = message.toPostArgs()
+        check_args['openid.mode'] = 'check_authentication'
+        return check_args
+
 
     def _processCheckAuthResponse(self, response, server_url):
         is_valid = response.get('is_valid', 'false')

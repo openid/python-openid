@@ -760,6 +760,44 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
         consumer = BadArgCheckingConsumer(self.store)
         consumer._checkAuth(Message.fromPostArgs(query), 'does://not.matter')
 
+
+    def test_signAll(self):
+        query = {
+            'openid.mode': 'id_res',
+            'openid.sig': 'rabbits',
+            'openid.identity': '=example',
+            'openid.assoc_handle': 'munchkins',
+            'foo': 'bar',
+            }
+        expected = query.copy()
+        expected['openid.mode'] = 'check_authentication'
+        args = self.consumer._createCheckAuthRequest(
+            Message.fromPostArgs(query))
+        self.failUnlessEqual(args, expected)
+
+
+    def test_signedList(self):
+        query = {
+            'openid.mode': 'id_res',
+            'openid.sig': 'rabbits',
+            'openid.identity': '=example',
+            'openid.assoc_handle': 'munchkins',
+            'openid.signed': 'identity,mode',
+            'foo': 'bar',
+            }
+        expected = {
+            'openid.mode': 'check_authentication',
+            'openid.sig': 'rabbits',
+            'openid.assoc_handle': 'munchkins',
+            'openid.identity': '=example',
+            'openid.signed': 'identity,mode'
+            }
+        args = self.consumer._createCheckAuthRequest(
+            Message.fromPostArgs(query))
+        self.failUnlessEqual(args, expected)
+
+
+
 class TestFetchAssoc(unittest.TestCase, CatchLogs):
     consumer_class = GenericConsumer
 
