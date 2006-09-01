@@ -551,7 +551,6 @@ class GenericConsumer(object):
             return FailureResponse(
                 endpoint, fmt % (endpoint.delegate, server_id2))
 
-        # XXX: association-type specific
         signed_fields = ['openid.' + f for f in signed_list]
         return SuccessResponse(endpoint, message, signed_fields)
 
