@@ -117,6 +117,20 @@ class TestFetchException(datadriven.DataDrivenTestCase):
 
 ### Tests for openid.consumer.discover.discover
 
+class TestNormalization(unittest.TestCase):
+    def testAddingProtocol(self):
+        f = ErrorRaisingFetcher(RuntimeError())
+        fetchers.setDefaultFetcher(f, wrap_exceptions=False)
+
+        try:
+            discover.discover('users.stompy.janrain.com:8000/x')
+        except DiscoveryFailure, why:
+            self.fail('failed to parse url with port correctly')
+        except RuntimeError:
+            pass #expected
+
+        fetchers.setDefaultFetcher(None)
+
 
 class DiscoveryMockFetcher(object):
     redirect = None

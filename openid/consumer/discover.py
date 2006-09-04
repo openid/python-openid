@@ -233,7 +233,7 @@ def discoverNoYadis(uri):
 
 def discover(uri):
     parsed = urlparse.urlparse(uri)
-    if parsed[0]:
+    if parsed[0] and parsed[1]:
         if parsed[0] not in ['http', 'https']:
             raise DiscoveryFailure('URI scheme is not HTTP or HTTPS', None)
     else:
