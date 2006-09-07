@@ -505,13 +505,13 @@ class OpenID2MessageTest(unittest.TestCase):
                              {'xey': 'value'})
 
     def test_getArgsNS1(self):
+        self.failUnlessEqual(self.msg.getArgs(message.OPENID1_NS), {})
+
+    def test_getArgsNS2(self):
         self.failUnlessEqual(self.msg.getArgs(message.OPENID2_NS),
                              {'mode':'error',
                               'error':'unit test',
                               })
-
-    def test_getArgsNS2(self):
-        self.failUnlessEqual(self.msg.getArgs(message.OPENID1_NS), {})
 
     def test_getArgsNS3(self):
         self.failUnlessEqual(self.msg.getArgs('urn:nothing-significant'), {})
