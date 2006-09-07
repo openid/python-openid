@@ -539,11 +539,11 @@ class OpenID2MessageTest(unittest.TestCase):
                                 before={'xey':'value'})
 
     def test_updateArgsNS1(self):
-        self._test_updateArgsNS(message.OPENID2_NS,
-                                before={'mode':'error', 'error':'unit test'})
+        self._test_updateArgsNS(message.OPENID1_NS)
 
     def test_updateArgsNS2(self):
-        self._test_updateArgsNS(message.OPENID1_NS)
+        self._test_updateArgsNS(message.OPENID2_NS,
+                                before={'mode':'error', 'error':'unit test'})
 
     def test_updateArgsNS3(self):
         self._test_updateArgsNS('urn:nothing-significant')
