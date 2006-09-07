@@ -363,7 +363,7 @@ class OpenID1MessageTest(unittest.TestCase):
         self.failUnlessEqual(self.msg.getArg(ns, key), None)
 
     def test_delArg(self):
-        self._test_delArgNS(message.OPENID1_NS)
+        self._test_delArgNS(message.OPENID_NS)
 
     def test_delArgBARE(self):
         self._test_delArgNS(message.BARE_NS)
