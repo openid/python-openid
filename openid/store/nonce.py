@@ -33,6 +33,8 @@ def split(nonce_string):
     """
     timestamp_str = nonce_string[:time_str_len]
     timestamp = timegm(strptime(timestamp_str, time_fmt))
+    if timestamp < 0:
+        raise ValueError('time out of range')
     return timestamp, nonce_string[time_str_len:]
 
 def checkTimestamp(nonce_string, allowed_skew=SKEW, now=None):
@@ -69,14 +71,14 @@ def checkTimestamp(nonce_string, allowed_skew=SKEW, now=None):
 
         # the stamp is not too far in the future and is not too far in
         # the past
-        return past < stamp < future
+        return past <= stamp <= future
 
 def mkNonce(when=None):
     """Generate a nonce with the current timestamp
 
-    @param when: GMT time tuple representing the issue time of the
+    @param when: Unix timestamp representing the issue time of the
         nonce. Defaults to the current time.
-    @type when: time tuple
+    @type when: int
 
     @returntype: str
     @returns: A string that should be usable as a one-way nonce
@@ -85,6 +87,9 @@ def mkNonce(when=None):
     """
     salt = cryptutil.randomString(6, NONCE_CHARS)
     if when is None:
-        when = gmtime()
-    time_str = strftime(time_fmt, when)
+        t = gmtime()
+    else:
+        t = gmtime(when)
+
+    time_str = strftime(time_fmt, t)
     return time_str + salt
