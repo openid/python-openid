@@ -654,6 +654,8 @@ class TestCheckID(unittest.TestCase):
         result_args = dict(cgi.parse_qsl(result_args))
         message = Message.fromPostArgs(result_args)
         rebuilt_request = server.CheckIDRequest.fromMessage(message)
+        # argh, lousy hack
+        self.request.message = message
         self.failUnlessEqual(rebuilt_request.__dict__, self.request.__dict__)
 
     def test_getCancelURL(self):

@@ -172,6 +172,7 @@ class CheckAuthRequest(OpenIDRequest):
         @returntype: L{CheckAuthRequest}
         """
         self = klass.__new__(klass)
+        self.message = message
         self.namespace = message.getOpenIDNamespace()
         self.assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
         self.sig = message.getArg(OPENID_NS, 'sig')
@@ -410,6 +411,7 @@ class AssociateRequest(OpenIDRequest):
             raise ProtocolError(message, fmt % (session_type, assoc_type))
 
         self = klass(session, assoc_type)
+        self.message = message
         self.namespace = message.getOpenIDNamespace()
         return self
 
@@ -532,6 +534,7 @@ class CheckIDRequest(OpenIDRequest):
         @returntype: L{CheckIDRequest}
         """
         self = klass.__new__(klass)
+        self.message = message
         self.namespace = message.getOpenIDNamespace()
         mode = message.getArg(OPENID_NS, 'mode')
         if mode == "checkid_immediate":
