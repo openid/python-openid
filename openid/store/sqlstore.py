@@ -520,5 +520,9 @@ class PostgreSQLStore(SQLStore):
     clean_nonce_sql = 'DELETE FROM %(nonces)s WHERE timestamp < %%s;'
 
     def blobEncode(self, blob):
-        import psycopg
-        return psycopg.Binary(blob)
+        try:
+            from psycopg2 import Binary
+        except ImportError:
+            from psycopg import Binary
+
+        return Binary(blob)
