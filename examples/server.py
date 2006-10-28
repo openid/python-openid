@@ -565,11 +565,10 @@ class ServerHandler(BaseHTTPRequestHandler):
 
         self.send_response(response_code)
         self.writeUserHeader()
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
 
-        self.wfile.write('''\
-Content-type: text/html
-
-<html>
+        self.wfile.write('''<html>
   <head>
     <title>%(title)s</title>
     %(head_extras)s
