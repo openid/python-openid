@@ -170,16 +170,6 @@ def testStore(store):
         checkUseNonce(nonce1, False, url)
         checkUseNonce(nonce1, False, url)
 
-    ### Auth key functions
-
-    # There is no key to start with, so generate a new key and return it.
-    key = store.getAuthKey()
-
-    # The second time around should return the same as last time.
-    key2 = store.getAuthKey()
-    assert key == key2
-    assert len(key) == store.AUTH_KEY_LEN
-
 def test_filestore():
     from openid.store import filestore
     import tempfile
