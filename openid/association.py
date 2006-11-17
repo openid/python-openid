@@ -13,13 +13,7 @@ from openid.message import OPENID_NS
 
 all_association_types = [
     'HMAC-SHA1',
-    'HMAC-SHA1-SIGNALL',
-    'HMAC-SHA256-SIGNALL',
-    ]
-
-signall_association_types = [
-    'HMAC-SHA1-SIGNALL',
-    'HMAC-SHA256-SIGNALL',
+    'HMAC-SHA256',
     ]
 
 if hasattr(cryptutil, 'hmacSha256'):
@@ -27,40 +21,33 @@ if hasattr(cryptutil, 'hmacSha256'):
 
     default_association_order = [
         ('HMAC-SHA1', 'DH-SHA1'),
-        ('HMAC-SHA1-SIGNALL', 'DH-SHA1'),
-        ('HMAC-SHA256-SIGNALL', 'DH-SHA256'),
         ('HMAC-SHA1', 'no-encryption'),
-        ('HMAC-SHA1-SIGNALL', 'no-encryption'),
-        ('HMAC-SHA256-SIGNALL', 'no-encryption'),
+        ('HMAC-SHA256', 'DH-SHA256'),
+        ('HMAC-SHA256', 'no-encryption'),
         ]
 
     only_encrypted_association_order = [
         ('HMAC-SHA1', 'DH-SHA1'),
-        ('HMAC-SHA1-SIGNALL', 'DH-SHA1'),
-        ('HMAC-SHA256-SIGNALL', 'DH-SHA256'),
+        ('HMAC-SHA256', 'DH-SHA256'),
         ]
 else:
     supported_association_types = ['HMAC-SHA1']
 
     default_association_order = [
         ('HMAC-SHA1', 'DH-SHA1'),
-        ('HMAC-SHA1-SIGNALL', 'DH-SHA1'),
         ('HMAC-SHA1', 'no-encryption'),
-        ('HMAC-SHA1-SIGNALL', 'no-encryption'),
         ]
 
     only_encrypted_association_order = [
         ('HMAC-SHA1', 'DH-SHA1'),
-        ('HMAC-SHA1-SIGNALL', 'DH-SHA1'),
         ]
 
 def getSessionTypes(assoc_type):
     """Return the allowed session types for a given association type"""
     assoc_to_session = {
         'HMAC-SHA1': ['DH-SHA1', 'no-encryption'],
-        'HMAC-SHA256-SIGNALL': ['DH-SHA256', 'no-encryption'],
+        'HMAC-SHA256': ['DH-SHA256', 'no-encryption'],
         }
-    assoc_to_session['HMAC-SHA1-SIGNALL'] = assoc_to_session['HMAC-SHA1']
     return assoc_to_session.get(assoc_type, [])
 
 def checkSessionType(assoc_type, session_type):
@@ -121,9 +108,9 @@ default_negotiator = SessionNegotiator(default_association_order)
 encrypted_negotiator = SessionNegotiator(only_encrypted_association_order)
 
 def getSecretSize(assoc_type):
-    if assoc_type in ('HMAC-SHA1', 'HMAC-SHA1-SIGNALL'):
+    if assoc_type == 'HMAC-SHA1':
         return 20
-    elif assoc_type == 'HMAC-SHA256-SIGNALL':
+    elif assoc_type == 'HMAC-SHA256':
         return 32
     else:
         raise ValueError('Unsupported association type: %r' % (assoc_type,))
@@ -171,10 +158,6 @@ class Association(object):
     @type assoc_type: C{str}
 
 
-    @ivar sign_all: True if this association type signs all fields, as
-        opposed to those listed in an C{openid.signed} list.
-    @type sign_all: bool
-    
     @sort: __init__, fromExpiresIn, getExpiresIn, __eq__, __ne__,
         handle, secret, issued, lifetime, assoc_type
     """
@@ -192,9 +175,8 @@ class Association(object):
 
     _macs = {
         'HMAC-SHA1': cryptutil.hmacSha1,
-        'HMAC-SHA256-SIGNALL': cryptutil.hmacSha256,
+        'HMAC-SHA256': cryptutil.hmacSha256,
         }
-    _macs['HMAC-SHA1-SIGNALL'] = _macs['HMAC-SHA1']
 
 
     def fromExpiresIn(cls, expires_in, handle, secret, assoc_type):
@@ -289,7 +271,6 @@ class Association(object):
         self.issued = issued
         self.lifetime = lifetime
         self.assoc_type = assoc_type
-        self.sign_all = assoc_type in signall_association_types
 
     def getExpiresIn(self, now=None):
         """
@@ -452,12 +433,11 @@ class Association(object):
         signed_message = message.copy()
         signed_message.setArg(OPENID_NS, 'assoc_handle', self.handle)
         message_keys = signed_message.toPostArgs().keys()
-        if not self.sign_all:
-            signed_list = [k[7:] for k in message_keys
-                           if k.startswith('openid.')]
-            signed_list.append('signed')
-            signed_list.sort()
-            signed_message.setArg(OPENID_NS, 'signed', ','.join(signed_list))
+        signed_list = [k[7:] for k in message_keys
+                       if k.startswith('openid.')]
+        signed_list.append('signed')
+        signed_list.sort()
+        signed_message.setArg(OPENID_NS, 'signed', ','.join(signed_list))
         sig = self.getMessageSignature(signed_message)
         signed_message.setArg(OPENID_NS, 'sig', sig)
         return signed_message
@@ -477,26 +457,6 @@ class Association(object):
 
 
     def _makePairs(self, message):
-        # Feels a bit kludgy to dispatch here instead of of letting the class
-        # have the method appropriately defined, but this seemed to be the
-        # least complicated alternative at the time.
-        if self.sign_all:
-            return self._makePairsSignAll(message)
-        else:
-            return self._makePairsSignedList(message)
-
-
-    def _makePairsSignAll(self, message):
-        pairs = message.toPostArgs()
-        if 'openid.sig' in pairs:
-            # A sig does not sign itself.
-            del pairs['openid.sig']
-        pairs = pairs.items()
-        pairs.sort()
-        return pairs
-
-
-    def _makePairsSignedList(self, message):
         signed = message.getArg(OPENID_NS, 'signed')
         if not signed:
             raise ValueError('Message has no signed list: %s' % (message,))

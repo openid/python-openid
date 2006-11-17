@@ -73,7 +73,6 @@ GOODSIG = "[A Good Signature]"
 class GoodAssociation:
     expiresIn = 3600
     handle = "-blah-"
-    sign_all = False
 
     def getExpiresIn(self):
         return self.expiresIn
@@ -279,7 +278,6 @@ class TestIdResCheckSignature(TestIdRes):
         TestIdRes.setUp(self)
         self.assoc = GoodAssociation()
         self.assoc.handle = "{not_dumb}"
-        self.assoc.sign_all = True
         self.store.storeAssociation(self.endpoint.server_url, self.assoc)
 
         self.message = Message.fromPostArgs({
@@ -287,22 +285,25 @@ class TestIdResCheckSignature(TestIdRes):
             'openid.identity': '=example',
             'openid.sig': GOODSIG,
             'openid.assoc_handle': self.assoc.handle,
+            'openid.signed': 'mode,identity,assoc_handle,signed',
             'frobboz': 'banzit',
             })
-        self.expected_signed = ['openid.mode','openid.identity','openid.sig',
-                                'openid.assoc_handle','frobboz']
+        self.expected_signed = ['mode',
+                                'signed',
+                                'identity',
+                                'assoc_handle']
         self.expected_signed.sort()
 
 
-    def test_signall(self):
-        # assoc_handle to assoc with good sig and sign_all = True
+    def test_sign(self):
+        # assoc_handle to assoc with good sig
         signed = self.consumer._idResCheckSignature(self.message,
                                                     self.endpoint.server_url)
         signed.sort()
         self.failUnlessEqual(self.expected_signed, signed)
 
 
-    def test_signall_stateless(self):
+    def test_stateless(self):
         # assoc_handle missing assoc, consumer._checkAuth returns goodthings
         self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
         self.consumer._processCheckAuthResponse = (
@@ -759,21 +760,6 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
             }
         consumer = BadArgCheckingConsumer(self.store)
         consumer._checkAuth(Message.fromPostArgs(query), 'does://not.matter')
-
-
-    def test_signAll(self):
-        query = {
-            'openid.mode': 'id_res',
-            'openid.sig': 'rabbits',
-            'openid.identity': '=example',
-            'openid.assoc_handle': 'munchkins',
-            'foo': 'bar',
-            }
-        expected = query.copy()
-        expected['openid.mode'] = 'check_authentication'
-        args = self.consumer._createCheckAuthRequest(
-            Message.fromPostArgs(query))
-        self.failUnlessEqual(args, expected)
 
 
     def test_signedList(self):

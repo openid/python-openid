@@ -6,6 +6,16 @@ from openid.message import Message, BARE_NS, OPENID_NS, OPENID2_NS
 from openid import association
 import time
 
+try:
+    from openid import cryptutil
+    cryptutil.sha256('')
+except NotImplementedError:
+    import warnings
+    warnings.warn("Not running SHA256 tests.")
+    has_sha256 = False
+else:
+    has_sha256 = True
+
 class AssociationSerializationTest(unittest.TestCase):
     def test_roundTrip(self):
         issued = int(time.time())
@@ -89,40 +99,15 @@ class TestMakePairs(unittest.TestCase):
             3600, '{sha1}', 'very_secret', "HMAC-SHA1")
 
 
-    def testMakePairsSignedList(self):
+    def testMakePairs(self):
         """Make pairs using the OpenID 1.x type signed list."""
-        pairs = self.assoc._makePairsSignedList(self.message)
+        pairs = self.assoc._makePairs(self.message)
         expected = [
             ('identifier', '=example'),
             ('mode', 'id_res'),
             ]
         self.failUnlessEqual(pairs, expected)
 
-
-    def testMakePairsSignAll(self):
-        pairs = self.assoc._makePairsSignAll(self.message)
-        expected = [
-            ('openid.identifier', '=example'),
-            ('openid.mode', 'id_res'),
-            ('openid.ns', 'http://openid.net/specs/2.0/base'),
-            ('openid.signed', 'identifier,mode'),
-            ('xey', 'value'),
-            ]
-        self.failUnlessEqual(pairs, expected)
-
-
-
-class TestIsSignAll(unittest.TestCase):
-    def test_sha1(self):
-        self.assoc = association.Association.fromExpiresIn(
-            3600, '{sha1}', 'very_secret', "HMAC-SHA1")
-        self.failUnlessEqual(self.assoc.sign_all, False)
-
-
-    def test_sha1signAll(self):
-        self.assoc = association.Association.fromExpiresIn(
-            3600, '{sha1-sa}', 'very_secret', "HMAC-SHA1-SIGNALL")
-        self.failUnlessEqual(self.assoc.sign_all, True)
 
 
 class TestMac(unittest.TestCase):
@@ -139,25 +124,10 @@ class TestMac(unittest.TestCase):
         sig = assoc.sign(self.pairs)
         self.failUnlessEqual(sig, expected)
 
-
-    def test_sha1signAll(self):
-        assoc = association.Association.fromExpiresIn(
-            3600, '{sha1SA}', 'very_secret', "HMAC-SHA1-SIGNALL")
-        expected = ('\xe0\x1bv\x04\xf1G\xc0\xbb\x7f\x9a\x8b'
-                    '\xe9\xbc\xee}\\\xe5\xbb7*')
-        sig = assoc.sign(self.pairs)
-        self.failUnlessEqual(sig, expected)
-
-    try:
-        from openid import cryptutil
-        cryptutil.sha256('')
-    except NotImplementedError:
-        import warnings
-        warnings.warn("Not running SHA256 tests.")
-    else:
-        def test_sha256signAll(self):
+    if has_sha256:
+        def test_sha256(self):
             assoc = association.Association.fromExpiresIn(
-                3600, '{sha256SA}', 'very_secret', "HMAC-SHA256-SIGNALL")
+                3600, '{sha256SA}', 'very_secret', "HMAC-SHA256")
             expected = ('\xfd\xaa\xfe;\xac\xfc*\x988\xad\x05d6-\xeaVy'
                         '\xd5\xa5Z.<\xa9\xed\x18\x82\\$\x95x\x1c&')
             sig = assoc.sign(self.pairs)
@@ -183,16 +153,19 @@ class TestMessageSigning(unittest.TestCase):
         self.failUnless(signed.getArg(OPENID_NS, "sig"))
         self.failUnlessEqual(signed.getArg(OPENID_NS, "signed"),
                              "assoc_handle,identifier,mode,ns,signed")
-
-
-    def test_signAll(self):
-        assoc = association.Association.fromExpiresIn(
-            3600, '{sha1}', 'very_secret', "HMAC-SHA1-SIGNALL")
-        signed = assoc.signMessage(self.message)
-        self.failUnless(signed.getArg(OPENID_NS, "sig"))
-        self.failUnlessEqual(signed.getArg(OPENID_NS, "signed", None), None)
         self.failUnlessEqual(signed.getArg(BARE_NS, "xey"), "value",
                              signed)
+
+    if has_sha256:
+        def test_signSHA256(self):
+            assoc = association.Association.fromExpiresIn(
+                3600, '{sha1}', 'very_secret', "HMAC-SHA256")
+            signed = assoc.signMessage(self.message)
+            self.failUnless(signed.getArg(OPENID_NS, "sig"))
+            self.failUnlessEqual(signed.getArg(OPENID_NS, "signed"),
+                                 "assoc_handle,identifier,mode,ns,signed")
+            self.failUnlessEqual(signed.getArg(BARE_NS, "xey"), "value",
+                                 signed)
 
 
 class TestCheckMessageSignature(unittest.TestCase):

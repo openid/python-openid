@@ -252,7 +252,7 @@ class PlainTextServerSession(object):
     @see: AssociateRequest
     """
     session_type = 'no-encryption'
-    allowed_assoc_types = ['HMAC-SHA1', 'HMAC-SHA256-SIGNALL']
+    allowed_assoc_types = ['HMAC-SHA1', 'HMAC-SHA256']
 
     def fromMessage(cls, unused_request):
         return cls()
@@ -284,7 +284,7 @@ class DiffieHellmanSHA1ServerSession(object):
     """
     session_type = 'DH-SHA1'
     hash_func = staticmethod(cryptutil.sha1)
-    allowed_assoc_types = ['HMAC-SHA1', 'HMAC-SHA1-SIGNALL']
+    allowed_assoc_types = ['HMAC-SHA1']
 
     def __init__(self, dh, consumer_pubkey):
         self.dh = dh
@@ -345,7 +345,7 @@ class DiffieHellmanSHA1ServerSession(object):
 class DiffieHellmanSHA256ServerSession(DiffieHellmanSHA1ServerSession):
     session_type = 'DH-SHA256'
     hash_func = staticmethod(cryptutil.sha256)
-    allowed_assoc_types = ['HMAC-SHA256-SIGNALL']
+    allowed_assoc_types = ['HMAC-SHA256']
 
 class AssociateRequest(OpenIDRequest):
     """A request to establish an X{association}.
@@ -890,13 +890,8 @@ class Signatory(object):
             data.
         @type assoc_handle: str
 
-        @param sig: The base-64 encoded signature to check.
-        @type sig: str
-
-        @param signed_pairs: The data to check, an ordered list of key-value
-            pairs.  The keys should be as they are in the request's C{signed}
-            list, without any C{"openid."} prefix.
-        @type signed_pairs: list of pairs
+        @param message: The signed message to verify
+        @type message: openid.message.Message
 
         @returns: C{True} if the signature is valid, C{False} if not.
         @returntype: bool
@@ -938,7 +933,7 @@ class Signatory(object):
             # disabling expiration check because even if the association
             # is expired, we still need to know some properties of the
             # association so that we may preserve those properties when
-            # creating the fallback association.  (i.e. SIGNALL)
+            # creating the fallback association.
             assoc = self.getAssociation(assoc_handle, dumb=False,
                                         checkExpiration=False)
 
@@ -954,7 +949,6 @@ class Signatory(object):
                 assoc = self.createAssociation(dumb=True, assoc_type=assoc_type)
         else:
             # dumb mode.
-            # XXX: provide the option to use a signall association here.
             assoc = self.createAssociation(dumb=True)
 
         signed_response.fields = assoc.signMessage(signed_response.fields)

@@ -571,11 +571,6 @@ class GenericConsumer(object):
             if not assoc.checkMessageSignature(message):
                 raise ValueError('Bad signature')
 
-            if assoc.sign_all:
-                signed_list = message.toPostArgs().keys()
-            else:
-                signed_list = message.getArg(OPENID_NS, 'signed').split(',')
-                
         else:
             # It's not an association we know about.  Stateless mode is our
             # only possible path for recovery.
@@ -584,17 +579,7 @@ class GenericConsumer(object):
             if not self._checkAuth(message, server_url):
                 raise ValueError('Server denied check_authentication')
 
-            # XXX: Danger!  We don't know what the server's signing algorithm
-            # is.  We assume that if there is no signed list, the server
-            # is not so brain-dead as to return is_valid=true unless it is
-            # using sign-all.
-            signed_list = message.getArg(OPENID_NS, 'signed')
-            if not signed_list:
-                signed_list = message.toPostArgs().keys()
-            else:
-                signed_list = signed_list.split(',')
-
-        return signed_list
+        return message.getArg(OPENID_NS, 'signed').split(',')
 
 
     def _idResCheckForFields(self, message, signed_list):
@@ -653,15 +638,6 @@ class GenericConsumer(object):
         return self._processCheckAuthResponse(response, server_url)
 
     def _createCheckAuthRequest(self, message):
-        signed = message.getArg(OPENID_NS, 'signed')
-        if signed:
-            return self._createCheckAuthRequestSignedList(message)
-        else:
-            # XXX: assuming that no signed list means sign all.
-            return self._createCheckAuthRequestSignAll(message)
-
-
-    def _createCheckAuthRequestSignedList(self, message):
         # Arguments that are always passed to the server and not
         # included in the signature.
         whitelist = ['assoc_handle', 'sig', 'signed', 'invalidate_handle']
@@ -686,13 +662,6 @@ class GenericConsumer(object):
 
         check_args['openid.mode'] = 'check_authentication'
         return check_args
-
-
-    def _createCheckAuthRequestSignAll(self, message):
-        check_args = message.toPostArgs()
-        check_args['openid.mode'] = 'check_authentication'
-        return check_args
-
 
     def _processCheckAuthResponse(self, response, server_url):
         is_valid = response.get('is_valid', 'false')
@@ -933,7 +902,7 @@ class AuthRequest(object):
     def formMarkup(self, trust_root, return_to, immediate=False,
             form_tag_attrs=None):
         """Get html for a form to submit this request to the IDP.
-         
+
         @param form_tag_attrs: Dictionary of attributes to be added to
             the form tag. 'accept-charset' and 'enctype' have defaults
             that can be overridden. If a value is supplied for
@@ -941,7 +910,7 @@ class AuthRequest(object):
         @type form_tag_attrs: {unicode: unicode}
         """
         message = self.getMessage(trust_root, return_to, immediate)
-        return message.toFormMarkup(self.endpoint.server_url, 
+        return message.toFormMarkup(self.endpoint.server_url,
                     form_tag_attrs)
 
 FAILURE = 'failure'

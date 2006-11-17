@@ -217,22 +217,6 @@ class TestDecode(unittest.TestCase):
         self.failUnlessEqual(r.sig, 'sigblob')
 
 
-    def test_checkAuthSignAll(self):
-        args = {
-            'openid.mode': 'check_authentication',
-            'openid.assoc_handle': '{dumb-signall}{handle}',
-            'openid.sig': 'sigblob',
-            'openid.identity': 'signedval1',
-            'openid.return_to': 'signedval2',
-            'baz': 'also-signed',
-            }
-        r = self.decode(args)        
-        self.failUnless(isinstance(r, server.CheckAuthRequest))
-        expected_message = Message.fromPostArgs(args)
-        expected_message.setArg(OPENID_NS, "mode", "id_res")
-        self.failUnlessEqual(r.signed, expected_message)
-
-
     def test_checkAuthMissingSignature(self):
         args = {
             'openid.mode': 'check_authentication',
@@ -824,17 +808,18 @@ class TestAssociate(unittest.TestCase):
         warnings.warn("Not running SHA256 tests.")
     else:
         def test_dhSHA256(self):
-            self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA256-SIGNALL')
+            self.assoc = self.signatory.createAssociation(
+                dumb=False, assoc_type='HMAC-SHA256')
             from openid.dh import DiffieHellman
             from openid.server.server import DiffieHellmanSHA256ServerSession
             consumer_dh = DiffieHellman.fromDefaults()
             cpub = consumer_dh.public
             server_dh = DiffieHellman.fromDefaults()
             session = DiffieHellmanSHA256ServerSession(server_dh, cpub)
-            self.request = server.AssociateRequest(session, 'HMAC-SHA256-SIGNALL')
+            self.request = server.AssociateRequest(session, 'HMAC-SHA256')
             response = self.request.answer(self.assoc)
             rfg = lambda f: response.fields.getArg(OPENID_NS, f)
-            self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA256-SIGNALL")
+            self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA256")
             self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
             self.failIf(rfg("mac_key"))
             self.failUnlessEqual(rfg("session_type"), "DH-SHA256")
@@ -876,7 +861,7 @@ class TestAssociate(unittest.TestCase):
             
         s1_session = DiffieHellmanSHA1ConsumerSession()
 
-        invalid_s1 = {'openid.assoc_type':'HMAC-SHA256-SIGNALL',
+        invalid_s1 = {'openid.assoc_type':'HMAC-SHA256',
                       'openid.session_type':'DH-SHA1',}
         invalid_s1.update(s1_session.getRequest())
 
@@ -913,7 +898,7 @@ class TestAssociate(unittest.TestCase):
         self.failIf(rfg("dh_server_public"))
 
     def test_plaintext256(self):
-        self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA256-SIGNALL')
+        self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA256')
         response = self.request.answer(self.assoc)
         rfg = lambda f: response.fields.getArg(OPENID_NS, f)
 
@@ -1003,14 +988,14 @@ class TestServer(unittest.TestCase, CatchLogs):
 
         Should give back an error message with a fallback type.
         """
-        self.server.negotiator.setAllowedTypes([('HMAC-SHA256-SIGNALL', 'DH-SHA256')])
+        self.server.negotiator.setAllowedTypes([('HMAC-SHA256', 'DH-SHA256')])
         request = server.AssociateRequest.fromMessage(Message.fromPostArgs({}))
         response = self.server.openid_associate(request)
         self.failUnless(response.fields.hasKey(OPENID_NS, "error"))
         self.failUnless(response.fields.hasKey(OPENID_NS, "error_code"))
         self.failIf(response.fields.hasKey(OPENID_NS, "assoc_handle"))
         self.failUnlessEqual(response.fields.getArg(OPENID_NS, "assoc_type"),
-                             'HMAC-SHA256-SIGNALL')
+                             'HMAC-SHA256')
         self.failUnlessEqual(response.fields.getArg(OPENID_NS, "session_type"),
                              'DH-SHA256')
 
@@ -1022,13 +1007,13 @@ class TestServer(unittest.TestCase, CatchLogs):
         def test_associate4(self):
             """DH-SHA256 association session"""
             self.server.negotiator.setAllowedTypes(
-                [('HMAC-SHA256-SIGNALL', 'DH-SHA256')])
+                [('HMAC-SHA256', 'DH-SHA256')])
             query = {
                 'openid.dh_consumer_public':
                 'ALZgnx8N5Lgd7pCj8K86T/DDMFjJXSss1SKoLmxE72kJTzOtG6I2PaYrHX'
                 'xku4jMQWSsGfLJxwCZ6280uYjUST/9NWmuAfcrBfmDHIBc3H8xh6RBnlXJ'
                 '1WxJY3jHd5k1/ZReyRZOxZTKdF/dnIqwF8ZXUwI6peV0TyS/K1fOfF/s',
-                'openid.assoc_type': 'HMAC-SHA256-SIGNALL',
+                'openid.assoc_type': 'HMAC-SHA256',
                 'openid.session_type': 'DH-SHA256',
                 }
             message = Message.fromPostArgs(query)
@@ -1134,51 +1119,6 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.failIf(self.store.getAssociation(self._normal_key, new_assoc_handle))
         self.failUnless(self.messages)
 
-    def test_signExpiredSignAll(self):
-        request = server.OpenIDRequest()
-        request.namespace = OPENID2_NS
-        assoc_handle = '{assoc}{lookatme}'
-
-        expired_assoc = association.Association.fromExpiresIn(
-            -10, assoc_handle, 'sekrit', 'HMAC-SHA1-SIGNALL')
-
-        self.failUnless(expired_assoc.sign_all)
-        self.store.storeAssociation(self._normal_key, expired_assoc)
-        self.failUnless(self.store.getAssociation(self._normal_key, assoc_handle))
-
-        request.assoc_handle = assoc_handle
-        response = server.OpenIDResponse(request)
-        response.fields = Message.fromOpenIDArgs({
-            'foo': 'amsigned',
-            'bar': 'notsigned',
-            'azu': 'alsosigned',
-            })
-        sresponse = self.signatory.sign(response)
-
-        new_assoc_handle = sresponse.fields.getArg(OPENID_NS, 'assoc_handle')
-        self.failUnless(new_assoc_handle)
-        self.failIfEqual(new_assoc_handle, assoc_handle)
-
-        self.failUnlessEqual(
-            sresponse.fields.getArg(OPENID_NS, 'invalidate_handle'),
-            assoc_handle)
-
-        # make sure the new key is a dumb mode association
-        new_assoc = self.store.getAssociation(self._dumb_key, new_assoc_handle)
-        self.failUnless(new_assoc)
-        self.failIf(self.store.getAssociation(self._normal_key,
-                                              new_assoc_handle))
-        # and the new key is a sign-all key like the old one was.
-        self.failUnless(new_assoc.sign_all)
-
-        # make sure the expired association is gone
-        self.failIf(self.store.getAssociation(self._normal_key, assoc_handle))
-
-
-        self.failUnlessEqual(sresponse.fields.getArg(OPENID_NS, 'signed', None),
-                             None)
-        self.failUnless(sresponse.fields.getArg(OPENID_NS, 'sig'))
-
 
     def test_signInvalidHandle(self):
         request = server.OpenIDRequest()
@@ -1215,14 +1155,16 @@ class TestSignatory(unittest.TestCase, CatchLogs):
     def test_verify(self):
         assoc_handle = '{vroom}{zoom}'
         assoc = association.Association.fromExpiresIn(
-            60, assoc_handle, 'sekrit', 'HMAC-SHA1-SIGNALL')
+            60, assoc_handle, 'sekrit', 'HMAC-SHA1')
 
         self.store.storeAssociation(self._dumb_key, assoc)
 
         signed = Message.fromPostArgs({
-            'foo': 'bar',
-            'apple': 'orange',
-            'openid.sig': "d71xlHtqnq98DonoSgoK/nD+QRM=",
+            'openid.foo': 'bar',
+            'openid.apple': 'orange',
+            'openid.assoc_handle': assoc_handle,
+            'openid.signed': 'apple,assoc_handle,foo,signed',
+            'openid.sig': 'uXoT1qm62/BB09Xbj98TQ8mlBco=',
             })
 
         verified = self.signatory.verify(assoc_handle, signed)
@@ -1233,19 +1175,21 @@ class TestSignatory(unittest.TestCase, CatchLogs):
     def test_verifyBadSig(self):
         assoc_handle = '{vroom}{zoom}'
         assoc = association.Association.fromExpiresIn(
-            60, assoc_handle, 'sekrit', 'HMAC-SHA1-SIGNALL')
+            60, assoc_handle, 'sekrit', 'HMAC-SHA1')
 
         self.store.storeAssociation(self._dumb_key, assoc)
 
         signed = Message.fromPostArgs({
-            'foo': 'bar',
-            'apple': 'orange',
-            'openid.sig': "d71xlHtqnq98DonoSgoK/nD+QRM=".encode('rot13'),
+            'openid.foo': 'bar',
+            'openid.apple': 'orange',
+            'openid.assoc_handle': assoc_handle,
+            'openid.signed': 'apple,assoc_handle,foo,signed',
+            'openid.sig': 'uXoT1qm62/BB09Xbj98TQ8mlBco='.encode('rot13'),
             })
 
         verified = self.signatory.verify(assoc_handle, signed)
-        self.failIf(verified)
         self.failIf(self.messages, self.messages)
+        self.failIf(verified)
 
     def test_verifyBadHandle(self):
         assoc_handle = '{vroom}{zoom}'
