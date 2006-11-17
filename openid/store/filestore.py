@@ -6,7 +6,6 @@ flat files.
 import string
 import os
 import os.path
-import sys
 import time
 
 from errno import EEXIST, ENOENT
@@ -15,7 +14,6 @@ try:
     from tempfile import mkstemp
 except ImportError:
     # Python < 2.3
-    import tempfile
     import warnings
     warnings.filterwarnings("ignore",
                             "tempnam is a potential security risk",
@@ -143,10 +141,8 @@ class FileOpenIDStore(OpenIDStore):
         self.association_dir = os.path.join(directory, 'associations')
 
         # Temp dir must be on the same filesystem as the assciations
-        # directory and the directory containing the auth key file.
+        # directory
         self.temp_dir = os.path.join(directory, 'temp')
-
-        self.auth_key_name = os.path.join(directory, 'auth_key')
 
         self.max_nonce_age = 6 * 60 * 60 # Six hours, in seconds
 
@@ -158,14 +154,13 @@ class FileOpenIDStore(OpenIDStore):
 
         () -> NoneType
         """
-        _ensureDir(os.path.dirname(self.auth_key_name))
         _ensureDir(self.nonce_dir)
         _ensureDir(self.association_dir)
         _ensureDir(self.temp_dir)
 
     def _mktemp(self):
         """Create a temporary file on the same filesystem as
-        self.auth_key_name and self.association_dir.
+        self.association_dir.
 
         The temporary directory should not be cleaned if there are any
         processes using the store. If there is no active process using
@@ -181,83 +176,6 @@ class FileOpenIDStore(OpenIDStore):
         except:
             _removeIfPresent(name)
             raise
-
-    def readAuthKey(self):
-        """Read the auth key from the auth key file. Will return None
-        if there is currently no key.
-
-        () -> str or NoneType
-        """
-        try:
-            auth_key_file = file(self.auth_key_name, 'rb')
-        except IOError, why:
-            if why[0] == ENOENT:
-                return None
-            else:
-                raise
-
-        try:
-            return auth_key_file.read()
-        finally:
-            auth_key_file.close()
-
-    def createAuthKey(self):
-        """Generate a new random auth key and safely store it in the
-        location specified by self.auth_key_name.
-
-        () -> str"""
-
-        # Do the import here because this should only get called at
-        # most once from each process. Once the auth key file is
-        # created, this should not get called at all.
-        auth_key = cryptutil.randomString(self.AUTH_KEY_LEN)
-
-        file_obj, tmp = self._mktemp()
-        try:
-            file_obj.write(auth_key)
-            # Must close the file before linking or renaming it on win32.
-            file_obj.close()
-
-            try:
-                if hasattr(os, 'link') and sys.platform != 'cygwin':
-                    # because os.link works in some cygwin environments,
-                    # but returns errno 17 on others.  Haven't figured out
-                    # how to predict when it will do that yet.
-                    os.link(tmp, self.auth_key_name)
-                else:
-                    os.rename(tmp, self.auth_key_name)
-            except OSError, why:
-                if why[0] == EEXIST:
-                    auth_key = self.readAuthKey()
-                    if auth_key is None:
-                        # This should only happen if someone deletes
-                        # the auth key file out from under us.
-                        raise
-                else:
-                    raise
-        finally:
-            file_obj.close()
-            _removeIfPresent(tmp)
-
-        return auth_key
-
-    def getAuthKey(self):
-        """Retrieve the auth key from the file specified by
-        self.auth_key_name, creating it if it does not exist.
-
-        () -> str
-        """
-        auth_key = self.readAuthKey()
-        if auth_key is None:
-            auth_key = self.createAuthKey()
-
-        if len(auth_key) != self.AUTH_KEY_LEN:
-            fmt = ('Got an invalid auth key from %s. Expected %d byte '
-                   'string. Got: %r')
-            msg = fmt % (self.auth_key_name, self.AUTH_KEY_LEN, auth_key)
-            raise ValueError(msg)
-
-        return auth_key
 
     def getAssociationFilename(self, server_url, handle):
         """Create a unique filename for a given server url and
