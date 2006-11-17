@@ -10,15 +10,9 @@ class OpenIDStore(object):
     mechanisms that the OpenID library needs, for both servers and
     consumers.
 
-
-    @cvar AUTH_KEY_LEN: The length of the auth key that should be
-        returned by the C{L{getAuthKey}} method.
-
     @sort: storeAssociation, getAssociation, removeAssociation,
-        storeNonce, useNonce, getAuthKey, isDumb
+        storeNonce, useNonce, isDumb
     """
-
-    AUTH_KEY_LEN = 20
 
     def storeAssociation(self, server_url, association):
         """
@@ -165,22 +159,6 @@ class OpenIDStore(object):
         @return: Whether or not the nonce was valid.
 
         @rtype: C{bool} or C{int}
-        """
-        raise NotImplementedError
-
-    def getAuthKey(self):
-        """
-        This method returns a key used to sign the tokens, to
-        ensure that they haven't been tampered with in transit.  It
-        should return the same key every time it is called.  The key
-        returned should be C{L{AUTH_KEY_LEN}} bytes long.
-
-        @return: The key.  It should be C{L{AUTH_KEY_LEN}} bytes in
-            length, and use the full range of byte values.  That is,
-            it should be treated as a lump of binary data stored in a
-            C{str} instance.
-
-        @rtype: C{str}
         """
         raise NotImplementedError
 
