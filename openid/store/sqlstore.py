@@ -181,31 +181,6 @@ class SQLStore(OpenIDStore):
 
     createTables = _inTxn(txn_createTables)
 
-    def txn_getAuthKey(self):
-        """Get the key for this consumer to use to sign its own
-        communications. This function will create a new key if one
-        does not yet exist.
-
-        () -> str
-        """
-        self.db_get_auth()
-        val = self.cur.fetchone()
-        if val is None:
-            auth_key = cryptutil.randomString(self.AUTH_KEY_LEN)
-            auth_key_s = self.blobEncode(auth_key)
-            self.db_create_auth(auth_key_s)
-        else:
-            (auth_key_s,) = val
-            auth_key = self.blobDecode(auth_key_s)
-
-        if len(auth_key) != self.AUTH_KEY_LEN:
-            fmt = 'Expected %d-byte string for auth key. Got %r'
-            raise ValueError(fmt % (self.AUTH_KEY_LEN, auth_key))
-
-        return auth_key
-
-    getAuthKey = _inTxn(txn_getAuthKey)
-
     def txn_storeAssociation(self, server_url, association):
         """Set the association for the server URL.
 
@@ -326,9 +301,6 @@ class SQLiteStore(SQLStore):
     );
     """
 
-    create_auth_sql = 'INSERT INTO %(settings)s VALUES ("auth_key", ?);'
-    get_auth_sql = 'SELECT value FROM %(settings)s WHERE setting = "auth_key";'
-
     set_assoc_sql = ('INSERT OR REPLACE INTO %(associations)s '
                      'VALUES (?, ?, ?, ?, ?, ?);')
     get_assocs_sql = ('SELECT handle, secret, issued, lifetime, assoc_type '
@@ -410,9 +382,6 @@ class MySQLStore(SQLStore):
     TYPE=InnoDB;
     """
 
-    create_auth_sql = 'INSERT INTO %(settings)s VALUES ("auth_key", %%s);'
-    get_auth_sql = 'SELECT value FROM %(settings)s WHERE setting = "auth_key";'
-
     set_assoc_sql = ('REPLACE INTO %(associations)s '
                      'VALUES (%%s, %%s, %%s, %%s, %%s, %%s);')
     get_assocs_sql = ('SELECT handle, secret, issued, lifetime, assoc_type'
@@ -474,9 +443,6 @@ class PostgreSQLStore(SQLStore):
         CONSTRAINT value_length_constraint CHECK (LENGTH(value) <= 20)
     );
     """
-
-    create_auth_sql = "INSERT INTO %(settings)s VALUES ('auth_key', %%s);"
-    get_auth_sql = "SELECT value FROM %(settings)s WHERE setting = 'auth_key';"
 
     def db_set_assoc(self, server_url, handle, secret, issued, lifetime, assoc_type):
         """
