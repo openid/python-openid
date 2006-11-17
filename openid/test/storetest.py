@@ -322,7 +322,7 @@ def test_postgresql():
 
 def test_dumbstore():
     from openid.store import dumbstore
-    store = dumbstore.DumbStore('bad secret; do not use')
+    store = dumbstore.DumbStore()
     testStore(store)
 
 def test_memstore():
