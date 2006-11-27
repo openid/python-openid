@@ -43,6 +43,10 @@ from openid.fetchers import HTTPFetchingError
 
 SREG_URI = 'http://openid.net/sreg/1.0'
 
+# Used with an OpenID provider affiliate program.
+OPENID_PROVIDER_NAME = 'MyOpenID'
+OPENID_PROVIDER_URL ='https://www.myopenid.com/affiliate_signup?affiliate_id=39'
+
 
 class OpenIDHTTPServer(HTTPServer):
     """http server that contains a reference to an OpenID consumer and
@@ -132,6 +136,8 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                 self.doVerify()
             elif path == '/process':
                 self.doProcess()
+            elif path == '/affiliate':
+                self.doAffiliate()
             else:
                 self.notFound()
 
@@ -245,6 +251,19 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             message = 'Verification failed.'
 
         self.render(message, css_class, info.identity_url, sreg_data=sreg)
+
+    def doAffiliate(self):
+        """Direct the user sign up with an affiliate OpenID provider."""
+        sreg_required = ['nickname']
+        sreg_optional = ['fullname', 'email']
+        href = '%s&openid.sreg.required=%s&openid.sreg.optional=%s' % (
+            OPENID_PROVIDER_URL,
+            ','.join(sreg_required),
+            ','.join(sreg_optional),
+            )
+        message = """Get an OpenID at <a href=%s>%s</a>""" % (
+            quoteattr(href), OPENID_PROVIDER_NAME)
+        self.render(message)
 
     def renderSREG(self, sreg_data):
         if not sreg_data:
