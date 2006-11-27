@@ -149,7 +149,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         """
 
         # First, make sure that the user entered something
-        openid_url = self.query.get('openid_url')
+        openid_url = self.query.get('openid_identifier')
         if not openid_url:
             self.render('Enter an OpenID Identifier to verify.',
                         css_class='error', form_contents=openid_url)
@@ -303,7 +303,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         """Render a page with a 404 return code and a message."""
         fmt = 'The path <q>%s</q> was not understood by this server.'
         msg = fmt % (self.path,)
-        openid_url = self.query.get('openid_url')
+        openid_url = self.query.get('openid_identifier')
         self.render(msg, 'error', openid_url, status=404)
 
     def render(self, message=None, css_class='alert', form_contents=None,
@@ -393,7 +393,7 @@ Content-type: text/html
     <div id="verify-form">
       <form method="get" action=%s>
         Identifier:
-        <input type="text" name="openid_url" value=%s />
+        <input type="text" name="openid_identifier" value=%s />
         <input type="submit" value="Verify" />
       </form>
     </div>
