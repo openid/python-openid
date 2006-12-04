@@ -39,7 +39,8 @@ from openid.consumer import consumer
 from openid.oidutil import appendArgs
 from openid.cryptutil import randomString
 from openid.yadis.discover import DiscoveryFailure
-from openid.fetchers import HTTPFetchingError
+from openid.fetchers import (HTTPFetchingError, setDefaultFetcher,
+                             Urllib2Fetcher)
 
 SREG_URI = 'http://openid.net/sreg/1.0'
 
@@ -420,11 +421,14 @@ Content-type: text/html
 </html>
 ''' % (quoteattr(self.buildURL('verify')), quoteattr(form_contents)))
 
-def main(host, port, data_path):
+def main(host, port, data_path, weak_ssl=False):
     # Instantiate OpenID consumer store and OpenID consumer.  If you
     # were connecting to a database, you would create the database
     # connection and instantiate an appropriate store here.
     store = filestore.FileOpenIDStore(data_path)
+
+    if weak_ssl:
+        setDefaultFetcher(Urllib2Fetcher())
 
     addr = (host, port)
     server = OpenIDHTTPServer(store, addr, OpenIDRequestHandler)
@@ -437,6 +441,7 @@ if __name__ == '__main__':
     host = 'localhost'
     data_path = 'cstore'
     port = 8001
+    weak_ssl = False
 
     try:
         import optparse
@@ -456,6 +461,9 @@ if __name__ == '__main__':
             '-s', '--host', dest='host', default=host,
             help='Host on which to listen for HTTP requests. '
             'Also used for generating URLs. Defaults to %default.')
+        parser.add_option(
+            '-w', '--weakssl', dest='weakssl', default=False,
+            action='store_true', help='Skip ssl cert verification')
 
         options, args = parser.parse_args()
         if args:
@@ -464,5 +472,6 @@ if __name__ == '__main__':
         host = options.host
         port = options.port
         data_path = options.data_path
+        weak_ssl = options.weakssl
 
-    main(host, port, data_path)
+    main(host, port, data_path, weak_ssl)
