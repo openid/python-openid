@@ -64,6 +64,7 @@ def test_binaryLongConvert():
     cases = [
         ('\x00', 0L),
         ('\x01', 1L),
+        ('\x7F', 127L),
         ('\x00\xFF', 255L),
         ('\x00\x80', 128L),
         ('\x00\x81', 129L),
