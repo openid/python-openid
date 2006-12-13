@@ -28,8 +28,7 @@ SREG_URI = 'http://openid.net/sreg/1.0'
 OPENID1_NS = 'http://openid.net/sso/1.0'
 
 # The OpenID 2.0 namespace URI
-# XXX: not official (yet)
-OPENID2_NS = 'http://openid.net/specs/2.0/base'
+OPENID2_NS = 'http://openid.net/signon/2.0'
 
 # The namespace consisting of pairs with keys that are prefixed with
 # "openid."  but not in another namespace.
