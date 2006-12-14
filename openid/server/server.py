@@ -1356,13 +1356,11 @@ class ProtocolError(Exception):
         reply.setArg(OPENID_NS, 'mode', 'error')
         reply.setArg(OPENID_NS, 'error', str(self))
 
-        # Send contact and reference if using OpenID 2
-        if namespace == OPENID2_NS:
-            if self.contact is not None:
-                reply.setArg(OPENID_NS, 'contact', str(self.contact))
+        if self.contact is not None:
+            reply.setArg(OPENID_NS, 'contact', str(self.contact))
 
-            if self.reference is not None:
-                reply.setArg(OPENID_NS, 'reference', str(self.reference))
+        if self.reference is not None:
+            reply.setArg(OPENID_NS, 'reference', str(self.reference))
 
         return reply
 

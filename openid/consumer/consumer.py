@@ -445,13 +445,8 @@ class GenericConsumer(object):
             return CancelResponse(endpoint)
         elif mode == 'error':
             error = message.getArg(OPENID_NS, 'error')
-
-            contact = reference = None
-            # Only look at extra error response values if using OpenID
-            # 2.
-            if message.getOpenIDNamespace() == OPENID2_NS:
-                contact = message.getArg(OPENID_NS, 'contact')
-                reference = message.getArg(OPENID_NS, 'reference')
+            contact = message.getArg(OPENID_NS, 'contact')
+            reference = message.getArg(OPENID_NS, 'reference')
 
             return FailureResponse(endpoint, error, contact=contact,
                                    reference=reference)

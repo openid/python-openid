@@ -349,14 +349,15 @@ class TestComplete(TestIdRes):
 
     def test_errorWithNoOptionalKeys(self):
         msg = 'an error message'
+        contact = 'some contact info here'
         message = Message.fromPostArgs({'openid.mode': 'error',
-                 'openid.error': msg, 'openid.reference': 'a ref',
-                 'openid.contact': 'some contact info here',
+                 'openid.error': msg,
+                 'openid.contact': contact,
                  })
         r = self.consumer.complete(message, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
         self.failUnless(r.identity_url == self.endpoint.identity_url)
-        self.failUnless(r.contact is None)
+        self.failUnless(r.contact == contact)
         self.failUnless(r.reference is None)
         self.failUnlessEqual(r.message, msg)
 

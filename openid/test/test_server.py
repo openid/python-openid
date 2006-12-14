@@ -895,22 +895,21 @@ class TestAssociate(unittest.TestCase):
         openid2_args = dict(openid1_args)
         openid2_args.update({'openid.ns': OPENID2_NS})
 
+        # Check presence of optional fields in both protocol versions
+
         openid1_msg = Message.fromPostArgs(openid1_args)
         p = server.ProtocolError(openid1_msg, error,
                                  contact=contact, reference=reference)
         reply = p.toMessage()
 
-        # Should be None if the message is an openid1 message
-        self.failUnlessEqual(reply.getArg(OPENID_NS, 'reference'), None)
-        self.failUnlessEqual(reply.getArg(OPENID_NS, 'contact'), None)
+        self.failUnlessEqual(reply.getArg(OPENID_NS, 'reference'), reference)
+        self.failUnlessEqual(reply.getArg(OPENID_NS, 'contact'), contact)
 
         openid2_msg = Message.fromPostArgs(openid2_args)
         p = server.ProtocolError(openid2_msg, error,
                                  contact=contact, reference=reference)
         reply = p.toMessage()
 
-        # Should be present (in this case) if the message is an
-        # openid2 message
         self.failUnlessEqual(reply.getArg(OPENID_NS, 'reference'), reference)
         self.failUnlessEqual(reply.getArg(OPENID_NS, 'contact'), contact)
 
