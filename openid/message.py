@@ -253,7 +253,9 @@ class Message(object):
         form.attrib['enctype'] = 'application/x-www-form-urlencoded'
 
         for name, value in self.toPostArgs().iteritems():
-            attrs = dict(type='hidden', name=name, value=value) 
+            attrs = {'type': 'hidden',
+                     'name': name,
+                     'value': value}
             form.append(ElementTree.Element('input', attrs))
 
         submit = ElementTree.Element(
