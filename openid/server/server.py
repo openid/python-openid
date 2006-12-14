@@ -1313,7 +1313,7 @@ class ProtocolError(Exception):
     @type message: openid.message.Message
     """
 
-    def __init__(self, message, text=None):
+    def __init__(self, message, text=None, reference=None, contact=None):
         """When an error occurs.
 
         @param message: The message that is failing to be a valid
@@ -1324,6 +1324,8 @@ class ProtocolError(Exception):
         @type text: str
         """
         self.openid_message = message
+        self.reference = reference
+        self.contact = contact
         assert type(message) not in [str, unicode]
         Exception.__init__(self, text)
 
@@ -1353,6 +1355,15 @@ class ProtocolError(Exception):
         reply = Message(namespace)
         reply.setArg(OPENID_NS, 'mode', 'error')
         reply.setArg(OPENID_NS, 'error', str(self))
+
+        # Send contact and reference if using OpenID 2
+        if namespace == OPENID2_NS:
+            if self.contact is not None:
+                reply.setArg(OPENID_NS, 'contact', str(self.contact))
+
+            if self.reference is not None:
+                reply.setArg(OPENID_NS, 'reference', str(self.reference))
+
         return reply
 
     # implements IEncodable

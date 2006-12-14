@@ -445,7 +445,16 @@ class GenericConsumer(object):
             return CancelResponse(endpoint)
         elif mode == 'error':
             error = message.getArg(OPENID_NS, 'error')
-            return FailureResponse(endpoint, error)
+
+            contact = reference = None
+            # Only look at extra error response values if using OpenID
+            # 2.
+            if message.getOpenIDNamespace() == OPENID2_NS:
+                contact = message.getArg(OPENID_NS, 'contact')
+                reference = message.getArg(OPENID_NS, 'reference')
+
+            return FailureResponse(endpoint, error, contact=contact,
+                                   reference=reference)
         elif mode == 'id_res':
             try:
                 response = self._doIdRes(message, endpoint)
@@ -1016,9 +1025,12 @@ class FailureResponse(Response):
 
     status = FAILURE
 
-    def __init__(self, endpoint, message=None):
+    def __init__(self, endpoint, message=None, contact=None,
+                 reference=None):
         self.setEndpoint(endpoint)
         self.message = message
+        self.contact = contact
+        self.reference = reference
 
     def __repr__(self):
         return "<%s.%s id=%r message=%r>" % (

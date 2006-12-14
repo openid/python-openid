@@ -868,7 +868,7 @@ class TestAssociate(unittest.TestCase):
         invalid_s1_2 = {'openid.assoc_type':'ROBOT-NINJA',
                       'openid.session_type':'DH-SHA1',}
         invalid_s1_2.update(s1_session.getRequest())
-        
+
         bad_request_argss = [
             {'openid.assoc_type':'Wha?'},
             invalid_s1,
@@ -880,6 +880,39 @@ class TestAssociate(unittest.TestCase):
             self.failUnlessRaises(server.ProtocolError,
                                   server.AssociateRequest.fromMessage,
                                   message)
+
+    def test_protoErrorFields(self):
+
+        contact = 'user@example.invalid'
+        reference = 'Trac ticket number MAX_INT'
+        error = 'poltergeist'
+
+        openid1_args = {
+            'openid.identitiy': 'invalid',
+            'openid.mode': 'checkid_setup',
+            }
+
+        openid2_args = dict(openid1_args)
+        openid2_args.update({'openid.ns': OPENID2_NS})
+
+        openid1_msg = Message.fromPostArgs(openid1_args)
+        p = server.ProtocolError(openid1_msg, error,
+                                 contact=contact, reference=reference)
+        reply = p.toMessage()
+
+        # Should be None if the message is an openid1 message
+        self.failUnlessEqual(reply.getArg(OPENID_NS, 'reference'), None)
+        self.failUnlessEqual(reply.getArg(OPENID_NS, 'contact'), None)
+
+        openid2_msg = Message.fromPostArgs(openid2_args)
+        p = server.ProtocolError(openid2_msg, error,
+                                 contact=contact, reference=reference)
+        reply = p.toMessage()
+
+        # Should be present (in this case) if the message is an
+        # openid2 message
+        self.failUnlessEqual(reply.getArg(OPENID_NS, 'reference'), reference)
+        self.failUnlessEqual(reply.getArg(OPENID_NS, 'contact'), contact)
 
     def test_plaintext(self):
         self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA1')
