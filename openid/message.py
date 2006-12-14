@@ -241,10 +241,7 @@ class Message(object):
         if ElementTree is None:
             raise RuntimeError('This function requires ElementTree.')
 
-        form = ElementTree.Element('form', {
-            'accept-charset':'UTF-8',
-            'enctype':'application/x-www-form-urlencoded',
-            })
+        form = ElementTree.Element('form')
 
         if form_tag_attrs:
             for name, attr in form_tag_attrs.iteritems():
@@ -252,6 +249,8 @@ class Message(object):
 
         form.attrib['action'] = action_url
         form.attrib['method'] = 'post'
+        form.attrib['accept-charset'] = 'UTF-8'
+        form.attrib['enctype'] = 'application/x-www-form-urlencoded'
 
         for name, value in self.toPostArgs().iteritems():
             attrs = dict(type='hidden', name=name, value=value) 
