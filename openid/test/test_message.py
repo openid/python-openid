@@ -1,4 +1,5 @@
 from openid import message
+from openid import oidutil
 
 import urllib
 import cgi
@@ -594,6 +595,135 @@ class OpenID2MessageTest(unittest.TestCase):
 
     def test_delArgNS3(self):
         self._test_delArgNS('urn:nothing-significant')
+
+class MessageTest(unittest.TestCase):
+    def setUp(self):
+        self.postargs = {
+            'openid.ns': message.OPENID2_NS,
+            'openid.mode': 'checkid_setup',
+            'openid.identity': 'http://bogus.example.invalid:port/',
+            'openid.assoc_handle': 'FLUB',
+            'openid.return_to': 'Neverland',
+            }
+
+        self.action_url = 'scheme://host:port/path?query'
+
+        self.form_tag_attrs = {
+            'company': 'janrain',
+            'class': 'fancyCSS',
+            }
+
+        self.submit_text = 'GO!'
+
+        ### Expected data regardless of input
+
+        self.required_form_attrs = {
+            'accept-charset':'UTF-8',
+            'enctype':'application/x-www-form-urlencoded',
+            'method': 'post',
+            }
+
+    def _checkForm(self, html, message_, action_url,
+                   form_tag_attrs, submit_text):
+        E = oidutil.importElementTree()
+
+        # Build element tree from HTML source
+        input_tree = E.ElementTree(E.fromstring(html))
+
+        # Get root element
+        form = input_tree.getroot()
+
+        # Check required form attributes
+        for k, v in self.required_form_attrs.iteritems():
+            assert form.attrib[k] == v, \
+                   "Expected '%s' for required form attribute '%s', got '%s'" % \
+                   (v, k, form.attrib[k])
+
+        # Check extra form attributes
+        for k, v in form_tag_attrs.iteritems():
+
+            # Skip attributes that already passed the required
+            # attribute check, since they should be ignored by the
+            # form generation code.
+            if k in self.required_form_attrs:
+                continue
+
+            assert form.attrib[k] == v, \
+                   "Form attribute '%s' should be '%s', found '%s'" % \
+                   (k, v, form.attrib[k])
+
+        # Check hidden fields against post args
+        hiddens = [e for e in form \
+                   if e.tag.upper() == 'INPUT' and \
+                   e.attrib['type'].upper() == 'HIDDEN']
+
+        # For each post arg, make sure there is a hidden with that
+        # value.  Make sure there are no other hiddens.
+        for name, value in message_.toPostArgs().iteritems():
+            for e in hiddens:
+                if e.attrib['name'] == name:
+                    assert e.attrib['value'] == value, \
+                           "Expected value of hidden input '%s' to be '%s', got '%s'" % \
+                           (e.attrib['name'], value, e.attrib['value'])
+                    break
+            else:
+                self.fail("Post arg '%s' not found in form" % (name,))
+
+        for e in hiddens:
+            assert e.attrib['name'] in message_.toPostArgs().keys(), \
+                   "Form element for '%s' not in " + \
+                   "original message" % (e.attrib['name'])
+
+        # Check action URL
+        assert form.attrib['action'] == action_url, \
+               "Expected form 'action' to be '%s', got '%s'" % \
+               (action_url, form.attrib['action'])
+
+        # Check submit text
+        submits = [e for e in form \
+                   if e.tag.upper() == 'INPUT' and \
+                   e.attrib['type'].upper() == 'SUBMIT']
+
+        assert len(submits) == 1, \
+               "Expected only one 'input' with type = 'submit', got %d" % \
+               (len(submits),)
+
+        assert submits[0].attrib['value'] == submit_text, \
+               "Expected submit value to be '%s', got '%s'" % \
+               (submit_text, submits[0].attrib['value'])
+
+    def test_toFormMarkup(self):
+        m = message.Message.fromPostArgs(self.postargs)
+        html = m.toFormMarkup(self.action_url, self.form_tag_attrs,
+                              self.submit_text)
+        self._checkForm(html, m, self.action_url,
+                        self.form_tag_attrs, self.submit_text)
+
+    def test_overrideMethod(self):
+        """Be sure that caller cannot change form method to GET."""
+        m = message.Message.fromPostArgs(self.postargs)
+
+        tag_attrs = dict(self.form_tag_attrs)
+        tag_attrs['method'] = 'GET'
+
+        html = m.toFormMarkup(self.action_url, self.form_tag_attrs,
+                              self.submit_text)
+        self._checkForm(html, m, self.action_url,
+                        self.form_tag_attrs, self.submit_text)
+
+    def test_overrideRequired(self):
+        """Be sure that caller CANNOT change the form charset for
+        encoding type."""
+        m = message.Message.fromPostArgs(self.postargs)
+
+        tag_attrs = dict(self.form_tag_attrs)
+        tag_attrs['accept-charset'] = 'UCS4'
+        tag_attrs['enctype'] = 'invalid/x-broken'
+
+        html = m.toFormMarkup(self.action_url, tag_attrs,
+                              self.submit_text)
+        self._checkForm(html, m, self.action_url,
+                        tag_attrs, self.submit_text)
 
 class NamespaceMapTest(unittest.TestCase):
     def test_onealias(self):
