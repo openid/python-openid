@@ -740,6 +740,61 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         self.failUnlessEqual(self.consumer_id, info.identity_url)
 
 
+
+class TestReturnToArgs(unittest.TestCase):
+    """Verifying the Return URL paramaters.
+    From the specification "Verifying the Return URL"::
+
+        To verify that the "openid.return_to" URL matches the URL that is
+        processing this assertion:
+
+         - The URL scheme, authority, and path MUST be the same between the
+           two URLs.
+
+         - Any query parameters that are present in the "openid.return_to"
+           URL MUST also be present with the same values in the
+           accepting URL.
+
+    XXX: So far we have only tested the second item on the list above.
+    XXX: _checkReturnToArgs is not invoked anywhere.
+    """
+
+    def setUp(self):
+        store = object()
+        self.consumer = GenericConsumer(store)
+        
+    def test_returnToArgsOkay(self):
+        query = {
+            'openid.mode': 'id_res',
+            'openid.return_to': 'http://example.com/?foo=bar',
+            'foo': 'bar',
+            }
+        # no return value, success is assumed if there are no exceptions.
+        self.consumer._verifyReturnToArgs(query)
+
+
+    def test_returnToMismatch(self):
+        query = {
+            'openid.mode': 'id_res',
+            'openid.return_to': 'http://example.com/?foo=bar',
+            }
+        # fail, query has no key 'foo'.
+        self.failUnlessRaises(ValueError,
+                              self.consumer._verifyReturnToArgs, query)
+
+        query['foo'] = 'baz'
+        # fail, values for 'foo' do not match.
+        self.failUnlessRaises(ValueError,
+                              self.consumer._verifyReturnToArgs, query)
+
+
+    def test_noReturnTo(self):
+        query = {'openid.mode': 'id_res'}
+        self.failUnlessRaises(ValueError,
+                              self.consumer._verifyReturnToArgs, query)
+        
+
+
 class MockFetcher(object):
     def __init__(self, response=None):
         self.response = response or HTTPResponse()

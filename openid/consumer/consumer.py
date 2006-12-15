@@ -603,6 +603,30 @@ class GenericConsumer(object):
                 raise ValueError('"%s" not signed' % (field,))
 
 
+    def _verifyReturnToArgs(query):
+        """Verify that the arguments in the return_to URL are present in this
+        response.
+        """
+        message = Message.fromPostArgs(query)
+        return_to = message.getArg(OPENID_NS, 'return_to')
+        if not return_to:
+            raise ValueError("no openid.return_to in query %r" % (query,))
+        parsed_url = urlparse(return_to)
+        rt_query = parsed_url[4]
+        for rt_key, rt_value in cgi.parse_qsl(rt_query):
+            try:
+                value = query[rt_key]
+                if rt_value != value:
+                    raise ValueError("parameter %s value %r does not match "
+                                     "return_to's value %r" % (rt_key, value,
+                                                               rt_value))
+            except KeyError:
+                raise ValueError("return_to parameter %s absent from query %r"
+                                 % (rt_key, query))
+
+    _verifyReturnToArgs = staticmethod(_verifyReturnToArgs)
+            
+            
     def _verifyDiscoveryResults(self, identifier, server_url):
         """
 
