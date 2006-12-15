@@ -47,7 +47,7 @@ class OpenIDServiceEndpoint(object):
             return OPENID_1_0_MESSAGE_NS
 
     def __init__(self):
-        self.identity_url = None
+        self.claimed_id = None
         self.server_url = None
         self.type_uris = []
         self.delegate = None
@@ -70,13 +70,13 @@ class OpenIDServiceEndpoint(object):
             # that's a pathological configuration anyway, so I don't
             # think I care.
             self.delegate = findDelegate(service_element)
-            self.identity_url = yadis_url
+            self.claimed_id = yadis_url
 
     def getServerID(self):
         """Return the identifier that should be sent as the
         openid.identity_url parameter to the server."""
         if self.delegate is None:
-            return self.canonicalID or self.identity_url
+            return self.canonicalID or self.claimed_id
         else:
             return self.delegate
 
@@ -111,7 +111,7 @@ class OpenIDServiceEndpoint(object):
         """
         delegate_url, server_url = parseOpenIDLinkRel(html)
         service = cls()
-        service.identity_url = uri
+        service.claimed_id = uri
         service.delegate = delegate_url
         service.server_url = server_url
         service.type_uris = [OPENID_1_0_TYPE]
@@ -150,7 +150,7 @@ def discoverYadis(uri):
     @param uri: normalized identity URL
     @type uri: str
 
-    @return: (identity_url, services)
+    @return: (claimed_id, services)
     @rtype: (str, list(OpenIDServiceEndpoint))
 
     @raises: DiscoveryFailure
@@ -161,7 +161,7 @@ def discoverYadis(uri):
     # bother to catch it.
     response = yadisDiscover(uri)
 
-    identity_url = response.normalized_uri
+    claimed_id = response.normalized_uri
     try:
         openid_services = extractServices(
             response.normalized_uri, response.response_text,
@@ -184,13 +184,13 @@ def discoverYadis(uri):
         # Try to parse the response as HTML to get OpenID 1.0/1.1
         # <link rel="...">
         try:
-            service = OpenIDServiceEndpoint.fromHTML(identity_url, body)
+            service = OpenIDServiceEndpoint.fromHTML(claimed_id, body)
         except ParseError:
             pass # Parsing failed, so return an empty list
         else:
             openid_services = [service]
 
-    return (identity_url, openid_services)
+    return (claimed_id, openid_services)
 
 def discoverXRI(iname):
     endpoints = []
@@ -218,18 +218,18 @@ def discoverNoYadis(uri):
         raise DiscoveryFailure(
             'HTTP Response status from identity URL host is not 200. '
             'Got status %r' % (http_resp.status,), http_resp)
-    identity_url = http_resp.final_url
+    claimed_id = http_resp.final_url
 
     # Try to parse the response as HTML to get OpenID 1.0/1.1
     # <link rel="...">
     try:
-        service = OpenIDServiceEndpoint.fromHTML(identity_url, http_resp.body)
+        service = OpenIDServiceEndpoint.fromHTML(claimed_id, http_resp.body)
     except ParseError:
         openid_services = []
     else:
         openid_services = [service]
 
-    return identity_url, openid_services
+    return claimed_id, openid_services
 
 def discover(uri):
     parsed = urlparse.urlparse(uri)
@@ -240,6 +240,6 @@ def discover(uri):
         uri = 'http://' + uri
     
     uri = normalizeURL(uri)
-    identity_url, openid_services = discoverYadis(uri)
-    identity_url = normalizeURL(identity_url)
-    return identity_url, openid_services
+    claimed_id, openid_services = discoverYadis(uri)
+    claimed_id = normalizeURL(claimed_id)
+    return claimed_id, openid_services

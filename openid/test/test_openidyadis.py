@@ -138,7 +138,7 @@ class OpenIDYadisTest(unittest.TestCase):
             seen_uris.append(endpoint.server_url)
 
             # All endpoints will have same yadis_url
-            self.failUnlessEqual(self.yadis_url, endpoint.identity_url)
+            self.failUnlessEqual(self.yadis_url, endpoint.claimed_id)
 
             # and delegate
             self.failUnlessEqual(self.delegate, endpoint.delegate)

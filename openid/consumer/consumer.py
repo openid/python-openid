@@ -490,7 +490,7 @@ class GenericConsumer(object):
         except ValueError:
             return FailureResponse(response.endpoint, 'Malformed nonce')
         if not self.store.useNonce(server_url, timestamp, salt):
-            return FailureResponse(response,
+            return FailureResponse(response.endpoint,
                                    'Nonce missing from store')
 
         # If the nonce check succeeded, return the original success
@@ -620,7 +620,7 @@ class GenericConsumer(object):
             return (
                 (endpoint.server_url == server_url) and
                 # Delegate must be equivalent to the discovered URL.
-                ((endpoint.getServerID() == endpoint.identity_url) or
+                ((endpoint.getServerID() == endpoint.claimed_id) or
                  (endpoint.getServerID() == identifier)))
 
         services = filter(serviceMatches, services)
@@ -930,7 +930,7 @@ class Response(object):
         if endpoint is None:
             self.identity_url = None
         else:
-            self.identity_url = endpoint.identity_url
+            self.identity_url = endpoint.claimed_id
 
 class SuccessResponse(Response):
     """A response with a status of SUCCESS. Indicates that this request is a
@@ -956,7 +956,7 @@ class SuccessResponse(Response):
         # Don't use setEndpoint, because endpoint should never be None
         # for a successfull transaction.
         self.endpoint = endpoint
-        self.identity_url = endpoint.identity_url
+        self.identity_url = endpoint.claimed_id
 
         self.message = message
 

@@ -141,7 +141,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         mode = 'checkid_setup'
 
     endpoint = OpenIDServiceEndpoint()
-    endpoint.identity_url = user_url
+    endpoint.claimed_id = user_url
     endpoint.server_url = server_url
     endpoint.delegate = delegate_url
 
@@ -267,7 +267,7 @@ class TestIdRes(unittest.TestCase):
         self.consumer = self.consumer_class(self.store)
         self.return_to = "nonny"
         self.endpoint = OpenIDServiceEndpoint()
-        self.endpoint.identity_url = self.consumer_id = "consu"
+        self.endpoint.claimed_id = self.consumer_id = "consu"
         self.endpoint.server_url = self.server_url = "serlie"
         self.endpoint.delegate = self.server_id = "sirod"
 
@@ -335,7 +335,7 @@ class TestComplete(TestIdRes):
         message = Message.fromPostArgs({'openid.mode': 'cancel'})
         r = self.consumer.complete(message, self.endpoint)
         self.failUnlessEqual(r.status, CANCEL)
-        self.failUnless(r.identity_url == self.endpoint.identity_url)
+        self.failUnless(r.identity_url == self.endpoint.claimed_id)
 
     def test_error(self):
         msg = 'an error message'
@@ -344,7 +344,7 @@ class TestComplete(TestIdRes):
                  })
         r = self.consumer.complete(message, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
-        self.failUnless(r.identity_url == self.endpoint.identity_url)
+        self.failUnless(r.identity_url == self.endpoint.claimed_id)
         self.failUnlessEqual(r.message, msg)
 
     def test_errorWithNoOptionalKeys(self):
@@ -356,7 +356,7 @@ class TestComplete(TestIdRes):
                  })
         r = self.consumer.complete(message, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
-        self.failUnless(r.identity_url == self.endpoint.identity_url)
+        self.failUnless(r.identity_url == self.endpoint.claimed_id)
         self.failUnless(r.contact == contact)
         self.failUnless(r.reference is None)
         self.failUnlessEqual(r.message, msg)
@@ -371,7 +371,7 @@ class TestComplete(TestIdRes):
                  })
         r = self.consumer.complete(message, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
-        self.failUnless(r.identity_url == self.endpoint.identity_url)
+        self.failUnless(r.identity_url == self.endpoint.claimed_id)
         self.failUnless(r.contact == contact)
         self.failUnless(r.reference == reference)
         self.failUnlessEqual(r.message, msg)
@@ -380,7 +380,7 @@ class TestComplete(TestIdRes):
         message = Message.fromPostArgs({})
         r = self.consumer.complete(message, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
-        self.failUnless(r.identity_url == self.endpoint.identity_url)
+        self.failUnless(r.identity_url == self.endpoint.claimed_id)
 
     def test_idResMissingField(self):
         # XXX - this test is passing, but not necessarily by what it
@@ -437,7 +437,7 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
     def test_idResMissingNoSigs(self):
         def _vrfy(vid, surl):
             endpoint = OpenIDServiceEndpoint()
-            endpoint.identity_url = vid
+            endpoint.claimed_id = vid
             endpoint.server_url = surl
             endpoint.delegate = vid
             return endpoint
@@ -874,7 +874,7 @@ class TestAuthRequest(unittest.TestCase):
 
     def test_idpEndpoint(self):
         self.endpoint.delegate = None
-        self.endpoint.identity_url = None
+        self.endpoint.claimed_id = None
         url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
         _, qstring = url.split('?')
         params = dict(cgi.parse_qsl(qstring))
@@ -882,7 +882,7 @@ class TestAuthRequest(unittest.TestCase):
 
     def test_idpAnonymous(self):
         self.endpoint.delegate = None
-        self.endpoint.identity_url = None
+        self.endpoint.claimed_id = None
         self.authreq.anonymous = True
         url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
         self.failUnless(url.find('openid.identity') == -1,
@@ -897,7 +897,7 @@ class TestAuthRequest(unittest.TestCase):
 class TestSuccessResponse(unittest.TestCase):
     def setUp(self):
         self.endpoint = OpenIDServiceEndpoint()
-        self.endpoint.identity_url = 'identity_url'
+        self.endpoint.claimed_id = 'identity_url'
 
     def test_extensionResponse(self):
         resp = mkSuccess(self.endpoint, {
@@ -1020,7 +1020,7 @@ class StubConsumer(object):
 class ConsumerTest(unittest.TestCase):
     def setUp(self):
         self.endpoint = OpenIDServiceEndpoint()
-        self.endpoint.identity_url = self.identity_url = 'http://identity.url/'
+        self.endpoint.claimed_id = self.identity_url = 'http://identity.url/'
         self.store = None
         self.session = {}
         self.consumer = Consumer(self.session, self.store)
@@ -1165,7 +1165,7 @@ class IDPDrivenTest(unittest.TestCase):
             })
 
         endpoint = OpenIDServiceEndpoint()
-        endpoint.identity_url = identifier
+        endpoint.claimed_id = identifier
         endpoint.server_url = self.endpoint.server_url
         endpoint.delegate = identifier
         iverified = []
@@ -1226,7 +1226,7 @@ class TestDiscoveryVerification(unittest.TestCase):
 
     def test_theGoodStuff(self):
         endpoint = OpenIDServiceEndpoint()
-        endpoint.identity_url = self.identifier
+        endpoint.claimed_id = self.identifier
         endpoint.server_url = self.server_url
         endpoint.delegate = self.identifier
         self.services = [endpoint]
@@ -1238,7 +1238,7 @@ class TestDiscoveryVerification(unittest.TestCase):
     def test_otherServer(self):
         # a set of things without the stuff
         endpoint = OpenIDServiceEndpoint()
-        endpoint.identity_url = self.identifier
+        endpoint.claimed_id = self.identifier
         endpoint.server_url = "http://the-MOON.unittest/"
         endpoint.delegate = self.identifier
         self.services = [endpoint]
@@ -1250,7 +1250,7 @@ class TestDiscoveryVerification(unittest.TestCase):
     def test_foreignDelegate(self):
         # a set of things with the server stuff but other delegate
         endpoint = OpenIDServiceEndpoint()
-        endpoint.identity_url = self.identifier
+        endpoint.claimed_id = self.identifier
         endpoint.server_url = self.server_url
         endpoint.delegate = "http://unittest/juan-carlos"
         self.failUnlessRaises(DiscoveryFailure,

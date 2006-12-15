@@ -322,7 +322,7 @@ class TestDiscovery(BaseTestDiscovery):
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[0].delegate,
                              "http://smoker.myopenid.com/")
-        self.failUnlessEqual(services[0].identity_url, self.id_url)
+        self.failUnlessEqual(services[0].claimed_id, self.id_url)
         self._notUsedYadis(services[0])
 
     def test_noOpenID(self):
@@ -363,7 +363,7 @@ class TestDiscovery(BaseTestDiscovery):
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[0].delegate,
                              "http://smoker.myopenid.com/")
-        self.failUnlessEqual(services[0].identity_url, expected_final_url)
+        self.failUnlessEqual(services[0].claimed_id, expected_final_url)
         self._notUsedYadis(services[0])
 
     def test_emptyList(self):
@@ -385,7 +385,7 @@ class TestDiscovery(BaseTestDiscovery):
                              "Not one service in %r" % (services,))
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
-        self.failUnlessEqual(services[0].identity_url, self.id_url)
+        self.failUnlessEqual(services[0].claimed_id, self.id_url)
         self._notUsedYadis(services[0])
 
     def test_yadisNoDelegate(self):
@@ -412,7 +412,7 @@ class TestDiscovery(BaseTestDiscovery):
                              "Not 1 service in %r" % (services,))
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
-        self.failUnlessEqual(services[0].identity_url, None)
+        self.failUnlessEqual(services[0].claimed_id, None)
         self.failUnless(services[0].delegate is None,
                         'Delegate should be None. Got %r' %
                         (services[0].delegate,))
@@ -428,7 +428,7 @@ class TestDiscovery(BaseTestDiscovery):
                              "Not 1 service in %r" % (services,))
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
-        self.failUnlessEqual(services[0].identity_url, None)
+        self.failUnlessEqual(services[0].claimed_id, None)
         self.failUnless(services[0].delegate is None,
                         'Delegate should be None. Got %r' %
                         (services[0].delegate,))
@@ -443,7 +443,7 @@ class TestDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(self.id_url, id_url)
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
-        self.failUnlessEqual(services[0].identity_url, self.id_url)
+        self.failUnlessEqual(services[0].claimed_id, self.id_url)
         self.failUnless(services[0].delegate is None,
                         'Delegate should be None. Got %r' %
                         (services[0].delegate,))
@@ -504,7 +504,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
         """When there is no delegate, the CanonicalID should be used with XRI.
         """
         endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.identity_url = "=example"
+        endpoint.claimed_id = "=example"
         endpoint.canonicalID = XRI("=!1000")
         self.failUnlessEqual(endpoint.getServerID(), XRI("=!1000"))
 
