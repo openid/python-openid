@@ -331,6 +331,12 @@ class TestQueryFormat(TestIdRes):
             self.fail("expected TypeError, got this instead: %s" % (r,))
 
 class TestComplete(TestIdRes):
+    """Testing GenericConsumer.complete.
+
+    Other TestIdRes subclasses test more specific aspects.
+    """
+
+
     def test_cancel(self):
         message = Message.fromPostArgs({'openid.mode': 'cancel'})
         r = self.consumer.complete(message, self.endpoint)
@@ -1018,6 +1024,10 @@ class StubConsumer(object):
         return self.response
 
 class ConsumerTest(unittest.TestCase):
+    """Tests for high-level consumer.Consumer functions.
+
+    Its GenericConsumer component is stubbed out with StubConsumer.
+    """
     def setUp(self):
         self.endpoint = OpenIDServiceEndpoint()
         self.endpoint.claimed_id = self.identity_url = 'http://identity.url/'
@@ -1051,6 +1061,8 @@ class ConsumerTest(unittest.TestCase):
     def _doResp(self, auth_req, exp_resp):
         """complete a transaction, using the expected response from
         the generic consumer."""
+        # response is an attribute of StubConsumer, returned by
+        # StubConsumer.complete.
         self.consumer.consumer.response = exp_resp
 
         # endpoint is stored in the session
