@@ -815,6 +815,18 @@ class TestCheckAuth(unittest.TestCase):
                              {'is_valid': 'false'})
 
     def test_replay(self):
+        """Don't validate the same response twice.
+
+        From "Checking the Nonce"::
+        
+            When using "check_authentication", the OP MUST ensure that an
+            assertion has not yet been accepted with the same value for
+            "openid.response_nonce".
+
+        In this implementation, the assoc_handle is only valid once.  And
+        nonces are a signed component of the message, so they can't be used
+        with another handle without breaking the sig.
+        """
         r = self.request.answer(self.signatory)
         r = self.request.answer(self.signatory)
         self.failUnlessEqual(r.fields.getArgs(OPENID_NS),
