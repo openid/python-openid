@@ -74,11 +74,11 @@ class OpenIDServiceEndpoint(object):
 
     def getServerID(self):
         """Return the identifier that should be sent as the
-        openid.identity_url parameter to the server."""
-        if self.delegate is None:
-            return self.canonicalID or self.claimed_id
+        openid.identity parameter to the server."""
+        if (self.delegate is self.canonicalID is None):
+            return self.claimed_id
         else:
-            return self.delegate
+            return self.canonicalID or self.delegate
 
     def fromBasicServiceEndpoint(cls, endpoint):
         """Create a new instance of this class from the endpoint
