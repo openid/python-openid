@@ -666,7 +666,16 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         self.failUnlessLogMatches('Nonce missing from response')
 
     def test_badNonce(self):
-        """remove the nonce from the store"""
+        """remove the nonce from the store
+
+        From "Checking the Nonce"::
+        
+            When the Relying Party checks the signature on an assertion, the
+
+            Relying Party SHOULD ensure that an assertion has not yet
+            been accepted with the same value for "openid.response_nonce"
+            from the same OP Endpoint URL.
+        """
         nonce = mkNonce()
         stamp, salt = splitNonce(nonce)
         self.store.useNonce(self.server_url, stamp, salt)
