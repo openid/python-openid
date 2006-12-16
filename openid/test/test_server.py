@@ -1240,6 +1240,19 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.failIf(self.messages, self.messages)
 
     def test_signExpired(self):
+        """Sign a response to a message with an expired handle (using invalidate_handle).
+
+        From "Verifying with an Association"::
+
+            If an authentication request included an association handle for an
+            association between the OP and the Relying party, and the OP no
+            longer wishes to use that handle (because it has expired or the
+            secret has been compromised, for instance), the OP will send a
+            response that must be verified directly with the OP, as specified
+            in Section 11.3.2. In that instance, the OP will include the field
+            "openid.invalidate_handle" set to the association handle that the
+            Relying Party included with the original request.
+        """
         request = server.OpenIDRequest()
         request.namespace = OPENID2_NS
         assoc_handle = '{assoc}{lookatme}'
