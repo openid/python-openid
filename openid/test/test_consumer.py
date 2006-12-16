@@ -429,8 +429,8 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
              'openid.identity': 'something something',
              'openid.assoc_handle': 'does not matter',
              'openid.sig': GOODSIG,
-             'openid.nonce': mkNonce(),
-             'openid.signed': 'identity,return_to,nonce',
+             'openid.response_nonce': mkNonce(),
+             'openid.signed': 'identity,return_to,response_nonce',
              'openid.ns':OPENID2_NS,
              })
         self.endpoint = OpenIDServiceEndpoint()
@@ -455,19 +455,19 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
 
     def test_idResNoIdentity(self):
         self.message.delArg(OPENID_NS, 'identity')
-        self.message.setArg(OPENID_NS, 'signed', 'return_to,nonce')
+        self.message.setArg(OPENID_NS, 'signed', 'return_to,response_nonce')
         r = self.consumer.complete(self.message, self.endpoint)
         self.failUnlessSuccess(r)
 
 
     def test_idResMissingIdentitySig(self):
-        self.message.setArg(OPENID_NS, 'signed', 'return_to,nonce')
+        self.message.setArg(OPENID_NS, 'signed', 'return_to,response_nonce')
         r = self.consumer.complete(self.message, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
 
 
     def test_idResMissingReturnToSig(self):
-        self.message.setArg(OPENID_NS, 'signed', 'identity,nonce')
+        self.message.setArg(OPENID_NS, 'signed', 'identity,response_nonce')
         r = self.consumer.complete(self.message, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
 
@@ -600,7 +600,7 @@ class CheckNonceTest(TestIdRes, CatchLogs):
         """use server-generated nonce"""
         self.response = mkSuccess(self.endpoint,
                                   {'openid.ns':OPENID2_NS,
-                                   'openid.nonce': mkNonce(),})
+                                   'openid.response_nonce': mkNonce(),})
         ret = self.consumer._checkNonce(self.server_url, self.response)
         self.failUnlessEqual(ret.status, SUCCESS)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
@@ -612,7 +612,7 @@ class CheckNonceTest(TestIdRes, CatchLogs):
         stamp, salt = splitNonce(nonce)
         self.store.useNonce(self.server_url, stamp, salt)
         self.response = mkSuccess(self.endpoint,
-                                  {'openid.nonce': nonce,
+                                  {'openid.response_nonce': nonce,
                                    'openid.ns':OPENID2_NS,
                                    })
         ret = self.consumer._checkNonce(self.server_url, self.response)
@@ -624,8 +624,9 @@ class CheckNonceTest(TestIdRes, CatchLogs):
 
     def test_tamperedNonce(self):
         """Malformed nonce"""
-        self.response = mkSuccess(self.endpoint, {'openid.ns':OPENID2_NS,
-                                                  'openid.nonce':'malformed'})
+        self.response = mkSuccess(self.endpoint,
+                                  {'openid.ns':OPENID2_NS,
+                                   'openid.response_nonce':'malformed'})
         ret = self.consumer._checkNonce(self.server_url, self.response)
         self.failUnlessEqual(ret.status, FAILURE)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)

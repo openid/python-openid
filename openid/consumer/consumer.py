@@ -1027,7 +1027,9 @@ class SuccessResponse(Response):
 
         @returntype: str
         """
-        return self.getSigned(OPENID2_NS, 'nonce')
+        return self.getSigned(OPENID2_NS, 'response_nonce')
+
+
 
 class FailureResponse(Response):
     """A response with a status of FAILURE. Indicates that the OpenID
