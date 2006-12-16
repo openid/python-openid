@@ -1415,9 +1415,23 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.failIf(self.messages, self.messages)
 
     def test_getAssocDumbVsNormal(self):
+        """getAssociation(dumb=False) cannot get a dumb assoc"""
         assoc_handle = self.makeAssoc(dumb=True)
         self.failUnlessEqual(
             self.signatory.getAssociation(assoc_handle, dumb=False), None)
+        self.failIf(self.messages, self.messages)
+
+    def test_getAssocNormalVsDumb(self):
+        """getAssociation(dumb=True) cannot get a shared assoc
+
+        From "Verifying Directly with the OpenID Provider"::
+
+            An OP MUST NOT verify signatures for associations that have shared
+            MAC keys.
+        """
+        assoc_handle = self.makeAssoc(dumb=False)
+        self.failUnlessEqual(
+            self.signatory.getAssociation(assoc_handle, dumb=True), None)
         self.failIf(self.messages, self.messages)
 
     def test_createAssociation(self):
