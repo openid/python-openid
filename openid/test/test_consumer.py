@@ -529,7 +529,14 @@ class TestCheckAuthResponse(TestIdRes):
         self.failIf(r)
 
     def test_badResponseInvalidate(self):
-        """Make sure that the handle is invalidated when is_valid is false"""
+        """Make sure that the handle is invalidated when is_valid is false
+
+        From "Verifying directly with the OpenID Provider"::
+        
+            If the OP responds with "is_valid" set to "true", and
+            "invalidate_handle" is present, the Relying Party SHOULD
+            NOT send further authentication requests with that handle.
+        """
         self._createAssoc()
         response = Message.fromOpenIDArgs({
             'is_valid':'false',
@@ -550,7 +557,14 @@ class TestCheckAuthResponse(TestIdRes):
         self.failUnless(r)
 
     def test_invalidatePresent(self):
-        """invalidate_handle with a handle that exists"""
+        """invalidate_handle with a handle that exists
+
+        From "Verifying directly with the OpenID Provider"::
+        
+            If the OP responds with "is_valid" set to "true", and
+            "invalidate_handle" is present, the Relying Party SHOULD
+            NOT send further authentication requests with that handle.
+        """
         self._createAssoc()
         response = Message.fromOpenIDArgs({
             'is_valid':'true',
