@@ -146,7 +146,7 @@ class CheckAuthRequest(OpenIDRequest):
     """
     mode = "check_authentication"
 
-    required_fields = ["identity", "return_to", "nonce"]
+    required_fields = ["identity", "return_to", "response_nonce"]
 
     def __init__(self, assoc_handle, signed, invalidate_handle=None):
         """Construct me.
@@ -688,7 +688,7 @@ class CheckIDRequest(OpenIDRequest):
             response.fields.updateArgs(OPENID_NS, {
                 'mode': mode,
                 'return_to': self.return_to,
-                'nonce': mkNonce(),
+                'response_nonce': mkNonce(),
                 })
 
             if response_identity is not None:

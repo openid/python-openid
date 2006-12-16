@@ -206,10 +206,10 @@ class TestDecode(unittest.TestCase):
             'openid.mode': 'check_authentication',
             'openid.assoc_handle': '{dumb}{handle}',
             'openid.sig': 'sigblob',
-            'openid.signed': 'identity,return_to,nonce,mode',
+            'openid.signed': 'identity,return_to,response_nonce,mode',
             'openid.identity': 'signedval1',
             'openid.return_to': 'signedval2',
-            'openid.nonce': 'signedval3',
+            'openid.response_nonce': 'signedval3',
             'openid.baz': 'unsigned',
             }
         r = self.decode(args)
@@ -236,10 +236,10 @@ class TestDecode(unittest.TestCase):
             'openid.assoc_handle': '{dumb}{handle}',
             'openid.invalidate_handle': '[[SMART_handle]]',
             'openid.sig': 'sigblob',
-            'openid.signed': 'identity,return_to,nonce,mode',
+            'openid.signed': 'identity,return_to,response_nonce,mode',
             'openid.identity': 'signedval1',
             'openid.return_to': 'signedval2',
-            'openid.nonce': 'signedval3',
+            'openid.response_nonce': 'signedval3',
             'openid.baz': 'unsigned',
             }
         r = self.decode(args)
@@ -576,7 +576,7 @@ class TestCheckID(unittest.TestCase):
             actual = answer.fields.getArg(OPENID_NS, k)
             self.failUnlessEqual(actual, expected, "%s: expected %s, got %s" % (k, expected, actual))
 
-        self.failUnless(answer.fields.hasKey(OPENID_NS, 'nonce'))
+        self.failUnless(answer.fields.hasKey(OPENID_NS, 'response_nonce'))
         self.failUnless(answer.fields.getOpenIDNamespace() == OPENID2_NS)
 
         # One for nonce, one for ns
