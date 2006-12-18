@@ -161,7 +161,7 @@ def discoverYadis(uri):
     # bother to catch it.
     response = yadisDiscover(uri)
 
-    claimed_id = response.normalized_uri
+    yadis_url = response.normalized_uri
     try:
         openid_services = extractServices(
             response.normalized_uri, response.response_text,
@@ -184,13 +184,13 @@ def discoverYadis(uri):
         # Try to parse the response as HTML to get OpenID 1.0/1.1
         # <link rel="...">
         try:
-            service = OpenIDServiceEndpoint.fromHTML(claimed_id, body)
+            service = OpenIDServiceEndpoint.fromHTML(yadis_url, body)
         except ParseError:
             pass # Parsing failed, so return an empty list
         else:
             openid_services = [service]
 
-    return (claimed_id, openid_services)
+    return (yadis_url, openid_services)
 
 def discoverXRI(iname):
     endpoints = []
