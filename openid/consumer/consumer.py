@@ -554,7 +554,7 @@ class GenericConsumer(object):
         elif endpoint.getLocalID() != response_identity:
             fmt = 'Mismatch between delegate (%r) and server (%r) response'
             return FailureResponse(
-                endpoint, fmt % (endpoint.delegate, server_id2))
+                endpoint, fmt % (endpoint.delegate, response_identity))
 
         signed_fields = ['openid.' + f for f in signed_list]
         return SuccessResponse(endpoint, message, signed_fields)
@@ -663,7 +663,7 @@ class GenericConsumer(object):
         def serviceMatches(endpoint):
             # Claimed ID in response much match the one on the
             # endpoint.
-            if OPENID2_NS == message.getOpenIDNamespace():
+            if OPENID2_NS == resp_msg.getOpenIDNamespace():
                 if endpoint.claimed_id != resp_msg.getArg(OPENID_NS, 'claimed_id'):
                     return False
 
@@ -678,7 +678,7 @@ class GenericConsumer(object):
 
             return (
                 # Check server_url,
-                (endpoint.server_url == server_url) and
+                (endpoint.server_url == orig_endpoint.server_url) and
                 # Check protocol version of response message against
                 # versions advertised.
                 (resp_msg.getOpenIDNamespace() in endpoint.type_uris))
@@ -686,8 +686,10 @@ class GenericConsumer(object):
         services = filter(serviceMatches, services)
 
         if not services:
-            msg = ("Discovery information for %r does not include "
-                   "server %r." % (identifier, server_url))
+            #msg = ("Discovery information for %r does not include "
+            #       "server %r." % (identifier, orig_endpoint.server_url))
+            msg = ("Discovery information does not match response "
+                   "message values")
             raise DiscoveryFailure(msg, None)
 
         return services[0]

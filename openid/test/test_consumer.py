@@ -1284,6 +1284,14 @@ class TestDiscoveryVerification(unittest.TestCase):
         self.identifier = "http://idp.unittest/1337"
         self.server_url = "http://endpoint.unittest/"
 
+        self.message = Message.fromPostArgs({
+            'openid.ns': OPENID2_NS,
+            'openid.identity': self.identifier,
+            'openid.claimed_id': self.identifier,
+            })
+
+        self.endpoint = OpenIDServiceEndpoint()
+        self.endpoint.server_url = self.server_url
 
     def tearDown(self):
         from openid.consumer import consumer
@@ -1292,12 +1300,13 @@ class TestDiscoveryVerification(unittest.TestCase):
 
     def test_theGoodStuff(self):
         endpoint = OpenIDServiceEndpoint()
+        endpoint.type_uris = [OPENID2_NS]
         endpoint.claimed_id = self.identifier
         endpoint.server_url = self.server_url
         endpoint.delegate = self.identifier
         self.services = [endpoint]
-        r = self.consumer._verifyDiscoveryResults(self.identifier,
-                                                  self.server_url)
+        r = self.consumer._verifyDiscoveryResults(endpoint, self.message)
+
         self.failUnlessEqual(r, endpoint)
 
 
@@ -1310,7 +1319,7 @@ class TestDiscoveryVerification(unittest.TestCase):
         self.services = [endpoint]
         self.failUnlessRaises(DiscoveryFailure,
                               self.consumer._verifyDiscoveryResults,
-                              self.identifier, self.server_url)
+                              endpoint, self.message)
 
 
     def test_foreignDelegate(self):
@@ -1321,14 +1330,15 @@ class TestDiscoveryVerification(unittest.TestCase):
         endpoint.delegate = "http://unittest/juan-carlos"
         self.failUnlessRaises(DiscoveryFailure,
                               self.consumer._verifyDiscoveryResults,
-                              self.identifier, self.server_url)
+                              endpoint, self.message)
 
 
     def test_nothingDiscovered(self):
         # a set of no things.
+        self.services = []
         self.failUnlessRaises(DiscoveryFailure,
                               self.consumer._verifyDiscoveryResults,
-                              self.identifier, self.server_url)
+                              self.endpoint, self.message)
 
 
     def discoveryFunc(self, identifier):
