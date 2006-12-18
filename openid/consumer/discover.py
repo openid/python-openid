@@ -50,7 +50,7 @@ class OpenIDServiceEndpoint(object):
         self.claimed_id = None
         self.server_url = None
         self.type_uris = []
-        self.delegate = None
+        self.local_id = None
         self.canonicalID = None
         self.used_yadis = False # whether this came from an XRDS
 
@@ -69,16 +69,19 @@ class OpenIDServiceEndpoint(object):
             # that contain both 'server' and 'signon' Types.  But
             # that's a pathological configuration anyway, so I don't
             # think I care.
-            self.delegate = findDelegate(service_element)
+            self.local_id = findLocalID(service_element)
             self.claimed_id = yadis_url
 
     def getLocalID(self):
         """Return the identifier that should be sent as the
         openid.identity parameter to the server."""
-        if (self.delegate is self.canonicalID is None):
+        if (self.local_id is self.canonicalID is None):
             return self.claimed_id
         else:
-            return self.canonicalID or self.delegate
+            return self.canonicalID or self.local_id
+
+    def isIdentifierSelect(self):
+        return self.claimed_id is None
 
     def fromBasicServiceEndpoint(cls, endpoint):
         """Create a new instance of this class from the endpoint
@@ -109,17 +112,17 @@ class OpenIDServiceEndpoint(object):
 
         @raises: openid.consumer.parse.ParseError
         """
-        delegate_url, server_url = parseOpenIDLinkRel(html)
+        local_id, server_url = parseOpenIDLinkRel(html)
         service = cls()
         service.claimed_id = uri
-        service.delegate = delegate_url
+        service.local_id = local_id
         service.server_url = server_url
         service.type_uris = [OPENID_1_0_TYPE]
         return service
 
     fromHTML = classmethod(fromHTML)
 
-def findDelegate(service_element):
+def findLocalID(service_element):
     """Extract a openid:Delegate value from a Yadis Service element
     represented as an ElementTree Element object. If no delegate is
     found, returns None."""

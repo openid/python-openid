@@ -535,22 +535,23 @@ class GenericConsumer(object):
         try:
             signed_list = self._idResCheckSignature(message,
                                                     endpoint.server_url)
+            # Checks for presence of appropriate fields (and checks
+            # signed list fields)
             self._idResCheckForFields(message, signed_list)
         except ValueError, e:
             return FailureResponse(endpoint, e.args[0])
 
-        return_to = message.getArg(OPENID_NS, 'return_to')
-        server_id2 = message.getArg(OPENID_NS, 'identity')
-        assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
+        response_identity = message.getArg(OPENID_NS, 'identity')
 
-        # IdP-driven identifier selection requires another round of discovery:
-        if not endpoint.delegate and server_id2:
+        # IdP-driven identifier selection requires another round of
+        # discovery:
+        if endpoint.isIdentifierSelect():
             try:
                 endpoint = self._verifyDiscoveryResults(
-                    server_id2, endpoint.server_url)
+                    endpoint, message)
             except DiscoveryFailure, exc:
                 return FailureResponse(endpoint, exc.args[0])
-        elif endpoint.delegate != server_id2:
+        elif endpoint.getLocalID() != response_identity:
             fmt = 'Mismatch between delegate (%r) and server (%r) response'
             return FailureResponse(
                 endpoint, fmt % (endpoint.delegate, server_id2))
@@ -588,14 +589,24 @@ class GenericConsumer(object):
 
     def _idResCheckForFields(self, message, signed_list):
         # XXX: whether or not 'signed' is required depends on the assoc type.
-        required_fields = ['return_to', 'assoc_handle', 'sig']
-        require_sigs = ['return_to', 'identity', 'nonce']
+        basic_fields = ['return_to', 'assoc_handle', 'sig']
+        basic_sig_fields = ['return_to', 'identity',]
 
-        for field in required_fields:
+        require_fields = {
+            OPENID2_NS: basic_fields + ['op_endpoint',],
+            OPENID1_NS: basic_fields,
+            }
+
+        require_sigs = {
+            OPENID2_NS: basic_sig_fields + ['response_nonce', 'claimed_id', 'assoc_handle',],
+            OPENID1_NS: basic_sig_fields + ['nonce',],
+            }
+
+        for field in require_fields[message.getOpenIDNamespace()]:
             if not message.hasKey(OPENID_NS, field):
                 raise ValueError('Missing required field %r' % (field,))
 
-        for field in require_sigs:
+        for field in require_sigs[message.getOpenIDNamespace()]:
             # Field is present and not in signed list
             if message.hasKey(OPENID_NS, field) and field not in signed_list:
                 # I wish I could just raise a FailureResponse here, but
@@ -627,12 +638,21 @@ class GenericConsumer(object):
     _verifyReturnToArgs = staticmethod(_verifyReturnToArgs)
             
             
-    def _verifyDiscoveryResults(self, identifier, server_url):
+    def _verifyDiscoveryResults(self, orig_endpoint, resp_msg):
         """
 
         @param identifier: the identifier to perform discovery on.
         @param server_url: the server endpoint I hope to discover.
         """
+
+        # If OpenID 2, do disco on the claimed_id.  Otherwise, use
+        # the local_id (openid.identity).
+        if resp_msg.getOpenIDNamespace() == OPENID2_NS:
+            identifier = resp_msg.getArg(OPENID_NS, 'claimed_id')
+        else:
+            identifier = resp_msg.getArg(OPENID_NS, 'identity')
+
+        # Pick the right discovery method.
         if xri.identifierScheme(identifier) == "XRI":
             discoverMethod = discoverXRI
         else:
@@ -641,11 +661,27 @@ class GenericConsumer(object):
         discovered_id, services = discoverMethod(identifier)
 
         def serviceMatches(endpoint):
+            # Claimed ID in response much match the one on the
+            # endpoint.
+            if OPENID2_NS == message.getOpenIDNamespace():
+                if endpoint.claimed_id != resp_msg.getArg(OPENID_NS, 'claimed_id'):
+                    return False
+
+                if endpoint.getLocalID() != resp_msg.getArg(OPENID_NS, 'identity'):
+                    return False
+
+            if OPENID1_NS == resp_msg.getOpenIDNamespace():
+                # LocalID or canonicalID must be the same as that of
+                # the discovered URL.
+                if endpoint.getLocalID() != identifier:
+                    return False
+
             return (
+                # Check server_url,
                 (endpoint.server_url == server_url) and
-                # Delegate must be equivalent to the discovered URL.
-                ((endpoint.getLocalID() == endpoint.claimed_id) or
-                 (endpoint.getLocalID() == identifier)))
+                # Check protocol version of response message against
+                # versions advertised.
+                (resp_msg.getOpenIDNamespace() in endpoint.type_uris))
 
         services = filter(serviceMatches, services)
 
