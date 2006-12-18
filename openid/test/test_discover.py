@@ -506,7 +506,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
         endpoint = discover.OpenIDServiceEndpoint()
         endpoint.claimed_id = "=example"
         endpoint.canonicalID = XRI("=!1000")
-        self.failUnlessEqual(endpoint.getServerID(), XRI("=!1000"))
+        self.failUnlessEqual(endpoint.getLocalID(), XRI("=!1000"))
 
 
 class TestPreferredNamespace(datadriven.DataDrivenTestCase):

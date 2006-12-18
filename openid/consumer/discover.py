@@ -72,7 +72,7 @@ class OpenIDServiceEndpoint(object):
             self.delegate = findDelegate(service_element)
             self.claimed_id = yadis_url
 
-    def getServerID(self):
+    def getLocalID(self):
         """Return the identifier that should be sent as the
         openid.identity parameter to the server."""
         if (self.delegate is self.canonicalID is None):

@@ -644,8 +644,8 @@ class GenericConsumer(object):
             return (
                 (endpoint.server_url == server_url) and
                 # Delegate must be equivalent to the discovered URL.
-                ((endpoint.getServerID() == endpoint.claimed_id) or
-                 (endpoint.getServerID() == identifier)))
+                ((endpoint.getLocalID() == endpoint.claimed_id) or
+                 (endpoint.getLocalID() == identifier)))
 
         services = filter(serviceMatches, services)
 
@@ -912,7 +912,7 @@ class AuthRequest(object):
              })
 
         if not self.anonymous:
-            request_identity = self.endpoint.getServerID()
+            request_identity = self.endpoint.getLocalID()
             if request_identity is None:
                 request_identity = IDENTIFIER_SELECT
 
