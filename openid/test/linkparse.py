@@ -1,4 +1,4 @@
-from openid.consumer.parse import parseLinkAttrs
+from openid.consumer.html_parse import parseLinkAttrs
 import os.path
 import codecs
 import unittest

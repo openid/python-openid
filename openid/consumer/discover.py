@@ -11,8 +11,7 @@ from openid.yadis.discover import discover as yadisDiscover
 from openid.yadis.discover import DiscoveryFailure
 from openid.yadis import xrires, filters
 
-from openid.consumer.parse import openIDDiscover as parseOpenIDLinkRel
-from openid.consumer.parse import ParseError
+from openid.consumer import html_parse
 
 OPENID_1_0_NS = 'http://openid.net/xmlns/1.0'
 OPENID_IDP_2_0_TYPE = 'http://openid.net/server/2.0'
@@ -110,19 +109,35 @@ class OpenIDServiceEndpoint(object):
         """Parse the given document as HTML looking for an OpenID <link
         rel=...>
 
-        @raises: openid.consumer.parse.ParseError
+        @rtype: [OpenIDServiceEndpoint]
         """
-        local_id, server_url = parseOpenIDLinkRel(html)
-        service = cls()
-        service.claimed_id = uri
-        service.local_id = local_id
-        service.server_url = server_url
-        service.type_uris = [OPENID_1_0_TYPE]
-        return service
+        discovery_types = [
+            (OPENID_1_1_TYPE, 'openid.server', 'openid.delegate'),
+            (OPENID_2_0_TYPE, 'openid2.provider', 'openid2.local_id'),
+            ]
+
+        link_attrs = html_parse.parseLinkAttrs(html)
+        services = []
+        for type_uri, op_endpoint_rel, local_id_rel in discovery_types:
+            op_endpoint_url = html_parse.findFirstHref(
+                link_attrs, op_endpoint_rel)
+            if op_endpoint_url is None:
+                continue
+
+            service = cls()
+            service.claimed_id = uri
+            service.delegate = html_parse.findFirstHref(
+                link_attrs, local_id_rel)
+            service.server_url = op_endpoint_url
+            service.type_uris = [type_uri]
+
+            services.append(service)
+
+        return services
 
     fromHTML = classmethod(fromHTML)
 
-def findDelegate(service_element):
+def findLocalID(service_element):
     """Extract a openid:Delegate value from a Yadis Service element
     represented as an ElementTree Element object. If no delegate is
     found, returns None."""
@@ -186,12 +201,7 @@ def discoverYadis(uri):
 
         # Try to parse the response as HTML to get OpenID 1.0/1.1
         # <link rel="...">
-        try:
-            service = OpenIDServiceEndpoint.fromHTML(yadis_url, body)
-        except ParseError:
-            pass # Parsing failed, so return an empty list
-        else:
-            openid_services = [service]
+        openid_services = OpenIDServiceEndpoint.fromHTML(claimed_id, body)
 
     return (yadis_url, openid_services)
 
@@ -221,17 +231,10 @@ def discoverNoYadis(uri):
         raise DiscoveryFailure(
             'HTTP Response status from identity URL host is not 200. '
             'Got status %r' % (http_resp.status,), http_resp)
+
     claimed_id = http_resp.final_url
-
-    # Try to parse the response as HTML to get OpenID 1.0/1.1
-    # <link rel="...">
-    try:
-        service = OpenIDServiceEndpoint.fromHTML(claimed_id, http_resp.body)
-    except ParseError:
-        openid_services = []
-    else:
-        openid_services = [service]
-
+    openid_services = OpenIDServiceEndpoint.fromHTML(
+        claimed_id, http_resp.body)
     return claimed_id, openid_services
 
 def discover(uri):

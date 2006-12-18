@@ -281,6 +281,26 @@ openid_html = """
   </head><body><p>foo</p></body></html>
 """
 
+openid2_html = """
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+  <head>
+    <title>Identity Page for Smoker</title>
+<link rel="openid2.provider" href="http://www.myopenid.com/server" />
+<link rel="openid2.local_id" href="http://smoker.myopenid.com/" />
+  </head><body><p>foo</p></body></html>
+"""
+
+openid_1_and_2_html = """
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+  <head>
+    <title>Identity Page for Smoker</title>
+<link rel="openid2.provider openid.server" href="http://www.myopenid.com/server" />
+<link rel="openid2.local_id openid.delegate" href="http://smoker.myopenid.com/" />
+  </head><body><p>foo</p></body></html>
+"""
+
 openid_html_no_delegate = """
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
@@ -448,6 +468,63 @@ class TestDiscovery(BaseTestDiscovery):
                         'Delegate should be None. Got %r' %
                         (services[0].delegate,))
 
+        self._notUsedYadis(services[0])
+
+    def test_openid2(self):
+        self.fetcher.documents = {
+            self.id_url: ('text/html', openid2_html),
+        }
+        id_url, services = discover.discover(self.id_url)
+        self.failUnlessEqual(self.id_url, id_url)
+        self.failUnlessEqual(services[0].server_url,
+                             "http://www.myopenid.com/server")
+        self.failUnlessEqual(services[0].claimed_id, self.id_url)
+        self.failUnlessEqual('http://smoker.myopenid.com/',
+                             services[0].delegate)
+        self.failUnlessEqual([discover.OPENID_2_0_TYPE], services[0].type_uris)
+        self._notUsedYadis(services[0])
+        self.failUnlessEqual(1, len(services))
+
+    def test_openid1(self):
+        self.fetcher.documents = {
+            self.id_url: ('text/html', openid_html),
+        }
+        id_url, services = discover.discover(self.id_url)
+        self.failUnlessEqual(self.id_url, id_url)
+        self.failUnlessEqual(services[0].server_url,
+                             "http://www.myopenid.com/server")
+        self.failUnlessEqual(services[0].claimed_id, self.id_url)
+        self.failUnlessEqual('http://smoker.myopenid.com/',
+                             services[0].delegate)
+        self.failUnlessEqual([discover.OPENID_1_1_TYPE], services[0].type_uris)
+        self._notUsedYadis(services[0])
+        self.failUnlessEqual(1, len(services))
+
+    def test_openid_1_and_2(self):
+        self.fetcher.documents = {
+            self.id_url: ('text/html', openid_1_and_2_html),
+        }
+        id_url, services = discover.discover(self.id_url)
+
+        self.failUnlessEqual(2, len(services))
+        self.failUnlessEqual(self.id_url, id_url)
+
+
+        self.failUnlessEqual(services[1].server_url,
+                             "http://www.myopenid.com/server")
+        self.failUnlessEqual(services[1].claimed_id, self.id_url)
+        self.failUnlessEqual('http://smoker.myopenid.com/',
+                             services[1].delegate)
+        self.failUnlessEqual([discover.OPENID_2_0_TYPE], services[1].type_uris)
+        self._notUsedYadis(services[1])
+
+
+        self.failUnlessEqual(services[0].server_url,
+                             "http://www.myopenid.com/server")
+        self.failUnlessEqual(services[0].claimed_id, self.id_url)
+        self.failUnlessEqual('http://smoker.myopenid.com/',
+                             services[0].delegate)
+        self.failUnlessEqual([discover.OPENID_1_1_TYPE], services[0].type_uris)
         self._notUsedYadis(services[0])
 
 

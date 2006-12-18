@@ -17,8 +17,6 @@ from openid.yadis.manager import Discovery
 from openid.yadis.discover import DiscoveryFailure
 
 
-from openid.consumer import parse
-
 from openid.fetchers import HTTPResponse, HTTPFetchingError
 from openid import fetchers
 
