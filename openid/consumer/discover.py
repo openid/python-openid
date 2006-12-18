@@ -40,7 +40,7 @@ class OpenIDServiceEndpoint(object):
         ]
 
     def preferredNamespace(self):
-        if (OPENID_IDP_2_0_TYPE in self.type_uris or 
+        if (OPENID_IDP_2_0_TYPE in self.type_uris or
             OPENID_2_0_TYPE in self.type_uris):
             return OPENID_2_0_MESSAGE_NS
         else:
@@ -64,7 +64,7 @@ class OpenIDServiceEndpoint(object):
         self.server_url = uri
         self.used_yadis = True
 
-        if not (OPENID_IDP_2_0_TYPE in self.type_uris):            
+        if not (OPENID_IDP_2_0_TYPE in self.type_uris):
             # XXX: This has crappy implications for Service elements
             # that contain both 'server' and 'signon' Types.  But
             # that's a pathological configuration anyway, so I don't
@@ -122,7 +122,7 @@ class OpenIDServiceEndpoint(object):
 
     fromHTML = classmethod(fromHTML)
 
-def findLocalID(service_element):
+def findDelegate(service_element):
     """Extract a openid:Delegate value from a Yadis Service element
     represented as an ElementTree Element object. If no delegate is
     found, returns None."""
@@ -241,7 +241,7 @@ def discover(uri):
             raise DiscoveryFailure('URI scheme is not HTTP or HTTPS', None)
     else:
         uri = 'http://' + uri
-    
+
     uri = normalizeURL(uri)
     claimed_id, openid_services = discoverYadis(uri)
     claimed_id = normalizeURL(claimed_id)

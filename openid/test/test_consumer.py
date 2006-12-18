@@ -156,7 +156,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         return_to = consumer_url
 
         m = request.getMessage(trust_root, return_to, immediate)
-        
+
         redirect_url = request.redirectURL(trust_root, return_to, immediate)
 
         parsed = urlparse.urlparse(redirect_url)
@@ -763,7 +763,7 @@ class TestReturnToArgs(unittest.TestCase):
     def setUp(self):
         store = object()
         self.consumer = GenericConsumer(store)
-        
+
     def test_returnToArgsOkay(self):
         query = {
             'openid.mode': 'id_res',
@@ -793,7 +793,7 @@ class TestReturnToArgs(unittest.TestCase):
         query = {'openid.mode': 'id_res'}
         self.failUnlessRaises(ValueError,
                               self.consumer._verifyReturnToArgs, query)
-        
+
 
 
 class MockFetcher(object):
