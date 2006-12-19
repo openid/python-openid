@@ -10,10 +10,12 @@ def sibpath(one, other, make_absolute=True):
         p = os.path.abspath(p)
     return p
 
+def datapath(filename):
+    return sibpath(__file__, os.path.join("data", "test_etxrd", filename))
 
-XRD_FILE = sibpath(__file__, os.path.join("data", "test1-xrd.xml"))
-NOXRDS_FILE = sibpath(__file__, os.path.join("data", "not-xrds.xml"))
-NOXRD_FILE = sibpath(__file__, os.path.join("data", "no-xrd.xml"))
+XRD_FILE =  datapath('valid-populated-xrds.xml')
+NOXRDS_FILE = datapath('not-xrds.xml')
+NOXRD_FILE = datapath('no-xrd.xml')
 
 # None of the namespaces or service URIs below are official (or even
 # sanctioned by the owners of that piece of URL-space)
@@ -129,37 +131,55 @@ class TestServiceParser(unittest.TestCase):
 
 class TestCanonicalID(unittest.TestCase):
 
-    canonicalIDtests = [
-        ("@ootao*test1", "delegated-20060809.xrds",
-         "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01"),
-        ("@ootao*test1", "delegated-20060809-r1.xrds",
-         "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01"),
-        ("@ootao*test1", "delegated-20060809-r2.xrds",
-         "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01"),
-        ("@ootao*test1", "sometimesprefix.xrds",
-         "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01"),
-        ("@ootao*test1", "prefixsometimes.xrds",
-         "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01"),
-        ("=keturn*isDrummond", "spoof1.xrds", etxrd.XRDSFraud),
-        ("=keturn*isDrummond", "spoof2.xrds", etxrd.XRDSFraud),
-        ("@keturn*is*drummond", "spoof3.xrds", etxrd.XRDSFraud),
-        ("=x", "status222.xrds", None),
-        # Don't let IRI authorities be canonical for the GCS.
-        ("phreak.example.com", "delegated-20060809-r2.xrds", etxrd.XRDSFraud),
-        # TODO: Refs
-        # ("@ootao*test.ref", "ref.xrds", "@!BAE.A650.823B.2475")
-        ]
+    def mkTest(iname, filename, expectedID):
+        """This function builds a method that runs the CanonicalID
+        test for the given set of inputs"""
+
+        filename = datapath(filename)
+        def test(self):
+            xrds = etxrd.parseXRDS(file(filename).read())
+            self._getCanonicalID(iname, xrds, expectedID)
+        return test
+
+    test_delegated = mkTest(
+        "@ootao*test1", "delegated-20060809.xrds",
+        "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")
+
+    test_delegated_r1 = mkTest(
+        "@ootao*test1", "delegated-20060809-r1.xrds",
+        "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")
+
+    test_delegated_r2 = mkTest(
+        "@ootao*test1", "delegated-20060809-r2.xrds",
+        "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")
+
+    test_sometimesprefix = mkTest(
+        "@ootao*test1", "sometimesprefix.xrds",
+        "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")
+
+    test_prefixsometimes = mkTest(
+        "@ootao*test1", "prefixsometimes.xrds",
+        "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")
+
+    test_spoof1 = mkTest("=keturn*isDrummond", "spoof1.xrds", etxrd.XRDSFraud)
+
+    test_spoof2 = mkTest("=keturn*isDrummond", "spoof2.xrds", etxrd.XRDSFraud)
+
+    test_spoof3 = mkTest("@keturn*is*drummond", "spoof3.xrds", etxrd.XRDSFraud)
+
+    test_status222 = mkTest("=x", "status222.xrds", None)
+
+    test_iri_auth_not_allowed = mkTest(
+        "phreak.example.com", "delegated-20060809-r2.xrds", etxrd.XRDSFraud)
+    test_iri_auth_not_allowed.__doc__ = \
+        "Don't let IRI authorities be canonical for the GCS."
+
+    # TODO: Refs
+    # test_ref = mkTest("@ootao*test.ref", "ref.xrds", "@!BAE.A650.823B.2475")
 
     # TODO: Add a IRI authority with an IRI canonicalID.
     # TODO: Add test cases with real examples of multiple CanonicalIDs
     #   somewhere in the resolution chain.
-
-    def test_getCanonicalID(self):
-        for iname, filename, expectedID in self.canonicalIDtests:
-            filename = sibpath(__file__, os.path.join("data", filename))
-            xrds = etxrd.parseXRDS(file(filename).read())
-            self._getCanonicalID(iname, xrds, expectedID)
-
 
     def _getCanonicalID(self, iname, xrds, expectedID):
         if isinstance(expectedID, (str, unicode, type(None))):
