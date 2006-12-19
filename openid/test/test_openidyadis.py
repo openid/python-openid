@@ -19,7 +19,7 @@ XRDS_BOILERPLATE = '''\
 def mkXRDS(services):
     return XRDS_BOILERPLATE % (services,)
 
-def mkService(uris=None, type_uris=None, delegate=None, dent='        '):
+def mkService(uris=None, type_uris=None, local_id=None, dent='        '):
     chunks = [dent, '<Service>\n']
     dent2 = dent + '    '
     if type_uris:
@@ -38,9 +38,9 @@ def mkService(uris=None, type_uris=None, delegate=None, dent='        '):
                 chunks.extend([' priority="', str(prio), '"'])
             chunks.extend(['>', uri, '</URI>\n'])
 
-    if delegate:
+    if local_id:
         chunks.extend(
-            [dent2, '<openid:Delegate>', delegate, '</openid:Delegate>\n'])
+            [dent2, '<openid:Delegate>', local_id, '</openid:Delegate>\n'])
 
     chunks.extend([dent, '</Service>\n'])
 
@@ -85,7 +85,7 @@ type_uri_options = [
     ]
 
 # Range of valid Delegate tag values for generating test data
-delegate_options = [
+local_id_options = [
     None,
     'http://vanity.domain/',
     'https://somewhere/yadis/',
@@ -93,18 +93,18 @@ delegate_options = [
 
 # All combinations of valid URIs, Type URIs and Delegate tags
 data = [
-    (uris, type_uris, delegate)
+    (uris, type_uris, local_id)
     for uris in server_url_options
     for type_uris in type_uri_options
-    for delegate in delegate_options
+    for local_id in local_id_options
     ]
 
 class OpenIDYadisTest(unittest.TestCase):
-    def __init__(self, uris, type_uris, delegate):
+    def __init__(self, uris, type_uris, local_id):
         unittest.TestCase.__init__(self)
         self.uris = uris
         self.type_uris = type_uris
-        self.delegate = delegate
+        self.local_id = local_id
 
     def shortDescription(self):
         # XXX:
@@ -116,7 +116,7 @@ class OpenIDYadisTest(unittest.TestCase):
         # Create an XRDS document to parse
         services = mkService(uris=self.uris,
                              type_uris=self.type_uris,
-                             delegate=self.delegate)
+                             local_id=self.local_id)
         self.xrds = mkXRDS(services)
 
     def runTest(self):
@@ -140,8 +140,8 @@ class OpenIDYadisTest(unittest.TestCase):
             # All endpoints will have same yadis_url
             self.failUnlessEqual(self.yadis_url, endpoint.claimed_id)
 
-            # and delegate
-            self.failUnlessEqual(self.delegate, endpoint.delegate)
+            # and local_id
+            self.failUnlessEqual(self.local_id, endpoint.local_id)
 
             # and types
             actual_types = list(endpoint.type_uris)

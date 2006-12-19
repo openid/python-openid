@@ -141,7 +141,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     endpoint = OpenIDServiceEndpoint()
     endpoint.claimed_id = user_url
     endpoint.server_url = server_url
-    endpoint.delegate = delegate_url
+    endpoint.local_id = delegate_url
 
     fetcher = TestFetcher(None, None, assocs[0])
     fetchers.setDefaultFetcher(fetcher, wrap_exceptions=False)
@@ -267,7 +267,7 @@ class TestIdRes(unittest.TestCase):
         self.endpoint = OpenIDServiceEndpoint()
         self.endpoint.claimed_id = self.consumer_id = "consu"
         self.endpoint.server_url = self.server_url = "serlie"
-        self.endpoint.delegate = self.server_id = "sirod"
+        self.endpoint.local_id = self.server_id = "sirod"
 
 
 
@@ -421,18 +421,24 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
         self.server_url = "http://idp.unittest/"
         CatchLogs.setUp(self)
 
+        claimed_id = 'bogus.claimed'
+
         self.message = Message.fromPostArgs(
             {'openid.mode': 'id_res',
              'openid.return_to': 'return_to (just anything)',
-             'openid.identity': 'something something',
+             'openid.identity': claimed_id,
              'openid.assoc_handle': 'does not matter',
              'openid.sig': GOODSIG,
              'openid.response_nonce': mkNonce(),
-             'openid.signed': 'identity,return_to,response_nonce',
+             'openid.signed': 'identity,return_to,response_nonce,assoc_handle,claimed_id',
+             'openid.claimed_id': claimed_id,
+             'openid.op_endpoint': self.server_url,
              'openid.ns':OPENID2_NS,
              })
+
         self.endpoint = OpenIDServiceEndpoint()
         self.endpoint.server_url = self.server_url
+        self.endpoint.claimed_id = claimed_id
 
     def tearDown(self):
         CatchLogs.tearDown(self)
@@ -443,7 +449,7 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
             endpoint = OpenIDServiceEndpoint()
             endpoint.claimed_id = vid
             endpoint.server_url = surl
-            endpoint.delegate = vid
+            endpoint.local_id = vid
             return endpoint
 
         self.consumer._verifyDiscoveryResults = _vrfy
@@ -453,19 +459,33 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
 
     def test_idResNoIdentity(self):
         self.message.delArg(OPENID_NS, 'identity')
-        self.message.setArg(OPENID_NS, 'signed', 'return_to,response_nonce')
+        self.message.delArg(OPENID_NS, 'claimed_id')
+        self.endpoint.claimed_id = None
+        self.message.setArg(OPENID_NS, 'signed', 'return_to,response_nonce,assoc_handle')
         r = self.consumer.complete(self.message, self.endpoint)
         self.failUnlessSuccess(r)
 
 
     def test_idResMissingIdentitySig(self):
-        self.message.setArg(OPENID_NS, 'signed', 'return_to,response_nonce')
+        self.message.setArg(OPENID_NS, 'signed', 'return_to,response_nonce,assoc_handle,claimed_id')
         r = self.consumer.complete(self.message, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
 
 
     def test_idResMissingReturnToSig(self):
-        self.message.setArg(OPENID_NS, 'signed', 'identity,response_nonce')
+        self.message.setArg(OPENID_NS, 'signed', 'identity,response_nonce,assoc_handle,claimed_id')
+        r = self.consumer.complete(self.message, self.endpoint)
+        self.failUnlessEqual(r.status, FAILURE)
+
+
+    def test_idResMissingAssocHandleSig(self):
+        self.message.setArg(OPENID_NS, 'signed', 'identity,response_nonce,return_to,claimed_id')
+        r = self.consumer.complete(self.message, self.endpoint)
+        self.failUnlessEqual(r.status, FAILURE)
+
+
+    def test_idResMissingClaimedIDSig(self):
+        self.message.setArg(OPENID_NS, 'signed', 'identity,response_nonce,return_to,assoc_handle')
         r = self.consumer.complete(self.message, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
 
@@ -911,7 +931,7 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
 class TestAuthRequest(unittest.TestCase):
     def setUp(self):
         self.endpoint = OpenIDServiceEndpoint()
-        self.endpoint.delegate = 'http://server.unittest/joe'
+        self.endpoint.local_id = 'http://server.unittest/joe'
         self.endpoint.server_url = 'http://server.unittest/'
         self.assoc = self
         self.assoc.handle = 'assoc@handle'
@@ -933,7 +953,7 @@ class TestAuthRequest(unittest.TestCase):
                         'extension arg not found in %s' % (url,))
 
     def test_idpEndpoint(self):
-        self.endpoint.delegate = None
+        self.endpoint.local_id = None
         self.endpoint.claimed_id = None
         url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
         _, qstring = url.split('?')
@@ -941,7 +961,7 @@ class TestAuthRequest(unittest.TestCase):
         self.failUnlessEqual(params['openid.identity'], IDENTIFIER_SELECT)
 
     def test_idpAnonymous(self):
-        self.endpoint.delegate = None
+        self.endpoint.local_id = None
         self.endpoint.claimed_id = None
         self.authreq.anonymous = True
         url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
@@ -1233,7 +1253,7 @@ class IDPDrivenTest(unittest.TestCase):
         endpoint = OpenIDServiceEndpoint()
         endpoint.claimed_id = identifier
         endpoint.server_url = self.endpoint.server_url
-        endpoint.delegate = identifier
+        endpoint.local_id = identifier
         iverified = []
         def verifyDiscoveryResults(identifier, server_url):
             iverified.append(endpoint)
@@ -1303,7 +1323,7 @@ class TestDiscoveryVerification(unittest.TestCase):
         endpoint.type_uris = [OPENID2_NS]
         endpoint.claimed_id = self.identifier
         endpoint.server_url = self.server_url
-        endpoint.delegate = self.identifier
+        endpoint.local_id = self.identifier
         self.services = [endpoint]
         r = self.consumer._verifyDiscoveryResults(endpoint, self.message)
 
@@ -1315,7 +1335,7 @@ class TestDiscoveryVerification(unittest.TestCase):
         endpoint = OpenIDServiceEndpoint()
         endpoint.claimed_id = self.identifier
         endpoint.server_url = "http://the-MOON.unittest/"
-        endpoint.delegate = self.identifier
+        endpoint.local_id = self.identifier
         self.services = [endpoint]
         self.failUnlessRaises(DiscoveryFailure,
                               self.consumer._verifyDiscoveryResults,
@@ -1327,7 +1347,7 @@ class TestDiscoveryVerification(unittest.TestCase):
         endpoint = OpenIDServiceEndpoint()
         endpoint.claimed_id = self.identifier
         endpoint.server_url = self.server_url
-        endpoint.delegate = "http://unittest/juan-carlos"
+        endpoint.local_id = "http://unittest/juan-carlos"
         self.failUnlessRaises(DiscoveryFailure,
                               self.consumer._verifyDiscoveryResults,
                               endpoint, self.message)

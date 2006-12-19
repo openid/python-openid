@@ -340,7 +340,7 @@ class TestDiscovery(BaseTestDiscovery):
                              "More than one service in %r" % (services,))
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
-        self.failUnlessEqual(services[0].delegate,
+        self.failUnlessEqual(services[0].local_id,
                              "http://smoker.myopenid.com/")
         self.failUnlessEqual(services[0].claimed_id, self.id_url)
         self._notUsedYadis(services[0])
@@ -381,7 +381,7 @@ class TestDiscovery(BaseTestDiscovery):
                              "More than one service in %r" % (services,))
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
-        self.failUnlessEqual(services[0].delegate,
+        self.failUnlessEqual(services[0].local_id,
                              "http://smoker.myopenid.com/")
         self.failUnlessEqual(services[0].claimed_id, expected_final_url)
         self._notUsedYadis(services[0])
@@ -418,9 +418,9 @@ class TestDiscovery(BaseTestDiscovery):
                              "Not 1 service in %r" % (services,))
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
-        self.failUnless(services[0].delegate is None,
+        self.failUnless(services[0].local_id is None,
                         'Delegate should be None. Got %r' %
-                        (services[0].delegate,))
+                        (services[0].local_id,))
         self._usedYadis(services[0])
 
     def test_yadisIDP(self):
@@ -433,9 +433,9 @@ class TestDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[0].claimed_id, None)
-        self.failUnless(services[0].delegate is None,
+        self.failUnless(services[0].local_id is None,
                         'Delegate should be None. Got %r' %
-                        (services[0].delegate,))
+                        (services[0].local_id,))
         self._usedYadis(services[0])
 
     def test_yadisIDPdelegate(self):
@@ -449,9 +449,9 @@ class TestDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[0].claimed_id, None)
-        self.failUnless(services[0].delegate is None,
+        self.failUnless(services[0].local_id is None,
                         'Delegate should be None. Got %r' %
-                        (services[0].delegate,))
+                        (services[0].local_id,))
         self._usedYadis(services[0])
 
 
@@ -464,9 +464,9 @@ class TestDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[0].claimed_id, self.id_url)
-        self.failUnless(services[0].delegate is None,
+        self.failUnless(services[0].local_id is None,
                         'Delegate should be None. Got %r' %
-                        (services[0].delegate,))
+                        (services[0].local_id,))
 
         self._notUsedYadis(services[0])
 
@@ -480,7 +480,7 @@ class TestDiscovery(BaseTestDiscovery):
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[0].claimed_id, self.id_url)
         self.failUnlessEqual('http://smoker.myopenid.com/',
-                             services[0].delegate)
+                             services[0].local_id)
         self.failUnlessEqual([discover.OPENID_2_0_TYPE], services[0].type_uris)
         self._notUsedYadis(services[0])
         self.failUnlessEqual(1, len(services))
@@ -495,7 +495,7 @@ class TestDiscovery(BaseTestDiscovery):
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[0].claimed_id, self.id_url)
         self.failUnlessEqual('http://smoker.myopenid.com/',
-                             services[0].delegate)
+                             services[0].local_id)
         self.failUnlessEqual([discover.OPENID_1_1_TYPE], services[0].type_uris)
         self._notUsedYadis(services[0])
         self.failUnlessEqual(1, len(services))
@@ -514,7 +514,7 @@ class TestDiscovery(BaseTestDiscovery):
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[1].claimed_id, self.id_url)
         self.failUnlessEqual('http://smoker.myopenid.com/',
-                             services[1].delegate)
+                             services[1].local_id)
         self.failUnlessEqual([discover.OPENID_2_0_TYPE], services[1].type_uris)
         self._notUsedYadis(services[1])
 
@@ -523,7 +523,7 @@ class TestDiscovery(BaseTestDiscovery):
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[0].claimed_id, self.id_url)
         self.failUnlessEqual('http://smoker.myopenid.com/',
-                             services[0].delegate)
+                             services[0].local_id)
         self.failUnlessEqual([discover.OPENID_1_1_TYPE], services[0].type_uris)
         self._notUsedYadis(services[0])
 

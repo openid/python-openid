@@ -554,7 +554,8 @@ class GenericConsumer(object):
         elif endpoint.getLocalID() != response_identity:
             fmt = 'Mismatch between delegate (%r) and server (%r) response'
             return FailureResponse(
-                endpoint, fmt % (endpoint.delegate, response_identity))
+                endpoint, fmt % (endpoint.getLocalID(),
+                                 response_identity))
 
         signed_fields = ['openid.' + f for f in signed_list]
         return SuccessResponse(endpoint, message, signed_fields)
@@ -651,6 +652,11 @@ class GenericConsumer(object):
             identifier = resp_msg.getArg(OPENID_NS, 'claimed_id')
         else:
             identifier = resp_msg.getArg(OPENID_NS, 'identity')
+
+        # Identifier absent, so return the original endpoint because
+        # we don't have any discovery'ing to do
+        if identifier is None:
+            return orig_endpoint
 
         # Pick the right discovery method.
         if xri.identifierScheme(identifier) == "XRI":

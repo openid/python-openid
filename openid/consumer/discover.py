@@ -126,7 +126,7 @@ class OpenIDServiceEndpoint(object):
 
             service = cls()
             service.claimed_id = uri
-            service.delegate = html_parse.findFirstHref(
+            service.local_id = html_parse.findFirstHref(
                 link_attrs, local_id_rel)
             service.server_url = op_endpoint_url
             service.type_uris = [type_uri]
@@ -201,7 +201,7 @@ def discoverYadis(uri):
 
         # Try to parse the response as HTML to get OpenID 1.0/1.1
         # <link rel="...">
-        openid_services = OpenIDServiceEndpoint.fromHTML(claimed_id, body)
+        openid_services = OpenIDServiceEndpoint.fromHTML(yadis_url, body)
 
     return (yadis_url, openid_services)
 
