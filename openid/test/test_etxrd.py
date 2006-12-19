@@ -2,16 +2,9 @@ import unittest
 from openid.yadis import services, etxrd, xri
 import os.path
 
-def sibpath(one, other, make_absolute=True):
-    if os.path.isabs(other):
-        return other
-    p = os.path.join(os.path.dirname(one), other)
-    if make_absolute:
-        p = os.path.abspath(p)
-    return p
-
 def datapath(filename):
-    return sibpath(__file__, os.path.join("data", "test_etxrd", filename))
+    module_directory = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(module_directory, 'data', 'test_etxrd', filename)
 
 XRD_FILE =  datapath('valid-populated-xrds.xml')
 NOXRDS_FILE = datapath('not-xrds.xml')
