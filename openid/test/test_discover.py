@@ -208,9 +208,10 @@ class TestDiscovery(BaseTestDiscovery):
                                   expected_services=0)
 
     def test_yadis(self):
-        services = self._discover(content_type='application/xrds+xml',
-                                  data=readDataFile('yadis_2entries.xml'),
-                                  expected_services=2)
+        services = self._discover(
+            content_type='application/xrds+xml',
+            data=readDataFile('yadis_2entries_delegate.xml'),
+            expected_services=2)
 
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
@@ -218,6 +219,18 @@ class TestDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(services[1].server_url,
                              "http://www.livejournal.com/openid/server.bml")
         self._usedYadis(services[1])
+
+    def test_yadis_another(self):
+        services = self._discover(
+            content_type='application/xrds+xml',
+            data=readDataFile('yadis_another_delegate.xml'),
+            expected_services=1)
+
+        self.failUnlessEqual(services[0].local_id,
+                             "http://smoker.myopenid.com/")
+        self.failUnlessEqual(services[0].server_url,
+                             "http://vroom.unittest/server")
+        self._usedYadis(services[0])
 
     def test_redirect(self):
         expected_final_url = "http://elsewhere.unittest/"
@@ -401,7 +414,8 @@ class MockFetcherForXRIProxy(object):
 class TestXRIDiscovery(BaseTestDiscovery):
     fetcherClass = MockFetcherForXRIProxy
 
-    documents = {'=smoker': ('application/xrds+xml', readDataFile('yadis_2entries.xml')) }
+    documents = {'=smoker': ('application/xrds+xml',
+                             readDataFile('yadis_2entries_delegate.xml')) }
 
     def test_xri(self):
         user_xri, services = discover.discoverXRI('=smoker')
