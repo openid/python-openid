@@ -1,6 +1,6 @@
 import unittest
 from openid.consumer.discover import \
-     OpenIDServiceEndpoint, OPENID_1_2_TYPE, OPENID_1_1_TYPE, OPENID_1_0_TYPE
+     OpenIDServiceEndpoint, OPENID_1_1_TYPE, OPENID_1_0_TYPE
 
 from openid.yadis.services import applyFilter
 
@@ -77,7 +77,7 @@ type_uri_options = [
     exts + ts
 
     # All non-empty sublists of the valid OpenID type URIs
-    for ts in subsets([OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_1_2_TYPE])
+    for ts in subsets([OPENID_1_0_TYPE, OPENID_1_1_TYPE])
     if ts
 
     # All combinations of extension types (including empty extenstion list)

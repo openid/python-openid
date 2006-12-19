@@ -16,7 +16,6 @@ from openid.consumer import html_parse
 OPENID_1_0_NS = 'http://openid.net/xmlns/1.0'
 OPENID_IDP_2_0_TYPE = 'http://openid.net/server/2.0'
 OPENID_2_0_TYPE = 'http://openid.net/signon/2.0'
-OPENID_1_2_TYPE = 'http://openid.net/signon/1.2'
 OPENID_1_1_TYPE = 'http://openid.net/signon/1.1'
 OPENID_1_0_TYPE = 'http://openid.net/signon/1.0'
 
@@ -33,7 +32,6 @@ class OpenIDServiceEndpoint(object):
         OPENID_IDP_2_0_TYPE,
 
         OPENID_2_0_TYPE,
-        OPENID_1_2_TYPE,
         OPENID_1_1_TYPE,
         OPENID_1_0_TYPE,
         ]
