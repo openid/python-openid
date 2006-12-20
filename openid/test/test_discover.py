@@ -208,15 +208,8 @@ class TestDiscovery(BaseTestDiscovery):
             '2.0 OP': discover.OPENID_IDP_2_0_TYPE,
             }
 
-        it = iter(service.type_uris)
-        for type_code in types:
-            type_uri = openid_types[type_code]
-            for t in it:
-                if t == type_uri:
-                    break
-            else:
-                self.fail('Did not find types %r in %r'
-                          % (types, service.type_uris))
+        type_uris = [openid_types[t] for t in types]
+        self.failUnlessEqual(type_uris, service.type_uris)
 
     def test_404(self):
         self.failUnlessRaises(DiscoveryFailure,
