@@ -405,15 +405,6 @@ class TestDiscovery(BaseTestDiscovery):
             data=readDataFile('openid_1_and_2.html'),
             expected_services=2)
 
-        self.failUnlessEqual(services[1].server_url,
-                             "http://www.myopenid.com/server")
-        self.failUnlessEqual(services[1].claimed_id, self.id_url)
-        self.failUnlessEqual('http://smoker.myopenid.com/',
-                             services[1].local_id)
-        self.failUnlessEqual([discover.OPENID_2_0_TYPE], services[1].type_uris)
-        self._notUsedYadis(services[1])
-
-
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[0].claimed_id, self.id_url)
@@ -421,7 +412,7 @@ class TestDiscovery(BaseTestDiscovery):
                              services[0].local_id)
         self.failUnlessEqual([discover.OPENID_2_0_TYPE], services[0].type_uris)
         self._notUsedYadis(services[0])
-        self._hasTypes(services[0], '1.1')
+        self._hasTypes(services[0], '2.0')
 
 
         self.failUnlessEqual(services[1].server_url,
@@ -431,6 +422,7 @@ class TestDiscovery(BaseTestDiscovery):
                              services[1].local_id)
         self.failUnlessEqual([discover.OPENID_1_1_TYPE], services[1].type_uris)
         self._notUsedYadis(services[1])
+        self._hasTypes(services[1], '1.1')
 
 
 class MockFetcherForXRIProxy(object):
