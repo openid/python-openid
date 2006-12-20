@@ -433,7 +433,7 @@ class GenericConsumer(object):
         self.negotiator = default_negotiator.copy()
 
     def begin(self, service_endpoint):
-        assoc = self._getAssociation(service_endpoint.server_url)
+        assoc = self._getAssociation(service_endpoint)
         request = AuthRequest(service_endpoint, assoc)
         request.return_to_args['nonce'] = mkNonce()
         return request
@@ -748,22 +748,22 @@ class GenericConsumer(object):
             oidutil.log('Server responds that checkAuth call is not valid')
             return False
 
-    def _getAssociation(self, server_url):
+    def _getAssociation(self, endpoint):
         if self.store.isDumb():
             return None
 
-        assoc = self.store.getAssociation(server_url)
+        assoc = self.store.getAssociation(endpoint.server_url)
 
         if assoc is None or assoc.expiresIn <= 0:
             (assoc_type, session_type) = self.negotiator.getAllowedType()
             tried_types = []
             while (assoc_type, session_type) not in tried_types:
                 assoc_session, args = self._createAssociateRequest(
-                    server_url,
+                    endpoint,
                     assoc_type,
                     session_type)
                 try:
-                    response = self._makeKVPost(args, server_url)
+                    response = self._makeKVPost(args, endpoint.server_url)
                 except fetchers.HTTPFetchingError, why:
                     oidutil.log('openid.associate request failed: %s' %
                                 (str(why),))
@@ -778,7 +778,7 @@ class GenericConsumer(object):
 
                     try:
                         assoc = self._parseAssociation(
-                            response, assoc_session, server_url)
+                            response, assoc_session, endpoint.server_url)
                     except UnsupportedAssocType, why:
                         oidutil.log(
                             'Unsupported assoc type: %s' % (why.message,))
@@ -807,7 +807,7 @@ class GenericConsumer(object):
 
         return assoc
 
-    def _createAssociateRequest(self, server_url, assoc_type, session_type):
+    def _createAssociateRequest(self, endpoint, assoc_type, session_type):
         session_type_class = self.session_types[session_type]
         assoc_session = session_type_class()
 

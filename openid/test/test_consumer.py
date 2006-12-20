@@ -920,7 +920,9 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
                               "http://server_url")
 
         # exception fetching returns no association
-        self.failUnless(self.consumer._getAssociation('some://url') is None)
+        e = OpenIDServiceEndpoint()
+        e.server_url = 'some://url'
+        self.failUnless(self.consumer._getAssociation(e) is None)
 
         self.failUnlessRaises(fetchers.HTTPFetchingError,
                               self.consumer._checkAuth,
@@ -1011,7 +1013,7 @@ class TestParseAssociation(TestIdRes):
 
     def _setUpDH(self):
         sess, args = \
-                    self.consumer._createAssociateRequest(self.server_url,
+                    self.consumer._createAssociateRequest(self.endpoint,
                                                           'HMAC-SHA1',
                                                           'DH-SHA1')
         message = Message.fromPostArgs(args)
