@@ -73,6 +73,8 @@ class OpenIDServiceEndpoint(object):
                                                   self.type_uris)
             self.claimed_id = yadis_url
 
+
+
     def getLocalID(self):
         """Return the identifier that should be sent as the
         openid.identity parameter to the server."""
