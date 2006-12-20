@@ -3,7 +3,7 @@ Trust root parsing checking
 ========================================
 
 ----------------------------------------
-14: Does not parse
+15: Does not parse
 ----------------------------------------
 baz.org
 *.foo.com
@@ -15,6 +15,7 @@ foo.*.com
 http://foo.*.com
 http://www.*
 http://*foo.com/
+http://foo.com/invalid#fragment
 
  
  	

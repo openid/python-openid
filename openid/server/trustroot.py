@@ -207,6 +207,10 @@ class TrustRoot(object):
         if proto not in _protocols:
             return None
 
+        # check for URI fragment
+        if path.find('#') != -1:
+            return None
+
         # extract wildcard if it is there
         if host.find('*', 1) != -1:
             # wildcard must be at start of domain:  *.foo.com, not foo.*.com
