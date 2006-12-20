@@ -610,6 +610,21 @@ class OpenID2MessageTest(unittest.TestCase):
     def test_delArgNS3(self):
         self._test_delArgNS('urn:nothing-significant')
 
+    def test_overwriteExtensionArg(self):
+        ns = 'urn:unittest_extension'
+        key = 'mykey'
+        value_1 = 'value_1'
+        value_2 = 'value_2'
+
+        self.msg.setArg(ns, key, value_1)
+        self.failUnless(self.msg.getArg(ns, key) == value_1)
+        self.msg.setArg(ns, key, value_2)
+        self.failUnless(self.msg.getArg(ns, key) == value_2)
+
+    def test_argList(self):
+        self.failUnlessRaises(TypeError, self.msg.fromPostArgs,
+                              {'arg': [1, 2, 3]})
+
 class MessageTest(unittest.TestCase):
     def setUp(self):
         self.postargs = {
