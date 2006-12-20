@@ -816,6 +816,9 @@ class GenericConsumer(object):
             'openid.assoc_type': assoc_type,
             }
 
+        if not endpoint.compatibilityMode():
+            args['openid.ns'] = OPENID2_NS
+
         if assoc_session.session_type != 'no-encryption':
             args['openid.session_type'] = assoc_session.session_type
 

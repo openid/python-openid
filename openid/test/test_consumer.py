@@ -5,7 +5,8 @@ import time
 from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT
 from openid import cryptutil, dh, oidutil, kvform
 from openid.store.nonce import mkNonce, split as splitNonce
-from openid.consumer.discover import OpenIDServiceEndpoint
+from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_2_0_TYPE, \
+     OPENID_1_1_TYPE
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
@@ -1016,6 +1017,12 @@ class TestParseAssociation(TestIdRes):
                     self.consumer._createAssociateRequest(self.endpoint,
                                                           'HMAC-SHA1',
                                                           'DH-SHA1')
+
+        assert self.endpoint.compatibilityMode() == \
+               (args.get('openid.ns') is None), \
+               "Endpoint compat mode %r != (openid.ns in args)" % \
+               (self.endpoint.compatibilityMode())
+
         message = Message.fromPostArgs(args)
         server_sess = DiffieHellmanSHA1ServerSession.fromMessage(message)
         server_resp = server_sess.answer(self.secret)
@@ -1033,6 +1040,12 @@ class TestParseAssociation(TestIdRes):
         self.failUnlessEqual(ret.secret, self.secret)
         self.failUnlessEqual(ret.handle, 'handle')
         self.failUnlessEqual(ret.lifetime, 1000)
+
+    def test_openid2success(self):
+        # Use openid 2 type in endpoint so _setUpDH checks
+        # compatibility mode state properly
+        self.endpoint.type_uris = [OPENID_2_0_TYPE, OPENID_1_1_TYPE]
+        self.test_success()
 
     def test_badAssocType(self):
         sess, server_resp = self._setUpDH()
