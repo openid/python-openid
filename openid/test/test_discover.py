@@ -255,6 +255,7 @@ class TestDiscovery(BaseTestDiscovery):
             data=readDataFile('openid.html'),
             expected_services=1)
 
+
         self._checkService(
             services[0],
             used_yadis=False,
