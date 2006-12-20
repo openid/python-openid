@@ -41,6 +41,14 @@ OPENID_NS = oidutil.Symbol('OpenID namespace')
 # with "openid."
 BARE_NS = oidutil.Symbol('Bare namespace')
 
+# All OpenID protocol fields.  Used to check namespace aliases.
+OPENID_PROTOCOL_FIELDS = [
+    'ns', 'mode', 'error', 'return_to', 'contact', 'reference',
+    'signed', 'assoc_type', 'session_type', 'dh_modulus', 'dh_gen',
+    'dh_consumer_public', 'claimed_id', 'identity', 'realm',
+    'invalidate_handle', 'op_endpoint', 'response_nonce', 'sig',
+    ]
+
 class UndefinedOpenIDNamespace(ValueError):
     """Raised if the generic OpenID namespace is accessed when there
     is no OpenID namespace set for this message."""
@@ -426,6 +434,17 @@ class NamespaceMap(object):
     def addAlias(self, namespace_uri, desired_alias):
         """Add an alias from this namespace URI to the desired alias
         """
+        # Check that desired_alias is not an openid protocol field as
+        # per the spec.
+        assert desired_alias not in OPENID_PROTOCOL_FIELDS, \
+               "%r is not an allowed namespace alias" % (desired_alias,)
+
+        # Check that desired_alias does not contain a period as per
+        # the spec.
+        if type(desired_alias) in [str, unicode]:
+            assert '.' not in desired_alias, \
+                   "%r must not contain a dot" % (desired_alias,)
+
         # Check that there is not a namespace already defined for
         # the desired alias
         current_namespace_uri = self.alias_to_namespace.get(desired_alias)

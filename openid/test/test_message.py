@@ -571,6 +571,20 @@ class OpenID2MessageTest(unittest.TestCase):
     def test_setArgNS3(self):
         self._test_setArgNS('urn:nothing-significant')
 
+    def test_badAlias(self):
+        """Make sure dotted aliases and OpenID protocol fields are not
+        allowed as namespace aliases."""
+
+        for f in message.OPENID_PROTOCOL_FIELDS + ['dotted.alias']:
+            args = {'openid.ns.%s' % f: 'blah',
+                    'openid.%s.foo' % f: 'test'}
+
+            # .fromPostArgs covers .fromPostArgs, .fromOpenIDArgs,
+            # ._fromOpenIDArgs, and .fromOpenIDArgs (since it calls
+            # .fromPostArgs).
+            self.failUnlessRaises(AssertionError, self.msg.fromPostArgs,
+                                  args)
+
     def _test_delArgNS(self, ns):
         key = 'Camper van Beethoven'
         value = 'David Lowery'
