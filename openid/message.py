@@ -47,6 +47,7 @@ OPENID_PROTOCOL_FIELDS = [
     'signed', 'assoc_type', 'session_type', 'dh_modulus', 'dh_gen',
     'dh_consumer_public', 'claimed_id', 'identity', 'realm',
     'invalidate_handle', 'op_endpoint', 'response_nonce', 'sig',
+    'assoc_handle', 'trust_root', 'openid',
     ]
 
 class UndefinedOpenIDNamespace(ValueError):
