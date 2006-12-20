@@ -5,7 +5,7 @@ import urlparse
 from openid import oidutil, fetchers, urinorm
 
 from openid import yadis
-from openid.yadis.etxrd import nsTag, XRDSError
+from openid.yadis.etxrd import nsTag, XRDSError, XRD_NS_2_0
 from openid.yadis.services import applyFilter as extractServices
 from openid.yadis.discover import discover as yadisDiscover
 from openid.yadis.discover import DiscoveryFailure
@@ -69,7 +69,8 @@ class OpenIDServiceEndpoint(object):
             # that contain both 'server' and 'signon' Types.  But
             # that's a pathological configuration anyway, so I don't
             # think I care.
-            self.local_id = findLocalID(service_element)
+            self.local_id = findOPLocalIdentifier(service_element,
+                                                  self.type_uris)
             self.claimed_id = yadis_url
 
     def getLocalID(self):
@@ -138,21 +139,55 @@ class OpenIDServiceEndpoint(object):
 
     fromHTML = classmethod(fromHTML)
 
-def findLocalID(service_element):
-    """Extract a openid:Delegate value from a Yadis Service element
-    represented as an ElementTree Element object. If no delegate is
-    found, returns None."""
-    # XXX: should this die if there is more than one delegate element?
-    delegate_tag = nsTag(OPENID_1_0_NS, 'Delegate')
+def findOPLocalIdentifier(service_element, type_uris):
+    """Find the OP-Local Identifier for this xrd:Service element.
 
-    delegates = service_element.findall(delegate_tag)
-    for delegate_element in delegates:
-        delegate = delegate_element.text
-        break
-    else:
-        delegate = None
+    This considers openid:Delegate to be a synonym for xrd:LocalID if
+    both OpenID 1.X and OpenID 2.0 types are present. If only OpenID
+    1.X is present, it returns the value of openid:Delegate. If only
+    OpenID 2.0 is present, it returns the value of xrd:LocalID. If
+    there is more than one LocalID tag and the values are different,
+    it raises a DiscoveryFailure. This is also triggered when the
+    xrd:LocalID and openid:Delegate tags are different.
 
-    return delegate
+    @param service_element: The xrd:Service element
+    @type service_element: ElementTree.Node
+
+    @param type_uris: The xrd:Type values present in this service
+        element. This function could extract them, but higher level
+        code needs to do that anyway.
+    @type type_uris: [str]
+
+    @raises: DiscoveryFailure
+
+    @returns: The OP-Local Identifier for this service element, if one
+        is present, or None otherwise.
+    @rtype: str or unicode or NoneType
+    """
+    # XXX: Test this function on its own!
+
+    # Build the list of tags that could contain the OP-Local Identifier
+    local_id_tags = []
+    if (OPENID_1_1_TYPE in type_uris or
+        OPENID_1_0_TYPE in type_uris):
+        local_id_tags.append(nsTag(OPENID_1_0_NS, 'Delegate'))
+
+    if OPENID_2_0_TYPE in type_uris:
+        local_id_tags.append(nsTag(XRD_NS_2_0, 'LocalID'))
+
+    # Walk through all the matching tags and make sure that they all
+    # have the same value
+    local_id = None
+    for local_id_tag in local_id_tags:
+        for local_id_element in service_element.findall(local_id_tag):
+            if local_id is None:
+                local_id = local_id_element.text
+            elif local_id != local_id_element.text:
+                format = 'More than one %r tag found in one service element'
+                message = format % (local_id_tag,)
+                raise DiscoveryFailure(message, None)
+
+    return local_id
 
 def normalizeURL(url):
     """Normalize a URL, converting normalization failures to
@@ -165,18 +200,41 @@ def normalizeURL(url):
 def arrangeByType(service_list, preferred_types):
     """Rearrange service_list in a new list so services are ordered by
     types listed in preferred_types.  Return the new list."""
-    buckets = dict([(typ, []) for typ in preferred_types])
 
-    for typ in preferred_types:
-        for s in service_list:
-            if typ in s.type_uris:
-                buckets[typ].append(s)
+    def enumerate(elts):
+        """Return an iterable that pairs the index of an element with
+        that element.
 
-    new_list = []
-    for typ in preferred_types:
-        new_list += buckets[typ]
+        For Python 2.2 compatibility"""
+        return zip(range(len(elts)), elts)
 
-    return new_list
+    def bestMatchingService(service):
+        """Return the index of the first matching type, or something
+        higher if no type matches.
+
+        This provides an ordering in which service elements that
+        contain a type that comes earlier in the preferred types list
+        come before service elements that come later. If a service
+        element has more than one type, the most preferred one wins.
+        """
+        for i, t in enumerate(preferred_types):
+            if preferred_types[i] in service.type_uris:
+                return i
+
+        return len(preferred_types)
+
+    # Build a list with the service elements in tuples whose
+    # comparison will prefer the one with the best matching service
+    prio_services = [(bestMatchingService(s), orig_index, s)
+                     for (orig_index, s) in enumerate(service_list)]
+    prio_services.sort()
+
+    # Now that the services are sorted by priority, remove the sort
+    # keys from the list.
+    for i in range(len(prio_services)):
+        prio_services[i] = prio_services[i][2]
+
+    return prio_services
 
 def getOPOrUserServices(openid_services):
     """Extract OP Identifier services.  If none found, return the
