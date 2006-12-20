@@ -113,8 +113,8 @@ class OpenIDServiceEndpoint(object):
         @rtype: [OpenIDServiceEndpoint]
         """
         discovery_types = [
-            (OPENID_1_1_TYPE, 'openid.server', 'openid.delegate'),
             (OPENID_2_0_TYPE, 'openid2.provider', 'openid2.local_id'),
+            (OPENID_1_1_TYPE, 'openid.server', 'openid.delegate'),
             ]
 
         link_attrs = html_parse.parseLinkAttrs(html)
