@@ -335,6 +335,24 @@ class TestDiscovery(BaseTestDiscovery):
         self._usedYadis(services[0])
         self._hasTypes(services[0], '2.0 OP')
 
+    def test_yadisIDPFirst(self):
+        # Make sure an OP identifier takes precedence.  The XRDS used
+        # here has two services, but we only want to get one back.
+        self.fetcher.documents = {
+            self.id_url: ('application/xrds+xml',
+                          readDataFile('yadis_idp_last.xml')),
+        }
+
+        id_url, services = discover.discover(self.id_url)
+        self.failUnlessEqual(len(services), 1,
+                             "Not 1 service in %r" % (services,))
+
+        self.failUnlessEqual(services[0].server_url,
+                             "http://www.myopenid.com/server_id")
+        self.failUnlessEqual(services[0].claimed_id, None)
+        self._usedYadis(services[0])
+
+
     def test_openidNoDelegate(self):
         services = self._discover(
             content_type='text/html',
@@ -392,8 +410,8 @@ class TestDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(services[1].claimed_id, self.id_url)
         self.failUnlessEqual('http://smoker.myopenid.com/',
                              services[1].local_id)
+        self.failUnlessEqual([discover.OPENID_2_0_TYPE], services[1].type_uris)
         self._notUsedYadis(services[1])
-        self._hasTypes(services[1], '2.0')
 
 
         self.failUnlessEqual(services[0].server_url,
@@ -401,9 +419,18 @@ class TestDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(services[0].claimed_id, self.id_url)
         self.failUnlessEqual('http://smoker.myopenid.com/',
                              services[0].local_id)
-        self.failUnlessEqual([discover.OPENID_1_1_TYPE], services[0].type_uris)
+        self.failUnlessEqual([discover.OPENID_2_0_TYPE], services[0].type_uris)
         self._notUsedYadis(services[0])
         self._hasTypes(services[0], '1.1')
+
+
+        self.failUnlessEqual(services[1].server_url,
+                             "http://www.myopenid.com/server")
+        self.failUnlessEqual(services[1].claimed_id, self.id_url)
+        self.failUnlessEqual('http://smoker.myopenid.com/',
+                             services[1].local_id)
+        self.failUnlessEqual([discover.OPENID_1_1_TYPE], services[1].type_uris)
+        self._notUsedYadis(services[1])
 
 
 class MockFetcherForXRIProxy(object):
@@ -463,6 +490,19 @@ class TestXRIDiscovery(BaseTestDiscovery):
         endpoint.claimed_id = "=example"
         endpoint.canonicalID = XRI("=!1000")
         self.failUnlessEqual(endpoint.getLocalID(), XRI("=!1000"))
+
+
+class TestXRIDiscoveryIDP(BaseTestDiscovery):
+    fetcherClass = MockFetcherForXRIProxy
+
+    documents = {'=smoker': ('application/xrds+xml',
+                             readDataFile('yadis_2entries_idp.xml')) }
+
+    def test_xri(self):
+        user_xri, services = discover.discoverXRI('=smoker')
+        self.failUnless(services, "Expected services, got zero")
+        self.failUnlessEqual(services[0].server_url,
+                             "http://www.livejournal.com/openid/server.bml")
 
 
 class TestPreferredNamespace(datadriven.DataDrivenTestCase):

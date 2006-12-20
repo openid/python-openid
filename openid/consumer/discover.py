@@ -28,6 +28,9 @@ class OpenIDServiceEndpoint(object):
     @ivar identity_url: the verified identifier.
     @ivar canonicalID: For XRI, the persistent identifier.
     """
+
+    # OpenID service type URIs, listed in order of preference.  The
+    # ordering of this list affects yadis and XRI service discovery.
     openid_type_uris = [
         OPENID_IDP_2_0_TYPE,
 
@@ -159,6 +162,38 @@ def normalizeURL(url):
     except ValueError, why:
         raise DiscoveryFailure('Normalizing identifier: %s' % (why[0],), None)
 
+def arrangeByType(service_list, preferred_types):
+    """Rearrange service_list in a new list so services are ordered by
+    types listed in preferred_types.  Return the new list."""
+    buckets = dict([(typ, []) for typ in preferred_types])
+
+    for typ in preferred_types:
+        for s in service_list:
+            if typ in s.type_uris:
+                buckets[typ].append(s)
+
+    new_list = []
+    for typ in preferred_types:
+        new_list += buckets[typ]
+
+    return new_list
+
+def getOPOrUserServices(openid_services):
+    """Extract OP Identifier services.  If none found, return the
+    rest, sorted with most preferred first according to
+    OpenIDServiceEndpoint.openid_type_uris.
+
+    openid_services is a list of OpenIDServiceEndpoint objects.
+
+    Returns a list of OpenIDServiceEndpoint objects."""
+
+    op_services = arrangeByType(openid_services, [OPENID_IDP_2_0_TYPE])
+
+    openid_services = arrangeByType(openid_services,
+                                    OpenIDServiceEndpoint.openid_type_uris)
+
+    return op_services or openid_services
+
 def discoverYadis(uri):
     """Discover OpenID services for a URI. Tries Yadis and falls back
     on old-style <link rel='...'> discovery if Yadis fails.
@@ -201,7 +236,7 @@ def discoverYadis(uri):
         # <link rel="...">
         openid_services = OpenIDServiceEndpoint.fromHTML(yadis_url, body)
 
-    return (yadis_url, openid_services)
+    return (yadis_url, getOPOrUserServices(openid_services))
 
 def discoverXRI(iname):
     endpoints = []
@@ -220,7 +255,7 @@ def discoverXRI(iname):
         endpoint.canonicalID = canonicalID
 
     # FIXME: returned xri should probably be in some normal form
-    return iname, endpoints
+    return iname, getOPOrUserServices(endpoints)
 
 
 def discoverNoYadis(uri):
