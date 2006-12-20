@@ -46,6 +46,9 @@ class OpenIDServiceEndpoint(object):
         else:
             return OPENID_1_0_MESSAGE_NS
 
+    def compatibilityMode(self):
+        return OPENID_2_0_MESSAGE_NS not in self.type_uris
+
     def __init__(self):
         self.claimed_id = None
         self.server_url = None
