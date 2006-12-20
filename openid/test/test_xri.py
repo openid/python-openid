@@ -1,4 +1,3 @@
-
 from unittest import TestCase
 from openid.yadis import xri
 
@@ -53,64 +52,49 @@ class XriTransformationTestCase(TestCase):
 
 
 class CanonicalIDTest(TestCase):
-    providerIsAuthoritativeCases = [
-        # provider, canonicalID, isAuthoritative
-        ('=', '=!698.74D1.A1F2.86C7', True),
-        ('@!1234', '@!1234!ABCD', True),
-        ('@!1234!5678', '@!1234!5678!ABCD', True),
-        ('@!1234', '=!1234!ABCD', False),
-        ('@!1234', '@!1234!ABCD!9765', False),
-        ('@!1234!ABCD', '=!1234', False),
-        ('=!BABE', '=!D00D', False),
-        ]
+    def mkTest(providerID, canonicalID, isAuthoritative):
+        def test(self):
+            result = xri.providerIsAuthoritative(providerID, canonicalID)
+            format = "%s providing %s, expected %s"
+            message = format % (providerID, canonicalID, isAuthoritative)
+            self.failUnlessEqual(isAuthoritative, result, message)
 
+        return test
 
-    def test_providerIsAuthoritative(self):
-        """Checking whether this provider is authoratitve for
-        the given XRI."""
-        # XXX: Should perhaps be more like the other data-driven tests?
-        for providerID, canonicalID, isAuthoritative in \
-                self.providerIsAuthoritativeCases:
-            self._providerIsAuthoritative(providerID, canonicalID,
-                                          isAuthoritative)
+    test_equals = mkTest('=', '=!698.74D1.A1F2.86C7', True)
+    test_atOne = mkTest('@!1234', '@!1234!ABCD', True)
+    test_atTwo = mkTest('@!1234!5678', '@!1234!5678!ABCD', True)
 
-
-    def _providerIsAuthoritative(self, providerID, canonicalID, expected):
-        result = xri.providerIsAuthoritative(providerID, canonicalID)
-        self.failUnlessEqual(expected, result,
-                             "%s providing %s, expected %s" % (providerID,
-                                                               canonicalID,
-                                                               expected))
-
-
+    test_atEqualsFails = mkTest('@!1234', '=!1234!ABCD', False)
+    test_tooDeepFails = mkTest('@!1234', '@!1234!ABCD!9765', False)
+    test_atEqualsAndTooDeepFails = mkTest('@!1234!ABCD', '=!1234', False)
+    test_differentBeginningFails = mkTest('=!BABE', '=!D00D', False)
 
 class TestGetRootAuthority(TestCase):
-    xris = [
-        ("@foo", "@"),
-        ("@foo*bar", "@"),
-        ("@*foo*bar", "@"),
-        ("@foo/bar", "@"),
-        ("!!990!991", "!"),
-        ("!1001!02", "!"),
-        ("=foo*bar", "="),
-        ("(example.com)/foo", "(example.com)"),
-        ("(example.com)*bar/foo", "(example.com)"),
-        ("baz.example.com/foo", "baz.example.com"),
-        ("baz.example.com:8080/foo", "baz.example.com:8080"),
-        # Looking at the ABNF in XRI Syntax 2.0, I don't think you can
-        # have example.com*bar.  You can do (example.com)*bar, but that
-        # would mean something else.
-        ##("example.com*bar/(=baz)", "example.com*bar"),
-        ##("baz.example.com!01/foo", "baz.example.com!01"),
-        ]
+    def mkTest(the_xri, expected_root):
+        def test(self):
+            actual_root = xri.rootAuthority(the_xri)
+            self.failUnlessEqual(actual_root, xri.XRI(expected_root))
+        return test
 
+    test_at = mkTest("@foo", "@")
+    test_atStar = mkTest("@foo*bar", "@")
+    test_atStarStar = mkTest("@*foo*bar", "@")
+    test_atWithPath = mkTest("@foo/bar", "@")
+    test_bangBang = mkTest("!!990!991", "!")
+    test_bang = mkTest("!1001!02", "!")
+    test_equalsStar = mkTest("=foo*bar", "=")
+    test_xrefPath = mkTest("(example.com)/foo", "(example.com)")
+    test_xrefStar = mkTest("(example.com)*bar/foo", "(example.com)")
+    test_uriAuth = mkTest("baz.example.com/foo", "baz.example.com")
+    test_uriAuthPort = mkTest("baz.example.com:8080/foo",
+                              "baz.example.com:8080")
 
-    def test_getRootAuthority(self):
-        for thexri, expected_root in self.xris:
-            self.failUnlessEqual(xri.rootAuthority(thexri),
-                                 xri.XRI(expected_root))
-
-
+    # Looking at the ABNF in XRI Syntax 2.0, I don't think you can
+    # have example.com*bar.  You can do (example.com)*bar, but that
+    # would mean something else.
+    ##("example.com*bar/(=baz)", "example.com*bar"),
+    ##("baz.example.com!01/foo", "baz.example.com!01"),
 
 if __name__ == '__main__':
     import unittest
