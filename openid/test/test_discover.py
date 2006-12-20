@@ -198,6 +198,26 @@ class TestDiscovery(BaseTestDiscovery):
     def _notUsedYadis(self, service):
         self.failIf(service.used_yadis, "Expected to use old-style discovery")
 
+    def _hasTypes(self, service, *types):
+        """Check to see if the specified type URIs are present in the
+        service element in order"""
+        openid_types = {
+            '1.1': discover.OPENID_1_1_TYPE,
+            '1.0': discover.OPENID_1_0_TYPE,
+            '2.0': discover.OPENID_2_0_TYPE,
+            '2.0 OP': discover.OPENID_IDP_2_0_TYPE,
+            }
+
+        it = iter(service.type_uris)
+        for type_code in types:
+            type_uri = openid_types[type_code]
+            for t in it:
+                if t == type_uri:
+                    break
+            else:
+                self.fail('Did not find types %r in %r'
+                          % (types, service.type_uris))
+
     def test_404(self):
         self.failUnlessRaises(DiscoveryFailure,
                               discover.discover, self.id_url + '/404')
@@ -216,9 +236,11 @@ class TestDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(services[0].server_url,
                              "http://www.myopenid.com/server")
         self._usedYadis(services[0])
+        self._hasTypes(services[0], '1.0')
         self.failUnlessEqual(services[1].server_url,
                              "http://www.livejournal.com/openid/server.bml")
         self._usedYadis(services[1])
+        self._hasTypes(services[0], '1.0')
 
     def test_yadis_another(self):
         services = self._discover(
@@ -231,6 +253,7 @@ class TestDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(services[0].server_url,
                              "http://vroom.unittest/server")
         self._usedYadis(services[0])
+        self._hasTypes(services[0], '1.0')
 
     def test_redirect(self):
         expected_final_url = "http://elsewhere.unittest/"
@@ -246,6 +269,7 @@ class TestDiscovery(BaseTestDiscovery):
                              "http://smoker.myopenid.com/")
         self.failUnlessEqual(services[0].claimed_id, expected_final_url)
         self._notUsedYadis(services[0])
+        self._hasTypes(services[0], '1.1')
 
     def test_emptyList(self):
         services = self._discover(content_type='application/xrds+xml',
@@ -265,6 +289,7 @@ class TestDiscovery(BaseTestDiscovery):
                              "http://www.myopenid.com/server")
         self.failUnlessEqual(services[0].claimed_id, self.id_url)
         self._notUsedYadis(services[0])
+        self._hasTypes(services[0], '1.1')
 
     def test_yadisNoDelegate(self):
         services = self._discover(content_type='application/xrds+xml',
@@ -277,6 +302,7 @@ class TestDiscovery(BaseTestDiscovery):
                         'Delegate should be None. Got %r' %
                         (services[0].local_id,))
         self._usedYadis(services[0])
+        self._hasTypes(services[0], '1.0')
 
     def test_yadisIDP(self):
         services = self._discover(content_type='application/xrds+xml',
@@ -290,6 +316,7 @@ class TestDiscovery(BaseTestDiscovery):
                         'Delegate should be None. Got %r' %
                         (services[0].local_id,))
         self._usedYadis(services[0])
+        self._hasTypes(services[0], '2.0 OP')
 
     def test_yadisIDPdelegate(self):
         """The delegate tag isn't meaningful for IdP entries."""
@@ -306,7 +333,7 @@ class TestDiscovery(BaseTestDiscovery):
                         'Delegate should be None. Got %r' %
                         (services[0].local_id,))
         self._usedYadis(services[0])
-
+        self._hasTypes(services[0], '2.0 OP')
 
     def test_openidNoDelegate(self):
         services = self._discover(
@@ -322,6 +349,7 @@ class TestDiscovery(BaseTestDiscovery):
                         (services[0].local_id,))
 
         self._notUsedYadis(services[0])
+        self._hasTypes(services[0], '1.1')
 
     def test_openid2(self):
         services = self._discover(
@@ -336,7 +364,7 @@ class TestDiscovery(BaseTestDiscovery):
                              services[0].local_id)
         self.failUnlessEqual([discover.OPENID_2_0_TYPE], services[0].type_uris)
         self._notUsedYadis(services[0])
-        self.failUnlessEqual(1, len(services))
+        self._hasTypes(services[0], '2.0')
 
     def test_openid1(self):
         services = self._discover(
@@ -351,6 +379,7 @@ class TestDiscovery(BaseTestDiscovery):
                              services[0].local_id)
         self.failUnlessEqual([discover.OPENID_1_1_TYPE], services[0].type_uris)
         self._notUsedYadis(services[0])
+        self._hasTypes(services[0], '1.1')
 
     def test_openid_1_and_2(self):
         services = self._discover(
@@ -363,8 +392,8 @@ class TestDiscovery(BaseTestDiscovery):
         self.failUnlessEqual(services[1].claimed_id, self.id_url)
         self.failUnlessEqual('http://smoker.myopenid.com/',
                              services[1].local_id)
-        self.failUnlessEqual([discover.OPENID_2_0_TYPE], services[1].type_uris)
         self._notUsedYadis(services[1])
+        self._hasTypes(services[1], '2.0')
 
 
         self.failUnlessEqual(services[0].server_url,
@@ -374,6 +403,7 @@ class TestDiscovery(BaseTestDiscovery):
                              services[0].local_id)
         self.failUnlessEqual([discover.OPENID_1_1_TYPE], services[0].type_uris)
         self._notUsedYadis(services[0])
+        self._hasTypes(services[0], '1.1')
 
 
 class MockFetcherForXRIProxy(object):
