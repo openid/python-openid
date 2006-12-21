@@ -306,6 +306,10 @@ def discoverXRI(iname):
     try:
         canonicalID, services = xrires.ProxyResolver().query(
             iname, OpenIDServiceEndpoint.openid_type_uris)
+
+        if canonicalID is None:
+            raise XRDSError('No CanonicalID found for XRI %r' % (iname,))
+
         flt = filters.mkFilter(OpenIDServiceEndpoint)
         for service_element in services:
             endpoints.extend(flt.getServiceEndpoints(iname, service_element))
@@ -316,6 +320,7 @@ def discoverXRI(iname):
         # Is there a way to pass this through the filter to the endpoint
         # constructor instead of tacking it on after?
         endpoint.canonicalID = canonicalID
+        endpoint.claimed_id = canonicalID
 
     # FIXME: returned xri should probably be in some normal form
     return iname, getOPOrUserServices(endpoints)

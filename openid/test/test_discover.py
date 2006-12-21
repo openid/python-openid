@@ -166,36 +166,11 @@ class BaseTestDiscovery(unittest.TestCase):
     documents = {}
     fetcherClass = DiscoveryMockFetcher
 
-    def setUp(self):
-        self.documents = self.documents.copy()
-        self.fetcher = self.fetcherClass(self.documents)
-        fetchers.setDefaultFetcher(self.fetcher)
-
-    def tearDown(self):
-        fetchers.setDefaultFetcher(None)
-
-def readDataFile(filename):
-    module_directory = os.path.dirname(os.path.abspath(__file__))
-    filename = os.path.join(
-        module_directory, 'data', 'test_discover', filename)
-    return file(filename).read()
-
-class TestDiscovery(BaseTestDiscovery):
-    def _discover(self, content_type, data,
-                  expected_services, expected_id=None):
-        if expected_id is None:
-            expected_id = self.id_url
-
-        self.documents[self.id_url] = (content_type, data)
-        id_url, services = discover.discover(self.id_url)
-        self.failUnlessEqual(expected_services, len(services))
-        self.failUnlessEqual(expected_id, id_url)
-        return services
-
     def _checkService(self, s,
                       server_url,
                       claimed_id=None,
                       local_id=None,
+                      canonical_id=None,
                       types=None,
                       used_yadis=False
                       ):
@@ -224,6 +199,33 @@ class TestDiscovery(BaseTestDiscovery):
 
         type_uris = [openid_types[t] for t in types]
         self.failUnlessEqual(type_uris, s.type_uris)
+        self.failUnlessEqual(canonical_id, s.canonicalID)
+
+    def setUp(self):
+        self.documents = self.documents.copy()
+        self.fetcher = self.fetcherClass(self.documents)
+        fetchers.setDefaultFetcher(self.fetcher)
+
+    def tearDown(self):
+        fetchers.setDefaultFetcher(None)
+
+def readDataFile(filename):
+    module_directory = os.path.dirname(os.path.abspath(__file__))
+    filename = os.path.join(
+        module_directory, 'data', 'test_discover', filename)
+    return file(filename).read()
+
+class TestDiscovery(BaseTestDiscovery):
+    def _discover(self, content_type, data,
+                  expected_services, expected_id=None):
+        if expected_id is None:
+            expected_id = self.id_url
+
+        self.documents[self.id_url] = (content_type, data)
+        id_url, services = discover.discover(self.id_url)
+        self.failUnlessEqual(expected_services, len(services))
+        self.failUnlessEqual(expected_id, id_url)
+        return services
 
     def test_404(self):
         self.failUnlessRaises(DiscoveryFailure,
@@ -471,18 +473,32 @@ class TestXRIDiscovery(BaseTestDiscovery):
 
     def test_xri(self):
         user_xri, services = discover.discoverXRI('=smoker')
-        self.failUnless(services)
-        self.failUnlessEqual(services[0].server_url,
-                             "http://www.myopenid.com/server")
-        self.failUnlessEqual(services[1].server_url,
-                             "http://www.livejournal.com/openid/server.bml")
-        self.failUnlessEqual(services[0].canonicalID, XRI("=!1000"))
+
+        self._checkService(
+            services[0],
+            used_yadis=True,
+            types=['1.0'],
+            server_url="http://www.myopenid.com/server",
+            claimed_id=XRI("=!1000"),
+            canonical_id=XRI("=!1000"),
+            local_id='http://smoker.myopenid.com/',
+            )
+
+        self._checkService(
+            services[1],
+            used_yadis=True,
+            types=['1.0'],
+            server_url="http://www.livejournal.com/openid/server.bml",
+            claimed_id=XRI("=!1000"),
+            canonical_id=XRI("=!1000"),
+            local_id='http://frank.livejournal.com/',
+            )
 
     def test_useCanonicalID(self):
         """When there is no delegate, the CanonicalID should be used with XRI.
         """
         endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.claimed_id = "=example"
+        endpoint.claimed_id = XRI("=!1000")
         endpoint.canonicalID = XRI("=!1000")
         self.failUnlessEqual(endpoint.getLocalID(), XRI("=!1000"))
 
