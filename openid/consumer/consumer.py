@@ -811,6 +811,7 @@ class GenericConsumer(object):
         session_type_class = self.session_types[session_type]
         assoc_session = session_type_class()
 
+        # XXX: use a Message object here
         args = {
             'openid.mode': 'associate',
             'openid.assoc_type': assoc_type,
