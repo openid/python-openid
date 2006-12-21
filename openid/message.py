@@ -104,7 +104,7 @@ class Message(object):
                 self.args[(BARE_NS, key)] = value
             else:
                 openid_args[rest] = value
-                    
+
         self._fromOpenIDArgs(openid_args)
 
         return self
