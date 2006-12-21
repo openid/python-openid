@@ -469,7 +469,9 @@ class TestXRIDiscovery(BaseTestDiscovery):
     fetcherClass = MockFetcherForXRIProxy
 
     documents = {'=smoker': ('application/xrds+xml',
-                             readDataFile('yadis_2entries_delegate.xml')) }
+                             readDataFile('yadis_2entries_delegate.xml')),
+                 '=smoker*bad': ('application/xrds+xml',
+                                 readDataFile('yadis_another_delegate.xml')) }
 
     def test_xri(self):
         user_xri, services = discover.discoverXRI('=smoker')
@@ -493,6 +495,10 @@ class TestXRIDiscovery(BaseTestDiscovery):
             canonical_id=XRI("=!1000"),
             local_id='http://frank.livejournal.com/',
             )
+
+    def test_xriNoCanonicalID(self):
+        user_xri, services = discover.discoverXRI('=smoker*bad')
+        self.failIf(services)
 
     def test_useCanonicalID(self):
         """When there is no delegate, the CanonicalID should be used with XRI.

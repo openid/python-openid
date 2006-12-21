@@ -76,6 +76,9 @@ class ProxyResolver(object):
         # Make a seperate request to the proxy resolver for each service
         # type, as, if it is following Refs, it could return a different
         # XRDS for each.
+
+        canonicalID = None
+
         for service_type in service_types:
             url = self.queryURL(xri, service_type)
             response = fetchers.fetch(url)
