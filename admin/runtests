@@ -86,7 +86,6 @@ def pyunitTests():
         linkparse,
         trustroot,
         test_openidyadis,
-        test_discover,
         test_htmldiscover,
         test_association,
         kvform,
