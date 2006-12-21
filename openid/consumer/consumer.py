@@ -637,8 +637,8 @@ class GenericConsumer(object):
                                  % (rt_key, query))
 
     _verifyReturnToArgs = staticmethod(_verifyReturnToArgs)
-            
-            
+
+
     def _verifyDiscoveryResults(self, orig_endpoint, resp_msg):
         """
 
