@@ -1468,5 +1468,39 @@ class TestParseAssociation(unittest.TestCase):
             }
         self.msg = Message.fromOpenIDArgs()
 
+class TestOpenID1AssociationResponseSessionType(unittest.TestCase):
+    def mkTest(expected_session_type, session_type_value=None):
+        def test(self):
+            # Create a Message with just 'session_type' in it, since
+            # that's all this function will use. 'session_type' may be
+            # absent if it's set to None.
+            args = {}
+            if session_type_value is not None:
+                args['session_type'] = session_type_value
+            message = Message.fromOpenIDArgs(args)
+            self.failUnless(message.isOpenID1())
+
+            # Store should not be needed
+            consumer = GenericConsumer(store=None)
+
+            actual_session_type = consumer._getOpenID1SessionType(message)
+            error_message = ('Returned sesion type parameter %r was expected '
+                             'to yield session type %r, but yielded %r' %
+                             (session_type_value, expected_session_type,
+                              actual_session_type))
+            self.failUnlessEqual(
+                expected_session_type, actual_session_type, error_message)
+
+    test_none = mkTest('no-encryption', None)
+    test_empty = mkTest('no-encryption', '')
+    test_explicitNoEncryption = mkTest('no-encryption', 'no-encryption')
+    test_dhSHA1 = mkTest('DH-SHA1', 'DH-SHA1')
+
+    # This is not a valid session type for OpenID1, but this function
+    # does not test that. This is mostly just to make sure that it
+    # will pass-through stuff that is not explicitly handled, so it
+    # will get handled the same way as it is handled for OpenID 2
+    test_dhSHA256 = mkTest('DH-SHA256', 'DH-SHA256')
+
 if __name__ == '__main__':
     unittest.main()

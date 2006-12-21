@@ -838,34 +838,77 @@ class GenericConsumer(object):
         args.update(assoc_session.getRequest())
         return assoc_session, args
 
-    def _parseAssociation(self, results, assoc_session, server_url):
-        error_code = results.getArg(OPENID2_NS, 'error_code')
+    def _getOpenID1SessionType(self, association_response):
+        # If it's an OpenID 1 message, allow session_type to default
+        # to None (which signifies "no-encryption")
+        session_type = association_response.getArg(OPENID1_NS, 'session_type')
+
+        # Handle the differences between no-encryption association
+        # respones in OpenID 1 and 2:
+
+        # no-encryption is not really a valid session type for
+        # OpenID 1, but we'll accept it anyway, while issuing a
+        # warning.
+        if session_type == 'no-encryption':
+            oidutil.log('WARNING: OpenID server sent "no-encryption"'
+                        'for OpenID 1.X')
+
+        # Missing or empty session type is the way to flag a
+        # 'no-encryption' response. Change the session type to
+        # 'no-encryption' so that it can be handled in the same
+        # way as OpenID 2 'no-encryption' respones.
+        elif session_type == '' or session_type is None:
+            oidutil.log('Falling back to no-encryption association '
+                        'session from %s' % assoc_session.session_type)
+            session_type = 'no-encryption'
+
+        return session_type
+
+    def _parseAssociation(self,
+                          association_response, assoc_session, server_url):
+        error_code = association_response.getArg(OPENID2_NS, 'error_code')
         if error_code is not None:
-            return self._associateError(results)
+            return self._associateError(association_response)
 
         try:
-            assoc_type = results.getArg(
+            assoc_type = association_response.getArg(
                 OPENID_NS, 'assoc_type', no_default)
-            assoc_handle = results.getArg(
+            assoc_handle = association_response.getArg(
                 OPENID_NS, 'assoc_handle', no_default)
-            expires_in_str = results.getArg(
+            expires_in_str = association_response.getArg(
                 OPENID_NS, 'expires_in', no_default)
+
+            if association_response.isOpenID1():
+                session_type = self._getOpenID1SessionType(
+                    association_response)
+            else:
+                session_type = association_response.getArg(
+                    OPENID2_NS, 'session_type', no_default)
         except KeyError, e:
             fmt = 'Getting association: missing key in response from %s: %s'
             oidutil.log(fmt % (server_url, e[0]))
             return None
 
-        session_type = results.getArg(OPENID_NS, 'session_type')
-        if session_type != assoc_session.session_type:
-            if session_type is None or session_type == 'no-encryption':
-                oidutil.log('Falling back to no-encryption association '
-                            'session from %s' % assoc_session.session_type)
+        # Session type mismatch
+        if assoc_session.session_type != session_type:
+            if (association_response.isOpenID1() and
+                session_type == 'no-encryption'):
+                # In OpenID 1, any association request can result in a
+                # 'no-encryption' association response. Setting
+                # assoc_session to a new no-encryption session should
+                # make the rest of this function work properly for
+                # that case.
                 assoc_session = PlainTextConsumerSession()
             else:
-                oidutil.log('Session type mismatch. Expected %r, got %r' %
-                            (assoc_session.session_type, session_type))
+                # Any other mismatch, regardless of protocol version
+                # results in the failure of the association session
+                # altogether.
+                message = 'Session type mismatch. Expected %r, got %r' % (
+                    assoc_session.session_type, session_type)
+                oidutil.log(message)
                 return None
 
+        # Make sure assoc_type is valid for session_type
         if assoc_type not in assoc_session.allowed_assoc_types:
             msg = (
                 'Unsupported assoc_type for session %s returned '
@@ -882,7 +925,7 @@ class GenericConsumer(object):
             return None
 
         try:
-            secret = assoc_session.extractSecret(results)
+            secret = assoc_session.extractSecret(association_response)
         except ValueError, why:
             oidutil.log('Malformed response for %s session: %s' % (
                 assoc_session.session_type, why[0]))
