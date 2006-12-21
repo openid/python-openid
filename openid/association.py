@@ -98,11 +98,12 @@ class SessionNegotiator(object):
         return assoc_good and matches
 
     def getAllowedType(self):
-        """Get a pair of assocation type and session type that are supported"""
-        for pair in self.allowed_types:
-            return pair
-
-        return (None, None)
+        """Get a pair of assocation type and session type that are
+        supported"""
+        try:
+            return self.allowed_types[0]
+        except IndexError:
+            return (None, None)
 
 default_negotiator = SessionNegotiator(default_association_order)
 encrypted_negotiator = SessionNegotiator(only_encrypted_association_order)
