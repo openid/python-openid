@@ -192,7 +192,7 @@ from openid.consumer.discover import discover as discoverURL
 from openid.consumer.discover import discoverXRI
 from openid.consumer.discover import DiscoveryFailure
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
-     IDENTIFIER_SELECT
+     IDENTIFIER_SELECT, no_default
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
@@ -387,9 +387,12 @@ class DiffieHellmanSHA1ConsumerSession(object):
         return args
 
     def extractSecret(self, response):
-        spub = cryptutil.base64ToLong(response['dh_server_public'])
-        enc_mac_key = oidutil.fromBase64(response['enc_mac_key'])
-        return self.dh.xorSecret(spub, enc_mac_key, self.hash_func)
+        dh_server_public64 = response.getArg(
+            OPENID_NS, 'dh_server_public', no_default)
+        enc_mac_key64 = response.getArg(OPENID_NS, 'enc_mac_key', no_default)
+        dh_server_public = cryptutil.base64ToLong(dh_server_public64)
+        enc_mac_key = oidutil.fromBase64(enc_mac_key64)
+        return self.dh.xorSecret(dh_server_public, enc_mac_key, self.hash_func)
 
 class DiffieHellmanSHA256ConsumerSession(DiffieHellmanSHA1ConsumerSession):
     session_type = 'DH-SHA256'
@@ -404,7 +407,7 @@ class PlainTextConsumerSession(object):
         return {}
 
     def extractSecret(self, response):
-        return oidutil.fromBase64(response['mac_key'])
+        return oidutil.fromBase64(response.getArg(OPENID_NS, 'mac_key'))
 
 class UnsupportedAssocType(Exception):
     """Exception raised when the server tells us that the session type
@@ -498,27 +501,36 @@ class GenericConsumer(object):
         return response
 
     def _makeKVPost(self, args, server_url):
+        """Make a Direct Request to an OpenID Provider and return the
+        result as a Message object.
+
+        @raises fetchers.HTTPFetchingError
+        @rtype: openid.message.Message
+        """
+        # XXX: TESTME
+        # XXX: make me take a Message
         mode = args['openid.mode']
         body = urllib.urlencode(args)
 
         resp = fetchers.fetch(server_url, body=body)
         if resp is None:
-            fmt = 'openid.mode=%s: failed to fetch URL: %s'
-            oidutil.log(fmt % (mode, server_url))
-            return None
+            fmt = 'failed to fetch URL: %s'
+            raise fetchers.HTTPFetchingError(fmt % (mode, server_url))
 
         response = kvform.kvToDict(resp.body)
         if resp.status == 400:
-            server_error = response.get('error', '<no message from server>')
-            fmt = 'openid.mode=%s: error returned from server %s: %s'
-            oidutil.log(fmt % (mode, server_url, server_error))
-            return None
-        elif resp.status != 200:
-            fmt = 'openid.mode=%s: bad status code from server %s: %s'
-            oidutil.log(fmt % (mode, server_url, resp.status))
-            return None
+            server_error = response.getArg(
+                OPENID_NS, 'error', '<no message from server>')
+            fmt = 'error returned from server %s: %s'
+            error_message = fmt % (mode, server_url, server_error)
+            raise fetchers.HTTPFetchingError(error_message)
 
-        return response
+        elif resp.status != 200:
+            fmt = 'bad status code from server %s: %s'
+            error_message = fmt % (server_url, resp.status)
+            raise fetchers.HTTPFetchingError(error_message)
+
+        return Message.fromOpenIDArgs(response)
 
     def _doIdRes(self, message, endpoint):
         """Handle id_res responses.
@@ -704,10 +716,13 @@ class GenericConsumer(object):
         request = self._createCheckAuthRequest(message)
         if request is None:
             return False
-        response = self._makeKVPost(request, server_url)
-        if response is None:
+        try:
+            response = self._makeKVPost(request, server_url)
+        except fetchers.HTTPFetchingError, e:
+            oidutil.log('check_authentication failed: %s' % (e[0],))
             return False
-        return self._processCheckAuthResponse(response, server_url)
+        else:
+            return self._processCheckAuthResponse(response, server_url)
 
     def _createCheckAuthRequest(self, message):
         # Arguments that are always passed to the server and not
@@ -736,9 +751,9 @@ class GenericConsumer(object):
         return check_args
 
     def _processCheckAuthResponse(self, response, server_url):
-        is_valid = response.get('is_valid', 'false')
+        is_valid = response.getArg(OPENID_NS, 'is_valid', 'false')
 
-        invalidate_handle = response.get('invalidate_handle')
+        invalidate_handle = response.getArg(OPENID_NS, 'invalidate_handle')
         if invalidate_handle is not None:
             self.store.removeAssociation(server_url, invalidate_handle)
 
@@ -766,16 +781,10 @@ class GenericConsumer(object):
                     response = self._makeKVPost(args, endpoint.server_url)
                 except fetchers.HTTPFetchingError, why:
                     oidutil.log('openid.associate request failed: %s' %
-                                (str(why),))
+                                (why[0],))
                     assoc = None
                     break
                 else:
-                    if response is None:
-                        oidutil.log('openid.associate request failed: ' +
-                                    'no reason given.')
-                        assoc = None
-                        break
-
                     try:
                         assoc = self._parseAssociation(
                             response, assoc_session, endpoint.server_url)
@@ -830,20 +839,23 @@ class GenericConsumer(object):
         return assoc_session, args
 
     def _parseAssociation(self, results, assoc_session, server_url):
-        error_code = results.get('error_code')
+        error_code = results.getArg(OPENID2_NS, 'error_code')
         if error_code is not None:
             return self._associateError(results)
 
         try:
-            assoc_type = results['assoc_type']
-            assoc_handle = results['assoc_handle']
-            expires_in_str = results['expires_in']
+            assoc_type = results.getArg(
+                OPENID_NS, 'assoc_type', no_default)
+            assoc_handle = results.getArg(
+                OPENID_NS, 'assoc_handle', no_default)
+            expires_in_str = results.getArg(
+                OPENID_NS, 'expires_in', no_default)
         except KeyError, e:
             fmt = 'Getting association: missing key in response from %s: %s'
             oidutil.log(fmt % (server_url, e[0]))
             return None
 
-        session_type = results.get('session_type')
+        session_type = results.getArg(OPENID_NS, 'session_type')
         if session_type != assoc_session.session_type:
             if session_type is None or session_type == 'no-encryption':
                 oidutil.log('Falling back to no-encryption association '

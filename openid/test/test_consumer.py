@@ -510,34 +510,29 @@ class TestCheckAuthResponse(TestIdRes):
 
     def test_goodResponse(self):
         """successful response to check_authentication"""
-        response = {
-            'is_valid':'true',
-            }
+        response = Message.fromOpenIDArgs({'is_valid':'true',})
         r = self.consumer._processCheckAuthResponse(response, self.server_url)
         self.failUnless(r)
 
     def test_missingAnswer(self):
         """check_authentication returns false when the server sends no answer"""
-        response = {
-            }
+        response = Message.fromOpenIDArgs({})
         r = self.consumer._processCheckAuthResponse(response, self.server_url)
         self.failIf(r)
 
     def test_badResponse(self):
         """check_authentication returns false when is_valid is false"""
-        response = {
-            'is_valid':'false',
-            }
+        response = Message.fromOpenIDArgs({'is_valid':'false',})
         r = self.consumer._processCheckAuthResponse(response, self.server_url)
         self.failIf(r)
 
     def test_badResponseInvalidate(self):
         """Make sure that the handle is invalidated when is_valid is false"""
         self._createAssoc()
-        response = {
+        response = Message.fromOpenIDArgs({
             'is_valid':'false',
             'invalidate_handle':'handle',
-            }
+            })
         r = self.consumer._processCheckAuthResponse(response, self.server_url)
         self.failIf(r)
         self.failUnless(
@@ -545,20 +540,20 @@ class TestCheckAuthResponse(TestIdRes):
 
     def test_invalidateMissing(self):
         """invalidate_handle with a handle that is not present"""
-        response = {
+        response = Message.fromOpenIDArgs({
             'is_valid':'true',
             'invalidate_handle':'missing',
-            }
+            })
         r = self.consumer._processCheckAuthResponse(response, self.server_url)
         self.failUnless(r)
 
     def test_invalidatePresent(self):
         """invalidate_handle with a handle that exists"""
         self._createAssoc()
-        response = {
+        response = Message.fromOpenIDArgs({
             'is_valid':'true',
             'invalidate_handle':'handle',
-            }
+            })
         r = self.consumer._processCheckAuthResponse(response, self.server_url)
         self.failUnless(r)
         self.failUnless(
@@ -825,8 +820,11 @@ class MockFetcher(object):
         return self.response
 
 class ExceptionRaisingMockFetcher(object):
+    class MyException(Exception):
+        pass
+
     def fetch(self, url, body=None, headers=None):
-        raise HTTPFetchingError('mock fetcher exception')
+        raise self.MyException('mock fetcher exception')
 
 class BadArgCheckingConsumer(GenericConsumer):
     def _makeKVPost(self, args, _):
@@ -851,7 +849,7 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
 
     def tearDown(self):
         CatchLogs.tearDown(self)
-        fetchers.setDefaultFetcher(self._orig_fetcher)
+        fetchers.setDefaultFetcher(self._orig_fetcher, wrap_exceptions=False)
 
     def test_error(self):
         self.fetcher.response = HTTPResponse(
@@ -904,16 +902,44 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         fetchers.setDefaultFetcher(self.fetcher)
         self.consumer = self.consumer_class(self.store)
 
-    def test_error(self):
+    def test_error_404(self):
+        """404 from a kv post raises HTTPFetchingError"""
         self.fetcher.response = HTTPResponse(
             "http://some_url", 404, {'Hea': 'der'}, 'blah:blah\n')
-        r = self.consumer._makeKVPost({'openid.mode':'associate'},
-                                      "http://server_url")
-        self.failUnlessEqual(r, None)
-        self.failUnless(self.messages)
+        self.failUnlessRaises(
+            fetchers.HTTPFetchingError,
+            self.consumer._makeKVPost,
+            {'openid.mode':'associate'},
+            "http://server_url")
 
-    def test_error_exception(self):
+    def test_error_exception_unwrapped(self):
+        """Ensure that exceptions are bubbled through from fetchers
+        when making associations
+        """
         self.fetcher = ExceptionRaisingMockFetcher()
+        fetchers.setDefaultFetcher(self.fetcher, wrap_exceptions=False)
+        self.failUnlessRaises(self.fetcher.MyException,
+                              self.consumer._makeKVPost,
+                              {'openid.mode':'associate'},
+                              "http://server_url")
+
+        # exception fetching returns no association
+        e = OpenIDServiceEndpoint()
+        e.server_url = 'some://url'
+        self.failUnlessRaises(self.fetcher.MyException,
+                              self.consumer._getAssociation, e)
+
+        self.failUnlessRaises(self.fetcher.MyException,
+                              self.consumer._checkAuth,
+                              Message.fromPostArgs({'openid.signed':''}),
+                              'some://url')
+
+    def test_error_exception_wrapped(self):
+        """Ensure that openid.fetchers.HTTPFetchingError is caught by
+        the association creation stuff.
+        """
+        self.fetcher = ExceptionRaisingMockFetcher()
+        # This will wrap exceptions!
         fetchers.setDefaultFetcher(self.fetcher)
         self.failUnlessRaises(fetchers.HTTPFetchingError,
                               self.consumer._makeKVPost,
@@ -925,10 +951,8 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         e.server_url = 'some://url'
         self.failUnless(self.consumer._getAssociation(e) is None)
 
-        self.failUnlessRaises(fetchers.HTTPFetchingError,
-                              self.consumer._checkAuth,
-                              Message.fromPostArgs({'openid.signed':''}),
-                              'some://url')
+        msg = Message.fromPostArgs({'openid.signed':''})
+        self.failIf(self.consumer._checkAuth(msg, 'some://url'))
 
 
 class TestAuthRequest(unittest.TestCase):
@@ -1436,6 +1460,13 @@ class TestCreateAssociationRequest(unittest.TestCase):
                               }, args)
 
     # XXX: test the other types
+
+# XXX: NOT TO CHECK IN
+class TestParseAssociation(unittest.TestCase):
+    def setUp(self):
+        self.args = {
+            }
+        self.msg = Message.fromOpenIDArgs()
 
 if __name__ == '__main__':
     unittest.main()
