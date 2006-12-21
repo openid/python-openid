@@ -434,7 +434,7 @@ class OpenID2MessageTest(unittest.TestCase):
                     'openid.ns=%s&xey=value' % (
             urllib.quote(message.OPENID2_NS, ''),))
         self.failUnlessEqual(s, expected)
-        
+
 
     def test_toURLEncoded(self):
         self._test_urlencoded(self.msg.toURLEncoded())
@@ -783,7 +783,7 @@ class NamespaceMapTest(unittest.TestCase):
     def test_iteration(self):
         nsm = message.NamespaceMap()
         uripat = 'http://example.com/foo%r'
-        
+
         nsm.add(uripat%0)
         for n in range(1,23):
             self.failUnless(uripat%(n-1) in nsm)
@@ -794,7 +794,7 @@ class NamespaceMapTest(unittest.TestCase):
             self.failUnless(uri[22:]==alias)
 
         i=0
-        it = nsm.iterAliases() 
+        it = nsm.iterAliases()
         try:
             while True:
                 it.next()
@@ -803,7 +803,7 @@ class NamespaceMapTest(unittest.TestCase):
             self.failUnless(i == 23)
 
         i=0
-        it = nsm.iterNamespaceURIs() 
+        it = nsm.iterNamespaceURIs()
         try:
             while True:
                 it.next()
@@ -811,6 +811,6 @@ class NamespaceMapTest(unittest.TestCase):
         except StopIteration:
             self.failUnless(i == 23)
 
-            
+
 if __name__ == '__main__':
     unittest.main()
