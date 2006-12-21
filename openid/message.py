@@ -172,6 +172,12 @@ class Message(object):
     def getOpenIDNamespace(self):
         return self._openid_ns_uri
 
+    def isOpenID1(self):
+        return self.getOpenIDNamespace() == OPENID1_NS
+
+    def isOpenID2(self):
+        return self.getOpenIDNamespace() == OPENID2_NS
+
     def fromKVForm(cls, kvform_string):
         """Create a Message from a KVForm string"""
         return cls.fromOpenIDArgs(kvform.kvToDict(kvform_string))

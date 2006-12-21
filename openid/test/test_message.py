@@ -189,6 +189,11 @@ class EmptyMessageTest(unittest.TestCase):
     def test_delArgNS3(self):
         self._test_delArgNS('urn:nothing-significant')
 
+    def test_isOpenID1(self):
+        self.failIf(self.msg.isOpenID1())
+
+    def test_isOpenID2(self):
+        self.failIf(self.msg.isOpenID2())
 
 class OpenID1MessageTest(unittest.TestCase):
     def setUp(self):
@@ -378,6 +383,12 @@ class OpenID1MessageTest(unittest.TestCase):
     def test_delArgNS3(self):
         self._test_delArgNS('urn:nothing-significant')
 
+
+    def test_isOpenID1(self):
+        self.failUnless(self.msg.isOpenID1())
+
+    def test_isOpenID2(self):
+        self.failIf(self.msg.isOpenID2())
 
 class OpenID1ExplicitMessageTest(OpenID1MessageTest):
     def setUp(self):
@@ -624,6 +635,12 @@ class OpenID2MessageTest(unittest.TestCase):
     def test_argList(self):
         self.failUnlessRaises(TypeError, self.msg.fromPostArgs,
                               {'arg': [1, 2, 3]})
+
+    def test_isOpenID1(self):
+        self.failIf(self.msg.isOpenID1())
+
+    def test_isOpenID2(self):
+        self.failUnless(self.msg.isOpenID2())
 
 class MessageTest(unittest.TestCase):
     def setUp(self):
