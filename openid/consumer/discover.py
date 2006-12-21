@@ -84,7 +84,7 @@ class OpenIDServiceEndpoint(object):
         if (self.local_id is self.canonicalID is None):
             return self.claimed_id
         else:
-            return self.canonicalID or self.local_id
+            return self.local_id or self.canonicalID
 
     def isIdentifierSelect(self):
         return self.claimed_id is None

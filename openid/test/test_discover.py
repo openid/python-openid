@@ -180,9 +180,10 @@ class BaseTestDiscovery(unittest.TestCase):
             self.failIf(local_id)
             self.failIf(s.claimed_id)
             self.failIf(s.local_id)
+            self.failIf(s.getLocalID())
         else:
             self.failUnlessEqual(claimed_id, s.claimed_id)
-            self.failUnlessEqual(local_id, s.local_id)
+            self.failUnlessEqual(local_id, s.getLocalID())
 
         if used_yadis:
             self.failUnless(s.used_yadis, "Expected to use Yadis")
@@ -248,7 +249,7 @@ class TestDiscovery(BaseTestDiscovery):
             types=['1.1'],
             server_url="http://www.myopenid.com/server",
             claimed_id=self.id_url,
-            local_id=None,
+            local_id=self.id_url,
             )
 
     def test_html1(self):
@@ -336,7 +337,7 @@ class TestDiscovery(BaseTestDiscovery):
             types=['1.0'],
             server_url="http://www.myopenid.com/server",
             claimed_id=self.id_url,
-            local_id=None,
+            local_id=self.id_url,
             )
 
     def test_yadis2NoLocalID(self):
@@ -352,7 +353,7 @@ class TestDiscovery(BaseTestDiscovery):
             types=['2.0'],
             server_url="http://www.myopenid.com/server",
             claimed_id=self.id_url,
-            local_id=None,
+            local_id=self.id_url,
             )
 
     def test_yadis2(self):
