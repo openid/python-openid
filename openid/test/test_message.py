@@ -6,6 +6,23 @@ import cgi
 import unittest
 import datadriven
 
+def mkGetArgTest(ns, key, expected=None):
+    def test(self):
+        a_default = object()
+        self.failUnlessEqual(self.msg.getArg(ns, key), expected)
+        if expected is None:
+            self.failUnlessEqual(
+                self.msg.getArg(ns, key, a_default), a_default)
+            self.failUnlessRaises(
+                KeyError, self.msg.getArg, ns, key, message.no_default)
+        else:
+            self.failUnlessEqual(
+                self.msg.getArg(ns, key, a_default), expected)
+            self.failUnlessEqual(
+                self.msg.getArg(ns, key, message.no_default), expected)
+
+    return test
+
 class EmptyMessageTest(unittest.TestCase):
     def setUp(self):
         self.msg = message.Message()
@@ -79,18 +96,10 @@ class EmptyMessageTest(unittest.TestCase):
         self.failUnlessRaises(message.UndefinedOpenIDNamespace,
                               self.msg.getArg, message.OPENID_NS, 'foo')
 
-    def test_getArgBARE(self):
-        self.failUnlessEqual(self.msg.getArg(message.BARE_NS, 'foo'), None)
-
-    def test_getArgNS1(self):
-        self.failUnlessEqual(self.msg.getArg(message.OPENID1_NS, 'foo'), None)
-
-    def test_getArgNS2(self):
-        self.failUnlessEqual(self.msg.getArg(message.OPENID2_NS, 'foo'), None)
-
-    def test_getArgNS3(self):
-        self.failUnlessEqual(self.msg.getArg('urn:nothing-significant', 'foo'),
-                             None)
+    test_getArgBARE = mkGetArgTest(message.BARE_NS, 'foo')
+    test_getArgNS1 = mkGetArgTest(message.OPENID1_NS, 'foo')
+    test_getArgNS2 = mkGetArgTest(message.OPENID2_NS, 'foo')
+    test_getArgNS3 = mkGetArgTest('urn:nothing-significant', 'foo')
 
     def test_getArgs(self):
         # Could reasonably return {} instead of raising an
@@ -266,23 +275,11 @@ class OpenID1MessageTest(unittest.TestCase):
         self.failUnlessEqual(
             self.msg.hasKey('urn:nothing-significant', 'mode'), False)
 
-    def test_getArg(self):
-        self.failUnlessEqual(self.msg.getArg(message.OPENID_NS, 'mode'),
-                             'error')
-
-    def test_getArgBARE(self):
-        self.failUnlessEqual(self.msg.getArg(message.BARE_NS, 'mode'), None)
-
-    def test_getArgNS1(self):
-        self.failUnlessEqual(self.msg.getArg(message.OPENID1_NS, 'mode'),
-                             'error')
-
-    def test_getArgNS2(self):
-        self.failUnlessEqual(self.msg.getArg(message.OPENID2_NS, 'mode'), None)
-
-    def test_getArgNS3(self):
-        self.failUnlessEqual(
-            self.msg.getArg('urn:nothing-significant', 'mode'), None)
+    test_getArgBARE = mkGetArgTest(message.BARE_NS, 'mode')
+    test_getArgNS = mkGetArgTest(message.OPENID_NS, 'mode', 'error')
+    test_getArgNS1 = mkGetArgTest(message.OPENID1_NS, 'mode', 'error')
+    test_getArgNS2 = mkGetArgTest(message.OPENID2_NS, 'mode')
+    test_getArgNS3 = mkGetArgTest('urn:nothing-significant', 'mode')
 
     def test_getArgs(self):
         self.failUnlessEqual(self.msg.getArgs(message.OPENID_NS),
@@ -488,23 +485,11 @@ class OpenID2MessageTest(unittest.TestCase):
         self.failUnlessEqual(
             self.msg.hasKey('urn:nothing-significant', 'mode'), False)
 
-    def test_getArgOpenID(self):
-        self.failUnlessEqual(self.msg.getArg(message.OPENID_NS, 'mode'),
-                             'error')
-
-    def test_getArgBARE(self):
-        self.failUnlessEqual(self.msg.getArg(message.BARE_NS, 'mode'), None)
-
-    def test_getArgNS1(self):
-        self.failUnlessEqual(self.msg.getArg(message.OPENID1_NS, 'mode'), None)
-
-    def test_getArgNS2(self):
-        self.failUnlessEqual(self.msg.getArg(message.OPENID2_NS, 'mode'),
-                             'error')
-
-    def test_getArgNS3(self):
-        self.failUnlessEqual(
-            self.msg.getArg('urn:nothing-significant', 'mode'), None)
+    test_getArgBARE = mkGetArgTest(message.BARE_NS, 'mode')
+    test_getArgNS = mkGetArgTest(message.OPENID_NS, 'mode', 'error')
+    test_getArgNS1 = mkGetArgTest(message.OPENID1_NS, 'mode')
+    test_getArgNS2 = mkGetArgTest(message.OPENID2_NS, 'mode', 'error')
+    test_getArgNS3 = mkGetArgTest('urn:nothing-significant', 'mode')
 
     def test_getArgsOpenID(self):
         self.failUnlessEqual(self.msg.getArgs(message.OPENID_NS),

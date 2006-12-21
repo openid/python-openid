@@ -1,6 +1,6 @@
 """Extension argument processing code
 """
-__all__ = ['Message', 'NamespaceMap',
+__all__ = ['Message', 'NamespaceMap', 'no_default',
            'OPENID_NS', 'BARE_NS', 'OPENID1_NS', 'OPENID2_NS', 'SREG_URI',
            'IDENTIFIER_SELECT']
 
@@ -53,6 +53,10 @@ OPENID_PROTOCOL_FIELDS = [
 class UndefinedOpenIDNamespace(ValueError):
     """Raised if the generic OpenID namespace is accessed when there
     is no OpenID namespace set for this message."""
+
+# Sentinel used for Message implementation to indicate that getArg
+# should raise an exception instead of returning a default.
+no_default = object()
 
 class Message(object):
     """
@@ -351,9 +355,32 @@ class Message(object):
 
     def getArg(self, namespace, key, default=None):
         """Get a value for a namespaced key.
+
+        @param namespace: The namespace in the message for this key
+        @type namespace: str
+
+        @param key: The key to get within this namespace
+        @type key: str
+
+        @param default: The value to use if this key is absent from
+            this message. Using the special value
+            openid.message.no_default will result in this method
+            raising a KeyError instead of returning the default.
+
+        @rtype: str or the type of default
+        @raises: KeyError (if default is no_default)
+        @raises: UndefinedOpenIDNamespace (if the message has not yet
+            had an OpenID namespace set)
         """
         namespace = self._fixNS(namespace)
-        return self.args.get((namespace, key), default)
+        args_key = (namespace, key)
+        try:
+            return self.args[args_key]
+        except KeyError:
+            if default is no_default:
+                raise
+            else:
+                return default
 
     def getArgs(self, namespace):
         """Get the arguments that are defined for this namespace URI
