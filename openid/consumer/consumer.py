@@ -819,7 +819,10 @@ class GenericConsumer(object):
         if not endpoint.compatibilityMode():
             args['openid.ns'] = OPENID2_NS
 
-        if assoc_session.session_type != 'no-encryption':
+        # Leave out the session type if we're in compatibility mode
+        # *and* it's no-encryption.
+        if (not endpoint.compatibilityMode() or
+            assoc_session.session_type != 'no-encryption'):
             args['openid.session_type'] = assoc_session.session_type
 
         args.update(assoc_session.getRequest())

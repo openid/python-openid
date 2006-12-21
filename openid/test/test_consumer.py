@@ -10,7 +10,7 @@ from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_2_0_TYPE, \
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
-     DiffieHellmanSHA1ConsumerSession, Consumer
+     DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
@@ -1380,6 +1380,62 @@ class TestDiscoveryVerification(unittest.TestCase):
         return identifier, self.services
 
 
+class TestCreateAssociationRequest(unittest.TestCase):
+    def setUp(self):
+        class DummyEndpoint(object):
+            use_compatibility = False
+
+            def compatibilityMode(self):
+                return self.use_compatibility
+
+        self.endpoint = DummyEndpoint()
+        self.consumer = GenericConsumer(store=None)
+        self.assoc_type = 'HMAC-SHA1'
+
+    def test_noEncryptionSendsType(self):
+        session_type = 'no-encryption'
+        session, args = self.consumer._createAssociateRequest(
+            self.endpoint, self.assoc_type, session_type)
+
+        self.failUnless(isinstance(session, PlainTextConsumerSession))
+        self.failUnlessEqual({'openid.ns':OPENID2_NS,
+                              'openid.session_type':session_type,
+                              'openid.mode':'associate',
+                              'openid.assoc_type':self.assoc_type,
+                              }, args)
+
+    def test_noEncryptionCompatibility(self):
+        self.endpoint.use_compatibility = True
+        session_type = 'no-encryption'
+        session, args = self.consumer._createAssociateRequest(
+            self.endpoint, self.assoc_type, session_type)
+
+        self.failUnless(isinstance(session, PlainTextConsumerSession))
+        self.failUnlessEqual({'openid.mode':'associate',
+                              'openid.assoc_type':self.assoc_type,
+                              }, args)
+
+    def test_dhSHA1Compatibility(self):
+        self.endpoint.use_compatibility = True
+        session_type = 'DH-SHA1'
+        session, args = self.consumer._createAssociateRequest(
+            self.endpoint, self.assoc_type, session_type)
+
+        self.failUnless(isinstance(session, DiffieHellmanSHA1ConsumerSession))
+
+        # This is a random base-64 value, so just check that it's
+        # present.
+        self.failUnless(args['openid.dh_consumer_public'])
+        del args['openid.dh_consumer_public']
+
+        # OK, session_type is set here and not for no-encryption
+        # compatibility
+        self.failUnlessEqual({'openid.mode':'associate',
+                              'openid.session_type':'DH-SHA1',
+                              'openid.assoc_type':self.assoc_type,
+                              }, args)
+
+    # XXX: test the other types
 
 if __name__ == '__main__':
     unittest.main()
