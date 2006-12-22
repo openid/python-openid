@@ -123,24 +123,42 @@ class ParseAssociationSessionTypeMismatch(unittest.TestCase):
 
         return test
 
-    test_typeMismatch = mkTest(
+    test_typeMismatchNoEncBlank_openid2 = mkTest(
         requested_session_type='no-encryption',
         response_session_type='',
         )
 
-    test_typeMismatch = mkTest(
+    test_typeMismatchDHSHA1NoEnc_openid2 = mkTest(
         requested_session_type='DH-SHA1',
         response_session_type='no-encryption',
         )
 
-    test_typeMismatch = mkTest(
+    test_typeMismatchDHSHA256NoEnc_openid2 = mkTest(
         requested_session_type='DH-SHA256',
         response_session_type='no-encryption',
         )
 
-    test_typeMismatch = mkTest(
+    test_typeMismatchNoEncDHSHA1_openid2 = mkTest(
         requested_session_type='no-encryption',
         response_session_type='DH-SHA1',
+        )
+
+    test_typeMismatchDHSHA1NoEnc_openid1 = mkTest(
+        requested_session_type='DH-SHA1',
+        response_session_type='no-encryption',
+        openid1=True,
+        )
+
+    test_typeMismatchDHSHA256NoEnc_openid1 = mkTest(
+        requested_session_type='DH-SHA256',
+        response_session_type='no-encryption',
+        openid1=True,
+        )
+
+    test_typeMismatchNoEncDHSHA1_openid1 = mkTest(
+        requested_session_type='no-encryption',
+        response_session_type='DH-SHA1',
+        openid1=True,
         )
 
 
