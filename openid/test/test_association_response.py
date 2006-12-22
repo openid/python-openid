@@ -32,8 +32,20 @@ def mkAssocResponse(*keys):
     args = dict([(key, association_response_values[key]) for key in keys])
     return Message.fromOpenIDArgs(args)
 
-class BaseTestParseAssociationMissingFields(CatchLogs, unittest.TestCase):
-    """
+class BaseAssocTest(CatchLogs, unittest.TestCase):
+    def setUp(self):
+        CatchLogs.setUp(self)
+        self.store = _memstore.MemoryStore()
+        self.consumer = GenericConsumer(self.store)
+        self.endpoint = OpenIDServiceEndpoint()
+
+def mkParseAssocMissingTest(keys):
+    """Factory function for creating test methods for generating
+    missing field tests.
+
+    Make a test that ensures that an association response that
+    is missing required fields will short-circuit return None.
+
     According to 'Association Session Response' subsection 'Common
     Response Parameters', the following fields are required for OpenID
     2.0:
@@ -48,76 +60,65 @@ class BaseTestParseAssociationMissingFields(CatchLogs, unittest.TestCase):
     OpenID 1, everything except 'session_type' and 'ns' are required.
     """
 
-    def mkTest(keys):
-        """Make a test that ensures that an association response that
-        is missing required fields will short-circuit return None."""
+    def test(self):
+        msg = mkAssocResponse(*keys)
 
-        def test(self):
-            msg = mkAssocResponse(*keys)
+        result = self.consumer._parseAssociation(msg, None, 'dummy.url')
+        self.failUnless(result is None)
+        self.failUnlessEqual(len(self.messages), 1)
+        self.failUnless(self.messages[0].startswith(
+            'Getting association: missing key'))
 
-            # Store should not be needed
-            consumer = GenericConsumer(store=None)
+    return test
 
-            result = consumer._parseAssociation(msg, None, 'dummy.url')
-            self.failUnless(result is None)
-            self.failUnlessEqual(len(self.messages), 1)
-            self.failUnless(self.messages[0].startswith(
-                'Getting association: missing key'))
-
-        return test
-
-    mkTest = staticmethod(mkTest)
-
-class TestParseAssociationMissingFieldsOpenID2(
-    BaseTestParseAssociationMissingFields):
+class TestParseAssociationMissingFieldsOpenID2(BaseAssocTest):
     """Test for returning an error upon missing fields in association
     responses for OpenID 2"""
-    mkTest = BaseTestParseAssociationMissingFields.mkTest
 
-    test_noFields_openid2 = mkTest(['ns'])
+    test_noFields_openid2 = mkParseAssocMissingTest(['ns'])
 
-    test_missingExpires_openid2 = mkTest(
+    test_missingExpires_openid2 = mkParseAssocMissingTest(
         ['assoc_handle', 'assoc_type', 'session_type', 'ns'])
 
-    test_missingHandle_openid2 = mkTest(
+    test_missingHandle_openid2 = mkParseAssocMissingTest(
         ['expires_in', 'assoc_type', 'session_type', 'ns'])
 
-    test_missingAssocType_openid2 = mkTest(
+    test_missingAssocType_openid2 = mkParseAssocMissingTest(
         ['expires_in', 'assoc_handle', 'session_type', 'ns'])
 
-    test_missingSessionType_openid2 = mkTest(
+    test_missingSessionType_openid2 = mkParseAssocMissingTest(
         ['expires_in', 'assoc_handle', 'assoc_type', 'ns'])
 
-class TestParseAssociationMissingFieldsOpenID1(
-    BaseTestParseAssociationMissingFields):
+class TestParseAssociationMissingFieldsOpenID1(BaseAssocTest):
     """Test for returning an error upon missing fields in association
     responses for OpenID 2"""
-    mkTest = BaseTestParseAssociationMissingFields.mkTest
 
-    test_noFields_openid1 = mkTest([])
+    test_noFields_openid1 = mkParseAssocMissingTest([])
 
-    test_missingExpires_openid1 = mkTest(['assoc_handle', 'assoc_type'])
+    test_missingExpires_openid1 = mkParseAssocMissingTest(
+        ['assoc_handle', 'assoc_type'])
 
-    test_missingHandle_openid1 = mkTest(['expires_in', 'assoc_type'])
+    test_missingHandle_openid1 = mkParseAssocMissingTest(
+        ['expires_in', 'assoc_type'])
 
-    test_missingAssocType_openid1 = mkTest(['expires_in', 'assoc_handle'])
+    test_missingAssocType_openid1 = mkParseAssocMissingTest(
+        ['expires_in', 'assoc_handle'])
 
 class DummyAssocationSession(object):
     def __init__(self, session_type, allowed_assoc_types=()):
         self.session_type = session_type
         self.allowed_assoc_types = allowed_assoc_types
 
-class ParseAssociationSessionTypeMismatch(unittest.TestCase):
+class ParseAssociationSessionTypeMismatch(BaseAssocTest):
     def mkTest(requested_session_type, response_session_type, openid1=False):
         def test(self):
             assoc_session = DummyAssocationSession(requested_session_type)
-            consumer = GenericConsumer(store=None)
             keys = association_response_values.keys()
             if openid1:
                 keys.remove('ns')
             msg = mkAssocResponse(*keys)
             msg.setArg(OPENID_NS, 'session_type', response_session_type)
-            result = consumer._parseAssociation(
+            result = self.consumer._parseAssociation(
                 msg, assoc_session, server_url='dummy.url')
             self.failUnless(result is None)
 
@@ -162,7 +163,7 @@ class ParseAssociationSessionTypeMismatch(unittest.TestCase):
         )
 
 
-class TestOpenID1AssociationResponseSessionType(CatchLogs, unittest.TestCase):
+class TestOpenID1AssociationResponseSessionType(BaseAssocTest):
     def mkTest(expected_session_type, session_type_value):
         """Return a test method that will check what session type will
         be used if the OpenID 1 response to an associate call sets the
@@ -184,10 +185,7 @@ class TestOpenID1AssociationResponseSessionType(CatchLogs, unittest.TestCase):
         message = Message.fromOpenIDArgs(args)
         self.failUnless(message.isOpenID1())
 
-        # Store should not be needed
-        consumer = GenericConsumer(store=None)
-
-        actual_session_type = consumer._getOpenID1SessionType(message)
+        actual_session_type = self.consumer._getOpenID1SessionType(message)
         error_message = ('Returned sesion type parameter %r was expected '
                          'to yield session type %r, but yielded %r' %
                          (session_type_value, expected_session_type,
@@ -230,7 +228,7 @@ class TestOpenID1AssociationResponseSessionType(CatchLogs, unittest.TestCase):
         expected_session_type='DH-SHA256',
         )
 
-class TestAssocTypeInvalidForSession(CatchLogs, unittest.TestCase):
+class TestAssocTypeInvalidForSession(BaseAssocTest):
     def _setup(self, assoc_type):
         no_encryption_session = DummyAssocationSession('matching-session-type',
                                                        ['good-assoc-type'])
@@ -238,10 +236,7 @@ class TestAssocTypeInvalidForSession(CatchLogs, unittest.TestCase):
         msg.setArg(OPENID2_NS, 'session_type', 'matching-session-type')
         msg.setArg(OPENID2_NS, 'assoc_type', assoc_type)
 
-        # Store should not be needed
-        consumer = GenericConsumer(store=None)
-
-        result = consumer._parseAssociation(
+        result = self.consumer._parseAssociation(
             msg, no_encryption_session, 'dummy.url')
 
 
@@ -261,13 +256,8 @@ class TestAssocTypeInvalidForSession(CatchLogs, unittest.TestCase):
 # XXX: This is what causes most of the imports in this file. It is
 # sort of a unit test and sort of a functional test. I'm not terribly
 # fond of it.
-class TestParseAssociation(unittest.TestCase):
+class TestParseAssociation(BaseAssocTest):
     secret = 'x' * 20
-
-    def setUp(self):
-        self.store = _memstore.MemoryStore()
-        self.consumer = GenericConsumer(self.store)
-        self.endpoint = OpenIDServiceEndpoint()
 
     def _setUpDH(self):
         sess, args = self.consumer._createAssociateRequest(
