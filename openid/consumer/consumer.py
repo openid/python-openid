@@ -420,6 +420,10 @@ class UnsupportedAssocType(Exception):
         self.supported_assoc_type = supported_assoc_type
         self.supported_session_type = supported_session_type
 
+class ProtocolError(ValueError):
+    """Exception that indicates that a message violated the
+    protocol. It is raised and caught internally to this file."""
+
 class GenericConsumer(object):
     """This is the implementation of the common logic for OpenID
     consumers. It is unaware of the application in which it is
@@ -765,57 +769,101 @@ class GenericConsumer(object):
             return False
 
     def _getAssociation(self, endpoint):
+        """Get an association for the endpoint's server_url.
+
+        First try seeing if we have a good association in the
+        store. If we do not, then attempt to negotiate an association
+        with the server.
+
+        If we negotiate a good association, it will get stored.
+
+        @returns: A valid association for the endpoint's server_url or None
+        @rtype: openid.association.Association or NoneType
+        """
         if self.store.isDumb():
             return None
 
         assoc = self.store.getAssociation(endpoint.server_url)
 
         if assoc is None or assoc.expiresIn <= 0:
-            (assoc_type, session_type) = self.negotiator.getAllowedType()
-            tried_types = []
-            while (assoc_type, session_type) not in tried_types:
-                assoc_session, args = self._createAssociateRequest(
-                    endpoint,
-                    assoc_type,
-                    session_type)
-                try:
-                    response = self._makeKVPost(args, endpoint.server_url)
-                except fetchers.HTTPFetchingError, why:
-                    oidutil.log('openid.associate request failed: %s' %
-                                (why[0],))
-                    assoc = None
-                    break
-                else:
-                    try:
-                        assoc = self._parseAssociation(
-                            response, assoc_session, endpoint.server_url)
-                    except UnsupportedAssocType, why:
-                        oidutil.log(
-                            'Unsupported assoc type: %s' % (why.message,))
-                        assoc_type = why.supported_assoc_type
-                        session_type = why.supported_session_type
-                        if assoc_type is None or session_type is None:
-                            oidutil.log('No allowed session type specified')
-                            assoc = None
-                            break
-
-                        if not self.negotiator.isAllowed(assoc_type,
-                                                         session_type):
-                            msg = (
-                                'Server sent unsupported session type %s '
-                                'for association type %s'
-                                ) % (session_type, assoc_type)
-                            oidutil.log(msg)
-                            assoc = None
-                            break
-                    else:
-                        break
-            else:
-                fmt = 'No association created. Tried types: %s'
-                oidutil.log(fmt % (tried_types,))
-                assoc = None
+            assoc = self._negotiateAssociation(endpoint)
+            if assoc is not None:
+                self.store.storeAssociation(endpoint.server_url, assoc)
 
         return assoc
+
+    def _negotiateAssociation(self, endpoint):
+        """Make association requests to the server, attempting to
+        create a new association.
+        """
+        # Get our preferred session/association type from the negotiatior.
+        assoc_type, session_type = self.negotiator.getAllowedType()
+
+        try:
+            assoc = self._requestAssociation(
+                endpoint, assoc_type, session_type)
+        except UnsupportedAssocType, why:
+            # The server didn't like the association/session type that
+            # we sent, and it sent us back a message that might tell
+            # us how to handle it.
+            oidutil.log('Unsupported association type: %s' % (why.message,))
+
+            assoc_type = why.supported_assoc_type
+            session_type = why.supported_session_type
+
+            if assoc_type is None or session_type is None:
+                oidutil.log('Server responded with unsupported association '
+                            'session but did not supply a fallback.')
+                return None
+            elif not self.negotiator.isAllowed(assoc_type, session_type):
+                fmt = ('Server sent unsupported session/association type: '
+                       'session_type=%s, assoc_type=%s')
+                oidutil.log(fmt % (session_type, assoc_type))
+                return None
+            else:
+                try:
+                    assoc = self._requestAssociation(
+                        endpoint, assoc_type, session_type)
+                except UnsupportedAssocType, why:
+                    # Do not keep trying, since it rejected the
+                    # association type that it told us to use.
+                    oidutil.log('Server %s refused its suggested association '
+                                'type: session_type=%s, assoc_type=%s'
+                                % (session_type, assoc_type))
+                    assoc = None
+        else:
+            return assoc
+
+    def _requestAssociation(self, endpoint, assoc_type, session_type):
+        """Make and process one association request to this endpoint's
+        OP endpoint URL.
+
+        @returns: An association object or None if the association
+            processing failed.
+
+        @raises: UnsupportedAssocType XXX
+        """
+        assoc_session, args = self._createAssociateRequest(
+            endpoint, assoc_type, session_type)
+
+        try:
+            response = self._makeKVPost(args, endpoint.server_url)
+        except fetchers.HTTPFetchingError, why:
+            oidutil.log('openid.associate request failed: %s' % (why[0],))
+            return None
+
+        try:
+            assoc = self._extractAssociation(response, assoc_session)
+        except KeyError, why:
+            oidutil.log('Missing required parameter in response from %s: %s'
+                        % (endpoint.server_url, why[0]))
+            return None
+        except ProtocolError, why:
+            oidutil.log('Protocol error parsing response from %s: %s' % (
+                endpoint.server_url, why[0]))
+            return None
+        else:
+            return assoc
 
     def _createAssociateRequest(self, endpoint, assoc_type, session_type):
         session_type_class = self.session_types[session_type]
@@ -863,30 +911,31 @@ class GenericConsumer(object):
 
         return session_type
 
-    def _parseAssociation(self,
-                          association_response, assoc_session, server_url):
-        error_code = association_response.getArg(OPENID2_NS, 'error_code')
-        if error_code is not None:
-            return self._associateError(association_response)
+    def _extractAssociation(self, association_response, assoc_session):
+        # Extract the common fields from the response, raising an
+        # exception if they are not found
+        assoc_type = association_response.getArg(
+            OPENID_NS, 'assoc_type', no_default)
+        assoc_handle = association_response.getArg(
+            OPENID_NS, 'assoc_handle', no_default)
 
+        # expires_in is a base-10 string. The Python parsing will
+        # accept literals that have whitespace around them and will
+        # accept negative values. Neither of these are really in-spec,
+        # but we think it's OK to accept them.
+        expires_in_str = association_response.getArg(
+            OPENID_NS, 'expires_in', no_default)
         try:
-            assoc_type = association_response.getArg(
-                OPENID_NS, 'assoc_type', no_default)
-            assoc_handle = association_response.getArg(
-                OPENID_NS, 'assoc_handle', no_default)
-            expires_in_str = association_response.getArg(
-                OPENID_NS, 'expires_in', no_default)
+            expires_in = int(expires_in_str)
+        except ValueError, e:
+            raise ProtocolError('Invalid expires_in field: %s' % (e[0],))
 
-            if association_response.isOpenID1():
-                session_type = self._getOpenID1SessionType(
-                    association_response)
-            else:
-                session_type = association_response.getArg(
-                    OPENID2_NS, 'session_type', no_default)
-        except KeyError, e:
-            fmt = 'Getting association: missing key in response from %s: %s'
-            oidutil.log(fmt % (server_url, e[0]))
-            return None
+        # OpenID 1 has funny association session behaviour.
+        if association_response.isOpenID1():
+            session_type = self._getOpenID1SessionType(association_response)
+        else:
+            session_type = association_response.getArg(
+                OPENID2_NS, 'session_type', no_default)
 
         # Session type mismatch
         if assoc_session.session_type != session_type:
@@ -902,60 +951,26 @@ class GenericConsumer(object):
                 # Any other mismatch, regardless of protocol version
                 # results in the failure of the association session
                 # altogether.
-                message = 'Session type mismatch. Expected %r, got %r' % (
-                    assoc_session.session_type, session_type)
-                oidutil.log(message)
-                return None
+                fmt = 'Session type mismatch. Expected %r, got %r'
+                message = fmt % (assoc_session.session_type, session_type)
+                raise ProtocolError(message)
 
         # Make sure assoc_type is valid for session_type
         if assoc_type not in assoc_session.allowed_assoc_types:
-            msg = (
-                'Unsupported assoc_type for session %s returned '
-                'from server %s: %s'
-                ) % (server_url, assoc_session.session_type, assoc_type)
-            oidutil.log(msg)
-            return None
+            fmt = 'Unsupported assoc_type for session %s returned: %s'
+            raise ProtocolError(fmt % (assoc_session.session_type, assoc_type))
 
-        try:
-            expires_in = int(expires_in_str)
-        except ValueError, e:
-            fmt = 'Getting Association: invalid expires_in field: %s'
-            oidutil.log(fmt % (e[0],))
-            return None
-
+        # Delegate to the association session to extract the secret
+        # from the response, however is appropriate for that session
+        # type.
         try:
             secret = assoc_session.extractSecret(association_response)
         except ValueError, why:
-            oidutil.log('Malformed response for %s session: %s' % (
-                assoc_session.session_type, why[0]))
-            return None
-        except KeyError, why:
-            fmt = 'Getting association: missing key in response from %s: %s'
-            oidutil.log(fmt % (server_url, why[0]))
-            return None
+            fmt = 'Malformed response for %s session: %s'
+            raise ProtocolError(fmt % (assoc_session.session_type, why[0]))
 
-        assoc = Association.fromExpiresIn(
+        return Association.fromExpiresIn(
             expires_in, assoc_handle, secret, assoc_type)
-        self.store.storeAssociation(server_url, assoc)
-
-        return assoc
-
-    def _associateError(self, results):
-        error_code = results['error_code']
-        default_message = 'associate error from server: %s' % (error_code,)
-        message = results.get('error', default_message)
-        if error_code == 'unsupported-type':
-            supported_assoc_type = results.get('assoc_type')
-            supported_session_type = results.get('session_type')
-            raise UnsupportedAssocType(
-                message,
-                supported_assoc_type,
-                supported_session_type,
-                )
-        else:
-            fmt = 'Error response to associate request from server: %s'
-            oidutil.log(fmt % (message,))
-            return None
 
 class AuthRequest(object):
     def __init__(self, endpoint, assoc):
