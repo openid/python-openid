@@ -378,7 +378,7 @@ class Message(object):
             return self.args[args_key]
         except KeyError:
             if default is no_default:
-                raise
+                raise KeyError((namespace, key))
             else:
                 return default
 

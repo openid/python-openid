@@ -2,7 +2,8 @@ import urlparse
 import cgi
 import time
 
-from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT
+from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, \
+     OPENID1_NS
 from openid import cryptutil, dh, oidutil, kvform
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_2_0_TYPE, \
@@ -1028,99 +1029,6 @@ class TestSuccessResponse(unittest.TestCase):
         resp = mkSuccess(self.endpoint, {'openid.return_to':'return_to'})
         self.failUnlessEqual(resp.getReturnTo(), 'return_to')
 
-class TestParseAssociation(TestIdRes):
-    secret = 'x' * 20
-
-    def test_missing(self):
-        # Missing required arguments
-        result = self.consumer._parseAssociation({}, None, 'server_url')
-        self.failUnless(result is None)
-
-    def _setUpDH(self):
-        sess, args = \
-                    self.consumer._createAssociateRequest(self.endpoint,
-                                                          'HMAC-SHA1',
-                                                          'DH-SHA1')
-
-        assert self.endpoint.compatibilityMode() == \
-               (args.get('openid.ns') is None), \
-               "Endpoint compat mode %r != (openid.ns in args)" % \
-               (self.endpoint.compatibilityMode())
-
-        message = Message.fromPostArgs(args)
-        server_sess = DiffieHellmanSHA1ServerSession.fromMessage(message)
-        server_resp = server_sess.answer(self.secret)
-        server_resp['assoc_type'] = 'HMAC-SHA1'
-        server_resp['assoc_handle'] = 'handle'
-        server_resp['expires_in'] = '1000'
-        server_resp['session_type'] = 'DH-SHA1'
-        return sess, server_resp
-
-    def test_success(self):
-        sess, server_resp = self._setUpDH()
-        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
-        self.failIf(ret is None)
-        self.failUnlessEqual(ret.assoc_type, 'HMAC-SHA1')
-        self.failUnlessEqual(ret.secret, self.secret)
-        self.failUnlessEqual(ret.handle, 'handle')
-        self.failUnlessEqual(ret.lifetime, 1000)
-
-    def test_openid2success(self):
-        # Use openid 2 type in endpoint so _setUpDH checks
-        # compatibility mode state properly
-        self.endpoint.type_uris = [OPENID_2_0_TYPE, OPENID_1_1_TYPE]
-        self.test_success()
-
-    def test_badAssocType(self):
-        sess, server_resp = self._setUpDH()
-        server_resp['assoc_type'] = 'Crazy Low Prices!!!'
-        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
-        self.failUnless(ret is None)
-
-    def test_badExpiresIn(self):
-        sess, server_resp = self._setUpDH()
-        server_resp['expires_in'] = 'Crazy Low Prices!!!'
-        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
-        self.failUnless(ret is None)
-
-    def test_badSessionType(self):
-        sess, server_resp = self._setUpDH()
-        server_resp['session_type'] = '|/iA6rA'
-        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
-        self.failUnless(ret is None)
-
-    def test_plainFallback(self):
-        sess = DiffieHellmanSHA1ConsumerSession()
-        server_resp = {
-            'assoc_type': 'HMAC-SHA1',
-            'assoc_handle': 'handle',
-            'expires_in': '1000',
-            'mac_key': oidutil.toBase64(self.secret),
-            }
-        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
-        self.failIf(ret is None)
-        self.failUnlessEqual(ret.assoc_type, 'HMAC-SHA1')
-        self.failUnlessEqual(ret.secret, self.secret)
-        self.failUnlessEqual(ret.handle, 'handle')
-        self.failUnlessEqual(ret.lifetime, 1000)
-
-    def test_plainFallbackFailure(self):
-        sess = DiffieHellmanSHA1ConsumerSession()
-        # missing mac_key
-        server_resp = {
-            'assoc_type': 'HMAC-SHA1',
-            'assoc_handle': 'handle',
-            'expires_in': '1000',
-            }
-        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
-        self.failUnless(ret is None)
-
-    def test_badDHValues(self):
-        sess, server_resp = self._setUpDH()
-        server_resp['enc_mac_key'] = '\x00\x00\x00'
-        ret = self.consumer._parseAssociation(server_resp, sess, 'server_url')
-        self.failUnless(ret is None)
-
 class StubConsumer(object):
     def __init__(self):
         self.assoc = object()
@@ -1460,47 +1368,5 @@ class TestCreateAssociationRequest(unittest.TestCase):
                               }, args)
 
     # XXX: test the other types
-
-# XXX: NOT TO CHECK IN
-class TestParseAssociation(unittest.TestCase):
-    def setUp(self):
-        self.args = {
-            }
-        self.msg = Message.fromOpenIDArgs()
-
-class TestOpenID1AssociationResponseSessionType(unittest.TestCase):
-    def mkTest(expected_session_type, session_type_value=None):
-        def test(self):
-            # Create a Message with just 'session_type' in it, since
-            # that's all this function will use. 'session_type' may be
-            # absent if it's set to None.
-            args = {}
-            if session_type_value is not None:
-                args['session_type'] = session_type_value
-            message = Message.fromOpenIDArgs(args)
-            self.failUnless(message.isOpenID1())
-
-            # Store should not be needed
-            consumer = GenericConsumer(store=None)
-
-            actual_session_type = consumer._getOpenID1SessionType(message)
-            error_message = ('Returned sesion type parameter %r was expected '
-                             'to yield session type %r, but yielded %r' %
-                             (session_type_value, expected_session_type,
-                              actual_session_type))
-            self.failUnlessEqual(
-                expected_session_type, actual_session_type, error_message)
-
-    test_none = mkTest('no-encryption', None)
-    test_empty = mkTest('no-encryption', '')
-    test_explicitNoEncryption = mkTest('no-encryption', 'no-encryption')
-    test_dhSHA1 = mkTest('DH-SHA1', 'DH-SHA1')
-
-    # This is not a valid session type for OpenID1, but this function
-    # does not test that. This is mostly just to make sure that it
-    # will pass-through stuff that is not explicitly handled, so it
-    # will get handled the same way as it is handled for OpenID 2
-    test_dhSHA256 = mkTest('DH-SHA256', 'DH-SHA256')
-
 if __name__ == '__main__':
     unittest.main()

@@ -407,7 +407,8 @@ class PlainTextConsumerSession(object):
         return {}
 
     def extractSecret(self, response):
-        return oidutil.fromBase64(response.getArg(OPENID_NS, 'mac_key'))
+        mac_key64 = response.getArg(OPENID_NS, 'mac_key', no_default)
+        return oidutil.fromBase64(mac_key64)
 
 class UnsupportedAssocType(Exception):
     """Exception raised when the server tells us that the session type
@@ -858,8 +859,6 @@ class GenericConsumer(object):
         # 'no-encryption' so that it can be handled in the same
         # way as OpenID 2 'no-encryption' respones.
         elif session_type == '' or session_type is None:
-            oidutil.log('Falling back to no-encryption association '
-                        'session from %s' % assoc_session.session_type)
             session_type = 'no-encryption'
 
         return session_type
