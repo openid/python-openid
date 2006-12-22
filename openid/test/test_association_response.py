@@ -115,11 +115,13 @@ class ParseAssociationSessionTypeMismatch(unittest.TestCase):
             keys = association_response_values.keys()
             if openid1:
                 keys.remove('ns')
-            msg = mkAssocResponse(keys)
+            msg = mkAssocResponse(*keys)
             msg.setArg(OPENID_NS, 'session_type', response_session_type)
             result = consumer._parseAssociation(
                 msg, assoc_session, server_url='dummy.url')
             self.failUnless(result is None)
+
+        return test
 
     test_typeMismatch = mkTest(
         requested_session_type='no-encryption',
