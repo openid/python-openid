@@ -872,24 +872,23 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
 
 
     def test_signedList(self):
-        query = {
-            'openid.mode': 'id_res',
-            'openid.sig': 'rabbits',
-            'openid.identity': '=example',
-            'openid.assoc_handle': 'munchkins',
-            'openid.signed': 'identity,mode',
+        query = Message.fromOpenIDArgs({
+            'mode': 'id_res',
+            'sig': 'rabbits',
+            'identity': '=example',
+            'assoc_handle': 'munchkins',
+            'signed': 'identity,mode',
             'foo': 'bar',
-            }
-        expected = {
-            'openid.mode': 'check_authentication',
-            'openid.sig': 'rabbits',
-            'openid.assoc_handle': 'munchkins',
-            'openid.identity': '=example',
-            'openid.signed': 'identity,mode'
-            }
-        args = self.consumer._createCheckAuthRequest(
-            Message.fromPostArgs(query))
-        self.failUnlessEqual(args, expected)
+            })
+        expected = Message.fromOpenIDArgs({
+            'mode': 'check_authentication',
+            'sig': 'rabbits',
+            'assoc_handle': 'munchkins',
+            'identity': '=example',
+            'signed': 'identity,mode'
+            })
+        args = self.consumer._createCheckAuthRequest(query)
+        self.failUnlessEqual(args.toPostArgs(), expected.toPostArgs())
 
 
 
@@ -910,7 +909,7 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         self.failUnlessRaises(
             fetchers.HTTPFetchingError,
             self.consumer._makeKVPost,
-            {'openid.mode':'associate'},
+            Message.fromPostArgs({'mode':'associate'}),
             "http://server_url")
 
     def test_error_exception_unwrapped(self):
@@ -921,7 +920,7 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         fetchers.setDefaultFetcher(self.fetcher, wrap_exceptions=False)
         self.failUnlessRaises(self.fetcher.MyException,
                               self.consumer._makeKVPost,
-                              {'openid.mode':'associate'},
+                              Message.fromPostArgs({'mode':'associate'}),
                               "http://server_url")
 
         # exception fetching returns no association
@@ -944,7 +943,7 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         fetchers.setDefaultFetcher(self.fetcher)
         self.failUnlessRaises(fetchers.HTTPFetchingError,
                               self.consumer._makeKVPost,
-                              {'openid.mode':'associate'},
+                              Message.fromOpenIDArgs({'mode':'associate'}),
                               "http://server_url")
 
         # exception fetching returns no association
@@ -1330,11 +1329,14 @@ class TestCreateAssociationRequest(unittest.TestCase):
             self.endpoint, self.assoc_type, session_type)
 
         self.failUnless(isinstance(session, PlainTextConsumerSession))
-        self.failUnlessEqual({'openid.ns':OPENID2_NS,
-                              'openid.session_type':session_type,
-                              'openid.mode':'associate',
-                              'openid.assoc_type':self.assoc_type,
-                              }, args)
+        expected = Message.fromOpenIDArgs(
+            {'ns':OPENID2_NS,
+             'session_type':session_type,
+             'mode':'associate',
+             'assoc_type':self.assoc_type,
+             })
+
+        self.failUnlessEqual(expected, args)
 
     def test_noEncryptionCompatibility(self):
         self.endpoint.use_compatibility = True
@@ -1343,9 +1345,9 @@ class TestCreateAssociationRequest(unittest.TestCase):
             self.endpoint, self.assoc_type, session_type)
 
         self.failUnless(isinstance(session, PlainTextConsumerSession))
-        self.failUnlessEqual({'openid.mode':'associate',
-                              'openid.assoc_type':self.assoc_type,
-                              }, args)
+        self.failUnlessEqual(Message.fromOpenIDArgs({'mode':'associate',
+                              'assoc_type':self.assoc_type,
+                              }), args)
 
     def test_dhSHA1Compatibility(self):
         self.endpoint.use_compatibility = True
@@ -1357,15 +1359,15 @@ class TestCreateAssociationRequest(unittest.TestCase):
 
         # This is a random base-64 value, so just check that it's
         # present.
-        self.failUnless(args['openid.dh_consumer_public'])
-        del args['openid.dh_consumer_public']
+        self.failUnless(args.getArg(OPENID1_NS, 'dh_consumer_public'))
+        args.delArg(OPENID1_NS, 'dh_consumer_public')
 
         # OK, session_type is set here and not for no-encryption
         # compatibility
-        self.failUnlessEqual({'openid.mode':'associate',
-                              'openid.session_type':'DH-SHA1',
-                              'openid.assoc_type':self.assoc_type,
-                              }, args)
+        self.failUnlessEqual(Message.fromOpenIDArgs({'mode':'associate',
+                              'session_type':'DH-SHA1',
+                              'assoc_type':self.assoc_type,
+                              }), args)
 
     # XXX: test the other types
 if __name__ == '__main__':

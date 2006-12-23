@@ -75,9 +75,10 @@ class DiffieHellmanSessionTest(datadriven.DataDrivenTestCase):
 
     def runOneTest(self):
         csess = self.csess_fact()
-        msg = Message.fromPostArgs(csess.getRequest())
+        msg = Message.fromOpenIDArgs(csess.getRequest())
         ssess = self.ssess_fact.fromMessage(msg)
-        check_secret = csess.extractSecret(Message.fromOpenIDArgs(ssess.answer(self.secret)))
+        check_secret = csess.extractSecret(
+            Message.fromOpenIDArgs(ssess.answer(self.secret)))
         self.failUnlessEqual(self.secret, check_secret)
 
 

@@ -182,7 +182,6 @@ USING THIS LIBRARY
 """
 
 import time
-import urllib
 import cgi
 from urlparse import urlparse
 
@@ -376,12 +375,12 @@ class DiffieHellmanSHA1ConsumerSession(object):
     def getRequest(self):
         cpub = cryptutil.longToBase64(self.dh.public)
 
-        args = {'openid.dh_consumer_public': cpub}
+        args = {'dh_consumer_public': cpub}
 
         if not self.dh.usingDefaultValues():
             args.update({
-                'openid.dh_modulus': cryptutil.longToBase64(self.dh.modulus),
-                'openid.dh_gen': cryptutil.longToBase64(self.dh.generator),
+                'dh_modulus': cryptutil.longToBase64(self.dh.modulus),
+                'dh_gen': cryptutil.longToBase64(self.dh.generator),
                 })
 
         return args
@@ -410,19 +409,21 @@ class PlainTextConsumerSession(object):
         mac_key64 = response.getArg(OPENID_NS, 'mac_key', no_default)
         return oidutil.fromBase64(mac_key64)
 
-class UnsupportedAssocType(Exception):
-    """Exception raised when the server tells us that the session type
-    in our request was not supported."""
-    def __init__(self, message,
-                 supported_assoc_type=None, supported_session_type=None):
-        Exception.__init__(self, message)
-        self.message = message
-        self.supported_assoc_type = supported_assoc_type
-        self.supported_session_type = supported_session_type
 
 class ProtocolError(ValueError):
     """Exception that indicates that a message violated the
     protocol. It is raised and caught internally to this file."""
+
+class ServerError(Exception):
+    """Exception that is raised when the server returns a 400 response
+    code to a direct request."""
+
+    def __init__(self, message):
+        self.error_text = message.getArg(
+            OPENID_NS, 'error', '<no error message supplied>')
+        Exception.__init__(self, self.error_text)
+        self.error_code = message.getArg(OPENID_NS, 'error_code')
+        self.message = message
 
 class GenericConsumer(object):
     """This is the implementation of the common logic for OpenID
@@ -505,7 +506,7 @@ class GenericConsumer(object):
         # response
         return response
 
-    def _makeKVPost(self, args, server_url):
+    def _makeKVPost(self, request_message, server_url):
         """Make a Direct Request to an OpenID Provider and return the
         result as a Message object.
 
@@ -513,29 +514,21 @@ class GenericConsumer(object):
         @rtype: openid.message.Message
         """
         # XXX: TESTME
-        # XXX: make me take a Message
-        mode = args['openid.mode']
-        body = urllib.urlencode(args)
-
-        resp = fetchers.fetch(server_url, body=body)
+        resp = fetchers.fetch(server_url, body=request_message.toURLEncoded())
         if resp is None:
-            fmt = 'failed to fetch URL: %s'
-            raise fetchers.HTTPFetchingError(fmt % (mode, server_url))
+            fmt = 'failed making Direct Request to %s'
+            raise fetchers.HTTPFetchingError(fmt % (server_url,))
 
-        response = kvform.kvToDict(resp.body)
+        response_message = Message.fromKVForm(resp.body)
         if resp.status == 400:
-            server_error = response.getArg(
-                OPENID_NS, 'error', '<no message from server>')
-            fmt = 'error returned from server %s: %s'
-            error_message = fmt % (mode, server_url, server_error)
-            raise fetchers.HTTPFetchingError(error_message)
+            raise ServerError(response_message)
 
         elif resp.status != 200:
             fmt = 'bad status code from server %s: %s'
             error_message = fmt % (server_url, resp.status)
             raise fetchers.HTTPFetchingError(error_message)
 
-        return Message.fromOpenIDArgs(response)
+        return response_message
 
     def _doIdRes(self, message, endpoint):
         """Handle id_res responses.
@@ -723,7 +716,7 @@ class GenericConsumer(object):
             return False
         try:
             response = self._makeKVPost(request, server_url)
-        except fetchers.HTTPFetchingError, e:
+        except (fetchers.HTTPFetchingError, ServerError), e:
             oidutil.log('check_authentication failed: %s' % (e[0],))
             return False
         else:
@@ -739,7 +732,7 @@ class GenericConsumer(object):
         for k in whitelist:
             val = message.getArg(OPENID_NS, k)
             if val is not None:
-                check_args['openid.' + k] = val
+                check_args[k] = val
 
         signed = message.getArg(OPENID_NS, 'signed')
         if signed:
@@ -750,10 +743,10 @@ class GenericConsumer(object):
                 if val is None:
                     return None
 
-                check_args['openid.' + k] = val
+                check_args[k] = val
 
-        check_args['openid.mode'] = 'check_authentication'
-        return check_args
+        check_args['mode'] = 'check_authentication'
+        return Message.fromOpenIDArgs(check_args)
 
     def _processCheckAuthResponse(self, response, server_url):
         is_valid = response.getArg(OPENID_NS, 'is_valid', 'false')
@@ -795,6 +788,13 @@ class GenericConsumer(object):
     def _negotiateAssociation(self, endpoint):
         """Make association requests to the server, attempting to
         create a new association.
+
+        @returns: a new association object
+
+        @rtype: openid.association.Association
+
+        @raises: errors that the fetcher might raise. These are
+            intended to be propagated up to the library's entrance point.
         """
         # Get our preferred session/association type from the negotiatior.
         assoc_type, session_type = self.negotiator.getAllowedType()
@@ -802,14 +802,25 @@ class GenericConsumer(object):
         try:
             assoc = self._requestAssociation(
                 endpoint, assoc_type, session_type)
-        except UnsupportedAssocType, why:
-            # The server didn't like the association/session type that
-            # we sent, and it sent us back a message that might tell
-            # us how to handle it.
-            oidutil.log('Unsupported association type: %s' % (why.message,))
+        except ServerError, why:
+            # Any error message whose code is not 'unsupported_type'
+            # should be considered a total failure.
+            if e.error_code != 'unsupported-type':
+                oidutil.log(
+                    'Server error when requesting an association from %r: %s'
+                    % (endpoint.server_url, e.error_text))
+                return None
 
-            assoc_type = why.supported_assoc_type
-            session_type = why.supported_session_type
+            # The server didn't like the association/session type
+            # that we sent, and it sent us back a message that
+            # might tell us how to handle it.
+            oidutil.log(
+                'Unsupported association type: %s' % (why.message,))
+
+            # Extract the session_type and assoc_type from the
+            # error message
+            assoc_type = why.message.getArg(OPENID_NS, 'assoc_type')
+            session_type = why.message.getArg(OPENID_NS, 'session_type')
 
             if assoc_type is None or session_type is None:
                 oidutil.log('Server responded with unsupported association '
@@ -821,6 +832,9 @@ class GenericConsumer(object):
                 oidutil.log(fmt % (session_type, assoc_type))
                 return None
             else:
+                # Attempt to create an association from the assoc_type
+                # and session_type that the server told us it
+                # supported.
                 try:
                     assoc = self._requestAssociation(
                         endpoint, assoc_type, session_type)
@@ -830,7 +844,7 @@ class GenericConsumer(object):
                     oidutil.log('Server %s refused its suggested association '
                                 'type: session_type=%s, assoc_type=%s'
                                 % (session_type, assoc_type))
-                    assoc = None
+                    return None
         else:
             return assoc
 
@@ -866,31 +880,68 @@ class GenericConsumer(object):
             return assoc
 
     def _createAssociateRequest(self, endpoint, assoc_type, session_type):
+        """Create an association request for the given assoc_type and
+        session_type.
+
+        @param endpoint: The endpoint whose server_url will be
+            queried. The important bit about the endpoint is whether
+            it's in compatiblity mode (OpenID 1.1)
+
+        @param assoc_type: The association type that the request
+            should ask for.
+        @type assoc_type: str
+
+        @param session_type: The session type that should be used in
+            the association request. The session_type is used to
+            create an association session object, and that session
+            object is asked for any additional fields that it needs to
+            add to the request.
+        @type session_type: str
+
+        @returns: a pair of the association session object and the
+            request message that will be sent to the server.
+        @rtype: (association session type (depends on session_type),
+                 openid.message.Message)
+        """
         session_type_class = self.session_types[session_type]
         assoc_session = session_type_class()
 
-        # XXX: use a Message object here
         args = {
-            'openid.mode': 'associate',
-            'openid.assoc_type': assoc_type,
+            'mode': 'associate',
+            'assoc_type': assoc_type,
             }
 
         if not endpoint.compatibilityMode():
-            args['openid.ns'] = OPENID2_NS
+            args['ns'] = OPENID2_NS
 
         # Leave out the session type if we're in compatibility mode
         # *and* it's no-encryption.
         if (not endpoint.compatibilityMode() or
             assoc_session.session_type != 'no-encryption'):
-            args['openid.session_type'] = assoc_session.session_type
+            args['session_type'] = assoc_session.session_type
 
         args.update(assoc_session.getRequest())
-        return assoc_session, args
+        message = Message.fromOpenIDArgs(args)
+        return assoc_session, message
 
-    def _getOpenID1SessionType(self, association_response):
+    def _getOpenID1SessionType(self, assoc_response):
+        """Given an association response message, extract the OpenID
+        1.X session type.
+
+        This function mostly takes care of the 'no-encryption' default
+        behavior in OpenID 1.
+
+        If the association type is plain-text, this function will
+        return 'no-encryption'
+
+        @returns: The association type for this message
+        @rtype: str
+
+        @raises: KeyError, if the session_type field is absent.
+        """
         # If it's an OpenID 1 message, allow session_type to default
         # to None (which signifies "no-encryption")
-        session_type = association_response.getArg(OPENID1_NS, 'session_type')
+        session_type = assoc_response.getArg(OPENID1_NS, 'session_type')
 
         # Handle the differences between no-encryption association
         # respones in OpenID 1 and 2:
@@ -911,19 +962,36 @@ class GenericConsumer(object):
 
         return session_type
 
-    def _extractAssociation(self, association_response, assoc_session):
+    def _extractAssociation(self, assoc_response, assoc_session):
+        """Attempt to extract an association from the response, given
+        the association response message and the established
+        association session.
+
+        @param assoc_response: The association response message from
+            the server
+        @type assoc_response: openid.message.Message
+
+        @param assoc_session: The association session object that was
+            used when making the request
+        @type assoc_session: depends on the session type of the request
+
+        @raises: ProtocolError, if data is malformed
+        @raises: KeyError, if a field is missing
+
+        @rtype: openid.association.Association
+        """
         # Extract the common fields from the response, raising an
         # exception if they are not found
-        assoc_type = association_response.getArg(
+        assoc_type = assoc_response.getArg(
             OPENID_NS, 'assoc_type', no_default)
-        assoc_handle = association_response.getArg(
+        assoc_handle = assoc_response.getArg(
             OPENID_NS, 'assoc_handle', no_default)
 
         # expires_in is a base-10 string. The Python parsing will
         # accept literals that have whitespace around them and will
         # accept negative values. Neither of these are really in-spec,
         # but we think it's OK to accept them.
-        expires_in_str = association_response.getArg(
+        expires_in_str = assoc_response.getArg(
             OPENID_NS, 'expires_in', no_default)
         try:
             expires_in = int(expires_in_str)
@@ -931,15 +999,15 @@ class GenericConsumer(object):
             raise ProtocolError('Invalid expires_in field: %s' % (e[0],))
 
         # OpenID 1 has funny association session behaviour.
-        if association_response.isOpenID1():
-            session_type = self._getOpenID1SessionType(association_response)
+        if assoc_response.isOpenID1():
+            session_type = self._getOpenID1SessionType(assoc_response)
         else:
-            session_type = association_response.getArg(
+            session_type = assoc_response.getArg(
                 OPENID2_NS, 'session_type', no_default)
 
         # Session type mismatch
         if assoc_session.session_type != session_type:
-            if (association_response.isOpenID1() and
+            if (assoc_response.isOpenID1() and
                 session_type == 'no-encryption'):
                 # In OpenID 1, any association request can result in a
                 # 'no-encryption' association response. Setting
@@ -964,7 +1032,7 @@ class GenericConsumer(object):
         # from the response, however is appropriate for that session
         # type.
         try:
-            secret = assoc_session.extractSecret(association_response)
+            secret = assoc_session.extractSecret(assoc_response)
         except ValueError, why:
             fmt = 'Malformed response for %s session: %s'
             raise ProtocolError(fmt % (assoc_session.session_type, why[0]))

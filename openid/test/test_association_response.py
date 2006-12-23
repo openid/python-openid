@@ -303,15 +303,13 @@ class TestExtractAssociationDiffieHellman(BaseAssocTest):
     secret = 'x' * 20
 
     def _setUpDH(self):
-        sess, args = self.consumer._createAssociateRequest(
+        sess, message = self.consumer._createAssociateRequest(
             self.endpoint, 'HMAC-SHA1', 'DH-SHA1')
 
-        assert self.endpoint.compatibilityMode() == \
-               (args.get('openid.ns') is None), \
-               "Endpoint compat mode %r != (openid.ns in args)" % \
-               (self.endpoint.compatibilityMode())
+        # XXX: this is testing _createAssociateRequest
+        self.failUnlessEqual(self.endpoint.compatibilityMode(),
+                             message.isOpenID1())
 
-        message = Message.fromPostArgs(args)
         server_sess = DiffieHellmanSHA1ServerSession.fromMessage(message)
         server_resp = server_sess.answer(self.secret)
         server_resp['assoc_type'] = 'HMAC-SHA1'
