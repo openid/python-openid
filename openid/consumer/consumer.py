@@ -1055,7 +1055,25 @@ class AuthRequest(object):
         self.return_to_args = {}
         self.message = Message()
         self.message.setOpenIDNamespace(endpoint.preferredNamespace())
-        self.anonymous = False
+        self._anonymous = False
+
+    def setAnonymous(self, is_anonymous):
+        """Set whether this request should be made anonymously. If a
+        request is anonymous, the identifier will not be sent in the
+        request. This is only useful if you are making another kind of
+        request with an extension in this request.
+
+        Anonymous requests are not allowed when the request is made
+        with OpenID 1.
+
+        @raises: ValueError when attempting to set an OpenID1 request
+            as anonymous
+        """
+        if is_anonymous and self.message.isOpenID1():
+            raise ValueError('OpenID 1 requests MUST include the '
+                             'identifier in the request')
+        else:
+            self._anonymous = is_anonymous
 
     def addExtensionArg(self, namespace, key, value):
         """Add an extension argument to this OpenID authentication
@@ -1099,10 +1117,14 @@ class AuthRequest(object):
              'trust_root':trust_root,
              })
 
-        if not self.anonymous:
-            request_identity = self.endpoint.getLocalID()
-            if request_identity is None:
+        if not self._anonymous:
+            if self.endpoint.isOPIdentifier():
+                # This will never happen when we're in compatibility
+                # mode, as long as isOPIdentifier() returns False
+                # whenever preferredNamespace() returns OPENID1_NS.
                 request_identity = IDENTIFIER_SELECT
+            else:
+                request_identity = self.endpoint.getLocalID()
 
             message.setArg(OPENID_NS, 'identity', request_identity)
 

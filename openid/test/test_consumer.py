@@ -955,52 +955,6 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         self.failIf(self.consumer._checkAuth(msg, 'some://url'))
 
 
-class TestAuthRequest(unittest.TestCase):
-    def setUp(self):
-        self.endpoint = OpenIDServiceEndpoint()
-        self.endpoint.local_id = 'http://server.unittest/joe'
-        self.endpoint.server_url = 'http://server.unittest/'
-        self.assoc = self
-        self.assoc.handle = 'assoc@handle'
-        self.authreq = AuthRequest(self.endpoint, self.assoc)
-
-    def test_addExtensionArg(self):
-        self.authreq.addExtensionArg('bag:', 'color', 'brown')
-        self.authreq.addExtensionArg('bag:', 'material', 'paper')
-        self.failUnless('bag:' in self.authreq.message.namespaces)
-        self.failUnlessEqual(self.authreq.message.getArgs('bag:'),
-                             {'color': 'brown',
-                              'material': 'paper'})
-        url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
-        self.failUnless(url.find('openid.ns.0=bag%3A') != -1,
-                        'extension bag namespace not found in %s' % (url,))
-        self.failUnless(url.find('openid.0.color=brown') != -1,
-                        'extension arg not found in %s' % (url,))
-        self.failUnless(url.find('openid.0.material=paper') != -1,
-                        'extension arg not found in %s' % (url,))
-
-    def test_idpEndpoint(self):
-        self.endpoint.local_id = None
-        self.endpoint.claimed_id = None
-        url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
-        _, qstring = url.split('?')
-        params = dict(cgi.parse_qsl(qstring))
-        self.failUnlessEqual(params['openid.identity'], IDENTIFIER_SELECT)
-
-    def test_idpAnonymous(self):
-        self.endpoint.local_id = None
-        self.endpoint.claimed_id = None
-        self.authreq.anonymous = True
-        url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
-        self.failUnless(url.find('openid.identity') == -1,
-                        'unwanted openid.identity arg appeared in %s' % (url,))
-
-    def test_userAnonymous(self):
-        self.authreq.anonymous = True
-        url = self.authreq.redirectURL('http://7.utest/', 'http://7.utest/r')
-        self.failUnless(url.find('openid.identity') == -1,
-                        'unwanted openid.identity arg appeared in %s' % (url,))
-
 class TestSuccessResponse(unittest.TestCase):
     def setUp(self):
         self.endpoint = OpenIDServiceEndpoint()
