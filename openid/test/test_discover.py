@@ -549,6 +549,39 @@ class TestPreferredNamespace(datadriven.DataDrivenTestCase):
                               discover.OPENID_2_0_TYPE]),
         ]
 
+class TestIsOPIdentifier(unittest.TestCase):
+    def setUp(self):
+        self.endpoint = discover.OpenIDServiceEndpoint()
+
+    def test_none(self):
+        self.failIf(self.endpoint.isOPIdentifier())
+
+    def test_openid1_0(self):
+        self.endpoint.type_uris = [discover.OPENID_1_0_TYPE]
+        self.failIf(self.endpoint.isOPIdentifier())
+
+    def test_openid1_1(self):
+        self.endpoint.type_uris = [discover.OPENID_1_1_TYPE]
+        self.failIf(self.endpoint.isOPIdentifier())
+
+    def test_openid2(self):
+        self.endpoint.type_uris = [discover.OPENID_2_0_TYPE]
+        self.failIf(self.endpoint.isOPIdentifier())
+
+    def test_openid2OP(self):
+        self.endpoint.type_uris = [discover.OPENID_IDP_2_0_TYPE]
+        self.failUnless(self.endpoint.isOPIdentifier())
+
+    def test_multipleMissing(self):
+        self.endpoint.type_uris = [discover.OPENID_2_0_TYPE,
+                                   discover.OPENID_1_0_TYPE]
+        self.failIf(self.endpoint.isOPIdentifier())
+
+    def test_multiplePresent(self):
+        self.endpoint.type_uris = [discover.OPENID_2_0_TYPE,
+                                   discover.OPENID_1_0_TYPE,
+                                   discover.OPENID_IDP_2_0_TYPE]
+        self.failUnless(self.endpoint.isOPIdentifier())
 
 def pyUnitTests():
     return datadriven.loadTests(__name__)
