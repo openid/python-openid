@@ -70,7 +70,7 @@ class OpenIDServiceEndpoint(object):
         self.server_url = uri
         self.used_yadis = True
 
-        if not (OPENID_IDP_2_0_TYPE in self.type_uris):
+        if not self.isOPIdentifier():
             # XXX: This has crappy implications for Service elements
             # that contain both 'server' and 'signon' Types.  But
             # that's a pathological configuration anyway, so I don't
