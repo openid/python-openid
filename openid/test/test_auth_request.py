@@ -91,6 +91,12 @@ class TestAuthRequestOpenID2(TestAuthRequestBase, unittest.TestCase):
         self.failUnlessEqual(message.IDENTIFIER_SELECT,
                              msg.getArg(message.OPENID2_NS, 'identity'))
 
+    def test_realm(self):
+        msg = self.authreq.getMessage(self.realm, self.return_to)
+        self.failIf(msg.getArg(message.OPENID2_NS, 'trust_root'))
+        self.failUnlessEqual(self.realm,
+                             msg.getArg(message.OPENID2_NS, 'realm'))
+
 class TestAuthRequestOpenID1(TestAuthRequestBase, unittest.TestCase):
     preferred_namespace = message.OPENID1_NS
 
@@ -114,6 +120,13 @@ class TestAuthRequestOpenID1(TestAuthRequestBase, unittest.TestCase):
         msg = self.authreq.getMessage(self.realm, self.return_to)
         self.failUnlessEqual(message.IDENTIFIER_SELECT,
                              msg.getArg(message.OPENID1_NS, 'identity'))
+
+    def test_trustRoot(self):
+        """Realm used to be called 'trust_root'"""
+        msg = self.authreq.getMessage(self.realm, self.return_to)
+        self.failIf(msg.getArg(message.OPENID1_NS, 'realm'))
+        self.failUnlessEqual(self.realm,
+                             msg.getArg(message.OPENID1_NS, 'trust_root'))
 
 if __name__ == '__main__':
     unittest.main()

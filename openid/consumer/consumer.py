@@ -141,7 +141,7 @@ USING THIS LIBRARY
     C{L{redirectURL<AuthRequest.redirectURL>}} method on the
     C{L{AuthRequest}} object.  The parameter C{return_to} is the URL
     that the OpenID server will send the user back to after attempting
-    to verify his or her identity.  The C{trust_root} parameter is the
+    to verify his or her identity.  The C{realm} parameter is the
     URL (or URL pattern) that identifies your web site to the user
     when he or she is authorizing it.  Send a redirect to the
     resulting URL to the user's browser.
@@ -1102,7 +1102,10 @@ class AuthRequest(object):
         """
         self.message.setArg(namespace, key, value)
 
-    def getMessage(self, trust_root, return_to, immediate=False):
+    def getMessage(self, realm, return_to, immediate=False):
+        """
+        @raises: ValueError if the request is marked
+        """
         return_to = oidutil.appendArgs(return_to, self.return_to_args)
 
         if immediate:
@@ -1111,11 +1114,17 @@ class AuthRequest(object):
             mode = 'checkid_setup'
 
         message = self.message.copy()
+        if message.isOpenID1():
+            realm_key = 'trust_root'
+        else:
+            realm_key = 'realm'
+
         message.updateArgs(OPENID_NS,
-            {'mode':mode,
-             'return_to':return_to,
-             'trust_root':trust_root,
-             })
+            {
+            realm_key:realm,
+            'mode':mode,
+            'return_to':return_to,
+            })
 
         if not self._anonymous:
             if self.endpoint.isOPIdentifier():
@@ -1133,11 +1142,11 @@ class AuthRequest(object):
 
         return message
 
-    def redirectURL(self, trust_root, return_to, immediate=False):
-        message = self.getMessage(trust_root, return_to, immediate)
+    def redirectURL(self, realm, return_to, immediate=False):
+        message = self.getMessage(realm, return_to, immediate)
         return message.toURL(self.endpoint.server_url)
 
-    def formMarkup(self, trust_root, return_to, immediate=False,
+    def formMarkup(self, realm, return_to, immediate=False,
             form_tag_attrs=None):
         """Get html for a form to submit this request to the IDP.
 
@@ -1147,7 +1156,7 @@ class AuthRequest(object):
             'action' or 'method', it will be replaced.
         @type form_tag_attrs: {unicode: unicode}
         """
-        message = self.getMessage(trust_root, return_to, immediate)
+        message = self.getMessage(realm, return_to, immediate)
         return message.toFormMarkup(self.endpoint.server_url,
                     form_tag_attrs)
 
