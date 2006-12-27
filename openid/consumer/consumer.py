@@ -364,6 +364,7 @@ class Consumer(object):
 class DiffieHellmanSHA1ConsumerSession(object):
     session_type = 'DH-SHA1'
     hash_func = staticmethod(cryptutil.sha1)
+    secret_size = 20
     allowed_assoc_types = ['HMAC-SHA1']
 
     def __init__(self, dh=None):
@@ -396,6 +397,7 @@ class DiffieHellmanSHA1ConsumerSession(object):
 class DiffieHellmanSHA256ConsumerSession(DiffieHellmanSHA1ConsumerSession):
     session_type = 'DH-SHA256'
     hash_func = staticmethod(cryptutil.sha256)
+    secret_size = 32
     allowed_assoc_types = ['HMAC-SHA256']
 
 class PlainTextConsumerSession(object):
