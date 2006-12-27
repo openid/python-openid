@@ -41,9 +41,7 @@ class TestAuthRequestBase(object):
 
     def failUnlessAnonymous(self, msg):
         for key in ['claimed_id', 'identity']:
-            self.failUnlessEqual(
-                None, msg.getArg(message.OPENID_NS, key),
-                'unwanted openid.%s arg appeared in %r' % (msg, key))
+            self.failIfOpenIDKeyExists(msg, key)
 
     def failUnlessOpenIDValueEquals(self, msg, key, expected, ns=None):
         if ns is None:
