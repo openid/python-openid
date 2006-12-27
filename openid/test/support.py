@@ -1,4 +1,5 @@
 from openid import message
+from openid import oidutil
 
 class OpenIDTestMixin(object):
     def failUnlessOpenIDValueEquals(self, msg, key, expected, ns=None):
@@ -18,3 +19,14 @@ class OpenIDTestMixin(object):
         error_message = 'openid.%s unexpectedly present: %s' % (key, actual)
         self.failIf(actual is not None, error_message)
 
+class CatchLogs(object):
+    def setUp(self):
+        self.old_logger = oidutil.log
+        oidutil.log = self.gotLogMessage
+        self.messages = []
+
+    def gotLogMessage(self, message):
+        self.messages.append(message)
+
+    def tearDown(self):
+        oidutil.log = self.old_logger

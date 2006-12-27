@@ -24,6 +24,8 @@ from openid.dh import DiffieHellman
 from openid.fetchers import HTTPResponse, HTTPFetchingError
 from openid import fetchers
 
+from support import CatchLogs
+
 import _memstore
 
 assocs = [
@@ -86,24 +88,6 @@ class GoodAssociation:
 class GoodAssocStore(_memstore.MemoryStore):
     def getAssociation(self, server_url, handle=None):
         return GoodAssociation()
-
-
-
-class CatchLogs(object):
-
-    def setUp(self):
-        self.old_logger = oidutil.log
-        oidutil.log = self.gotLogMessage
-        self.messages = []
-
-
-    def gotLogMessage(self, message):
-        self.messages.append(message)
-
-
-    def tearDown(self):
-        oidutil.log = self.old_logger
-
 
 
 class TestFetcher(object):
