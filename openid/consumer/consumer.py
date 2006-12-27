@@ -488,19 +488,23 @@ class GenericConsumer(object):
     def _checkNonce(self, server_url, response):
         nonce = response.getNonce()
         if nonce is None:
-            # Assume that this is an OpenID 1.X response and
-            # use/extract the nonce that we generated.
-            return_to = response.getReturnTo()
-            parsed_url = urlparse(return_to)
-            query = parsed_url[4]
-            for k, v in cgi.parse_qsl(query):
-                if k == 'nonce':
-                    server_url = '' # came from us
-                    nonce = v
-                    break
+            if response.isOpenID1():
+                # Assume that this is an OpenID 1.X response and
+                # use/extract the nonce that we generated.
+                return_to = response.getReturnTo()
+                parsed_url = urlparse(return_to)
+                query = parsed_url[4]
+                for k, v in cgi.parse_qsl(query):
+                    if k == 'nonce':
+                        server_url = '' # came from us
+                        nonce = v
+                        break
+                else:
+                    msg = 'Nonce missing from return_to: %r' % (
+                        response.getReturnTo())
+                    return FailureResponse(response.endpoint, msg)
             else:
-                msg = 'Nonce missing from return_to: %r' % (
-                    response.getReturnTo())
+                msg = 'Nonce missing from response'
                 return FailureResponse(response.endpoint, msg)
 
         # The nonce matches the signed nonce in the openid.return_to
@@ -1235,6 +1239,9 @@ class SuccessResponse(Response):
         if signed_fields is None:
             signed_fields = []
         self.signed_fields = signed_fields
+
+    def isOpenID1(self):
+        return self.message.isOpenID1()
 
     def isSigned(self, ns_uri, ns_key):
         """Return whether a particular key is signed, regardless of
