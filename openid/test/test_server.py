@@ -3,7 +3,7 @@
 from openid.server import server
 from openid import association, cryptutil, oidutil
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
-     IDENTIFIER_SELECT
+     IDENTIFIER_SELECT, no_default
 import _memstore
 import cgi
 
@@ -911,6 +911,20 @@ class TestAssociate(unittest.TestCase):
         self.failUnlessEqual(reply.getArg(OPENID_NS, 'reference'), reference)
         self.failUnlessEqual(reply.getArg(OPENID_NS, 'contact'), contact)
 
+    def failUnlessExpiresInMatches(self, msg, expected_expires_in):
+        expires_in_str = msg.getArg(OPENID_NS, 'expires_in', no_default)
+        expires_in = int(expires_in_str)
+
+        # Slop is necessary because the tests can sometimes get run
+        # right on a second boundary
+        slop = 1 # second
+        difference = expected_expires_in - expires_in
+
+        error_message = ('"expires_in" value not within %s of expected: '
+                         'expected=%s, actual=%s' %
+                         (slop, expected_expires_in, expires_in))
+        self.failUnless(0 <= difference <= slop, error_message)
+
     def test_plaintext(self):
         self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA1')
         response = self.request.answer(self.assoc)
@@ -919,8 +933,9 @@ class TestAssociate(unittest.TestCase):
         self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA1")
         self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
 
-        self.failUnlessEqual(
-            rfg("expires_in"), "%d" % (self.signatory.SECRET_LIFETIME,))
+        self.failUnlessExpiresInMatches(
+            response.fields, self.signatory.SECRET_LIFETIME)
+
         self.failUnlessEqual(
             rfg("mac_key"), oidutil.toBase64(self.assoc.secret))
         self.failIf(rfg("session_type"))
@@ -935,8 +950,9 @@ class TestAssociate(unittest.TestCase):
         self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA1")
         self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
 
-        self.failUnlessEqual(
-            rfg("expires_in"), "%d" % (self.signatory.SECRET_LIFETIME,))
+        self.failUnlessExpiresInMatches(
+            response.fields, self.signatory.SECRET_LIFETIME)
+
         self.failUnlessEqual(
             rfg("mac_key"), oidutil.toBase64(self.assoc.secret))
         self.failIf(rfg("session_type"))
