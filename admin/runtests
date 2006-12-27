@@ -58,6 +58,7 @@ def pyunitTests():
     from openid.test import linkparse
     from openid.test import trustroot
     from openid.test import test_association
+    from openid.test import test_auth_request
     from openid.test import test_fetchers
     from openid.test import test_urinorm
     from openid.test import test_nonce
@@ -79,6 +80,7 @@ def pyunitTests():
         test_xri,
         test_xrires,
         test_association_response,
+        test_auth_request,
         ]
 
     # Some modules have data-driven tests, and they use custom methods
