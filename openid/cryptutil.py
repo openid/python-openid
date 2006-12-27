@@ -54,6 +54,8 @@ if sha256_module is not None:
     def sha256(s):
         return sha256_module.new(s).digest()
 
+    SHA256_AVAILABLE = True
+
 else:
     _no_sha256 = NotImplementedError(
         'Use Python 2.5, install pycrypto or install hashlib to use SHA256')
@@ -63,6 +65,8 @@ else:
 
     def sha256(s):
         raise _no_sha256
+
+    SHA256_AVAILABLE = False
 
 try:
     from Crypto.Util.number import long_to_bytes, bytes_to_long
