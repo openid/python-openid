@@ -5,16 +5,8 @@ import unittest
 from openid.message import Message, BARE_NS, OPENID_NS, OPENID2_NS
 from openid import association
 import time
-
-try:
-    from openid import cryptutil
-    cryptutil.sha256('')
-except NotImplementedError:
-    import warnings
-    warnings.warn("Not running SHA256 tests.")
-    has_sha256 = False
-else:
-    has_sha256 = True
+from openid import cryptutil
+import warnings
 
 class AssociationSerializationTest(unittest.TestCase):
     def test_roundTrip(self):
@@ -125,7 +117,7 @@ class TestMac(unittest.TestCase):
         sig = assoc.sign(self.pairs)
         self.failUnlessEqual(sig, expected)
 
-    if has_sha256:
+    if cryptutil.SHA256_AVAILABLE:
         def test_sha256(self):
             assoc = association.Association.fromExpiresIn(
                 3600, '{sha256SA}', 'very_secret', "HMAC-SHA256")
@@ -157,7 +149,7 @@ class TestMessageSigning(unittest.TestCase):
         self.failUnlessEqual(signed.getArg(BARE_NS, "xey"), "value",
                              signed)
 
-    if has_sha256:
+    if cryptutil.SHA256_AVAILABLE:
         def test_signSHA256(self):
             assoc = association.Association.fromExpiresIn(
                 3600, '{sha1}', 'very_secret', "HMAC-SHA256")

@@ -802,9 +802,7 @@ class TestAssociate(unittest.TestCase):
         self.failUnlessEqual(secret, self.assoc.secret)
 
 
-    try:
-        cryptutil.sha256('')
-    except NotImplementedError:
+    if not cryptutil.SHA256_AVAILABLE:
         warnings.warn("Not running SHA256 tests.")
     else:
         def test_dhSHA256(self):
@@ -1031,9 +1029,7 @@ class TestServer(unittest.TestCase, CatchLogs):
         self.failUnlessEqual(response.fields.getArg(OPENID_NS, "session_type"),
                              'DH-SHA256')
 
-    try:
-        cryptutil.sha256('')
-    except NotImplementedError:
+    if not cryptutil.SHA256_AVAILABLE:
         warnings.warn("Not running SHA256 tests.")
     else:
         def test_associate4(self):
