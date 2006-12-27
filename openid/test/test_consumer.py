@@ -18,7 +18,7 @@ from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
 from openid.yadis.manager import Discovery
 from openid.yadis.discover import DiscoveryFailure
-
+from openid.dh import DiffieHellman
 
 from openid.fetchers import HTTPResponse, HTTPFetchingError
 from openid import fetchers
@@ -134,6 +134,16 @@ class TestFetcher(object):
 
         return self.response(url, 404, 'Not found')
 
+def makeFastConsumerSession():
+    """
+    Create custom DH object so tests run quickly.
+    """
+    dh = DiffieHellman(100389557, 2)
+    return DiffieHellmanSHA1ConsumerSession(dh)
+
+def setConsumerSession(con):
+    con.session_types = {'DH-SHA1': makeFastConsumerSession}
+
 def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     store = _memstore.MemoryStore()
     if immediate:
@@ -153,6 +163,8 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         trust_root = consumer_url
 
         consumer = GenericConsumer(store)
+        setConsumerSession(consumer)
+
         request = consumer.begin(endpoint)
         return_to = consumer_url
 
@@ -1372,6 +1384,10 @@ class TestCreateAssociationRequest(unittest.TestCase):
                               }), args)
 
     def test_dhSHA1Compatibility(self):
+        # Set the consumer's session type to a fast session since we
+        # need it here.
+        setConsumerSession(self.consumer)
+
         self.endpoint.use_compatibility = True
         session_type = 'DH-SHA1'
         session, args = self.consumer._createAssociateRequest(
@@ -1386,10 +1402,14 @@ class TestCreateAssociationRequest(unittest.TestCase):
 
         # OK, session_type is set here and not for no-encryption
         # compatibility
-        self.failUnlessEqual(Message.fromOpenIDArgs({'mode':'associate',
-                              'session_type':'DH-SHA1',
-                              'assoc_type':self.assoc_type,
-                              }), args)
+        expected = Message.fromOpenIDArgs({'mode':'associate',
+                                           'session_type':'DH-SHA1',
+                                           'assoc_type':self.assoc_type,
+                                           'dh_modulus': 'BfvStQ==',
+                                           'dh_gen': 'Ag==',
+                                           })
+
+        self.failUnlessEqual(expected, args)
 
     # XXX: test the other types
 if __name__ == '__main__':
