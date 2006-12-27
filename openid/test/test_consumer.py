@@ -1537,5 +1537,12 @@ class TestOpenID2SessionNegotiation(unittest.TestCase):
         self.consumer.return_messages = [msg, assoc]
         self.assertTrue(self.consumer._negotiateAssociation(self.endpoint) is assoc)
 
+    def testValid(self):
+        assoc = association.Association(
+            'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
+
+        self.consumer.return_messages = [assoc]
+        self.assertTrue(self.consumer._negotiateAssociation(self.endpoint) is assoc)
+
 if __name__ == '__main__':
     unittest.main()
