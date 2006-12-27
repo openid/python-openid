@@ -23,10 +23,12 @@ class DummyAssoc(object):
     handle = "assoc-handle"
 
 class TestAuthRequestBase(object):
-    """Mixin for AuthRequest tests for OpenID 1 and 2"""
+    """Mixin for AuthRequest tests for OpenID 1 and 2; DON'T add
+    unittest.TestCase as a base class here."""
 
     preferred_namespace = None
     immediate = False
+    expected_mode = 'checkid_setup'
 
     def setUp(self):
         self.endpoint = DummyEndpoint()
@@ -59,6 +61,23 @@ class TestAuthRequestBase(object):
         actual = msg.getArg(ns, key)
         error_message = 'openid.%s unexpectedly present: %s' % (key, actual)
         self.failIf(actual is not None, error_message)
+
+    def failUnlessHasRequiredFields(self, msg):
+        self.failUnlessEqual(self.preferred_namespace,
+                             self.authreq.message.getOpenIDNamespace())
+
+        self.failUnlessEqual(self.preferred_namespace,
+                             msg.getOpenIDNamespace())
+
+        self.failUnlessOpenIDValueEquals(msg, 'mode',
+                                         self.expected_mode)
+
+        # Implement these in subclasses because they depend on
+        # protocol differences!
+        self.failUnlessHasRealm(msg)
+        self.failUnlessIdentifiersPresent(msg)
+
+    # TESTS
 
     def test_checkNoAssocHandle(self):
         self.authreq.assoc = None
@@ -99,23 +118,26 @@ class TestAuthRequestBase(object):
         self.failUnlessHasIdentifiers(
             msg, self.endpoint.local_id, self.endpoint.claimed_id)
 
-        self.failUnlessEqual(self.preferred_namespace,
-                             self.authreq.message.getOpenIDNamespace())
-
-        self.failUnlessEqual(self.preferred_namespace,
-                             msg.getOpenIDNamespace())
-
-        expected_mode = self.immediate and 'checkid_immediate' \
-                        or 'checkid_setup'
-
-        self.failUnlessOpenIDValueEquals(msg, 'mode', expected_mode)
-
 class TestAuthRequestOpenID2(TestAuthRequestBase, unittest.TestCase):
     preferred_namespace = message.OPENID2_NS
+
+    def failUnlessHasRealm(self, msg):
+        # check presence of proper realm key and absence of the wrong
+        # one.
+        self.failUnlessOpenIDValueEquals(msg, 'realm', self.realm)
+        self.failIfOpenIDKeyExists(msg, 'trust_root')
+
+    def failUnlessIdentifiersPresent(self, msg):
+        identity_present = msg.hasKey(message.OPENID_NS, 'identity')
+        claimed_present = msg.hasKey(message.OPENID_NS, 'claimed_id')
+
+        self.failUnlessEqual(claimed_present, identity_present)
 
     def failUnlessHasIdentifiers(self, msg, op_specific_id, claimed_id):
         self.failUnlessOpenIDValueEquals(msg, 'identity', op_specific_id)
         self.failUnlessOpenIDValueEquals(msg, 'claimed_id', claimed_id)
+
+    # TESTS
 
     def test_setAnonymousWorksForOpenID2(self):
         """OpenID AuthRequests should be able to set 'anonymous' to true."""
@@ -127,6 +149,7 @@ class TestAuthRequestOpenID2(TestAuthRequestBase, unittest.TestCase):
         self.authreq.setAnonymous(True)
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
+        self.failUnlessHasRequiredFields(msg)
         self.failUnlessAnonymous(msg)
 
     def test_opAnonymousIgnoresIdentifier(self):
@@ -134,21 +157,16 @@ class TestAuthRequestOpenID2(TestAuthRequestBase, unittest.TestCase):
         self.authreq.setAnonymous(True)
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
+        self.failUnlessHasRequiredFields(msg)
         self.failUnlessAnonymous(msg)
 
     def test_opIdentifierSendsIdentifierSelect(self):
         self.endpoint.is_op_identifier = True
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
+        self.failUnlessHasRequiredFields(msg)
         self.failUnlessHasIdentifiers(
             msg, message.IDENTIFIER_SELECT, message.IDENTIFIER_SELECT)
-
-    def test_realm(self):
-        msg = self.authreq.getMessage(self.realm, self.return_to,
-                                      self.immediate)
-        self.failIf(msg.getArg(message.OPENID2_NS, 'trust_root'))
-        self.failUnlessEqual(self.realm,
-                             msg.getArg(message.OPENID2_NS, 'realm'))
 
 class TestAuthRequestOpenID1(TestAuthRequestBase, unittest.TestCase):
     preferred_namespace = message.OPENID1_NS
@@ -156,6 +174,23 @@ class TestAuthRequestOpenID1(TestAuthRequestBase, unittest.TestCase):
     def setUpEndpoint(self):
         TestAuthRequestBase.setUpEndpoint(self)
         self.endpoint.preferred_namespace = message.OPENID1_NS
+
+    def failUnlessHasIdentifiers(self, msg, op_specific_id, claimed_id):
+        """Make sure claimed_is is *absent* in request."""
+        self.failUnlessOpenIDValueEquals(msg, 'identity', op_specific_id)
+        self.failIfOpenIDKeyExists(msg, 'claimed_id')
+
+    def failUnlessIdentifiersPresent(self, msg):
+        self.failIfOpenIDKeyExists(msg, 'claimed_id')
+        self.failUnless(msg.hasKey(message.OPENID_NS, 'identity'))
+
+    def failUnlessHasRealm(self, msg):
+        # check presence of proper realm key and absence of the wrong
+        # one.
+        self.failUnlessOpenIDValueEquals(msg, 'trust_root', self.realm)
+        self.failIfOpenIDKeyExists(msg, 'realm')
+
+    # TESTS
 
     def test_setAnonymousFailsForOpenID1(self):
         """OpenID 1 requests MUST NOT be able to set anonymous to True"""
@@ -172,27 +207,17 @@ class TestAuthRequestOpenID1(TestAuthRequestBase, unittest.TestCase):
         self.endpoint.is_op_identifier = True
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
+        self.failUnlessHasRequiredFields(msg)
         self.failUnlessEqual(message.IDENTIFIER_SELECT,
                              msg.getArg(message.OPENID1_NS, 'identity'))
 
-    def test_trustRoot(self):
-        """Realm used to be called 'trust_root'"""
-        msg = self.authreq.getMessage(self.realm, self.return_to,
-                                      self.immediate)
-        self.failIf(msg.getArg(message.OPENID1_NS, 'realm'))
-        self.failUnlessEqual(self.realm,
-                             msg.getArg(message.OPENID1_NS, 'trust_root'))
-
-    def failUnlessHasIdentifiers(self, msg, op_specific_id, claimed_id):
-        """Make sure claimed_is is *absent* in request."""
-        self.failUnlessOpenIDValueEquals(msg, 'identity', op_specific_id)
-        self.failIfOpenIDKeyExists(msg, 'claimed_id')
-
 class TestAuthRequestOpenID1Immediate(TestAuthRequestOpenID1):
     immediate = True
+    expected_mode = 'checkid_immediate'
 
 class TestAuthRequestOpenID2Immediate(TestAuthRequestOpenID2):
     immediate = True
+    expected_mode = 'checkid_immediate'
 
 if __name__ == '__main__':
     unittest.main()
