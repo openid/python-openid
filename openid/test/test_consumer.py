@@ -33,8 +33,8 @@ assocs = [
 def mkSuccess(endpoint, q):
     """Convenience function to create a SuccessResponse with the given
     arguments, all signed."""
-    signed_list = q.keys()
-    return SuccessResponse(endpoint, Message.fromPostArgs(q), signed_list)
+    signed_list = ['openid.' + k for k in q.keys()]
+    return SuccessResponse(endpoint, Message.fromOpenIDArgs(q), signed_list)
 
 def parseQuery(qs):
     q = {}
@@ -654,7 +654,7 @@ class CheckNonceTest(TestIdRes, CatchLogs):
         """use consumer-generated nonce"""
         self.return_to = 'http://rt.unittest/?nonce=%s' % (mkNonce(),)
         self.response = mkSuccess(self.endpoint,
-                                  {'openid.return_to': self.return_to})
+                                  {'return_to': self.return_to})
         ret = self.consumer._checkNonce(None, self.response)
         self.failUnlessEqual(ret.status, SUCCESS)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
@@ -662,8 +662,8 @@ class CheckNonceTest(TestIdRes, CatchLogs):
     def test_serverNonce(self):
         """use server-generated nonce"""
         self.response = mkSuccess(self.endpoint,
-                                  {'openid.ns':OPENID2_NS,
-                                   'openid.response_nonce': mkNonce(),})
+                                  {'ns':OPENID2_NS,
+                                   'response_nonce': mkNonce(),})
         ret = self.consumer._checkNonce(self.server_url, self.response)
         self.failUnlessEqual(ret.status, SUCCESS)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
@@ -675,8 +675,8 @@ class CheckNonceTest(TestIdRes, CatchLogs):
         stamp, salt = splitNonce(nonce)
         self.store.useNonce(self.server_url, stamp, salt)
         self.response = mkSuccess(self.endpoint,
-                                  {'openid.response_nonce': nonce,
-                                   'openid.ns':OPENID2_NS,
+                                  {'response_nonce': nonce,
+                                   'ns':OPENID2_NS,
                                    })
         ret = self.consumer._checkNonce(self.server_url, self.response)
         self.failUnlessEqual(ret.status, FAILURE)
@@ -688,8 +688,8 @@ class CheckNonceTest(TestIdRes, CatchLogs):
     def test_tamperedNonce(self):
         """Malformed nonce"""
         self.response = mkSuccess(self.endpoint,
-                                  {'openid.ns':OPENID2_NS,
-                                   'openid.response_nonce':'malformed'})
+                                  {'ns':OPENID2_NS,
+                                   'response_nonce':'malformed'})
         ret = self.consumer._checkNonce(self.server_url, self.response)
         self.failUnlessEqual(ret.status, FAILURE)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
@@ -698,7 +698,7 @@ class CheckNonceTest(TestIdRes, CatchLogs):
     def test_missingNonce(self):
         """no nonce parameter on the return_to"""
         self.response = mkSuccess(self.endpoint,
-                                  {'openid.return_to': self.return_to})
+                                  {'return_to': self.return_to})
         ret = self.consumer._checkNonce(self.server_url, self.response)
         self.failUnlessEqual(ret.status, FAILURE)
         self.failUnlessEqual(ret.identity_url, self.consumer_id)
@@ -1010,12 +1010,12 @@ class TestSuccessResponse(unittest.TestCase):
 
     def test_extensionResponse(self):
         resp = mkSuccess(self.endpoint, {
-            'openid.ns.sreg':'urn:sreg',
-            'openid.ns.unittest':'urn:unittest',
-            'openid.unittest.one':'1',
-            'openid.unittest.two':'2',
-            'openid.sreg.nickname':'j3h',
-            'openid.return_to':'return_to',
+            'ns.sreg':'urn:sreg',
+            'ns.unittest':'urn:unittest',
+            'unittest.one':'1',
+            'unittest.two':'2',
+            'sreg.nickname':'j3h',
+            'return_to':'return_to',
             })
         utargs = resp.message.getArgs('urn:unittest')
         self.failUnlessEqual(utargs, {'one':'1', 'two':'2'})
@@ -1027,7 +1027,7 @@ class TestSuccessResponse(unittest.TestCase):
         self.failUnless(resp.getReturnTo() is None)
 
     def test_returnTo(self):
-        resp = mkSuccess(self.endpoint, {'openid.return_to':'return_to'})
+        resp = mkSuccess(self.endpoint, {'return_to':'return_to'})
         self.failUnlessEqual(resp.getReturnTo(), 'return_to')
 
 class StubConsumer(object):
