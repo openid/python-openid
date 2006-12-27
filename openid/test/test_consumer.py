@@ -1,6 +1,7 @@
 import urlparse
 import cgi
 import time
+import warnings
 
 from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, \
      OPENID1_NS
@@ -12,7 +13,7 @@ from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
-     SetupNeededError
+     SetupNeededError, DiffieHellmanSHA256ConsumerSession
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
@@ -1412,5 +1413,73 @@ class TestCreateAssociationRequest(unittest.TestCase):
         self.failUnlessEqual(expected, args)
 
     # XXX: test the other types
+
+class TestDiffieHellmanResponseParameters(object):
+    session_cls = None
+    message_namespace = None
+
+    def setUp(self):
+        # Pre-compute DH with small prime so tests run quickly.
+        self.server_dh = DiffieHellman(100389557, 2)
+        self.consumer_dh = DiffieHellman(100389557, 2)
+
+        # base64(btwoc(g ^ xb mod p))
+        self.dh_server_public = cryptutil.longToBase64(self.server_dh.public)
+
+        self.secret = cryptutil.randomString(self.session_cls.secret_size)
+
+        self.enc_mac_key = oidutil.toBase64(
+            self.server_dh.xorSecret(self.consumer_dh.public,
+                                     self.secret,
+                                     self.session_cls.hash_func))
+
+        self.consumer_session = self.session_cls(self.consumer_dh)
+
+        self.msg = Message(self.message_namespace)
+
+    def testExtractSecret(self):
+        self.msg.setArg(OPENID_NS, 'dh_server_public', self.dh_server_public)
+        self.msg.setArg(OPENID_NS, 'enc_mac_key', self.enc_mac_key)
+
+        extracted = self.consumer_session.extractSecret(self.msg)
+        self.failUnlessEqual(extracted, self.secret)
+
+    def testAbsentServerPublic(self):
+        self.msg.setArg(OPENID_NS, 'enc_mac_key', self.enc_mac_key)
+
+        self.failUnlessRaises(KeyError, self.consumer_session.extractSecret, self.msg)
+
+    def testAbsentMacKey(self):
+        self.msg.setArg(OPENID_NS, 'dh_server_public', self.dh_server_public)
+
+        self.failUnlessRaises(KeyError, self.consumer_session.extractSecret, self.msg)
+
+    def testInvalidBase64Public(self):
+        self.msg.setArg(OPENID_NS, 'dh_server_public', 'n o t b a s e 6 4.')
+        self.msg.setArg(OPENID_NS, 'enc_mac_key', self.enc_mac_key)
+
+        self.failUnlessRaises(ValueError, self.consumer_session.extractSecret, self.msg)
+
+    def testInvalidBase64MacKey(self):
+        self.msg.setArg(OPENID_NS, 'dh_server_public', self.dh_server_public)
+        self.msg.setArg(OPENID_NS, 'enc_mac_key', 'n o t base 64')
+
+        self.failUnlessRaises(ValueError, self.consumer_session.extractSecret, self.msg)
+
+class TestOpenID1SHA1(TestDiffieHellmanResponseParameters, unittest.TestCase):
+    session_cls = DiffieHellmanSHA1ConsumerSession
+    message_namespace = OPENID1_NS
+
+class TestOpenID2SHA1(TestDiffieHellmanResponseParameters, unittest.TestCase):
+    session_cls = DiffieHellmanSHA1ConsumerSession
+    message_namespace = OPENID2_NS
+
+if cryptutil.SHA256_AVAILABLE:
+    class TestOpenID2SHA256(TestDiffieHellmanResponseParameters, unittest.TestCase):
+        session_cls = DiffieHellmanSHA256ConsumerSession
+        message_namespace = OPENID2_NS
+else:
+    warnings.warn("Not running SHA256 association session tests.")
+
 if __name__ == '__main__':
     unittest.main()
