@@ -441,14 +441,13 @@ class AssociateRequest(OpenIDRequest):
 
         return response
 
-    def answerUnsupported(self, message=None, preferred_association_type=None,
+    def answerUnsupported(self, message, preferred_association_type=None,
                           preferred_session_type=None):
         """Respond to this request indicating that the association
         type or association session type is not supported."""
         response = OpenIDResponse(self)
         response.fields.setArg(OPENID_NS, 'error_code', 'unsupported-type')
-        if message:
-            response.fields.setArg(OPENID_NS, 'error', message)
+        response.fields.setArg(OPENID_NS, 'error', message)
 
         if preferred_association_type:
             response.fields.setArg(

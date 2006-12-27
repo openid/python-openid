@@ -959,11 +959,12 @@ class TestAssociate(unittest.TestCase):
         self.failUnlessEqual(rfg('session_type'), allowed_sess)
 
     def test_unsupported(self):
-        response = self.request.answerUnsupported()
+        message = 'This is a unit test'
+        response = self.request.answerUnsupported(message)
         rfg = lambda f: response.fields.getArg(OPENID_NS, f)
         self.failUnlessEqual(rfg('error_code'), 'unsupported-type')
         self.failUnlessEqual(rfg('assoc_type'), None)
-        self.failUnlessEqual(rfg('error'), None)
+        self.failUnlessEqual(rfg('error'), message)
         self.failUnlessEqual(rfg('session_type'), None)
 
 class Counter(object):
