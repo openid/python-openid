@@ -11,7 +11,8 @@ from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_2_0_TYPE, \
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
-     DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession
+     DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
+     SetupNeededError
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
@@ -577,15 +578,62 @@ class TestFetchErrorInIdRes(TestIdRes):
         r.message.index(IdResFetchFailingConsumer.message)
 
 class TestSetupNeeded(TestIdRes):
-    def test_setupNeeded(self):
+    def failUnlessSetupNeeded(self, expected_setup_url, message):
+        try:
+            self.consumer._checkSetupNeeded(message)
+        except SetupNeededError, why:
+            self.failUnlessEqual(expected_setup_url, why.user_setup_url)
+        else:
+            self.fail("Expected to find an immediate-mode response")
+
+    def test_setupNeededOpenID1(self):
+        """The minimum conditions necessary to trigger Setup Needed"""
         setup_url = 'http://unittest/setup-here'
         message = Message.fromPostArgs({
             'openid.mode': 'id_res',
             'openid.user_setup_url': setup_url,
             })
-        ret = self.consumer._doIdRes(message, self.endpoint,)
-        self.failUnlessEqual(ret.status, SETUP_NEEDED)
-        self.failUnlessEqual(ret.setup_url, setup_url)
+        self.failUnless(message.isOpenID1())
+        self.failUnlessSetupNeeded(setup_url, message)
+
+    def test_setupNeededOpenID1_extra(self):
+        """Extra stuff along with setup_url still trigger Setup Needed"""
+        setup_url = 'http://unittest/setup-here'
+        message = Message.fromPostArgs({
+            'openid.mode': 'id_res',
+            'openid.user_setup_url': setup_url,
+            'openid.identity': 'bogus',
+            })
+        self.failUnless(message.isOpenID1())
+        self.failUnlessSetupNeeded(setup_url, message)
+
+    def test_noSetupNeededOpenID1(self):
+        """When the user_setup_url is missing on an OpenID 1 message,
+        we assume that it's not a cancel response to checkid_immediate"""
+        message = Message.fromOpenIDArgs({'mode': 'id_res'})
+        self.failUnless(message.isOpenID1())
+
+        # No SetupNeededError raised
+        self.consumer._checkSetupNeeded(message)
+
+    def test_setupNeededOpenID2(self):
+        message = Message.fromOpenIDArgs({
+            'mode':'id_res',
+            'ns':OPENID2_NS,
+            })
+        self.failUnless(message.isOpenID2())
+        self.failUnlessSetupNeeded(None, message)
+
+    def test_noSetupNeededOpenID2(self):
+        message = Message.fromOpenIDArgs({
+            'mode':'id_res',
+            'game':'puerto_rico',
+            'ns':OPENID2_NS,
+            })
+        self.failUnless(message.isOpenID2())
+
+        # No SetupNeededError raised
+        self.consumer._checkSetupNeeded(message)
 
 class CheckAuthHappened(Exception): pass
 

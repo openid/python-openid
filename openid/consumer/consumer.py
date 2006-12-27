@@ -409,6 +409,12 @@ class PlainTextConsumerSession(object):
         mac_key64 = response.getArg(OPENID_NS, 'mac_key', no_default)
         return oidutil.fromBase64(mac_key64)
 
+class SetupNeededError(Exception):
+    """Internally-used exception that indicates that an immediate-mode
+    request cancelled."""
+    def __init__(self, user_setup_url=None):
+        Exception.__init__(self, user_setup_url)
+        self.user_setup_url = user_setup_url
 
 class ProtocolError(ValueError):
     """Exception that indicates that a message violated the
@@ -460,6 +466,11 @@ class GenericConsumer(object):
             return FailureResponse(endpoint, error, contact=contact,
                                    reference=reference)
         elif mode == 'id_res':
+            try:
+                self._checkSetupNeeded(message)
+            except SetupNeededError, why:
+                return SetupNeededResponse(endpoint, why.user_setup_url)
+
             try:
                 response = self._doIdRes(message, endpoint)
             except fetchers.HTTPFetchingError, why:
@@ -530,18 +541,36 @@ class GenericConsumer(object):
 
         return response_message
 
+    def _checkSetupNeeded(self, message):
+        """Check an id_res message to see if it is a
+        checkid_immediate cancel response.
+
+        @raises: SetupNeededError if it is a checkid_immediate cancellation
+        """
+        if message.isOpenID1():
+            # In OpenID 1, we check to see if this is a cancel from
+            # immediate mode by the presence of the user_setup_url
+            # parameter.
+            user_setup_url = message.getArg(OPENID1_NS, 'user_setup_url')
+            if user_setup_url is not None:
+                raise SetupNeededError(user_setup_url)
+        else:
+            # In OpenID 2, we check whether the only field present is
+            # the mode. This seems questionable, but it's the best way
+            # that I can express what it says in the spec.
+            openid_args = message.getArgs(OPENID2_NS)
+            if openid_args == {'mode':'id_res'}:
+                raise SetupNeededError()
+
     def _doIdRes(self, message, endpoint):
-        """Handle id_res responses.
+        """Handle id_res responses that are not cancellations of
+        immediate mode requests.
 
         @param message: the response paramaters.
         @param endpoint: the discovered endpoint object. May be None.
 
         @returntype: L{Response}
         """
-        user_setup_url = message.getArg(OPENID_NS, 'user_setup_url')
-        if user_setup_url is not None:
-            return SetupNeededResponse(endpoint, user_setup_url)
-
         try:
             signed_list = self._idResCheckSignature(message,
                                                     endpoint.server_url)
