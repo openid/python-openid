@@ -840,10 +840,11 @@ class GenericConsumer(object):
         except ServerError, why:
             # Any error message whose code is not 'unsupported-type'
             # should be considered a total failure.
-            if e.error_code != 'unsupported-type':
+            if why.error_code != 'unsupported-type' or \
+                   why.message.isOpenID1():
                 oidutil.log(
                     'Server error when requesting an association from %r: %s'
-                    % (endpoint.server_url, e.error_text))
+                    % (endpoint.server_url, why.error_text))
                 return None
 
             # The server didn't like the association/session type
@@ -880,6 +881,8 @@ class GenericConsumer(object):
                                 'type: session_type=%s, assoc_type=%s'
                                 % (session_type, assoc_type))
                     return None
+                else:
+                    return assoc
         else:
             return assoc
 
