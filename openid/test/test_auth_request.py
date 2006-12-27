@@ -60,6 +60,20 @@ class TestAuthRequestBase(object):
         error_message = 'openid.%s unexpectedly present: %s' % (key, actual)
         self.failIf(actual is not None, error_message)
 
+    def test_checkNoAssocHandle(self):
+        self.authreq.assoc = None
+        msg = self.authreq.getMessage(self.realm, self.return_to,
+                                      self.immediate)
+
+        self.failIfOpenIDKeyExists(msg, 'assoc_handle')
+
+    def test_checkWithAssocHandle(self):
+        msg = self.authreq.getMessage(self.realm, self.return_to,
+                                      self.immediate)
+
+        self.failUnlessOpenIDValueEquals(msg, 'assoc_handle',
+                                         self.assoc.handle)
+
     def test_addExtensionArg(self):
         self.authreq.addExtensionArg('bag:', 'color', 'brown')
         self.authreq.addExtensionArg('bag:', 'material', 'paper')
