@@ -3,6 +3,7 @@ import unittest
 
 from openid.consumer import consumer
 from openid import message
+from openid.test import support
 
 class DummyEndpoint(object):
     preferred_namespace = None
@@ -22,7 +23,7 @@ class DummyEndpoint(object):
 class DummyAssoc(object):
     handle = "assoc-handle"
 
-class TestAuthRequestBase(object):
+class TestAuthRequestMixin(support.OpenIDTestMixin):
     """Mixin for AuthRequest tests for OpenID 1 and 2; DON'T add
     unittest.TestCase as a base class here."""
 
@@ -44,23 +45,6 @@ class TestAuthRequestBase(object):
     def failUnlessAnonymous(self, msg):
         for key in ['claimed_id', 'identity']:
             self.failIfOpenIDKeyExists(msg, key)
-
-    def failUnlessOpenIDValueEquals(self, msg, key, expected, ns=None):
-        if ns is None:
-            ns = message.OPENID_NS
-
-        actual = msg.getArg(ns, key)
-        error_format = 'Wrong value for openid.%s: expected=%s, actual=%s'
-        error_message = error_format % (key, expected, actual)
-        self.failUnlessEqual(expected, actual, error_message)
-
-    def failIfOpenIDKeyExists(self, msg, key, ns=None):
-        if ns is None:
-            ns = message.OPENID_NS
-
-        actual = msg.getArg(ns, key)
-        error_message = 'openid.%s unexpectedly present: %s' % (key, actual)
-        self.failIf(actual is not None, error_message)
 
     def failUnlessHasRequiredFields(self, msg):
         self.failUnlessEqual(self.preferred_namespace,
@@ -118,7 +102,7 @@ class TestAuthRequestBase(object):
         self.failUnlessHasIdentifiers(
             msg, self.endpoint.local_id, self.endpoint.claimed_id)
 
-class TestAuthRequestOpenID2(TestAuthRequestBase, unittest.TestCase):
+class TestAuthRequestOpenID2(TestAuthRequestMixin, unittest.TestCase):
     preferred_namespace = message.OPENID2_NS
 
     def failUnlessHasRealm(self, msg):
@@ -168,7 +152,7 @@ class TestAuthRequestOpenID2(TestAuthRequestBase, unittest.TestCase):
         self.failUnlessHasIdentifiers(
             msg, message.IDENTIFIER_SELECT, message.IDENTIFIER_SELECT)
 
-class TestAuthRequestOpenID1(TestAuthRequestBase, unittest.TestCase):
+class TestAuthRequestOpenID1(TestAuthRequestMixin, unittest.TestCase):
     preferred_namespace = message.OPENID1_NS
 
     def setUpEndpoint(self):
