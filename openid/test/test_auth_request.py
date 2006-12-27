@@ -30,6 +30,7 @@ class TestAuthRequestBase(object):
     def setUp(self):
         self.endpoint = DummyEndpoint()
         self.endpoint.local_id = 'http://server.unittest/joe'
+        self.endpoint.claimed_id = 'http://joe.vanity.example/'
         self.endpoint.server_url = 'http://server.unittest/'
         self.endpoint.preferred_namespace = self.preferred_namespace
         self.realm = 'http://example/'
@@ -38,9 +39,27 @@ class TestAuthRequestBase(object):
         self.authreq = consumer.AuthRequest(self.endpoint, self.assoc)
 
     def failUnlessAnonymous(self, msg):
-        self.failUnlessEqual(
-            None, msg.getArg(message.OPENID_NS, 'identity'),
-            'unwanted openid.identity arg appeared in %r' % (msg,))
+        for key in ['claimed_id', 'identity']:
+            self.failUnlessEqual(
+                None, msg.getArg(message.OPENID_NS, key),
+                'unwanted openid.%s arg appeared in %r' % (msg, key))
+
+    def failUnlessOpenIDValueEquals(self, msg, key, expected, ns=None):
+        if ns is None:
+            ns = OPENID_NS
+
+        actual = msg.getKey(ns, key)
+        error_format = 'Wrong value for openid.%s: expected=%s, actual=%s'
+        error_message = error_format %  % (key, expected, actual))
+        self.failUnlessEqual(expected, actual, error_message)
+
+    def failIfOpenIDKeyExists(self, msg, key, ns=None):
+        if ns is None:
+            ns = OPENID_NS
+
+        actual = msg.getKey(ns, key)
+        error_message = 'openid.%s unexpectedly present: %s' % (key, actual)
+        self.failIf(actual is not None, error_message)
 
     def test_justConstruct(self):
         """Make sure that the internal state of the AuthRequest
@@ -68,6 +87,15 @@ class TestAuthRequestBase(object):
 class TestAuthRequestOpenID2(TestAuthRequestBase, unittest.TestCase):
     preferred_namespace = message.OPENID2_NS
 
+    def failUnlessHasIdentifiers(self, msg, op_specific_id, claimed_id):
+        self.failUnlessOpenIDValueEquals(msg, 'identity', op_specific_id)
+        self.failUnlessOpenIDValueEquals(msg, 'claimed_id', claimed_id)
+
+    def test_standard(self):
+        msg = self.authreq.getMessage(self.realm, self.return_to)
+        self.failUnlessHasIdentifiers(
+            msg, self.endpoint.local_id, self.endpoint.claimed_id)
+
     def test_setAnonymousWorksForOpenID2(self):
         """OpenID AuthRequests should be able to set 'anonymous' to true."""
         self.failUnless(self.authreq.message.isOpenID2())
@@ -88,8 +116,8 @@ class TestAuthRequestOpenID2(TestAuthRequestBase, unittest.TestCase):
     def test_opIdentifierSendsIdentifierSelect(self):
         self.endpoint.is_op_identifier = True
         msg = self.authreq.getMessage(self.realm, self.return_to)
-        self.failUnlessEqual(message.IDENTIFIER_SELECT,
-                             msg.getArg(message.OPENID2_NS, 'identity'))
+        self.failUnlessHasIdentifiers(
+            msg, message.IDENTIFIER_SELECT, message.IDENTIFIER_SELECT)
 
     def test_realm(self):
         msg = self.authreq.getMessage(self.realm, self.return_to)

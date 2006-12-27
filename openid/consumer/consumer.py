@@ -1173,11 +1173,16 @@ class AuthRequest(object):
                 # This will never happen when we're in compatibility
                 # mode, as long as isOPIdentifier() returns False
                 # whenever preferredNamespace() returns OPENID1_NS.
-                request_identity = IDENTIFIER_SELECT
+                claimed_id = request_identity = IDENTIFIER_SELECT
             else:
                 request_identity = self.endpoint.getLocalID()
+                claimed_id = self.endpoint.claimed_id
 
+            # This is true for both OpenID 1 and 2
             message.setArg(OPENID_NS, 'identity', request_identity)
+
+            if message.isOpenID2():
+                message.setArg(OPENID2_NS, 'claimed_id', claimed_id)
 
         if self.assoc:
             message.setArg(OPENID_NS, 'assoc_handle', self.assoc.handle)
