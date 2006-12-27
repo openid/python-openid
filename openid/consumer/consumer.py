@@ -1135,11 +1135,20 @@ class AuthRequest(object):
         """
         self.message.setArg(namespace, key, value)
 
-    def getMessage(self, realm, return_to, immediate=False):
-        """
-        @raises: ValueError if the request is marked
-        """
-        return_to = oidutil.appendArgs(return_to, self.return_to_args)
+    def getMessage(self, realm, return_to=None, immediate=False):
+        """Not specifying a return_to URL means that the user will not
+        be returned to the site issuing the request upon its
+        completion."""
+        if return_to:
+            return_to = oidutil.appendArgs(return_to, self.return_to_args)
+        elif immediate:
+            raise ValueError(
+                '"return_to" is mandatory when using "checkid_immediate"')
+        elif self.message.isOpenID1():
+            raise ValueError('"return_to" is mandatory for OpenID 1 requests')
+        elif self.return_to_args:
+            raise ValueError('extra "return_to" arguments were specified, '
+                             'but no return_to was specified')
 
         if immediate:
             mode = 'checkid_immediate'
@@ -1175,11 +1184,11 @@ class AuthRequest(object):
 
         return message
 
-    def redirectURL(self, realm, return_to, immediate=False):
+    def redirectURL(self, realm, return_to=None, immediate=False):
         message = self.getMessage(realm, return_to, immediate)
         return message.toURL(self.endpoint.server_url)
 
-    def formMarkup(self, realm, return_to, immediate=False,
+    def formMarkup(self, realm, return_to=None, immediate=False,
             form_tag_attrs=None):
         """Get html for a form to submit this request to the IDP.
 
