@@ -838,7 +838,7 @@ class GenericConsumer(object):
             assoc = self._requestAssociation(
                 endpoint, assoc_type, session_type)
         except ServerError, why:
-            # Any error message whose code is not 'unsupported_type'
+            # Any error message whose code is not 'unsupported-type'
             # should be considered a total failure.
             if e.error_code != 'unsupported-type':
                 oidutil.log(
