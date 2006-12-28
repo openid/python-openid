@@ -145,8 +145,9 @@ class TestDecode(unittest.TestCase):
         self.failUnlessEqual(r.trust_root, self.tr_url)
         self.failUnlessEqual(r.return_to, self.rt_url)
 
-    def test_checkidSetupNoIdentity(self):
+    def test_checkidSetupNoIdentityOpenID2(self):
         args = {
+            'openid.ns': OPENID2_NS,
             'openid.mode': 'checkid_setup',
             'openid.assoc_handle': self.assoc_handle,
             'openid.return_to': self.rt_url,
@@ -603,6 +604,23 @@ class TestCheckID(unittest.TestCase):
     def test_answerAllowWithAnotherIdentity(self):
         self.failUnlessRaises(ValueError, self.request.answer, True,
                               identity="http://pebbles.unittest/")
+
+    def test_answerAllowNoIdentityOpenID1(self):
+        self.request.namespace = OPENID1_NS
+        self.request.identity = None
+        self.failUnlessRaises(ValueError, self.request.answer, True,
+                              identity=None)
+
+    def test_checkIDWithNoIdentityOpenID1(self):
+        msg = Message(OPENID1_NS)
+        msg.setArg(OPENID_NS, 'return_to', 'bogus')
+        msg.setArg(OPENID_NS, 'trust_root', 'bogus')
+        msg.setArg(OPENID_NS, 'mode', 'checkid_setup')
+        msg.setArg(OPENID_NS, 'assoc_handle', 'bogus')
+
+        self.failUnlessRaises(server.ProtocolError,
+                              server.CheckIDRequest.fromMessage,
+                              msg)
 
     def test_answerAllowNoTrustRoot(self):
         self.request.trust_root = None

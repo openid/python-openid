@@ -105,7 +105,8 @@ from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot
 from openid.association import Association, default_negotiator, getSecretSize
-from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT
+from openid.message import Message, OPENID_NS, OPENID1_NS, \
+     OPENID2_NS, IDENTIFIER_SELECT
 
 HTTP_OK = 200
 HTTP_REDIRECT = 302
@@ -550,6 +551,10 @@ class CheckIDRequest(OpenIDRequest):
 
         self.identity = message.getArg(OPENID_NS, 'identity')
 
+        if self.identity is None and self.namespace == OPENID1_NS:
+            s = "OpenID 1 message did not contain openid.identity"
+            raise ProtocolError(message, text=s)
+
         # There's a case for making self.trust_root be a TrustRoot
         # here.  But if TrustRoot isn't currently part of the "public" API,
         # I'm not sure it's worth doing.
@@ -653,6 +658,12 @@ class CheckIDRequest(OpenIDRequest):
                         "This request specified no identity and you "
                         "supplied %r" % (identity,))
                 response_identity = None
+
+            if self.namespace == OPENID1_NS and response_identity is None:
+                raise ValueError(
+                    "Request was an OpenID 1 request, so response must "
+                    "include an identifier."
+                    )
 
             response.fields.updateArgs(OPENID_NS, {
                 'mode': mode,
