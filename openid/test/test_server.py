@@ -151,7 +151,7 @@ class TestDecode(unittest.TestCase):
             'openid.mode': 'checkid_setup',
             'openid.assoc_handle': self.assoc_handle,
             'openid.return_to': self.rt_url,
-            'openid.trust_root': self.tr_url,
+            'openid.realm': self.tr_url,
             }
         r = self.decode(args)
         self.failUnless(isinstance(r, server.CheckIDRequest))
@@ -625,6 +625,34 @@ class TestCheckID(unittest.TestCase):
         self.failUnlessRaises(server.ProtocolError,
                               server.CheckIDRequest.fromMessage,
                               msg)
+
+    def test_trustRootOpenID1(self):
+        """Ignore openid.realm in OpenID 1"""
+        msg = Message(OPENID1_NS)
+        msg.setArg(OPENID_NS, 'mode', 'checkid_setup')
+        msg.setArg(OPENID_NS, 'trust_root', 'http://real_trust_root/')
+        msg.setArg(OPENID_NS, 'realm', 'http://fake_trust_root/')
+        msg.setArg(OPENID_NS, 'return_to', 'http://real_trust_root/foo')
+        msg.setArg(OPENID_NS, 'assoc_handle', 'bogus')
+        msg.setArg(OPENID_NS, 'identity', 'george')
+
+        result = server.CheckIDRequest.fromMessage(msg)
+
+        self.failUnless(result.trust_root == 'http://real_trust_root/')
+
+    def test_trustRootOpenID2(self):
+        """Ignore openid.trust_root in OpenID 2"""
+        msg = Message(OPENID2_NS)
+        msg.setArg(OPENID_NS, 'mode', 'checkid_setup')
+        msg.setArg(OPENID_NS, 'realm', 'http://real_trust_root/')
+        msg.setArg(OPENID_NS, 'trust_root', 'http://fake_trust_root/')
+        msg.setArg(OPENID_NS, 'return_to', 'http://real_trust_root/foo')
+        msg.setArg(OPENID_NS, 'assoc_handle', 'bogus')
+        msg.setArg(OPENID_NS, 'identity', 'george')
+
+        result = server.CheckIDRequest.fromMessage(msg)
+
+        self.failUnless(result.trust_root == 'http://real_trust_root/')
 
     def test_answerAllowNoTrustRoot(self):
         self.request.trust_root = None

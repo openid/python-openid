@@ -573,8 +573,13 @@ class CheckIDRequest(OpenIDRequest):
         # There's a case for making self.trust_root be a TrustRoot
         # here.  But if TrustRoot isn't currently part of the "public" API,
         # I'm not sure it's worth doing.
-        self.trust_root = message.getArg(
-            OPENID_NS, 'trust_root', self.return_to)
+        if self.namespace == OPENID1_NS:
+            self.trust_root = message.getArg(
+                OPENID_NS, 'trust_root', self.return_to)
+        else:
+            self.trust_root = message.getArg(
+                OPENID_NS, 'realm', self.return_to)
+
         self.assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
 
         # Using TrustRoot.parse here is a bit misleading, as we're not
@@ -721,7 +726,10 @@ class CheckIDRequest(OpenIDRequest):
              'identity': self.identity,
              'return_to': self.return_to}
         if self.trust_root:
-            q['trust_root'] = self.trust_root
+            if self.namespace == OPENID1_NS:
+                q['trust_root'] = self.trust_root
+            else:
+                q['realm'] = self.trust_root
         if self.assoc_handle:
             q['assoc_handle'] = self.assoc_handle
 
