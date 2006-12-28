@@ -1088,6 +1088,15 @@ class TestServer(unittest.TestCase, CatchLogs):
             response = self.server.openid_associate(request)
             self.failUnless(response.fields.hasKey(OPENID_NS, "assoc_handle"))
 
+    def test_missingSessionTypeOpenID2(self):
+        """Make sure session_type is required in OpenID 2"""
+        msg = Message.fromPostArgs({
+            'openid.ns': OPENID2_NS,
+            })
+
+        self.assertRaises(server.ProtocolError,
+                          server.AssociateRequest.fromMessage, msg)
+
     def test_checkAuth(self):
         request = server.CheckAuthRequest('arrrrrf', '0x3999', [])
         response = self.server.openid_check_authentication(request)

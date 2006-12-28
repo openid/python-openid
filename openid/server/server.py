@@ -402,6 +402,9 @@ class AssociateRequest(OpenIDRequest):
                 session_type = 'no-encryption'
         else:
             session_type = message.getArg(OPENID2_NS, 'session_type')
+            if session_type is None:
+                raise ProtocolError(message,
+                                    text="session_type missing from request")
 
         try:
             session_class = klass.session_classes[session_type]
