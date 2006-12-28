@@ -439,6 +439,14 @@ class GenericConsumer(object):
     running.
     """
 
+    # The name of the query parameter that gets added to the return_to
+    # URL when using OpenID1. You can change this value if you want or
+    # need a different name, but don't make it start with openid,
+    # because it's not a standard protocol thing for OpenID1. For
+    # OpenID2, the library will take care of the nonce using standard
+    # OpenID query parameter names.
+    openid1_nonce_query_arg_name = 'janrain_nonce'
+
     session_types = {
         'DH-SHA1':DiffieHellmanSHA1ConsumerSession,
         'DH-SHA256':DiffieHellmanSHA256ConsumerSession,
@@ -452,7 +460,7 @@ class GenericConsumer(object):
     def begin(self, service_endpoint):
         assoc = self._getAssociation(service_endpoint)
         request = AuthRequest(service_endpoint, assoc)
-        request.return_to_args['nonce'] = mkNonce()
+        request.return_to_args[self.openid1_nonce_query_arg_name] = mkNonce()
         return request
 
     def complete(self, message, endpoint):
@@ -472,56 +480,11 @@ class GenericConsumer(object):
                 self._checkSetupNeeded(message)
             except SetupNeededError, why:
                 return SetupNeededResponse(endpoint, why.user_setup_url)
-
-            try:
-                response = self._doIdRes(message, endpoint)
-            except fetchers.HTTPFetchingError, why:
-                message = 'HTTP request failed: %s' % (str(why),)
-                return FailureResponse(endpoint, message)
             else:
-                if response.status == 'success':
-                    return self._checkNonce(endpoint.server_url, response)
-                else:
-                    return response
+                return self._doIdRes(message, endpoint)
         else:
             return FailureResponse(endpoint,
                                    'Invalid openid.mode: %r' % (mode,))
-
-    def _checkNonce(self, server_url, response):
-        nonce = response.getNonce()
-        if nonce is None:
-            if response.isOpenID1():
-                # Assume that this is an OpenID 1.X response and
-                # use/extract the nonce that we generated.
-                return_to = response.getReturnTo()
-                parsed_url = urlparse(return_to)
-                query = parsed_url[4]
-                for k, v in cgi.parse_qsl(query):
-                    if k == 'nonce':
-                        server_url = '' # came from us
-                        nonce = v
-                        break
-                else:
-                    msg = 'Nonce missing from return_to: %r' % (
-                        response.getReturnTo())
-                    return FailureResponse(response.endpoint, msg)
-            else:
-                msg = 'Nonce missing from response'
-                return FailureResponse(response.endpoint, msg)
-
-        # The nonce matches the signed nonce in the openid.return_to
-        # response parameter
-        try:
-            timestamp, salt = splitNonce(nonce)
-        except ValueError:
-            return FailureResponse(response.endpoint, 'Malformed nonce')
-        if not self.store.useNonce(server_url, timestamp, salt):
-            return FailureResponse(response.endpoint,
-                                   'Nonce missing from store')
-
-        # If the nonce check succeeded, return the original success
-        # response
-        return response
 
     def _makeKVPost(self, request_message, server_url):
         """Make a Direct Request to an OpenID Provider and return the
@@ -592,19 +555,63 @@ class GenericConsumer(object):
         # discovery:
         if endpoint.isIdentifierSelect():
             try:
-                endpoint = self._verifyDiscoveryResults(
-                    endpoint, message)
+                endpoint = self._verifyDiscoveryResults(endpoint, message)
             except DiscoveryFailure, exc:
                 return FailureResponse(endpoint, exc.args[0])
         elif endpoint.getLocalID() != response_identity:
             fmt = 'Mismatch between delegate (%r) and server (%r) response'
             return FailureResponse(
-                endpoint, fmt % (endpoint.getLocalID(),
-                                 response_identity))
+                endpoint, fmt % (endpoint.getLocalID(), response_identity))
 
-        signed_fields = ['openid.' + f for f in signed_list]
-        return SuccessResponse(endpoint, message, signed_fields)
+        if self._idResCheckNonce(message, endpoint):
+            signed_fields = ['openid.' + f for f in signed_list]
+            return SuccessResponse(endpoint, message, signed_fields)
+        else:
+            return FailureResponse(endpoint, 'Nonce missing, old or used')
 
+    def _idResGetNonceOpenID1(self, message, endpoint):
+        """Extract the nonce from an OpenID 1 response
+
+        See the openid1_nonce_query_arg_name class variable
+
+        @returns: The nonce as a string or None
+        """
+        return_to = message.getArg(OPENID1_NS, 'return_to', None)
+        if return_to is None:
+            return None
+
+        parsed_url = urlparse(return_to)
+        query = parsed_url[4]
+        for k, v in cgi.parse_qsl(query):
+            if k == self.openid1_nonce_query_arg_name:
+                return v
+
+        return None
+
+    def _idResCheckNonce(self, message, endpoint):
+        if message.isOpenID1():
+            # This indicates that the nonce was generated by the consumer
+            nonce = self._idResGetNonceOpenID1(message, endpoint)
+            server_url = ''
+        else:
+            nonce = message.getArg(OPENID2_NS, 'response_nonce')
+            server_url = endpoint.server_url
+
+        if nonce is None:
+            oidutil.log('Nonce missing from response')
+            return False
+
+        try:
+            timestamp, salt = splitNonce(nonce)
+        except ValueError:
+            oidutil.log('Malformed nonce')
+            return False
+
+        if self.store.useNonce(server_url, timestamp, salt):
+            return True
+        else:
+            oidutil.log('Nonce already used or out of range')
+            return False
 
     def _idResCheckSignature(self, message, server_url):
         assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
@@ -634,7 +641,6 @@ class GenericConsumer(object):
 
 
     def _idResCheckForFields(self, message, signed_list):
-        # XXX: whether or not 'signed' is required depends on the assoc type.
         basic_fields = ['return_to', 'assoc_handle', 'sig']
         basic_sig_fields = ['return_to', 'identity',]
 
@@ -1292,18 +1298,6 @@ class SuccessResponse(Response):
         @returntype: str
         """
         return self.getSigned(OPENID_NS, 'return_to')
-
-    def getNonce(self):
-        """Get the openid.nonce argument from this response.
-
-        This is useful for preventing replay attacks.
-
-        @returns: The nonce generated by the server, or C{None} if the
-            response did not contain an C{openid.nonce} argument.
-
-        @returntype: str
-        """
-        return self.getSigned(OPENID2_NS, 'response_nonce')
 
 
 

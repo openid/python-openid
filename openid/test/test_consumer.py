@@ -172,8 +172,11 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         assert new_return_to.startswith(return_to)
         assert redirect_url.startswith(server_url)
 
+        nonce_key = consumer.openid1_nonce_query_arg_name
+        nonce = request.return_to_args[nonce_key]
+
         query = {
-            'nonce':request.return_to_args['nonce'],
+            nonce_key:nonce,
             'openid.mode':'id_res',
             'openid.return_to':new_return_to,
             'openid.identity':delegate_url,
@@ -423,17 +426,17 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
 
         claimed_id = 'bogus.claimed'
 
-        self.message = Message.fromPostArgs(
-            {'openid.mode': 'id_res',
-             'openid.return_to': 'return_to (just anything)',
-             'openid.identity': claimed_id,
-             'openid.assoc_handle': 'does not matter',
-             'openid.sig': GOODSIG,
-             'openid.response_nonce': mkNonce(),
-             'openid.signed': 'identity,return_to,response_nonce,assoc_handle,claimed_id',
-             'openid.claimed_id': claimed_id,
-             'openid.op_endpoint': self.server_url,
-             'openid.ns':OPENID2_NS,
+        self.message = Message.fromOpenIDArgs(
+            {'mode': 'id_res',
+             'return_to': 'return_to (just anything)',
+             'identity': claimed_id,
+             'assoc_handle': 'does not matter',
+             'sig': GOODSIG,
+             'response_nonce': mkNonce(),
+             'signed': 'identity,return_to,response_nonce,assoc_handle,claimed_id',
+             'claimed_id': claimed_id,
+             'op_endpoint': self.server_url,
+             'ns':OPENID2_NS,
              })
 
         self.endpoint = OpenIDServiceEndpoint()
@@ -558,22 +561,6 @@ class TestCheckAuthResponse(TestIdRes):
         self.failUnless(
             self.consumer.store.getAssociation(self.server_url) is None)
 
-class IdResFetchFailingConsumer(GenericConsumer):
-    message = 'fetch failed'
-
-    def _doIdRes(self, *args, **kwargs):
-        raise HTTPFetchingError(self.message)
-
-class TestFetchErrorInIdRes(TestIdRes):
-    consumer_class = IdResFetchFailingConsumer
-
-    def test_idResFailure(self):
-        message = Message.fromPostArgs({'openid.mode': 'id_res'})
-        r = self.consumer.complete(message, self.endpoint)
-        self.failUnlessEqual(r.status, FAILURE)
-        self.failUnlessEqual(r.identity_url, self.consumer_id)
-        r.message.index(IdResFetchFailingConsumer.message)
-
 class TestSetupNeeded(TestIdRes):
     def failUnlessSetupNeeded(self, expected_setup_url, message):
         try:
@@ -634,95 +621,86 @@ class TestSetupNeeded(TestIdRes):
 
 class CheckAuthHappened(Exception): pass
 
-class CheckAuthDetectingConsumer(GenericConsumer):
-    def _checkAuth(self, *args):
-        raise CheckAuthHappened(args)
-
-
-class CheckNonceTest(TestIdRes, CatchLogs):
+class CheckNonceVerifyTest(TestIdRes, CatchLogs):
     def setUp(self):
         CatchLogs.setUp(self)
         TestIdRes.setUp(self)
+        self.consumer.openid1_nonce_query_arg_name = 'nonce'
 
     def tearDown(self):
         CatchLogs.tearDown(self)
 
-    def test_consumerNonce(self):
+    def test_openid1Success(self):
         """use consumer-generated nonce"""
         self.return_to = 'http://rt.unittest/?nonce=%s' % (mkNonce(),)
-        self.response = mkSuccess(self.endpoint,
-                                  {'return_to': self.return_to})
-        ret = self.consumer._checkNonce(None, self.response)
-        self.failUnlessEqual(ret.status, SUCCESS)
-        self.failUnlessEqual(ret.identity_url, self.consumer_id)
+        self.response = Message.fromOpenIDArgs({'return_to': self.return_to})
+        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.failUnless(ret)
+        self.failUnlessLogEmpty()
 
     def test_consumerNonceOpenID2(self):
         """OpenID 2 does not use consumer-generated nonce"""
         self.return_to = 'http://rt.unittest/?nonce=%s' % (mkNonce(),)
-        self.response = mkSuccess(self.endpoint,
-                                  {'return_to': self.return_to,
-                                   'ns':OPENID2_NS})
-        ret = self.consumer._checkNonce(None, self.response)
-        self.failUnlessEqual(ret.status, FAILURE)
-        self.failUnless(ret.message.startswith('Nonce missing from response'))
+        self.response = Message.fromOpenIDArgs(
+            {'return_to': self.return_to, 'ns':OPENID2_NS})
+        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.failIf(ret)
+        self.failUnlessLogMatches('Nonce missing from response')
 
     def test_serverNonce(self):
         """use server-generated nonce"""
-        self.response = mkSuccess(self.endpoint,
-                                  {'ns':OPENID2_NS,
-                                   'response_nonce': mkNonce(),})
-        ret = self.consumer._checkNonce(self.server_url, self.response)
-        self.failUnlessEqual(ret.status, SUCCESS)
-        self.failUnlessEqual(ret.identity_url, self.consumer_id)
-
+        self.response = Message.fromOpenIDArgs(
+            {'ns':OPENID2_NS, 'response_nonce': mkNonce(),})
+        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.failUnless(ret)
+        self.failUnlessLogEmpty()
 
     def test_serverNonceOpenID1(self):
         """OpenID 1 does not use server-generated nonce"""
-        self.response = mkSuccess(self.endpoint,
-                                  {'ns':OPENID1_NS,
-                                   'return_to': 'http://return.to/',
-                                   'response_nonce': mkNonce(),})
-        ret = self.consumer._checkNonce(self.server_url, self.response)
-        self.failUnlessEqual(ret.status, FAILURE)
-        self.failUnless(ret.message.startswith('Nonce missing from return_to'))
+        self.response = Message.fromOpenIDArgs(
+            {'ns':OPENID1_NS,
+             'return_to': 'http://return.to/',
+             'response_nonce': mkNonce(),})
+        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.failIf(ret)
+        self.failUnlessLogMatches('Nonce missing from response')
 
     def test_badNonce(self):
         """remove the nonce from the store"""
         nonce = mkNonce()
         stamp, salt = splitNonce(nonce)
         self.store.useNonce(self.server_url, stamp, salt)
-        self.response = mkSuccess(self.endpoint,
+        self.response = Message.fromOpenIDArgs(
                                   {'response_nonce': nonce,
                                    'ns':OPENID2_NS,
                                    })
-        ret = self.consumer._checkNonce(self.server_url, self.response)
-        self.failUnlessEqual(ret.status, FAILURE)
-        self.failUnlessEqual(ret.identity_url, self.consumer_id)
-        self.failUnless(ret.message.startswith('Nonce missing from store'),
-                        ret.message)
-
+        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.failIf(ret)
+        self.failUnlessLogMatches('Nonce already used or out of range')
 
     def test_tamperedNonce(self):
         """Malformed nonce"""
-        self.response = mkSuccess(self.endpoint,
+        self.response = Message.fromOpenIDArgs(
                                   {'ns':OPENID2_NS,
                                    'response_nonce':'malformed'})
-        ret = self.consumer._checkNonce(self.server_url, self.response)
-        self.failUnlessEqual(ret.status, FAILURE)
-        self.failUnlessEqual(ret.identity_url, self.consumer_id)
-        self.failUnless(ret.message.startswith('Malformed nonce'), ret.message)
+        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.failIf(ret)
 
     def test_missingNonce(self):
         """no nonce parameter on the return_to"""
-        self.response = mkSuccess(self.endpoint,
+        self.response = Message.fromOpenIDArgs(
                                   {'return_to': self.return_to})
-        ret = self.consumer._checkNonce(self.server_url, self.response)
-        self.failUnlessEqual(ret.status, FAILURE)
-        self.failUnlessEqual(ret.identity_url, self.consumer_id)
-        self.failUnless(ret.message.startswith('Nonce missing from return_to'))
+        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.failIf(ret)
 
+class CheckAuthDetectingConsumer(GenericConsumer):
+    def _checkAuth(self, *args):
+        raise CheckAuthHappened(args)
 
-
+    def _idResCheckNonce(self, *args):
+        """We're not testing nonce-checking, so just return success
+        when it asks."""
+        return True
 class TestCheckAuthTriggered(TestIdRes, CatchLogs):
     consumer_class = CheckAuthDetectingConsumer
 
@@ -809,12 +787,12 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         self.store.storeAssociation(self.server_url, bad_assoc)
 
         query = {
-            'openid.return_to':self.return_to,
-            'openid.identity':self.server_id,
-            'openid.assoc_handle':good_handle,
+            'return_to':self.return_to,
+            'identity':self.server_id,
+            'assoc_handle':good_handle,
             }
 
-        message = Message.fromPostArgs(query)
+        message = Message.fromOpenIDArgs(query)
         message = good_assoc.signMessage(message)
         info = self.consumer._doIdRes(message, self.endpoint)
         self.failUnlessEqual(info.status, SUCCESS, info.message)
@@ -1224,6 +1202,7 @@ class IDPDrivenTest(unittest.TestCase):
             iverified.append(endpoint)
             return endpoint
         self.consumer._verifyDiscoveryResults = verifyDiscoveryResults
+        self.consumer._idResCheckNonce = lambda *args: True
         response = self.consumer._doIdRes(message, self.endpoint)
 
         self.failUnlessSuccess(response)
