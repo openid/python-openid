@@ -368,7 +368,7 @@ class AssociateRequest(OpenIDRequest):
     mode = "associate"
 
     session_classes = {
-        None: PlainTextServerSession,
+        'no-encryption': PlainTextServerSession,
         'DH-SHA1': DiffieHellmanSHA1ServerSession,
         'DH-SHA256': DiffieHellmanSHA256ServerSession,
         }
@@ -393,7 +393,16 @@ class AssociateRequest(OpenIDRequest):
 
         @returntype: L{AssociateRequest}
         """
-        session_type = message.getArg(OPENID_NS, 'session_type')
+        if message.isOpenID1():
+            session_type = message.getArg(OPENID1_NS, 'session_type')
+            if session_type == 'no-encryption':
+                oidutil.log('Received OpenID 1 request with a no-encryption '
+                            'assocaition session type. Continuing anyway.')
+            elif not session_type:
+                session_type = 'no-encryption'
+        else:
+            session_type = message.getArg(OPENID2_NS, 'session_type')
+
         try:
             session_class = klass.session_classes[session_type]
         except KeyError:

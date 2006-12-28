@@ -410,7 +410,9 @@ class TestEncode(unittest.TestCase):
         self.failUnless(webresponse.headers.has_key('location'))
 
     def test_assocReply(self):
-        request = server.AssociateRequest.fromMessage(Message(OPENID2_NS))
+        msg = Message(OPENID2_NS)
+        msg.setArg(OPENID2_NS, 'session_type', 'no-encryption')
+        request = server.AssociateRequest.fromMessage(msg)
         response = server.OpenIDResponse(request)
         response.fields = Message.fromPostArgs(
             {'openid.assoc_handle': "every-zig"})
@@ -528,7 +530,9 @@ class TestSigningEncode(unittest.TestCase):
         self.failIf('openid.sig' in query, response.fields.toPostArgs())
 
     def test_assocReply(self):
-        request = server.AssociateRequest.fromMessage(Message(OPENID2_NS))
+        msg = Message(OPENID2_NS)
+        msg.setArg(OPENID2_NS, 'session_type', 'no-encryption')
+        request = server.AssociateRequest.fromMessage(msg)
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({'assoc_handle': "every-zig"})
         webresponse = self.encode(response)
