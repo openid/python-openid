@@ -30,3 +30,22 @@ class CatchLogs(object):
 
     def tearDown(self):
         oidutil.log = self.old_logger
+
+    def failUnlessLogMatches(self, *prefixes):
+        """
+        Check that the log messages contained in self.messages have
+        prefixes in *prefixes.  Raise AssertionError if not, or if the
+        number of prefixes is different than the number of log
+        messages.
+        """
+        assert len(prefixes) == len(self.messages), \
+               "Expected log prefixes %r, got %r" % (prefixes,
+                                                     self.messages)
+
+        for prefix, message in zip(prefixes, self.messages):
+            assert message.startswith(prefix), \
+                   "Expected log prefixes %r, got %r" % (prefixes,
+                                                         self.messages)
+
+    def failUnlessLogEmpty(self):
+        self.failUnlessLogMatches()
