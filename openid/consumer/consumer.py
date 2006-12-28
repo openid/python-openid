@@ -851,7 +851,8 @@ class GenericConsumer(object):
             # that we sent, and it sent us back a message that
             # might tell us how to handle it.
             oidutil.log(
-                'Unsupported association type: %s' % (why.message,))
+                'Unsupported association type %s: %s' % (assoc_type,
+                                                         why.error_text,))
 
             # Extract the session_type and assoc_type from the
             # error message
@@ -874,12 +875,13 @@ class GenericConsumer(object):
                 try:
                     assoc = self._requestAssociation(
                         endpoint, assoc_type, session_type)
-                except UnsupportedAssocType, why:
+                except ServerError, why:
                     # Do not keep trying, since it rejected the
                     # association type that it told us to use.
                     oidutil.log('Server %s refused its suggested association '
                                 'type: session_type=%s, assoc_type=%s'
-                                % (session_type, assoc_type))
+                                % (endpoint.server_url, session_type,
+                                   assoc_type))
                     return None
                 else:
                     return assoc
@@ -893,7 +895,7 @@ class GenericConsumer(object):
         @returns: An association object or None if the association
             processing failed.
 
-        @raises: UnsupportedAssocType XXX
+        @raises: ServerError
         """
         assoc_session, args = self._createAssociateRequest(
             endpoint, assoc_type, session_type)

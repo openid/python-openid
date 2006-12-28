@@ -1475,8 +1475,9 @@ class ErrorRaisingConsumer(GenericConsumer):
         else:
             return m
 
-class TestOpenID2SessionNegotiation(unittest.TestCase):
+class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
     def setUp(self):
+        CatchLogs.setUp(self)
         self.consumer = ErrorRaisingConsumer(store=None)
 
         self.endpoint = OpenIDServiceEndpoint()
@@ -1486,6 +1487,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase):
     def testBadResponse(self):
         self.consumer.return_messages = [Message(self.endpoint.preferredNamespace())]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
+        self.failUnlessLogMatches('Server error when requesting an association')
 
     def testEmptyAssocType(self):
         msg = Message(self.endpoint.preferredNamespace())
@@ -1497,6 +1499,10 @@ class TestOpenID2SessionNegotiation(unittest.TestCase):
         self.consumer.return_messages = [msg]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
 
+        self.failUnlessLogMatches('Unsupported association type',
+                                  'Server responded with unsupported association ' +
+                                  'session but did not supply a fallback.')
+
     def testEmptySessionType(self):
         msg = Message(self.endpoint.preferredNamespace())
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
@@ -1506,6 +1512,10 @@ class TestOpenID2SessionNegotiation(unittest.TestCase):
 
         self.consumer.return_messages = [msg]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
+
+        self.failUnlessLogMatches('Unsupported association type',
+                                  'Server responded with unsupported association ' +
+                                  'session but did not supply a fallback.')
 
     def testNotAllowed(self):
         allowed_types = [
@@ -1524,6 +1534,9 @@ class TestOpenID2SessionNegotiation(unittest.TestCase):
         self.consumer.return_messages = [msg]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
 
+        self.failUnlessLogMatches('Unsupported association type',
+                                  'Server sent unsupported session/association type:')
+
     def testUnsupportedWithRetry(self):
         msg = Message(self.endpoint.preferredNamespace())
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
@@ -1537,12 +1550,30 @@ class TestOpenID2SessionNegotiation(unittest.TestCase):
         self.consumer.return_messages = [msg, assoc]
         self.assertTrue(self.consumer._negotiateAssociation(self.endpoint) is assoc)
 
+        self.failUnlessLogMatches('Unsupported association type')
+
+    def testUnsupportedWithRetryAndFail(self):
+        msg = Message(self.endpoint.preferredNamespace())
+        msg.setArg(OPENID_NS, 'error', 'Unsupported type')
+        msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
+        msg.setArg(OPENID_NS, 'assoc_type', 'HMAC-SHA1')
+        msg.setArg(OPENID_NS, 'session_type', 'DH-SHA1')
+
+        self.consumer.return_messages = [msg,
+             Message(self.endpoint.preferredNamespace())]
+
+        self.failUnlessEqual(self.consumer._negotiateAssociation(self.endpoint), None)
+
+        self.failUnlessLogMatches('Unsupported association type',
+                                  'Server %s refused' % (self.endpoint.server_url))
+
     def testValid(self):
         assoc = association.Association(
             'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
 
         self.consumer.return_messages = [assoc]
         self.assertTrue(self.consumer._negotiateAssociation(self.endpoint) is assoc)
+        self.failUnlessLogEmpty()
 
 if __name__ == '__main__':
     unittest.main()
