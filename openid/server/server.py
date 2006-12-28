@@ -458,6 +458,9 @@ class AssociateRequest(OpenIDRequest):
                           preferred_session_type=None):
         """Respond to this request indicating that the association
         type or association session type is not supported."""
+        if self.message.isOpenID1():
+            raise ProtocolError(self.message)
+
         response = OpenIDResponse(self)
         response.fields.setArg(OPENID_NS, 'error_code', 'unsupported-type')
         response.fields.setArg(OPENID_NS, 'error', message)

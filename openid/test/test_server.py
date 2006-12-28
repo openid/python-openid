@@ -985,6 +985,11 @@ class TestAssociate(unittest.TestCase):
         allowed_assoc = 'COLD-PET-RAT'
         allowed_sess = 'FROG-BONES'
         message = 'This is a unit test'
+
+        # Set an OpenID 2 message so answerUnsupported doesn't raise
+        # ProtocolError.
+        self.request.message = Message(OPENID2_NS)
+
         response = self.request.answerUnsupported(
             message=message,
             preferred_session_type=allowed_sess,
@@ -998,6 +1003,11 @@ class TestAssociate(unittest.TestCase):
 
     def test_unsupported(self):
         message = 'This is a unit test'
+
+        # Set an OpenID 2 message so answerUnsupported doesn't raise
+        # ProtocolError.
+        self.request.message = Message(OPENID2_NS)
+
         response = self.request.answerUnsupported(message)
         rfg = lambda f: response.fields.getArg(OPENID_NS, f)
         self.failUnlessEqual(rfg('error_code'), 'unsupported-type')
@@ -1043,7 +1053,16 @@ class TestServer(unittest.TestCase, CatchLogs):
         Gives back an error with error_code and no fallback session or
         assoc types."""
         self.server.negotiator.setAllowedTypes([])
-        request = server.AssociateRequest.fromMessage(Message.fromPostArgs({}))
+
+        # Set an OpenID 2 message so answerUnsupported doesn't raise
+        # ProtocolError.
+        msg = Message.fromPostArgs({
+            'openid.ns': OPENID2_NS,
+            'openid.session_type': 'no-encryption',
+            })
+
+        request = server.AssociateRequest.fromMessage(msg)
+
         response = self.server.openid_associate(request)
         self.failUnless(response.fields.hasKey(OPENID_NS, "error"))
         self.failUnless(response.fields.hasKey(OPENID_NS, "error_code"))
@@ -1058,8 +1077,15 @@ class TestServer(unittest.TestCase, CatchLogs):
         Should give back an error message with a fallback type.
         """
         self.server.negotiator.setAllowedTypes([('HMAC-SHA256', 'DH-SHA256')])
-        request = server.AssociateRequest.fromMessage(Message.fromPostArgs({}))
+
+        msg = Message.fromPostArgs({
+            'openid.ns': OPENID2_NS,
+            'openid.session_type': 'no-encryption',
+            })
+
+        request = server.AssociateRequest.fromMessage(msg)
         response = self.server.openid_associate(request)
+
         self.failUnless(response.fields.hasKey(OPENID_NS, "error"))
         self.failUnless(response.fields.hasKey(OPENID_NS, "error_code"))
         self.failIf(response.fields.hasKey(OPENID_NS, "assoc_handle"))
