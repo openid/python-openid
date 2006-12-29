@@ -661,6 +661,8 @@ class TestCheckID(unittest.TestCase):
         self._expectAnswer(answer, self.request.identity)
 
     def test_answerImmediateDenyOpenID2(self):
+        """Look for user_setup_url in checkid_immediate negative
+        response in OpenID 2 case."""
         self.request.mode = 'checkid_immediate'
         self.request.immediate = True
         server_url = "http://setup-url.unittest/"
@@ -674,6 +676,8 @@ class TestCheckID(unittest.TestCase):
             OPENID_NS, 'user_setup_url', '').startswith(server_url))
 
     def test_answerImmediateDenyOpenID1(self):
+        """Look for user_setup_url in checkid_immediate negative
+        response in OpenID 1 case."""
         self.request.namespace = OPENID1_NS
         self.request.mode = 'checkid_immediate'
         self.request.immediate = True
