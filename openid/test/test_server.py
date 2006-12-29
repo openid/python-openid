@@ -660,7 +660,7 @@ class TestCheckID(unittest.TestCase):
         self.failUnlessEqual(answer.request, self.request)
         self._expectAnswer(answer, self.request.identity)
 
-    def test_answerImmediateDeny(self):
+    def test_answerImmediateDenyOpenID2(self):
         self.request.mode = 'checkid_immediate'
         self.request.immediate = True
         server_url = "http://setup-url.unittest/"
@@ -669,6 +669,20 @@ class TestCheckID(unittest.TestCase):
         self.failUnlessEqual(answer.request, self.request)
         self.failUnlessEqual(len(answer.fields.toPostArgs()), 3, answer.fields)
         self.failUnlessEqual(answer.fields.getOpenIDNamespace(), OPENID2_NS)
+        self.failUnlessEqual(answer.fields.getArg(OPENID_NS, 'mode'), 'id_res')
+        self.failUnless(answer.fields.getArg(
+            OPENID_NS, 'user_setup_url', '').startswith(server_url))
+
+    def test_answerImmediateDenyOpenID1(self):
+        self.request.namespace = OPENID1_NS
+        self.request.mode = 'checkid_immediate'
+        self.request.immediate = True
+        server_url = "http://setup-url.unittest/"
+        # crappiting setup_url, you dirty my interface with your presence!
+        answer = self.request.answer(False, server_url=server_url)
+        self.failUnlessEqual(answer.request, self.request)
+        self.failUnlessEqual(len(answer.fields.toPostArgs()), 2, answer.fields)
+        self.failUnlessEqual(answer.fields.getOpenIDNamespace(), OPENID1_NS)
         self.failUnlessEqual(answer.fields.getArg(OPENID_NS, 'mode'), 'id_res')
         self.failUnless(answer.fields.getArg(
             OPENID_NS, 'user_setup_url', '').startswith(server_url))
