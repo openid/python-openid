@@ -898,7 +898,7 @@ class TestReturnToArgs(unittest.TestCase):
 
         m = Message(OPENID1_NS)
         m.setArg(OPENID_NS, 'mode', 'cancel')
-        m.setArg(OPENID_NS, 'foo', 'bar')
+        m.setArg(BARE_NS, 'foo', 'bar')
         endpoint = None
 
         for bad in bad_return_tos:
