@@ -4,7 +4,7 @@ import time
 import warnings
 
 from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, \
-     OPENID1_NS
+     OPENID1_NS, BARE_NS
 from openid import cryptutil, dh, oidutil, kvform
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_2_0_TYPE, \
@@ -838,7 +838,7 @@ class TestReturnToArgs(unittest.TestCase):
            accepting URL.
 
     XXX: So far we have only tested the second item on the list above.
-    XXX: _checkReturnToArgs is not invoked anywhere.
+    XXX: _verifyReturnToArgs is not invoked anywhere.
     """
 
     def setUp(self):
@@ -875,7 +875,65 @@ class TestReturnToArgs(unittest.TestCase):
         self.failUnlessRaises(ValueError,
                               self.consumer._verifyReturnToArgs, query)
 
+    def test_completeBadReturnTo(self):
+        """Test GenericConsumer.complete()'s handling of bad return_to
+        values.
+        """
+        return_to = "http://some.url/path?foo=bar"
 
+        # Scheme, authority, and path differences are checked by
+        # GenericConsumer._checkReturnTo.  Query args checked by
+        # GenericConsumer._verifyReturnToArgs.
+        bad_return_tos = [
+            # Scheme only
+            "https://some.url/path?foo=bar",
+            # Authority only
+            "http://some.url.invalid/path?foo=bar",
+            # Path only
+            "http://some.url/path_extra?foo=bar",
+            # Query args differ
+            "http://some.url/path?foo=bar2",
+            "http://some.url/path?foo2=bar",
+            ]
+
+        m = Message(OPENID1_NS)
+        m.setArg(OPENID_NS, 'mode', 'cancel')
+        m.setArg(OPENID_NS, 'foo', 'bar')
+        endpoint = None
+
+        for bad in bad_return_tos:
+            m.setArg(OPENID_NS, 'return_to', bad)
+            result = self.consumer.complete(m, endpoint, return_to)
+            self.failUnless(isinstance(result, FailureResponse), \
+                            "Expected FailureResponse, got %r for %s" % (result, bad))
+            self.failUnless(result.message == \
+                            "openid.return_to does not match return URL")
+
+    def test_completeGoodReturnTo(self):
+        """Test GenericConsumer.complete()'s handling of good
+        return_to values.
+        """
+        return_to = "http://some.url/path"
+
+        good_return_tos = [
+            (return_to, {}),
+            (return_to + "?another=arg", {(BARE_NS, 'another'): 'arg'}),
+            (return_to + "?another=arg#fragment", {(BARE_NS, 'another'): 'arg'}),
+            ]
+
+        endpoint = None
+
+        for good, extra in good_return_tos:
+            m = Message(OPENID1_NS)
+            m.setArg(OPENID_NS, 'mode', 'cancel')
+
+            for ns, key in extra:
+                m.setArg(ns, key, extra[(ns, key)])
+
+            m.setArg(OPENID_NS, 'return_to', good)
+            result = self.consumer.complete(m, endpoint, return_to)
+            self.failUnless(isinstance(result, CancelResponse), \
+                            "Expected CancelResponse, got %r for %s" % (result, good,))
 
 class MockFetcher(object):
     def __init__(self, response=None):
@@ -1059,7 +1117,7 @@ class StubConsumer(object):
         self.endpoint = service
         return auth_req
 
-    def complete(self, message, endpoint):
+    def complete(self, message, endpoint, return_to=None):
         assert endpoint is self.endpoint
         return self.response
 

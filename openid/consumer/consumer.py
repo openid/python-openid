@@ -323,13 +323,20 @@ class Consumer(object):
         auth_req.anonymous = anonymous
         return auth_req
 
-    def complete(self, query):
+    def complete(self, query, return_to=None):
         """Called to interpret the server's response to an OpenID
         request. It is called in step 4 of the flow described in the
         consumer overview.
 
         @param query: A dictionary of the query parameters for this
             HTTP request.
+
+        @param return_to: The return URL used to invoke the
+            application.  Extract the URL from your application's web
+            request framework and specify it here to have it checked
+            against the openid.return_to value in the response.  If
+            the return_to URL check fails, the status of the
+            completion will be FAILURE.
 
         @returns: a subclass of Response. The type of response is
             indicated by the status attribute, which will be one of
@@ -346,7 +353,7 @@ class Consumer(object):
             response = FailureResponse(None, 'No session state found')
         else:
             message = Message.fromPostArgs(query)
-            response = self.consumer.complete(message, endpoint)
+            response = self.consumer.complete(message, endpoint, return_to)
             del self.session[self._token_key]
 
         if (response.status in ['success', 'cancel'] and
@@ -463,8 +470,13 @@ class GenericConsumer(object):
         request.return_to_args[self.openid1_nonce_query_arg_name] = mkNonce()
         return request
 
-    def complete(self, message, endpoint):
+    def complete(self, message, endpoint, return_to=None):
         mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
+
+        if return_to is not None:
+            if not self._checkReturnTo(message, return_to):
+                return FailureResponse(endpoint,
+                                       "openid.return_to does not match return URL")
 
         if mode == 'cancel':
             return CancelResponse(endpoint)
@@ -485,6 +497,34 @@ class GenericConsumer(object):
         else:
             return FailureResponse(endpoint,
                                    'Invalid openid.mode: %r' % (mode,))
+
+    def _checkReturnTo(self, message, return_to):
+        """Check an OpenID message and its openid.return_to value
+        against a return_to URL from an application.  Return True on
+        success, False on failure.
+        """
+        # Check the openid.return_to args against args in the original
+        # message.
+        try:
+            self._verifyReturnToArgs(message.toPostArgs())
+        except ValueError:
+            return False
+
+        # Check the return_to base URL against the one in the message.
+        msg_return_to = message.getArg(OPENID_NS, 'return_to')
+
+        # The URL scheme, authority, and path MUST be the same between
+        # the two URLs.
+        app_parts = urlparse(return_to)
+        msg_parts = urlparse(msg_return_to)
+
+        # (addressing scheme, network location, path) must be equal in
+        # both URLs.
+        for part in range(0, 3):
+            if app_parts[part] != msg_parts[part]:
+                return False
+
+        return True
 
     def _makeKVPost(self, request_message, server_url):
         """Make a Direct Request to an OpenID Provider and return the
