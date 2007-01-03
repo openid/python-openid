@@ -161,12 +161,47 @@ class TestDecode(unittest.TestCase):
         self.failUnlessEqual(r.trust_root, self.tr_url)
         self.failUnlessEqual(r.return_to, self.rt_url)
 
-    def test_checkidSetupNoReturn(self):
+    def test_checkidSetupNoReturnOpenID1(self):
+        """Make sure an OpenID 1 request cannot be decoded if it lacks
+        a return_to.
+        """
         args = {
             'openid.mode': 'checkid_setup',
             'openid.identity': self.id_url,
             'openid.assoc_handle': self.assoc_handle,
             'openid.trust_root': self.tr_url,
+            }
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+
+    def test_checkidSetupNoReturnOpenID2(self):
+        """Make sure an OpenID 2 request with no return_to can be
+        decoded, and make sure a response to such a request raises
+        NoReturnToError.
+        """
+        args = {
+            'openid.ns': OPENID2_NS,
+            'openid.mode': 'checkid_setup',
+            'openid.identity': self.id_url,
+            'openid.assoc_handle': self.assoc_handle,
+            'openid.realm': self.tr_url,
+            }
+        self.failUnless(isinstance(self.decode(args), server.CheckIDRequest))
+
+        req = self.decode(args)
+        self.assertRaises(server.NoReturnToError, req.answer, False)
+        self.assertRaises(server.NoReturnToError, req.encodeToURL, 'bogus')
+        self.assertRaises(server.NoReturnToError, req.getCancelURL)
+
+    def test_checkidSetupRealmRequiredOpenID2(self):
+        """Make sure that an OpenID 2 request which lacks return_to
+        cannot be decoded if it lacks a realm.  Spec: This value
+        (openid.realm) MUST be sent if openid.return_to is omitted.
+        """
+        args = {
+            'openid.ns': OPENID2_NS,
+            'openid.mode': 'checkid_setup',
+            'openid.identity': self.id_url,
+            'openid.assoc_handle': self.assoc_handle,
             }
         self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
@@ -566,6 +601,16 @@ class TestCheckID(unittest.TestCase):
         self.request.trust_root = "http://foo.unittest/"
         self.request.return_to = "http://foo.unittest/39"
         self.failUnless(self.request.trustRootValid())
+
+    def test_trustRootValidNoReturnTo(self):
+        request = server.CheckIDRequest(
+            identity = 'http://bambam.unittest/',
+            trust_root = 'http://bar.unittest/',
+            return_to = None,
+            immediate = False,
+            )
+
+        self.failUnless(request.trustRootValid())
 
     def _expectAnswer(self, answer, identity=None):
         expected_list = [('mode', 'id_res'), ('return_to', self.request.return_to)]

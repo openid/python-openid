@@ -526,7 +526,8 @@ class CheckIDRequest(OpenIDRequest):
             self.immediate = False
             self.mode = "checkid_setup"
 
-        if not TrustRoot.parse(self.return_to):
+        if self.return_to is not None and \
+               not TrustRoot.parse(self.return_to):
             raise MalformedReturnURL(None, self.return_to)
         if not self.trustRootValid():
             raise UntrustedReturnURL(None, self.return_to, self.trust_root)
@@ -560,7 +561,7 @@ class CheckIDRequest(OpenIDRequest):
             self.mode = "checkid_setup"
 
         self.return_to = message.getArg(OPENID_NS, 'return_to')
-        if not self.return_to:
+        if self.namespace == OPENID1_NS and not self.return_to:
             fmt = "Missing required field 'return_to' from %r"
             raise ProtocolError(message, text=fmt % (message,))
 
@@ -580,6 +581,10 @@ class CheckIDRequest(OpenIDRequest):
             self.trust_root = message.getArg(
                 OPENID_NS, 'realm', self.return_to)
 
+            if self.return_to is self.trust_root is None:
+                raise ProtocolError(message, "openid.realm required when " +
+                                    "openid.return_to absent")
+
         self.assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
 
         # Using TrustRoot.parse here is a bit misleading, as we're not
@@ -588,7 +593,8 @@ class CheckIDRequest(OpenIDRequest):
         # is a valid URL.  Not all trust roots are valid return_to URLs,
         # however (particularly ones with wildcards), so this is still a
         # little sketchy.
-        if not TrustRoot.parse(self.return_to):
+        if self.return_to is not None and \
+               not TrustRoot.parse(self.return_to):
             raise MalformedReturnURL(message, self.return_to)
 
         # I first thought that checking to see if the return_to is within
@@ -621,8 +627,11 @@ class CheckIDRequest(OpenIDRequest):
         tr = TrustRoot.parse(self.trust_root)
         if tr is None:
             raise MalformedTrustRoot(None, self.trust_root)
-        return tr.validateURL(self.return_to)
 
+        if self.return_to is not None:
+            return tr.validateURL(self.return_to)
+        else:
+            return True
 
     def answer(self, allow, server_url=None, identity=None):
         """Respond to this request.
@@ -650,6 +659,9 @@ class CheckIDRequest(OpenIDRequest):
 
         @returntype: L{OpenIDResponse}
         """
+        if not self.return_to:
+            raise NoReturnToError
+
         if allow or self.immediate:
             mode = 'id_res'
         else:
@@ -718,6 +730,9 @@ class CheckIDRequest(OpenIDRequest):
 
         @returntype: str
         """
+        if not self.return_to:
+            raise NoReturnToError
+
         # Imported from the alternate reality where these classes are used
         # in both the client and server code, so Requests are Encodable too.
         # That's right, code imported from alternate realities all for the
@@ -751,6 +766,9 @@ class CheckIDRequest(OpenIDRequest):
         @returntype: str
         @returns: The return_to URL with openid.mode = cancel.
         """
+        if not self.return_to:
+            raise NoReturnToError
+
         if self.immediate:
             raise ValueError("Cancel is not an appropriate response to "
                              "immediate mode requests.")
@@ -1435,6 +1453,14 @@ class ProtocolError(Exception):
         # include an openid.mode, I'm not going to worry too much about
         # returning you something you can't parse.
         return None
+
+
+
+class NoReturnToError(Exception):
+    """Raised when a response to a request cannot be generated because
+    the request contains no return_to URL.
+    """
+    pass
 
 
 
