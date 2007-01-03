@@ -220,8 +220,9 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # In the case of failure, if info is non-None, it is the
             # URL that we were verifying. We include it in the error
             # message to help the user figure out what happened.
-            fmt = "Verification of %s failed."
-            message = fmt % (cgi.escape(info.identity_url),)
+            fmt = "Verification of %s failed: %s"
+            message = fmt % (cgi.escape(info.identity_url),
+                             info.message)
         elif info.status == consumer.SUCCESS:
             # Success means that the transaction completed without
             # error. If info is None, it means that the user cancelled
