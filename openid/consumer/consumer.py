@@ -696,14 +696,14 @@ class GenericConsumer(object):
 
         for field in require_fields[message.getOpenIDNamespace()]:
             if not message.hasKey(OPENID_NS, field):
-                raise ValueError('Missing required field %r' % (field,))
+                raise ProtocolError('Missing required field %r' % (field,))
 
         for field in require_sigs[message.getOpenIDNamespace()]:
             # Field is present and not in signed list
             if message.hasKey(OPENID_NS, field) and field not in signed_list:
                 # I wish I could just raise a FailureResponse here, but
                 # they're not exceptions.  :-/
-                raise ValueError('"%s" not signed' % (field,))
+                raise ProtocolError('"%s" not signed' % (field,))
 
 
     def _verifyReturnToArgs(query):
