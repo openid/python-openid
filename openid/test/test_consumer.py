@@ -13,7 +13,8 @@ from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
-     SetupNeededError, DiffieHellmanSHA256ConsumerSession, ServerError
+     SetupNeededError, DiffieHellmanSHA256ConsumerSession, ServerError, \
+     ProtocolError
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
@@ -289,19 +290,19 @@ class TestIdResCheckSignature(TestIdRes):
             'openid.signed': 'mode,identity,assoc_handle,signed',
             'frobboz': 'banzit',
             })
-        self.expected_signed = ['mode',
-                                'signed',
-                                'identity',
-                                'assoc_handle']
-        self.expected_signed.sort()
 
 
     def test_sign(self):
         # assoc_handle to assoc with good sig
-        signed = self.consumer._idResCheckSignature(self.message,
-                                                    self.endpoint.server_url)
-        signed.sort()
-        self.failUnlessEqual(self.expected_signed, signed)
+        self.consumer._idResCheckSignature(self.message,
+                                           self.endpoint.server_url)
+
+
+    def test_signFailsWithBadSig(self):
+        self.message.setArg(OPENID_NS, 'sig', 'BAD SIGNATURE')
+        self.failUnlessRaises(
+            ProtocolError, self.consumer._idResCheckSignature,
+            self.message, self.endpoint.server_url)
 
 
     def test_stateless(self):
@@ -310,11 +311,16 @@ class TestIdResCheckSignature(TestIdRes):
         self.consumer._processCheckAuthResponse = (
             lambda response, server_url: True)
         self.consumer._makeKVPost = lambda args, server_url: {}
-        signed = self.consumer._idResCheckSignature(self.message,
-                                                    self.endpoint.server_url)
-        signed.sort()
-        self.failUnlessEqual(self.expected_signed, signed)
+        self.consumer._idResCheckSignature(self.message,
+                                           self.endpoint.server_url)
 
+    def test_statelessRaisesError(self):
+        # assoc_handle missing assoc, consumer._checkAuth returns goodthings
+        self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
+        self.consumer._checkAuth = lambda unused1, unused2: False
+        self.failUnlessRaises(
+            ProtocolError, self.consumer._idResCheckSignature,
+            self.message, self.endpoint.server_url)
 
 
 class TestQueryFormat(TestIdRes):
@@ -394,9 +400,8 @@ class TestComplete(TestIdRes):
         # is supposed to test for.  status in FAILURE, but it's because
         # *check_auth* failed, not because it's missing an arg, exactly.
         message = Message.fromPostArgs({'openid.mode': 'id_res'})
-        r = self.consumer.complete(message, self.endpoint)
-        self.failUnlessEqual(r.status, FAILURE)
-        self.failUnlessEqual(r.identity_url, self.consumer_id)
+        self.failUnlessRaises(ProtocolError, self.consumer._doIdRes,
+                              message, self.endpoint)
 
     def test_idResURLMismatch(self):
         message = Message.fromPostArgs(
@@ -648,8 +653,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         """use consumer-generated nonce"""
         self.return_to = 'http://rt.unittest/?nonce=%s' % (mkNonce(),)
         self.response = Message.fromOpenIDArgs({'return_to': self.return_to})
-        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
-        self.failUnless(ret)
+        self.consumer._idResCheckNonce(self.response, self.endpoint)
         self.failUnlessLogEmpty()
 
     def test_consumerNonceOpenID2(self):
@@ -657,16 +661,15 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         self.return_to = 'http://rt.unittest/?nonce=%s' % (mkNonce(),)
         self.response = Message.fromOpenIDArgs(
             {'return_to': self.return_to, 'ns':OPENID2_NS})
-        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
-        self.failIf(ret)
-        self.failUnlessLogMatches('Nonce missing from response')
+        self.failUnlessRaises(ProtocolError, self.consumer._idResCheckNonce,
+                              self.response, self.endpoint)
+        self.failUnlessLogEmpty()
 
     def test_serverNonce(self):
         """use server-generated nonce"""
         self.response = Message.fromOpenIDArgs(
             {'ns':OPENID2_NS, 'response_nonce': mkNonce(),})
-        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
-        self.failUnless(ret)
+        self.consumer._idResCheckNonce(self.response, self.endpoint)
         self.failUnlessLogEmpty()
 
     def test_serverNonceOpenID1(self):
@@ -675,9 +678,9 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
             {'ns':OPENID1_NS,
              'return_to': 'http://return.to/',
              'response_nonce': mkNonce(),})
-        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
-        self.failIf(ret)
-        self.failUnlessLogMatches('Nonce missing from response')
+        self.failUnlessRaises(ProtocolError, self.consumer._idResCheckNonce,
+                              self.response, self.endpoint)
+        self.failUnlessLogEmpty()
 
     def test_badNonce(self):
         """remove the nonce from the store
@@ -697,24 +700,23 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
                                   {'response_nonce': nonce,
                                    'ns':OPENID2_NS,
                                    })
-        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
-        self.failIf(ret)
-        self.failUnlessLogMatches('Nonce already used or out of range')
+        self.failUnlessRaises(ProtocolError, self.consumer._idResCheckNonce,
+                              self.response, self.endpoint)
 
     def test_tamperedNonce(self):
         """Malformed nonce"""
         self.response = Message.fromOpenIDArgs(
                                   {'ns':OPENID2_NS,
                                    'response_nonce':'malformed'})
-        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
-        self.failIf(ret)
+        self.failUnlessRaises(ProtocolError, self.consumer._idResCheckNonce,
+                              self.response, self.endpoint)
 
     def test_missingNonce(self):
         """no nonce parameter on the return_to"""
         self.response = Message.fromOpenIDArgs(
                                   {'return_to': self.return_to})
-        ret = self.consumer._idResCheckNonce(self.response, self.endpoint)
-        self.failIf(ret)
+        self.failUnlessRaises(ProtocolError, self.consumer._idResCheckNonce,
+                              self.response, self.endpoint)
 
 class CheckAuthDetectingConsumer(GenericConsumer):
     def _checkAuth(self, *args):
@@ -788,11 +790,8 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.sig': GOODSIG,
             'openid.signed': 'identity,return_to',
             })
-        info = self.consumer._doIdRes(message, self.endpoint)
-        self.failUnlessEqual(FAILURE, info.status)
-        self.failUnlessEqual(self.consumer_id, info.identity_url)
-        self.failUnless(info.message.find('expired') != -1,
-                        info.message)
+        self.failUnlessRaises(ProtocolError, self.consumer._doIdRes,
+                              message, self.endpoint)
 
     def test_newerAssoc(self):
         lifetime = 1000
@@ -1305,9 +1304,8 @@ class IDPDrivenTest(unittest.TestCase):
         def verifyDiscoveryResults(identifier, server_url):
             raise DiscoveryFailure("PHREAK!", None)
         self.consumer._verifyDiscoveryResults = verifyDiscoveryResults
-        response = self.consumer._doIdRes(message, self.endpoint)
-
-        self.failIfEqual(response.status, SUCCESS)
+        self.failUnlessRaises(DiscoveryFailure, self.consumer._doIdRes,
+                              message, self.endpoint)
 
 
     def failUnlessSuccess(self, response):

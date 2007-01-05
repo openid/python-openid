@@ -493,7 +493,10 @@ class GenericConsumer(object):
             except SetupNeededError, why:
                 return SetupNeededResponse(endpoint, why.user_setup_url)
             else:
-                return self._doIdRes(message, endpoint)
+                try:
+                    return self._doIdRes(message, endpoint)
+                except (ProtocolError, DiscoveryFailure), why:
+                    return FailureResponse(endpoint, why[0])
         else:
             return FailureResponse(endpoint,
                                    'Invalid openid.mode: %r' % (mode,))
@@ -507,7 +510,8 @@ class GenericConsumer(object):
         # message.
         try:
             self._verifyReturnToArgs(message.toPostArgs())
-        except ValueError:
+        except ProtocolError, why:
+            oidutil.log("Verifying return_to arguments: %s" % (why[0],))
             return False
 
         # Check the return_to base URL against the one in the message.
@@ -578,36 +582,42 @@ class GenericConsumer(object):
         @param message: the response paramaters.
         @param endpoint: the discovered endpoint object. May be None.
 
+        @raises ProtocolError
+        @raises DiscoveryFailure
+
         @returntype: L{Response}
         """
-        try:
-            signed_list = self._idResCheckSignature(message,
-                                                    endpoint.server_url)
-            # Checks for presence of appropriate fields (and checks
-            # signed list fields)
-            self._idResCheckForFields(message, signed_list)
-        except ValueError, e:
-            return FailureResponse(endpoint, e.args[0])
+        signed_list_str = message.getArg(OPENID_NS, 'signed')
+        if signed_list_str is None:
+            raise ProtocolError("Response missing signed list")
+
+        signed_list = signed_list_str.split(',')
+
+        # Checks for presence of appropriate fields (and checks
+        # signed list fields)
+        self._idResCheckForFields(message, signed_list)
+
+        # XXX: use op_endpoint instead of endpoint.server_url
+        # (although the code will actually need to make sure that
+        # those match. Really that means that we don't need to 
+        self._idResCheckSignature(message, endpoint.server_url)
 
         response_identity = message.getArg(OPENID_NS, 'identity')
 
         # IdP-driven identifier selection requires another round of
         # discovery:
         if endpoint.isIdentifierSelect():
-            try:
-                endpoint = self._verifyDiscoveryResults(endpoint, message)
-            except DiscoveryFailure, exc:
-                return FailureResponse(endpoint, exc.args[0])
+            endpoint = self._verifyDiscoveryResults(endpoint, message)
         elif endpoint.getLocalID() != response_identity:
-            fmt = 'Mismatch between delegate (%r) and server (%r) response'
-            return FailureResponse(
-                endpoint, fmt % (endpoint.getLocalID(), response_identity))
+            format = 'Mismatch between delegate (%r) and server (%r) response'
+            message = format % (endpoint.getLocalID(), response_identity)
+            raise ProtocolError(message)
 
-        if self._idResCheckNonce(message, endpoint):
-            signed_fields = ['openid.' + f for f in signed_list]
-            return SuccessResponse(endpoint, message, signed_fields)
-        else:
-            return FailureResponse(endpoint, 'Nonce missing, old or used')
+        # Will raise a ProtocolError if the nonce is bad
+        self._idResCheckNonce(message, endpoint)
+
+        signed_fields = ["openid." + s for s in signed_list]
+        return SuccessResponse(endpoint, message, signed_fields)
 
     def _idResGetNonceOpenID1(self, message, endpoint):
         """Extract the nonce from an OpenID 1 response
@@ -638,20 +648,15 @@ class GenericConsumer(object):
             server_url = endpoint.server_url
 
         if nonce is None:
-            oidutil.log('Nonce missing from response')
-            return False
+            raise ProtocolError('Nonce missing from response')
 
         try:
             timestamp, salt = splitNonce(nonce)
-        except ValueError:
-            oidutil.log('Malformed nonce')
-            return False
+        except ValueError, why:
+            raise ProtocolError('Malformed nonce: %s' % (why[0],))
 
-        if self.store.useNonce(server_url, timestamp, salt):
-            return True
-        else:
-            oidutil.log('Nonce already used or out of range')
-            return False
+        if not self.store.useNonce(server_url, timestamp, salt):
+            raise ProtocolError('Nonce already used or out of range')
 
     def _idResCheckSignature(self, message, server_url):
         assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
@@ -664,10 +669,11 @@ class GenericConsumer(object):
                 # automatically opens the possibility for
                 # denial-of-service by a server that just returns expired
                 # associations (or really short-lived associations)
-                raise ValueError('Association with %s expired' % (server_url,))
+                raise ProtocolError(
+                    'Association with %s expired' % (server_url,))
 
             if not assoc.checkMessageSignature(message):
-                raise ValueError('Bad signature')
+                raise ProtocolError('Bad signature')
 
         else:
             # It's not an association we know about.  Stateless mode is our
@@ -675,12 +681,15 @@ class GenericConsumer(object):
             # XXX - async framework will not want to block on this call to
             # _checkAuth.
             if not self._checkAuth(message, server_url):
-                raise ValueError('Server denied check_authentication')
-
-        return message.getArg(OPENID_NS, 'signed').split(',')
-
+                raise ProtocolError('Server denied check_authentication')
 
     def _idResCheckForFields(self, message, signed_list):
+        # XXX: this should be handled by the code that processes the
+        # response (that is, if a field is missing, we should not have
+        # to explicitly check that it's present, just make sure that
+        # the fields are actually being used by the rest of the code
+        # in tests). Although, which fields are signed does need to be
+        # checked somewhere.
         basic_fields = ['return_to', 'assoc_handle', 'sig']
         basic_sig_fields = ['return_to', 'identity',]
 
@@ -701,8 +710,6 @@ class GenericConsumer(object):
         for field in require_sigs[message.getOpenIDNamespace()]:
             # Field is present and not in signed list
             if message.hasKey(OPENID_NS, field) and field not in signed_list:
-                # I wish I could just raise a FailureResponse here, but
-                # they're not exceptions.  :-/
                 raise ProtocolError('"%s" not signed' % (field,))
 
 
@@ -712,20 +719,22 @@ class GenericConsumer(object):
         """
         message = Message.fromPostArgs(query)
         return_to = message.getArg(OPENID_NS, 'return_to')
+
+        # XXX: this should be checked by _idResCheckForFields
         if not return_to:
-            raise ValueError("no openid.return_to in query %r" % (query,))
+            raise ProtocolError("no openid.return_to in query %r" % (query,))
         parsed_url = urlparse(return_to)
         rt_query = parsed_url[4]
         for rt_key, rt_value in cgi.parse_qsl(rt_query):
             try:
                 value = query[rt_key]
                 if rt_value != value:
-                    raise ValueError("parameter %s value %r does not match "
-                                     "return_to's value %r" % (rt_key, value,
-                                                               rt_value))
+                    format = ("parameter %s value %r does not match "
+                              "return_to's value %r")
+                    raise ProtocolError(format % (rt_key, value, rt_value))
             except KeyError:
-                raise ValueError("return_to parameter %s absent from query %r"
-                                 % (rt_key, query))
+                format = "return_to parameter %s absent from query %r"
+                raise ProtocolError(format % (rt_key, query))
 
     _verifyReturnToArgs = staticmethod(_verifyReturnToArgs)
 
