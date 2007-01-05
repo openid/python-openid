@@ -686,7 +686,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         """remove the nonce from the store
 
         From "Checking the Nonce"::
-        
+
             When the Relying Party checks the signature on an assertion, the
 
             Relying Party SHOULD ensure that an assertion has not yet
