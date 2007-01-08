@@ -179,8 +179,7 @@ class EmptyMessageTest(unittest.TestCase):
         # building a message from scratch and so have no default
         # namespace.
         self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.setArg, message.OPENID_NS,
-                              'does not', 'matter')
+                              self.msg.delArg, message.OPENID_NS, 'key')
 
     def _test_delArgNS(self, ns):
         key = 'Camper van Beethoven'
