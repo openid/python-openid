@@ -609,6 +609,58 @@ class TestFromOPEndpointURL(unittest.TestCase):
     def test_serverURL(self):
         self.failUnlessEqual(self.endpoint.server_url, self.op_endpoint_url)
 
+class TestEndpointSupportsType(unittest.TestCase):
+    def setUp(self):
+        self.endpoint = discover.OpenIDServiceEndpoint()
+
+    def failUnlessSupportsOnly(self, *types):
+        for t in [
+            'foo',
+            discover.OPENID_1_1_TYPE,
+            discover.OPENID_1_0_TYPE,
+            discover.OPENID_2_0_TYPE,
+            discover.OPENID_IDP_2_0_TYPE,
+            ]:
+            if t in types:
+                self.failUnless(self.endpoint.supportsType(t))
+            else:
+                self.failIf(self.endpoint.supportsType(t))
+
+    def test_supportsNothing(self):
+        self.failUnlessSupportsOnly()
+
+    def test_openid2(self):
+        self.endpoint.type_uris = [discover.OPENID_2_0_TYPE]
+        self.failUnlessSupportsOnly(discover.OPENID_2_0_TYPE)
+
+    def test_openid2provider(self):
+        self.endpoint.type_uris = [discover.OPENID_IDP_2_0_TYPE]
+        self.failUnlessSupportsOnly(discover.OPENID_IDP_2_0_TYPE,
+                                    discover.OPENID_2_0_TYPE)
+
+    def test_openid1_0(self):
+        self.endpoint.type_uris = [discover.OPENID_1_0_TYPE]
+        self.failUnlessSupportsOnly(discover.OPENID_1_0_TYPE)
+
+    def test_openid1_1(self):
+        self.endpoint.type_uris = [discover.OPENID_1_1_TYPE]
+        self.failUnlessSupportsOnly(discover.OPENID_1_1_TYPE)
+
+    def test_multiple(self):
+        self.endpoint.type_uris = [discover.OPENID_1_1_TYPE,
+                                   discover.OPENID_2_0_TYPE]
+        self.failUnlessSupportsOnly(discover.OPENID_1_1_TYPE,
+                                    discover.OPENID_2_0_TYPE)
+
+    def test_multipleWithProvider(self):
+        self.endpoint.type_uris = [discover.OPENID_1_1_TYPE,
+                                   discover.OPENID_2_0_TYPE,
+                                   discover.OPENID_IDP_2_0_TYPE]
+        self.failUnlessSupportsOnly(discover.OPENID_1_1_TYPE,
+                                    discover.OPENID_2_0_TYPE,
+                                    discover.OPENID_IDP_2_0_TYPE,
+                                    )
+
 def pyUnitTests():
     return datadriven.loadTests(__name__)
 

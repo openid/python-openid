@@ -57,6 +57,12 @@ class OpenIDServiceEndpoint(object):
         else:
             return OPENID_1_0_MESSAGE_NS
 
+    def supportsType(self, type_uri):
+        """Does this endpoint support this type?"""
+        return ((type_uri == OPENID_2_0_MESSAGE_NS and
+                 OPENID_IDP_2_0_TYPE in self.type_uris) or
+                self.usesExtension(type_uri))
+
     def compatibilityMode(self):
         return self.preferredNamespace() != OPENID_2_0_MESSAGE_NS
 
