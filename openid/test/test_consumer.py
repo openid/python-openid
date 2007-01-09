@@ -1092,10 +1092,40 @@ class TestSuccessResponse(unittest.TestCase):
             'sreg.nickname':'j3h',
             'return_to':'return_to',
             })
-        utargs = resp.message.getArgs('urn:unittest')
+        utargs = resp.extensionResponse('urn:unittest', False)
         self.failUnlessEqual(utargs, {'one':'1', 'two':'2'})
-        sregargs = resp.message.getArgs('urn:sreg')
+        sregargs = resp.extensionResponse('urn:sreg', False)
         self.failUnlessEqual(sregargs, {'nickname':'j3h'})
+
+    def test_extensionResponseSigned(self):
+        args = {
+            'ns.sreg':'urn:sreg',
+            'ns.unittest':'urn:unittest',
+            'unittest.one':'1',
+            'unittest.two':'2',
+            'sreg.nickname':'j3h',
+            'sreg.dob':'yesterday',
+            'return_to':'return_to',
+            'signed': 'sreg.nickname,unittest.one,sreg.dob',
+            }
+
+        signed_list = ['openid.sreg.nickname',
+                       'openid.unittest.one',
+                       'openid.sreg.dob',]
+
+        # Don't use mkSuccess because it creates an all-inclusive
+        # signed list.
+        msg = Message.fromOpenIDArgs(args)
+        resp = SuccessResponse(self.endpoint, msg, signed_list)
+
+        # All args in this NS are signed, so expect all.
+        sregargs = resp.extensionResponse('urn:sreg', True)
+        self.failUnlessEqual(sregargs, {'nickname':'j3h', 'dob': 'yesterday'})
+
+        # Not all args in this NS are signed, so expect None when
+        # asking for them.
+        utargs = resp.extensionResponse('urn:unittest', True)
+        self.failUnlessEqual(utargs, None)
 
     def test_noReturnTo(self):
         resp = mkSuccess(self.endpoint, {})

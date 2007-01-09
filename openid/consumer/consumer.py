@@ -1334,6 +1334,36 @@ class SuccessResponse(Response):
         else:
             return default
 
+    def getSignedNS(self, ns_uri):
+        """Get signed arguments from the response message.  Return a
+        dict of all arguments in the specified namespace.  If any of
+        the arguments are not signed, return None.
+        """
+        msg_args = self.message.getArgs(ns_uri)
+
+        for key, value in msg_args.iteritems():
+            if not self.isSigned(ns_uri, key):
+                return None
+
+        return msg_args
+
+    def extensionResponse(self, namespace_uri, require_signed):
+        """Return response arguments in the specified namespace.
+
+        @param namespace_uri: The namespace URI of the arguments to be
+        returned.
+
+        @param require_signed: True if the arguments should be among
+        those signed in the response, False if you don't care.
+
+        If require_signed is True and the arguments are not signed,
+        return None.
+        """
+        if require_signed:
+            return self.getSignedNS(namespace_uri)
+        else:
+            return self.message.getArgs(namespace_uri)
+
     def getReturnTo(self):
         """Get the openid.return_to argument from this response.
 
