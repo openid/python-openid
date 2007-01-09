@@ -181,6 +181,10 @@ class BaseTestDiscovery(unittest.TestCase):
             self.failIf(s.claimed_id)
             self.failIf(s.local_id)
             self.failIf(s.getLocalID())
+            self.failIf(s.compatibilityMode())
+            self.failUnless(s.isOPIdentifier())
+            self.failUnlessEqual(s.preferredNamespace(),
+                                 discover.OPENID_2_0_TYPE)
         else:
             self.failUnlessEqual(claimed_id, s.claimed_id)
             self.failUnlessEqual(local_id, s.getLocalID())

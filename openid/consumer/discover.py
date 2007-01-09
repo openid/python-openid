@@ -39,19 +39,6 @@ class OpenIDServiceEndpoint(object):
         OPENID_1_0_TYPE,
         ]
 
-    def preferredNamespace(self):
-        if (OPENID_IDP_2_0_TYPE in self.type_uris or
-            OPENID_2_0_TYPE in self.type_uris):
-            return OPENID_2_0_MESSAGE_NS
-        else:
-            return OPENID_1_0_MESSAGE_NS
-
-    def compatibilityMode(self):
-        return OPENID_2_0_MESSAGE_NS not in self.type_uris
-
-    def isOPIdentifier(self):
-        return OPENID_IDP_2_0_TYPE in self.type_uris
-
     def __init__(self):
         self.claimed_id = None
         self.server_url = None
@@ -62,6 +49,19 @@ class OpenIDServiceEndpoint(object):
 
     def usesExtension(self, extension_uri):
         return extension_uri in self.type_uris
+
+    def preferredNamespace(self):
+        if (OPENID_IDP_2_0_TYPE in self.type_uris or
+            OPENID_2_0_TYPE in self.type_uris):
+            return OPENID_2_0_MESSAGE_NS
+        else:
+            return OPENID_1_0_MESSAGE_NS
+
+    def compatibilityMode(self):
+        return self.preferredNamespace() != OPENID_2_0_MESSAGE_NS
+
+    def isOPIdentifier(self):
+        return OPENID_IDP_2_0_TYPE in self.type_uris
 
     def parseService(self, yadis_url, uri, type_uris, service_element):
         """Set the state of this object based on the contents of the
@@ -79,8 +79,6 @@ class OpenIDServiceEndpoint(object):
                                                   self.type_uris)
             self.claimed_id = yadis_url
 
-
-
     def getLocalID(self):
         """Return the identifier that should be sent as the
         openid.identity parameter to the server."""
@@ -88,9 +86,6 @@ class OpenIDServiceEndpoint(object):
             return self.claimed_id
         else:
             return self.local_id or self.canonicalID
-
-    def isIdentifierSelect(self):
-        return self.claimed_id is None
 
     def fromBasicServiceEndpoint(cls, endpoint):
         """Create a new instance of this class from the endpoint

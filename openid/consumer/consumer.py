@@ -606,7 +606,7 @@ class GenericConsumer(object):
 
         # IdP-driven identifier selection requires another round of
         # discovery:
-        if endpoint.isIdentifierSelect():
+        if endpoint.isOPIdentifier():
             endpoint = self._verifyDiscoveryResults(endpoint, message)
         elif endpoint.getLocalID() != response_identity:
             format = 'Mismatch between delegate (%r) and server (%r) response'
