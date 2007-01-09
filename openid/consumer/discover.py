@@ -147,6 +147,20 @@ class OpenIDServiceEndpoint(object):
 
     fromHTML = classmethod(fromHTML)
 
+    def fromOPEndpointURL(cls, op_endpoint_url):
+        """Construct an OP-Identifier OpenIDServiceEndpoint object for
+        a given OP Endpoint URL
+
+        @param op_endpoint_url: The URL of the endpoint
+        @rtype: OpenIDServiceEndpoint
+        """
+        service = cls()
+        service.server_url = op_endpoint_url
+        service.type_uris = [OPENID_IDP_2_0_TYPE]
+        return service
+
+    fromOPEndpointURL = classmethod(fromOPEndpointURL)
+
 def findOPLocalIdentifier(service_element, type_uris):
     """Find the OP-Local Identifier for this xrd:Service element.
 

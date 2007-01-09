@@ -583,6 +583,28 @@ class TestIsOPIdentifier(unittest.TestCase):
                                    discover.OPENID_IDP_2_0_TYPE]
         self.failUnless(self.endpoint.isOPIdentifier())
 
+class TestFromOPEndpointURL(unittest.TestCase):
+    def setUp(self):
+        self.op_endpoint_url = 'http://example.com/op/endpoint'
+        self.endpoint = discover.OpenIDServiceEndpoint.fromOPEndpointURL(
+            self.op_endpoint_url)
+
+    def test_isOPEndpoint(self):
+        self.failUnless(self.endpoint.isOPIdentifier())
+
+    def test_noIdentifiers(self):
+        self.failUnlessEqual(self.endpoint.getLocalID(), None)
+        self.failUnlessEqual(self.endpoint.claimed_id, None)
+
+    def test_compatibility(self):
+        self.failIf(self.endpoint.compatibilityMode())
+
+    def test_canonicalID(self):
+        self.failUnlessEqual(self.endpoint.canonicalID, None)
+
+    def test_serverURL(self):
+        self.failUnlessEqual(self.endpoint.server_url, self.op_endpoint_url)
+
 def pyUnitTests():
     return datadriven.loadTests(__name__)
 
