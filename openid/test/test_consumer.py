@@ -141,6 +141,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     endpoint.claimed_id = user_url
     endpoint.server_url = server_url
     endpoint.local_id = delegate_url
+    endpoint.type_uris = [OPENID_1_1_TYPE]
 
     fetcher = TestFetcher(None, None, assocs[0])
     fetchers.setDefaultFetcher(fetcher, wrap_exceptions=False)
@@ -272,7 +273,14 @@ class TestIdRes(unittest.TestCase):
         self.endpoint.claimed_id = self.consumer_id = "consu"
         self.endpoint.server_url = self.server_url = "serlie"
         self.endpoint.local_id = self.server_id = "sirod"
+        self.endpoint.type_uris = [OPENID_1_1_TYPE]
 
+    def disableDiscoveryVerification(self):
+        """Set the discovery verification to a no-op for test cases in
+        which we don't care."""
+        def dummyVerifyDiscover(_, endpoint):
+            return endpoint
+        self.consumer._verifyDiscoveryResults = dummyVerifyDiscover
 
 
 class TestIdResCheckSignature(TestIdRes):
@@ -416,7 +424,7 @@ class TestComplete(TestIdRes):
         r = self.consumer.complete(message, self.endpoint)
         self.failUnlessEqual(r.status, FAILURE)
         self.failUnlessEqual(r.identity_url, self.consumer_id)
-        self.failUnless(r.message.find('delegate') != -1,
+        self.failUnless(r.message.startswith('local_id mismatch'),
                         r.message)
 
 
@@ -726,12 +734,14 @@ class CheckAuthDetectingConsumer(GenericConsumer):
         """We're not testing nonce-checking, so just return success
         when it asks."""
         return True
+
 class TestCheckAuthTriggered(TestIdRes, CatchLogs):
     consumer_class = CheckAuthDetectingConsumer
 
     def setUp(self):
         TestIdRes.setUp(self)
         CatchLogs.setUp(self)
+        self.disableDiscoveryVerification()
 
     def test_checkAuthTriggered(self):
         message = Message.fromPostArgs({
@@ -1349,8 +1359,8 @@ class TestDiscoveryVerification(unittest.TestCase):
 
     def setUp(self):
         from openid.consumer import consumer
-        self._orig_discoverURL = consumer.discoverURL
-        consumer.discoverURL = self.discoveryFunc
+        self._orig_discover = consumer.discover
+        consumer.discover = self.discoveryFunc
         self.store = GoodAssocStore()
         self.consumer = GenericConsumer(self.store)
 
@@ -1361,6 +1371,7 @@ class TestDiscoveryVerification(unittest.TestCase):
             'openid.ns': OPENID2_NS,
             'openid.identity': self.identifier,
             'openid.claimed_id': self.identifier,
+            'openid.op_endpoint': self.server_url,
             })
 
         self.endpoint = OpenIDServiceEndpoint()
@@ -1368,7 +1379,7 @@ class TestDiscoveryVerification(unittest.TestCase):
 
     def tearDown(self):
         from openid.consumer import consumer
-        consumer.discoverURL = self._orig_discoverURL
+        consumer.discover = self._orig_discover
 
 
     def test_theGoodStuff(self):
@@ -1378,7 +1389,7 @@ class TestDiscoveryVerification(unittest.TestCase):
         endpoint.server_url = self.server_url
         endpoint.local_id = self.identifier
         self.services = [endpoint]
-        r = self.consumer._verifyDiscoveryResults(endpoint, self.message)
+        r = self.consumer._verifyDiscoveryResults(self.message, endpoint)
 
         self.failUnlessEqual(r, endpoint)
 
@@ -1386,24 +1397,26 @@ class TestDiscoveryVerification(unittest.TestCase):
     def test_otherServer(self):
         # a set of things without the stuff
         endpoint = OpenIDServiceEndpoint()
+        endpoint.type_uris = [OPENID2_NS]
         endpoint.claimed_id = self.identifier
         endpoint.server_url = "http://the-MOON.unittest/"
         endpoint.local_id = self.identifier
         self.services = [endpoint]
-        self.failUnlessRaises(DiscoveryFailure,
+        self.failUnlessRaises(ProtocolError,
                               self.consumer._verifyDiscoveryResults,
-                              endpoint, self.message)
+                              self.message, endpoint)
 
 
     def test_foreignDelegate(self):
         # a set of things with the server stuff but other delegate
         endpoint = OpenIDServiceEndpoint()
+        endpoint.type_uris = [OPENID2_NS]
         endpoint.claimed_id = self.identifier
         endpoint.server_url = self.server_url
         endpoint.local_id = "http://unittest/juan-carlos"
-        self.failUnlessRaises(DiscoveryFailure,
+        self.failUnlessRaises(ProtocolError,
                               self.consumer._verifyDiscoveryResults,
-                              endpoint, self.message)
+                              self.message, endpoint)
 
 
     def test_nothingDiscovered(self):
@@ -1411,7 +1424,7 @@ class TestDiscoveryVerification(unittest.TestCase):
         self.services = []
         self.failUnlessRaises(DiscoveryFailure,
                               self.consumer._verifyDiscoveryResults,
-                              self.endpoint, self.message)
+                              self.message, self.endpoint)
 
 
     def discoveryFunc(self, identifier):

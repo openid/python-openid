@@ -187,9 +187,8 @@ from urlparse import urlparse
 
 from openid import fetchers
 
-from openid.consumer.discover import discover as discoverURL
-from openid.consumer.discover import discoverXRI
-from openid.consumer.discover import DiscoveryFailure
+from openid.consumer.discover import discover, OpenIDServiceEndpoint, \
+     DiscoveryFailure, OPENID_1_1_TYPE
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
      IDENTIFIER_SELECT, no_default
 from openid import cryptutil
@@ -199,7 +198,6 @@ from openid.association import Association, default_negotiator
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.yadis.manager import Discovery
-from openid.yadis import xri
 
 
 __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
@@ -278,16 +276,9 @@ class Consumer(object):
             is available, L{openid.consumer.discover.DiscoveryFailure} is
             an alias for C{yadis.discover.DiscoveryFailure}.
         """
-        if xri.identifierScheme(user_url) == "XRI":
-            discoverMethod = discoverXRI
-        else:
-            discoverMethod = discoverURL
-
+        disco = Discovery(self.session, user_url, self.session_key_prefix)
         try:
-            disco = Discovery(self.session,
-                              user_url,
-                              self.session_key_prefix)
-            service = disco.getNextService(discoverMethod)
+            service = disco.getNextService(discover)
         except fetchers.HTTPFetchingError, e:
             raise DiscoveryFailure('Error fetching XRDS document', e)
 
@@ -597,21 +588,12 @@ class GenericConsumer(object):
         # signed list fields)
         self._idResCheckForFields(message, signed_list)
 
-        # XXX: use op_endpoint instead of endpoint.server_url
-        # (although the code will actually need to make sure that
-        # those match. Really that means that we don't need to 
+        # Verify discovery information:
+        endpoint = self._verifyDiscoveryResults(message, endpoint)
+
         self._idResCheckSignature(message, endpoint.server_url)
 
         response_identity = message.getArg(OPENID_NS, 'identity')
-
-        # IdP-driven identifier selection requires another round of
-        # discovery:
-        if endpoint.isOPIdentifier():
-            endpoint = self._verifyDiscoveryResults(endpoint, message)
-        elif endpoint.getLocalID() != response_identity:
-            format = 'Mismatch between delegate (%r) and server (%r) response'
-            message = format % (endpoint.getLocalID(), response_identity)
-            raise ProtocolError(message)
 
         # Will raise a ProtocolError if the nonce is bad
         self._idResCheckNonce(message, endpoint)
@@ -691,11 +673,11 @@ class GenericConsumer(object):
         # in tests). Although, which fields are signed does need to be
         # checked somewhere.
         basic_fields = ['return_to', 'assoc_handle', 'sig']
-        basic_sig_fields = ['return_to', 'identity',]
+        basic_sig_fields = ['return_to', 'identity']
 
         require_fields = {
-            OPENID2_NS: basic_fields + ['op_endpoint',],
-            OPENID1_NS: basic_fields,
+            OPENID2_NS: basic_fields + ['op_endpoint'],
+            OPENID1_NS: basic_fields + ['identity'],
             }
 
         require_sigs = {
@@ -738,67 +720,180 @@ class GenericConsumer(object):
 
     _verifyReturnToArgs = staticmethod(_verifyReturnToArgs)
 
+    def _verifyDiscoveryResults(self, resp_msg, endpoint=None):
+        """
+        Extract the information from an OpenID assertion message and
+        verify it against the original
 
-    def _verifyDiscoveryResults(self, orig_endpoint, resp_msg):
+        @param endpoint: The endpoint that resulted from doing discovery
+        @param resp_msg: The id_res message object
         """
 
-        @param identifier: the identifier to perform discovery on.
-        @param server_url: the server endpoint I hope to discover.
-        """
+        to_match = OpenIDServiceEndpoint()
 
         # If OpenID 2, do disco on the claimed_id.  Otherwise, use
         # the local_id (openid.identity).
         if resp_msg.getOpenIDNamespace() == OPENID2_NS:
-            identifier = resp_msg.getArg(OPENID_NS, 'claimed_id')
+            to_match.type_uris = [OPENID2_NS]
+            to_match.claimed_id = resp_msg.getArg(
+                OPENID2_NS, 'claimed_id')
+            to_match.local_id = resp_msg.getArg(
+                OPENID2_NS, 'identity')
+
+            # Raises a KeyError when the op_endpoint is not present
+            to_match.server_url = resp_msg.getArg(
+                OPENID2_NS, 'op_endpoint', no_default)
+
+            # claimed_id and identifier must both be present or both
+            # be absent
+            if (to_match.claimed_id is None and
+                to_match.local_id is not None):
+                raise ProtocolError(
+                    'openid.identity is present without openid.claimed_id')
+
+            elif (to_match.claimed_id is not None and
+                  to_match.local_id is None):
+                raise ProtocolError(
+                    'openid.claimed_id is present without openid.identity')
+
+            # This is a response without identifiers, so there's
+            # really no checking that we can do.
+            elif to_match.claimed_id is None:
+
+                # So return an endpoint that's for the specified
+                # `openid.op_endpoint'
+                return OpenIDServiceEndpoint.fromOPEndpointURL(
+                    to_match.server_url)
+
+            # Fall through to common OpenID 1 and 2 case
+
         else:
-            identifier = resp_msg.getArg(OPENID_NS, 'identity')
+            # OpenID 1
 
-        # Identifier absent, so return the original endpoint because
-        # we don't have any discovery'ing to do
-        if identifier is None:
-            return orig_endpoint
+            to_match.type_uris = [OPENID_1_1_TYPE]
+            to_match.local_id = resp_msg.getArg(OPENID1_NS, 'identity')
 
-        # Pick the right discovery method.
-        if xri.identifierScheme(identifier) == "XRI":
-            discoverMethod = discoverXRI
+            if to_match.local_id is None:
+                raise ProtcolError('Missing required field openid.identity')
+
+
+            if endpoint is None:
+                raise RuntimeError('When using OpenID 1, the claimed ID must be supplied, either by passing it through as a return_to parameter or by using a session.')
+
+            # Restore delegate information
+            to_match.claimed_id = endpoint.claimed_id
+
+            # Fall through to common OpenID 1 and 2 case
+
+        # The claimed ID doesn't match, so we have to do discovery
+        # again. This covers not using sessions, OP identifier endpoints and
+        # responses that didn't match the original request.
+        if not endpoint:
+            oidutil.log('No pre-discovered information supplied.')
+            return self._discoverAndVerify(to_match)
+        elif to_match.claimed_id != endpoint.claimed_id:
+            oidutil.log('Mismatched pre-discovered session data. Claimed ID '
+                        'in session=%s, in assertion=%s' %
+                        (endpoint.claimed_id, to_match.claimed_id))
+            return self._discoverAndVerify(to_match)
+
+        # The claimed ID matches, so we use the endpoint that we
+        # discovered in initiation. This should be the most common
+        # case.
         else:
-            discoverMethod = discoverURL
+            self._verifyDiscoverySingle(endpoint, to_match)
+            return endpoint
 
-        discovered_id, services = discoverMethod(identifier)
+        assert False, 'Not reached'
 
-        def serviceMatches(endpoint):
-            # Claimed ID in response much match the one on the
-            # endpoint.
-            if OPENID2_NS == resp_msg.getOpenIDNamespace():
-                if endpoint.claimed_id != resp_msg.getArg(OPENID_NS, 'claimed_id'):
-                    return False
+    def _verifyDiscoverySingle(self, endpoint, to_match):
+        """Verify that the given endpoint matches the information
+        extracted from the OpenID assertion, and raise an exception if
+        there is a mismatch.
 
-                if endpoint.getLocalID() != resp_msg.getArg(OPENID_NS, 'identity'):
-                    return False
+        @type endpoint: openid.consumer.discover.OpenIDServiceEndpoint
+        @type to_match: openid.consumer.discover.OpenIDServiceEndpoint
 
-            if OPENID1_NS == resp_msg.getOpenIDNamespace():
-                # LocalID or canonicalID must be the same as that of
-                # the discovered URL.
-                if endpoint.getLocalID() != identifier:
-                    return False
+        @rtype: NoneType
 
-            return (
-                # Check server_url,
-                (endpoint.server_url == orig_endpoint.server_url) and
-                # Check protocol version of response message against
-                # versions advertised.
-                (resp_msg.getOpenIDNamespace() in endpoint.type_uris))
+        @raises: ProtocolError, if the endpoint does not match the
+            discovered information.
+        """
+        # Every type URI that's in the to_match endpoint has to be
+        # present in the discovered endpoint.
+        for type_uri in to_match.type_uris:
+            if not endpoint.usesExtension(type_uri):
+                raise ProtocolError(
+                    'Required type %r not present' % (type_uri,))
 
-        services = filter(serviceMatches, services)
+        if to_match.claimed_id != endpoint.claimed_id:
+            raise ProtocolError(
+                'Claimed ID does not match (different subjects!), '
+                'Expected %s, got %s' %
+                (to_match.claimed_id, endpoint.claimed_id))
 
+        if to_match.local_id != endpoint.local_id:
+            raise ProtocolError('local_id mismatch. Expected %s, got %s' %
+                                (to_match.local_id, endpoint.local_id))
+
+        # If the server URL is None, this must be an OpenID 1
+        # response, because op_endpoint is a required parameter in
+        # OpenID 2. In that case, we don't actually care what the
+        # discovered server_url is, because signature checking or
+        # check_auth should take care of that check for us.
+        if to_match.server_url is None:
+            assert to_match.preferredNamespace() == OPENID1_NS, (
+                """The code calling this must ensure that OpenID 2
+                responses have a non-none `openid.op_endpoint' and
+                that it is set as the `server_url' attribute of the
+                `to_match' endpoint.""")
+
+        elif to_match.server_url != endpoint.server_url:
+            raise ProtocolError('OP Endpoint mismatch. Expected %s, got %s' %
+                                (to_match.server_url, endpoint.server_url))
+
+    def _discoverAndVerify(self, to_match):
+        """Given an endpoint object created from the information in an
+        OpenID response, perform discovery and verify the discovery
+        results, returning the matching endpoint that is the result of
+        doing that discovery.
+
+        @type to_match: openid.consumer.discover.OpenIDServiceEndpoint
+        @param to_match: The endpoint whose information we're confirming
+
+        @rtype: openid.consumer.discover.OpenIDServiceEndpoint
+        @returns: The result of performing discovery on the claimed
+            identifier in `to_match'
+
+        @raises: ProtocolError, if discovery fails.
+        """
+        oidutil.log('Performing discovery on %s' % (to_match.claimed_id,))
+        _, services = discover(to_match.claimed_id)
         if not services:
-            #msg = ("Discovery information for %r does not include "
-            #       "server %r." % (identifier, orig_endpoint.server_url))
-            msg = ("Discovery information does not match response "
-                   "message values")
-            raise DiscoveryFailure(msg, None)
+            raise DiscoveryFailure('No OpenID information found at %s' %
+                                   (to_match.claimed_id,), None)
 
-        return services[0]
+        # Search the services resulting from discovery to find one
+        # that matches the information from the assertion
+        failure_messages = []
+        for endpoint in services:
+            try:
+                self._verifyDiscoverySingle(endpoint, to_match)
+            except ProtocolError, e:
+                failure_messages.append(e[0])
+            else:
+                # It matches, so discover verification has
+                # succeeded. Return this endpoint.
+                return endpoint
+        else:
+            oidutil.log('Discovery verification failure for %s' %
+                        (to_match.claimed_id,))
+            for failure_message in failure_messages:
+                oidutil.log(' * Endpoint mismatch: ' + failure_message)
+
+            raise DiscoveryFailure(
+                'No matching endpoint found after discovering %s'
+                % (to_match.claimed_id,), None)
 
     def _checkAuth(self, message, server_url):
         request = self._createCheckAuthRequest(message)
@@ -1090,8 +1185,8 @@ class GenericConsumer(object):
             OPENID_NS, 'expires_in', no_default)
         try:
             expires_in = int(expires_in_str)
-        except ValueError, e:
-            raise ProtocolError('Invalid expires_in field: %s' % (e[0],))
+        except ValueError, why:
+            raise ProtocolError('Invalid expires_in field: %s' % (why[0],))
 
         # OpenID 1 has funny association session behaviour.
         if assoc_response.isOpenID1():
