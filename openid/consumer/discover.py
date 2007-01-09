@@ -10,6 +10,7 @@ from openid.yadis.services import applyFilter as extractServices
 from openid.yadis.discover import discover as yadisDiscover
 from openid.yadis.discover import DiscoveryFailure
 from openid.yadis import xrires, filters
+from openid.yadis import xri
 
 from openid.consumer import html_parse
 
@@ -356,7 +357,7 @@ def discoverNoYadis(uri):
         claimed_id, http_resp.body)
     return claimed_id, openid_services
 
-def discover(uri):
+def discoverURI(uri):
     parsed = urlparse.urlparse(uri)
     if parsed[0] and parsed[1]:
         if parsed[0] not in ['http', 'https']:
@@ -368,3 +369,9 @@ def discover(uri):
     claimed_id, openid_services = discoverYadis(uri)
     claimed_id = normalizeURL(claimed_id)
     return claimed_id, openid_services
+
+def discover(identifier):
+    if xri.identifierScheme(identifier) == "XRI":
+        return discoverXRI(identifier)
+    else:
+        return discoverURI(identifier)

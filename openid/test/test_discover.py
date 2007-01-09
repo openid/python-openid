@@ -609,6 +609,36 @@ class TestFromOPEndpointURL(unittest.TestCase):
     def test_serverURL(self):
         self.failUnlessEqual(self.endpoint.server_url, self.op_endpoint_url)
 
+class TestDiscoverFunction(unittest.TestCase):
+    def setUp(self):
+        self._old_discoverURI = discover.discoverURI
+        self._old_discoverXRI = discover.discoverXRI
+
+        discover.discoverXRI = self.discoverXRI
+        discover.discoverURI = self.discoverURI
+
+    def tearDown(self):
+        discover.discoverURI = self._old_discoverURI
+        discover.discoverXRI = self._old_discoverXRI
+
+    def discoverXRI(self, identifier):
+        return 'XRI'
+
+    def discoverURI(self, identifier):
+        return 'URI'
+
+    def test_uri(self):
+        self.failUnlessEqual('URI', discover.discover('http://woo!'))
+
+    def test_uriForBogus(self):
+        self.failUnlessEqual('URI', discover.discover('not a URL or XRI'))
+
+    def test_xri(self):
+        self.failUnlessEqual('XRI', discover.discover('xri://=something'))
+
+    def test_xriChar(self):
+        self.failUnlessEqual('XRI', discover.discover('=something'))
+
 class TestEndpointSupportsType(unittest.TestCase):
     def setUp(self):
         self.endpoint = discover.OpenIDServiceEndpoint()
