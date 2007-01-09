@@ -629,11 +629,25 @@ class TestSetupNeeded(TestIdRes):
 
     def test_setupNeededOpenID2(self):
         message = Message.fromOpenIDArgs({
-            'mode':'id_res',
+            'mode':'setup_needed',
             'ns':OPENID2_NS,
             })
         self.failUnless(message.isOpenID2())
-        self.failUnlessSetupNeeded(None, message)
+        response = self.consumer.complete(message, None, None)
+        self.failUnlessEqual('setup_needed', response.status)
+        self.failUnlessEqual(None, response.setup_url)
+
+    def test_setupNeededDoesntWorkForOpenID1(self):
+        message = Message.fromOpenIDArgs({
+            'mode':'setup_needed',
+            })
+
+        # No SetupNeededError raised
+        self.consumer._checkSetupNeeded(message)
+
+        response = self.consumer.complete(message, None, None)
+        self.failUnlessEqual('failure', response.status)
+        self.failUnless(response.message.startswith('Invalid openid.mode'))
 
     def test_noSetupNeededOpenID2(self):
         message = Message.fromOpenIDArgs({

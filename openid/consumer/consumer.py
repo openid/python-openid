@@ -478,6 +478,9 @@ class GenericConsumer(object):
 
             return FailureResponse(endpoint, error, contact=contact,
                                    reference=reference)
+        elif message.isOpenID2() and mode == 'setup_needed':
+            return SetupNeededResponse(endpoint)
+
         elif mode == 'id_res':
             try:
                 self._checkSetupNeeded(message)
@@ -551,20 +554,13 @@ class GenericConsumer(object):
 
         @raises: SetupNeededError if it is a checkid_immediate cancellation
         """
+        # In OpenID 1, we check to see if this is a cancel from
+        # immediate mode by the presence of the user_setup_url
+        # parameter.
         if message.isOpenID1():
-            # In OpenID 1, we check to see if this is a cancel from
-            # immediate mode by the presence of the user_setup_url
-            # parameter.
             user_setup_url = message.getArg(OPENID1_NS, 'user_setup_url')
             if user_setup_url is not None:
                 raise SetupNeededError(user_setup_url)
-        else:
-            # In OpenID 2, we check whether the only field present is
-            # the mode. This seems questionable, but it's the best way
-            # that I can express what it says in the spec.
-            openid_args = message.getArgs(OPENID2_NS)
-            if openid_args == {'mode':'id_res'}:
-                raise SetupNeededError()
 
     def _doIdRes(self, message, endpoint):
         """Handle id_res responses that are not cancellations of
