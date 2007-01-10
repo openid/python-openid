@@ -425,12 +425,19 @@ class ServerError(Exception):
     """Exception that is raised when the server returns a 400 response
     code to a direct request."""
 
-    def __init__(self, message):
-        self.error_text = message.getArg(
-            OPENID_NS, 'error', '<no error message supplied>')
-        Exception.__init__(self, self.error_text)
-        self.error_code = message.getArg(OPENID_NS, 'error_code')
+    def __init__(self, error_text, error_code, message):
+        Exception.__init__(self, error_text)
+        self.error_text = error_text
+        self.error_code = error_code
         self.message = message
+
+    def fromMessage(cls, message):
+        error_text = message.getArg(
+            OPENID_NS, 'error', '<no error message supplied>')
+        error_code = message.getArg(OPENID_NS, 'error_code')
+        return cls(error_text, error_code, message)
+
+    fromMessage = classmethod(fromMessage)
 
 class GenericConsumer(object):
     """This is the implementation of the common logic for OpenID
@@ -537,7 +544,7 @@ class GenericConsumer(object):
 
         response_message = Message.fromKVForm(resp.body)
         if resp.status == 400:
-            raise ServerError(response_message)
+            raise ServerError.fromMessage(response_message)
 
         elif resp.status != 200:
             fmt = 'bad status code from server %s: %s'

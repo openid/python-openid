@@ -23,7 +23,7 @@ class ErrorRaisingConsumer(GenericConsumer):
     def _requestAssociation(self, endpoint, assoc_type, session_type):
         m = self.return_messages.pop(0)
         if isinstance(m, Message):
-            raise ServerError(m)
+            raise ServerError.fromMessage(m)
         else:
             return m
 
