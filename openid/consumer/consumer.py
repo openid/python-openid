@@ -716,6 +716,20 @@ class GenericConsumer(object):
 
     _verifyReturnToArgs = staticmethod(_verifyReturnToArgs)
 
+    def _verifyDiscoveryResults(self, resp_msg, endpoint=None):
+        """
+        Extract the information from an OpenID assertion message and
+        verify it against the original
+
+        @param endpoint: The endpoint that resulted from doing discovery
+        @param resp_msg: The id_res message object
+        """
+        if resp_msg.getOpenIDNamespace() == OPENID2_NS:
+            return self._verifyDiscoveryResultsOpenID2(resp_msg, endpoint)
+        else:
+            return self._verifyDiscoveryResultsOpenID1(resp_msg, endpoint)
+
+
     def _verifyDiscoveryResultsOpenID2(self, resp_msg, endpoint):
         to_match = OpenIDServiceEndpoint()
         to_match.type_uris = [OPENID_2_0_TYPE]
@@ -784,19 +798,6 @@ class GenericConsumer(object):
 
         self._verifyDiscoverySingle(endpoint, to_match)
         return endpoint
-
-    def _verifyDiscoveryResults(self, resp_msg, endpoint=None):
-        """
-        Extract the information from an OpenID assertion message and
-        verify it against the original
-
-        @param endpoint: The endpoint that resulted from doing discovery
-        @param resp_msg: The id_res message object
-        """
-        if resp_msg.getOpenIDNamespace() == OPENID2_NS:
-            return self._verifyDiscoveryResultsOpenID2(resp_msg, endpoint)
-        else:
-            return self._verifyDiscoveryResultsOpenID1(resp_msg, endpoint)
 
     def _verifyDiscoverySingle(self, endpoint, to_match):
         """Verify that the given endpoint matches the information
