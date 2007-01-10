@@ -1190,6 +1190,30 @@ class ConsumerTest(unittest.TestCase):
                                    self.identity_url,
                                    self.consumer.session_key_prefix)
 
+    def test_beginFailure(self):
+        """Make sure that the discovery failure case behaves properly
+        """
+        class DummyDisco(object):
+            def __init__(self, *ignored):
+                pass
+
+            def getNextService(self, ignored):
+                raise HTTPFetchingError("Unit test")
+
+        import openid.consumer.consumer
+        old_discovery = openid.consumer.consumer.Discovery
+        try:
+            openid.consumer.consumer.Discovery = DummyDisco
+            try:
+                self.consumer.begin('unused in this test')
+            except DiscoveryFailure, why:
+                self.failUnless(why[0].startswith('Error fetching'))
+                self.failIf(why[0].find('Unit test') == -1)
+            else:
+                self.fail('Expected DiscoveryFailure')
+        finally:
+            openid.consumer.consumer.Discovery = old_discovery
+
     def test_beginWithoutDiscovery(self):
         # Does this really test anything non-trivial?
         result = self.consumer.beginWithoutDiscovery(self.endpoint)

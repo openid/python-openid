@@ -279,8 +279,9 @@ class Consumer(object):
         disco = Discovery(self.session, user_url, self.session_key_prefix)
         try:
             service = disco.getNextService(discover)
-        except fetchers.HTTPFetchingError, e:
-            raise DiscoveryFailure('Error fetching XRDS document', e)
+        except fetchers.HTTPFetchingError, why:
+            raise DiscoveryFailure(
+                'Error fetching XRDS document: %s' % (why[0],), None)
 
         if service is None:
             raise DiscoveryFailure(
