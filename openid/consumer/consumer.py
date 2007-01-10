@@ -534,9 +534,6 @@ class GenericConsumer(object):
         """
         # XXX: TESTME
         resp = fetchers.fetch(server_url, body=request_message.toURLEncoded())
-        if resp is None:
-            fmt = 'failed making Direct Request to %s'
-            raise fetchers.HTTPFetchingError(fmt % (server_url,))
 
         response_message = Message.fromKVForm(resp.body)
         if resp.status == 400:
