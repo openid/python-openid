@@ -5,20 +5,13 @@ from openid.consumer import consumer
 from openid.test.test_consumer import TestIdRes
 from openid.consumer import discover
 
-class Stub(object):
-    def __init__(self, test_case, result, expected_args=None):
-        self.test_case = test_case
-        self.result = result
-        self.expected_args = expected_args
+def const(result):
+    """Return a function that ignores any arguments and just returns
+    the specified result"""
+    def constResult(*args, **kwargs):
+        return result
 
-    def __call__(self, *args):
-        if self.expected_args is not None:
-            self.test_case.failUnlessEqual(args, expected_args)
-
-        if isinstance(self.result, Exception):
-            raise self.result
-        else:
-            return self.result
+    return constResult
 
 class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
     def setUp(self):
@@ -89,7 +82,7 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
     def test_openID2NoEndpointDoesDisco(self):
         op_endpoint = 'Phone Home'
         sentinel = object()
-        self.consumer._discoverAndVerify = Stub(self, sentinel)
+        self.consumer._discoverAndVerify = const(sentinel)
         msg = message.Message.fromOpenIDArgs(
             {'ns':message.OPENID2_NS,
              'identity':'sour grapes',
@@ -106,7 +99,7 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
 
         op_endpoint = 'Phone Home'
         sentinel = object()
-        self.consumer._discoverAndVerify = Stub(self, sentinel)
+        self.consumer._discoverAndVerify = const(sentinel)
         msg = message.Message.fromOpenIDArgs(
             {'ns':message.OPENID2_NS,
              'identity':'sour grapes',
