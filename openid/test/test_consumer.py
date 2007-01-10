@@ -351,6 +351,19 @@ class TestComplete(TestIdRes):
     Other TestIdRes subclasses test more specific aspects.
     """
 
+    def test_setupNeededIdRes(self):
+        message = Message.fromOpenIDArgs({'mode': 'id_res'})
+        setup_url_sentinel = object()
+
+        def raiseSetupNeeded(msg):
+            self.failUnless(msg is message)
+            raise SetupNeededError(setup_url_sentinel)
+
+        self.consumer._checkSetupNeeded = raiseSetupNeeded
+
+        response = self.consumer.complete(message, None)
+        self.failUnlessEqual(SETUP_NEEDED, response.status)
+        self.failUnless(setup_url_sentinel is response.setup_url)
 
     def test_cancel(self):
         message = Message.fromPostArgs({'openid.mode': 'cancel'})
