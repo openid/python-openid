@@ -125,5 +125,55 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
         self.failUnless(result is endpoint)
         self.failUnlessLogEmpty()
 
+    def test_openid2UsePreDiscoveredWrongType(self):
+        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint.local_id = 'my identity'
+        endpoint.claimed_id = 'i am sam'
+        endpoint.server_url = 'Phone Home'
+        endpoint.type_uris = [discover.OPENID_1_1_TYPE]
+
+        msg = message.Message.fromOpenIDArgs(
+            {'ns':message.OPENID2_NS,
+             'identity':endpoint.local_id,
+             'claimed_id':endpoint.claimed_id,
+             'op_endpoint':endpoint.server_url})
+        self.failUnlessRaises(
+            consumer.ProtocolError,
+            self.consumer._verifyDiscoveryResults, msg, endpoint)
+        self.failUnlessLogEmpty()
+
+    def test_openid1UsePreDiscovered(self):
+        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint.local_id = 'my identity'
+        endpoint.claimed_id = 'i am sam'
+        endpoint.server_url = 'Phone Home'
+        endpoint.type_uris = [discover.OPENID_1_1_TYPE]
+
+        msg = message.Message.fromOpenIDArgs(
+            {'ns':message.OPENID1_NS,
+             'identity':endpoint.local_id})
+        result = self.consumer._verifyDiscoveryResults(msg, endpoint)
+        self.failUnless(result is endpoint)
+        self.failUnlessLogEmpty()
+
+    def test_openid1UsePreDiscoveredWrongType(self):
+        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint.local_id = 'my identity'
+        endpoint.claimed_id = 'i am sam'
+        endpoint.server_url = 'Phone Home'
+        endpoint.type_uris = [discover.OPENID_2_0_TYPE]
+
+        msg = message.Message.fromOpenIDArgs(
+            {'ns':message.OPENID1_NS,
+             'identity':endpoint.local_id})
+        self.failUnlessRaises(
+            consumer.ProtocolError,
+            self.consumer._verifyDiscoveryResults, msg, endpoint)
+        self.failUnlessLogEmpty()
+
+# XXX: test the implementation of _discoverAndVerify
+# XXX: test the implementation of _verifyDiscoverySingle
+
+
 if __name__ == '__main__':
     unittest.main()
