@@ -188,7 +188,7 @@ from urlparse import urlparse
 from openid import fetchers
 
 from openid.consumer.discover import discover, OpenIDServiceEndpoint, \
-     DiscoveryFailure, OPENID_1_1_TYPE
+     DiscoveryFailure, OPENID_1_1_TYPE, OPENID_2_0_TYPE
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
      IDENTIFIER_SELECT, no_default
 from openid import cryptutil
@@ -718,7 +718,7 @@ class GenericConsumer(object):
 
     def _verifyDiscoveryResultsOpenID2(self, resp_msg, endpoint):
         to_match = OpenIDServiceEndpoint()
-        to_match.type_uris = [OPENID2_NS]
+        to_match.type_uris = [OPENID_2_0_TYPE]
         to_match.claimed_id = resp_msg.getArg(OPENID2_NS, 'claimed_id')
         to_match.local_id = resp_msg.getArg(OPENID2_NS, 'identity')
 

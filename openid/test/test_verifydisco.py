@@ -3,7 +3,7 @@ from openid import message
 from openid.test.support import OpenIDTestMixin, CatchLogs
 from openid.consumer import consumer
 from openid.test.test_consumer import TestIdRes
-from openid.consumer.discover import OpenIDServiceEndpoint
+from openid.consumer import discover
 
 class Stub(object):
     def __init__(self, test_case, result, expected_args=None):
@@ -37,7 +37,7 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
                       'got successful return %r' % (prefix, result))
 
     def test_openID1NoLocalID(self):
-        endpoint = OpenIDServiceEndpoint()
+        endpoint = discover.OpenIDServiceEndpoint()
         endpoint.claimed_id = 'bogus'
 
         msg = message.Message.fromOpenIDArgs({})
@@ -100,7 +100,7 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
         self.failUnlessLogMatches('No pre-discovered')
 
     def test_openID2MismatchedDoesDisco(self):
-        mismatched = OpenIDServiceEndpoint()
+        mismatched = discover.OpenIDServiceEndpoint()
         mismatched.identity = 'nothing special, but different'
         mismatched.local_id = 'green cheese'
 
@@ -116,7 +116,21 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
         self.failUnlessEqual(sentinel, result)
         self.failUnlessLogMatches('Mismatched pre-disco')
 
-    
+    def test_openid2UsePreDiscovered(self):
+        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint.local_id = 'my identity'
+        endpoint.claimed_id = 'i am sam'
+        endpoint.server_url = 'Phone Home'
+        endpoint.type_uris = [discover.OPENID_2_0_TYPE]
+
+        msg = message.Message.fromOpenIDArgs(
+            {'ns':message.OPENID2_NS,
+             'identity':endpoint.local_id,
+             'claimed_id':endpoint.claimed_id,
+             'op_endpoint':endpoint.server_url})
+        result = self.consumer._verifyDiscoveryResults(msg, endpoint)
+        self.failUnless(result is endpoint)
+        self.failUnlessLogEmpty()
 
 if __name__ == '__main__':
     unittest.main()
