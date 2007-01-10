@@ -716,80 +716,45 @@ class GenericConsumer(object):
 
     _verifyReturnToArgs = staticmethod(_verifyReturnToArgs)
 
-    def _verifyDiscoveryResults(self, resp_msg, endpoint=None):
-        """
-        Extract the information from an OpenID assertion message and
-        verify it against the original
-
-        @param endpoint: The endpoint that resulted from doing discovery
-        @param resp_msg: The id_res message object
-        """
-
+    def _verifyDiscoveryResultsOpenID2(self, resp_msg, endpoint):
         to_match = OpenIDServiceEndpoint()
+        to_match.type_uris = [OPENID2_NS]
+        to_match.claimed_id = resp_msg.getArg(OPENID2_NS, 'claimed_id')
+        to_match.local_id = resp_msg.getArg(OPENID2_NS, 'identity')
 
-        # If OpenID 2, do disco on the claimed_id.  Otherwise, use
-        # the local_id (openid.identity).
-        if resp_msg.getOpenIDNamespace() == OPENID2_NS:
-            to_match.type_uris = [OPENID2_NS]
-            to_match.claimed_id = resp_msg.getArg(
-                OPENID2_NS, 'claimed_id')
-            to_match.local_id = resp_msg.getArg(
-                OPENID2_NS, 'identity')
+        # Raises a KeyError when the op_endpoint is not present
+        to_match.server_url = resp_msg.getArg(
+            OPENID2_NS, 'op_endpoint', no_default)
 
-            # Raises a KeyError when the op_endpoint is not present
-            to_match.server_url = resp_msg.getArg(
-                OPENID2_NS, 'op_endpoint', no_default)
+        # claimed_id and identifier must both be present or both
+        # be absent
+        if (to_match.claimed_id is None and
+            to_match.local_id is not None):
+            raise ProtocolError(
+                'openid.identity is present without openid.claimed_id')
 
-            # claimed_id and identifier must both be present or both
-            # be absent
-            if (to_match.claimed_id is None and
-                to_match.local_id is not None):
-                raise ProtocolError(
-                    'openid.identity is present without openid.claimed_id')
+        elif (to_match.claimed_id is not None and
+              to_match.local_id is None):
+            raise ProtocolError(
+                'openid.claimed_id is present without openid.identity')
 
-            elif (to_match.claimed_id is not None and
-                  to_match.local_id is None):
-                raise ProtocolError(
-                    'openid.claimed_id is present without openid.identity')
-
-            # This is a response without identifiers, so there's
-            # really no checking that we can do.
-            elif to_match.claimed_id is None:
-
-                # So return an endpoint that's for the specified
-                # `openid.op_endpoint'
-                return OpenIDServiceEndpoint.fromOPEndpointURL(
-                    to_match.server_url)
-
-            # Fall through to common OpenID 1 and 2 case
-
-        else:
-            # OpenID 1
-
-            to_match.type_uris = [OPENID_1_1_TYPE]
-            to_match.local_id = resp_msg.getArg(OPENID1_NS, 'identity')
-
-            if to_match.local_id is None:
-                raise ProtcolError('Missing required field openid.identity')
-
-
-            if endpoint is None:
-                raise RuntimeError('When using OpenID 1, the claimed ID must be supplied, either by passing it through as a return_to parameter or by using a session.')
-
-            # Restore delegate information
-            to_match.claimed_id = endpoint.claimed_id
-
-            # Fall through to common OpenID 1 and 2 case
+        # This is a response without identifiers, so there's really no
+        # checking that we can do, so return an endpoint that's for
+        # the specified `openid.op_endpoint'
+        elif to_match.claimed_id is None:
+            return OpenIDServiceEndpoint.fromOPEndpointURL(to_match.server_url)
 
         # The claimed ID doesn't match, so we have to do discovery
-        # again. This covers not using sessions, OP identifier endpoints and
-        # responses that didn't match the original request.
-        if not endpoint:
+        # again. This covers not using sessions, OP identifier
+        # endpoints and responses that didn't match the original
+        # request.
+        elif not endpoint:
             oidutil.log('No pre-discovered information supplied.')
             return self._discoverAndVerify(to_match)
+
         elif to_match.claimed_id != endpoint.claimed_id:
-            oidutil.log('Mismatched pre-discovered session data. Claimed ID '
-                        'in session=%s, in assertion=%s' %
+            oidutil.log('Mismatched pre-discovered session data. '
+                        'Claimed ID in session=%s, in assertion=%s' %
                         (endpoint.claimed_id, to_match.claimed_id))
             return self._discoverAndVerify(to_match)
 
@@ -800,7 +765,38 @@ class GenericConsumer(object):
             self._verifyDiscoverySingle(endpoint, to_match)
             return endpoint
 
-        assert False, 'Not reached'
+    def _verifyDiscoveryResultsOpenID1(self, resp_msg, endpoint):
+        if endpoint is None:
+            raise RuntimeError(
+                'When using OpenID 1, the claimed ID must be supplied, '
+                'either by passing it through as a return_to parameter '
+                'or by using a session, and supplied to the GenericConsumer '
+                'as the argument to complete()')
+
+        to_match = OpenIDServiceEndpoint()
+        to_match.type_uris = [OPENID_1_1_TYPE]
+        to_match.local_id = resp_msg.getArg(OPENID1_NS, 'identity')
+        # Restore delegate information from the initiation phase
+        to_match.claimed_id = endpoint.claimed_id
+
+        if to_match.local_id is None:
+            raise ProtocolError('Missing required field openid.identity')
+
+        self._verifyDiscoverySingle(endpoint, to_match)
+        return endpoint
+
+    def _verifyDiscoveryResults(self, resp_msg, endpoint=None):
+        """
+        Extract the information from an OpenID assertion message and
+        verify it against the original
+
+        @param endpoint: The endpoint that resulted from doing discovery
+        @param resp_msg: The id_res message object
+        """
+        if resp_msg.getOpenIDNamespace() == OPENID2_NS:
+            return self._verifyDiscoveryResultsOpenID2(resp_msg, endpoint)
+        else:
+            return self._verifyDiscoveryResultsOpenID1(resp_msg, endpoint)
 
     def _verifyDiscoverySingle(self, endpoint, to_match):
         """Verify that the given endpoint matches the information
