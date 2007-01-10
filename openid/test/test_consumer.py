@@ -1190,20 +1190,28 @@ class ConsumerTest(unittest.TestCase):
                                    self.identity_url,
                                    self.consumer.session_key_prefix)
 
-    def test_beginFailure(self):
-        """Make sure that the discovery failure case behaves properly
-        """
+    def withDummyDiscovery(self, callable, dummy_getNextService):
         class DummyDisco(object):
             def __init__(self, *ignored):
                 pass
 
-            def getNextService(self, ignored):
-                raise HTTPFetchingError("Unit test")
+            getNextService = dummy_getNextService
 
         import openid.consumer.consumer
         old_discovery = openid.consumer.consumer.Discovery
         try:
             openid.consumer.consumer.Discovery = DummyDisco
+            callable()
+        finally:
+            openid.consumer.consumer.Discovery = old_discovery
+
+    def test_beginHTTPError(self):
+        """Make sure that the discovery HTTP failure case behaves properly
+        """
+        def getNextService(self, ignored):
+            raise HTTPFetchingError("Unit test")
+
+        def test():
             try:
                 self.consumer.begin('unused in this test')
             except DiscoveryFailure, why:
@@ -1211,8 +1219,25 @@ class ConsumerTest(unittest.TestCase):
                 self.failIf(why[0].find('Unit test') == -1)
             else:
                 self.fail('Expected DiscoveryFailure')
-        finally:
-            openid.consumer.consumer.Discovery = old_discovery
+
+        self.withDummyDiscovery(test, getNextService)
+
+    def test_beginNoServices(self):
+        def getNextService(self, ignored):
+            return None
+
+        url = 'http://a.user.url/'
+        def test():
+            try:
+                self.consumer.begin(url)
+            except DiscoveryFailure, why:
+                self.failUnless(why[0].startswith('No usable OpenID'))
+                self.failIf(why[0].find(url) == -1)
+            else:
+                self.fail('Expected DiscoveryFailure')
+
+        self.withDummyDiscovery(test, getNextService)
+
 
     def test_beginWithoutDiscovery(self):
         # Does this really test anything non-trivial?
