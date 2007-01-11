@@ -669,6 +669,95 @@ class TestSetupNeeded(TestIdRes):
         # No SetupNeededError raised
         self.consumer._checkSetupNeeded(message)
 
+class IdResCheckForFieldsTest(TestIdRes):
+    def setUp(self):
+        self.consumer = GenericConsumer(None)
+
+    def mkSuccessTest(openid_args, signed_list):
+        def test(self):
+            message = Message.fromOpenIDArgs(openid_args)
+            self.consumer._idResCheckForFields(message, signed_list)
+        return test
+
+    test_openid1Success = mkSuccessTest(
+        {'return_to':'return',
+         'assoc_handle':'assoc handle',
+         'sig':'a signature',
+         'identity':'someone',
+         },
+        ['return_to', 'identity'])
+
+    test_openid2Success = mkSuccessTest(
+        {'ns':OPENID2_NS,
+         'return_to':'return',
+         'assoc_handle':'assoc handle',
+         'sig':'a signature',
+         'op_endpoint':'my favourite server',
+         'response_nonce':'use only once',
+         },
+        ['return_to', 'response_nonce', 'assoc_handle'])
+
+    test_openid2Success_identifiers = mkSuccessTest(
+        {'ns':OPENID2_NS,
+         'return_to':'return',
+         'assoc_handle':'assoc handle',
+         'sig':'a signature',
+         'claimed_id':'i claim to be me',
+         'identity':'my server knows me as me',
+         'op_endpoint':'my favourite server',
+         'response_nonce':'use only once',
+         },
+        ['return_to', 'response_nonce', 'identity',
+         'claimed_id', 'assoc_handle'])
+
+    def mkFailureTest(openid_args, signed_list, sig_fail=False):
+        def test(self):
+            message = Message.fromOpenIDArgs(openid_args)
+            try:
+                self.consumer._idResCheckForFields(message, signed_list)
+            except ProtocolError, why:
+                if sig_fail:
+                    self.failUnless(why[0].endswith('not signed'))
+                else:
+                    self.failUnless(why[0].startswith('Missing required'))
+            else:
+                self.fail('Expected an error, but none occurred')
+        return test
+
+    test_openid1Missing_returnToSig = mkFailureTest(
+        {'return_to':'return',
+         'assoc_handle':'assoc handle',
+         'sig':'a signature',
+         'identity':'someone',
+         },
+        ['identity'],
+        sig_fail=True)
+
+    test_openid1Missing_identitySig = mkFailureTest(
+        {'return_to':'return',
+         'assoc_handle':'assoc handle',
+         'sig':'a signature',
+         'identity':'someone',
+         },
+        ['return_to'],
+        sig_fail=True)
+
+    test_openid1MissingReturnTo = mkFailureTest(
+        {'assoc_handle':'assoc handle',
+         'sig':'a signature',
+         'identity':'someone',
+         },
+        ['return_to', 'identity'])
+
+    test_openid1MissingAssocHandle = mkFailureTest(
+        {'return_to':'return',
+         'sig':'a signature',
+         'identity':'someone',
+         },
+        ['return_to', 'identity'])
+
+    # XXX: I could go on...
+
 class CheckAuthHappened(Exception): pass
 
 class CheckNonceVerifyTest(TestIdRes, CatchLogs):

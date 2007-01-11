@@ -684,8 +684,10 @@ class GenericConsumer(object):
             }
 
         require_sigs = {
-            OPENID2_NS: basic_sig_fields + ['response_nonce', 'claimed_id', 'assoc_handle',],
-            OPENID1_NS: basic_sig_fields + ['nonce',],
+            OPENID2_NS: basic_sig_fields + ['response_nonce',
+                                            'claimed_id',
+                                            'assoc_handle',],
+            OPENID1_NS: basic_sig_fields,
             }
 
         for field in require_fields[message.getOpenIDNamespace()]:
