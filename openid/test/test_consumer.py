@@ -691,6 +691,13 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         self.consumer._idResCheckNonce(self.response, self.endpoint)
         self.failUnlessLogEmpty()
 
+    def test_openid1Missing(self):
+        """use consumer-generated nonce"""
+        self.response = Message.fromOpenIDArgs({})
+        n = self.consumer._idResGetNonceOpenID1(self.response, self.endpoint)
+        self.failUnless(n is None, n)
+        self.failUnlessLogEmpty()
+
     def test_consumerNonceOpenID2(self):
         """OpenID 2 does not use consumer-generated nonce"""
         self.return_to = 'http://rt.unittest/?nonce=%s' % (mkNonce(),)
