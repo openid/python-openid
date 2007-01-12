@@ -223,6 +223,7 @@ class Message(object):
     def toArgs(self):
         """Return all namespaced arguments, failing if any
         non-namespaced arguments exist."""
+        # FIXME - undocumented exception
         post_args = self.toPostArgs()
         kvargs = {}
         for k, v in post_args.iteritems():

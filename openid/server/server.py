@@ -659,6 +659,7 @@ class CheckIDRequest(OpenIDRequest):
 
         @returntype: L{OpenIDResponse}
         """
+        # FIXME: undocumented exceptions
         if not self.return_to:
             raise NoReturnToError
 
