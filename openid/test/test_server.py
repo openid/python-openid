@@ -642,6 +642,7 @@ class TestCheckID(unittest.TestCase):
 
     def test_answerAllowAnonymousFail(self):
         self.request.identity = None
+        # XXX - Check on this, I think this behavior is legal in OpenID 2.0?
         self.failUnlessRaises(
             ValueError, self.request.answer, True, identity="=V")
 
@@ -651,6 +652,7 @@ class TestCheckID(unittest.TestCase):
         self._expectAnswer(answer, '=V')
 
     def test_answerAllowWithAnotherIdentity(self):
+        # XXX - Check on this, I think this behavior is legal in OpenID 2.0?
         self.failUnlessRaises(ValueError, self.request.answer, True,
                               identity="http://pebbles.unittest/")
 
