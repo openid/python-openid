@@ -70,6 +70,7 @@ mode:error
 
 class TestDecode(unittest.TestCase):
     def setUp(self):
+        self.claimed_id = 'http://de.legating.de.coder.unittest/'
         self.id_url = "http://decoder.am.unittest/"
         self.rt_url = "http://rp.unittest/foobot/?qux=zam"
         self.tr_url = "http://rp.unittest/"
@@ -144,6 +145,36 @@ class TestDecode(unittest.TestCase):
         self.failUnlessEqual(r.identity, self.id_url)
         self.failUnlessEqual(r.trust_root, self.tr_url)
         self.failUnlessEqual(r.return_to, self.rt_url)
+
+    def test_checkidSetupOpenID2(self):
+        args = {
+            'openid.ns': OPENID2_NS,
+            'openid.mode': 'checkid_setup',
+            'openid.identity': self.id_url,
+            'openid.claimed_id': self.claimed_id,
+            'openid.assoc_handle': self.assoc_handle,
+            'openid.return_to': self.rt_url,
+            'openid.realm': self.tr_url,
+            }
+        r = self.decode(args)
+        self.failUnless(isinstance(r, server.CheckIDRequest))
+        self.failUnlessEqual(r.mode, "checkid_setup")
+        self.failUnlessEqual(r.immediate, False)
+        self.failUnlessEqual(r.identity, self.id_url)
+        self.failUnlessEqual(r.claimed_id, self.claimed_id)
+        self.failUnlessEqual(r.trust_root, self.tr_url)
+        self.failUnlessEqual(r.return_to, self.rt_url)
+
+    def test_checkidSetupNoClaimedIDOpenID2(self):
+        args = {
+            'openid.ns': OPENID2_NS,
+            'openid.mode': 'checkid_setup',
+            'openid.identity': self.id_url,
+            'openid.assoc_handle': self.assoc_handle,
+            'openid.return_to': self.rt_url,
+            'openid.realm': self.tr_url,
+            }
+        self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
     def test_checkidSetupNoIdentityOpenID2(self):
         args = {

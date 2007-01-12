@@ -487,8 +487,12 @@ class CheckIDRequest(OpenIDRequest):
     @ivar immediate: Is this an immediate-mode request?
     @type immediate: bool
 
-    @ivar identity: The identity URL being checked.
+    @ivar identity: The OP-local identifier being checked.
     @type identity: str
+
+    @ivar claimed_id: The claimed identifier.  Not present in OpenID 1.x
+        messages.
+    @type claimed_id: str
 
     @ivar trust_root: "Are you Frank?" asks the checkid request.  "Who wants
         to know?"  C{trust_root}, that's who.  This URL identifies the party
@@ -518,6 +522,7 @@ class CheckIDRequest(OpenIDRequest):
         self.namespace = OPENID2_NS
         self.assoc_handle = assoc_handle
         self.identity = identity
+        self.claimed_id = identity
         self.return_to = return_to
         self.trust_root = trust_root or return_to
         if immediate:
@@ -567,6 +572,15 @@ class CheckIDRequest(OpenIDRequest):
             raise ProtocolError(message, text=fmt % (message,))
 
         self.identity = message.getArg(OPENID_NS, 'identity')
+        if self.identity and message.isOpenID2():
+            self.claimed_id = message.getArg(OPENID_NS, 'claimed_id')
+            if not self.claimed_id:
+                s = ("OpenID 2.0 message contained openid.identity but not "
+                     "claimed_id")
+                raise ProtocolError(message, text=s)
+
+        else:
+            self.claimed_id = None
 
         if self.identity is None and self.namespace == OPENID1_NS:
             s = "OpenID 1 message did not contain openid.identity"
@@ -741,6 +755,7 @@ class CheckIDRequest(OpenIDRequest):
         # love of you, id_res/user_setup_url.
         q = {'mode': self.mode,
              'identity': self.identity,
+             'claimed_id': self.claimed_id,
              'return_to': self.return_to}
         if self.trust_root:
             if self.namespace == OPENID1_NS:
