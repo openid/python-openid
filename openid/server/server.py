@@ -690,10 +690,18 @@ class CheckIDRequest(OpenIDRequest):
         if not self.return_to:
             raise NoReturnToError
 
-        if allow or self.immediate:
+        if allow:
             mode = 'id_res'
+        elif self.namespace == OPENID1_NS:
+             if self.immediate:
+                 mode = 'id_res'
+             else:
+                 mode = 'cancel'
         else:
-            mode = 'cancel'
+            if self.immediate:
+                mode = 'setup_needed'
+            else:
+                mode = 'cancel'
 
         response = OpenIDResponse(self)
 
@@ -749,9 +757,9 @@ class CheckIDRequest(OpenIDRequest):
         else:
             response.fields.setArg(OPENID_NS, 'mode', mode)
             if self.immediate:
-                if not server_url:
+                if self.namespace == OPENID1_NS and not server_url:
                     raise ValueError("setup_url is required for allow=False "
-                                     "in immediate mode.")
+                                     "in OpenID 1.x immediate mode.")
                 # Make a new request just like me, but with immediate=False.
                 setup_request = self.__class__(
                     self.identity, self.return_to, self.trust_root,

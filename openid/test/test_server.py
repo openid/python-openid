@@ -780,8 +780,12 @@ class TestCheckID(unittest.TestCase):
         self._expectAnswer(answer, self.request.identity)
 
     def test_answerImmediateDenyOpenID2(self):
-        """Look for user_setup_url in checkid_immediate negative
-        response in OpenID 2 case."""
+        """Look for mode=setup_needed in checkid_immediate negative
+        response in OpenID 2 case.
+
+        See specification Responding to Authentication Requests /
+        Negative Assertions / In Response to Immediate Requests.
+        """
         self.request.mode = 'checkid_immediate'
         self.request.immediate = True
         server_url = "http://setup-url.unittest/"
@@ -790,9 +794,9 @@ class TestCheckID(unittest.TestCase):
         self.failUnlessEqual(answer.request, self.request)
         self.failUnlessEqual(len(answer.fields.toPostArgs()), 3, answer.fields)
         self.failUnlessEqual(answer.fields.getOpenIDNamespace(), OPENID2_NS)
-        self.failUnlessEqual(answer.fields.getArg(OPENID_NS, 'mode'), 'id_res')
-        self.failUnless(answer.fields.getArg(
-            OPENID_NS, 'user_setup_url', '').startswith(server_url))
+        self.failUnlessEqual(answer.fields.getArg(OPENID_NS, 'mode'),
+                             'setup_needed')
+        # user_setup_url no longer required.
 
     def test_answerImmediateDenyOpenID1(self):
         """Look for user_setup_url in checkid_immediate negative
