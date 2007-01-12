@@ -81,11 +81,14 @@ class SessionNegotiator(object):
             self.allowed_types = []
 
         if session_type is None:
-            for session_type in getSessionTypes(assoc_type):
-                self.addAllowedType(assoc_type, session_type)
-            else:
+            available = getSessionTypes(assoc_type)
+
+            if not available:
                 raise ValueError('No session available for association type %r'
                                  % (assoc_type,))
+
+            for session_type in getSessionTypes(assoc_type):
+                self.addAllowedType(assoc_type, session_type)
         else:
             checkSessionType(assoc_type, session_type)
             self.allowed_types.append((assoc_type, session_type))

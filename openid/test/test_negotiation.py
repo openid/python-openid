@@ -249,5 +249,27 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
         self.failUnless(self.consumer._negotiateAssociation(self.endpoint) is assoc)
         self.failUnlessLogEmpty()
 
+class TestNegotiatorBehaviors(unittest.TestCase, CatchLogs):
+    def setUp(self):
+        self.allowed_types = [
+            ('assoc1', 'session1'),
+            ('assoc2', 'session2'),
+            ]
+
+        self.n = association.SessionNegotiator(self.allowed_types)
+
+    def testAddAllowedTypeNoSessionTypes(self):
+        self.assertRaises(ValueError, self.n.addAllowedType, 'invalid')
+
+    def testAddAllowedTypeBadSessionType(self):
+        self.assertRaises(ValueError, self.n.addAllowedType, 'assoc1', 'invalid')
+
+    def testAddAllowedTypeContents(self):
+        assoc_type = 'HMAC-SHA1'
+        self.failUnless(self.n.addAllowedType(assoc_type) is None)
+
+        for typ in association.getSessionTypes(assoc_type):
+            self.failUnless((assoc_type, typ) in self.n.allowed_types)
+
 if __name__ == '__main__':
     unittest.main()
