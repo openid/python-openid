@@ -493,7 +493,8 @@ class CheckIDRequest(OpenIDRequest):
     @ivar trust_root: "Are you Frank?" asks the checkid request.  "Who wants
         to know?"  C{trust_root}, that's who.  This URL identifies the party
         making the request, and the user will use that to make her decision
-        about what answer she trusts them to have.
+        about what answer she trusts them to have.  Referred to as "realm" in
+        OpenID 2.0.
     @type trust_root: str
 
     @ivar return_to: The URL to send the user agent back to to reply to this
