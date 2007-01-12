@@ -694,8 +694,33 @@ class TestCheckID(unittest.TestCase):
 
     def test_answerAllowWithIdentity(self):
         self.request.identity = IDENTIFIER_SELECT
-        answer = self.request.answer(True, identity='=V')
-        self._expectAnswer(answer, '=V')
+        selected_id = 'http://anon.unittest/9861'
+        answer = self.request.answer(True, identity=selected_id)
+        self._expectAnswer(answer, selected_id)
+
+    def test_answerAllowWithDelegatedIdentityOpenID2(self):
+        """Answer an IDENTIFIER_SELECT case with a delegated identifier.
+        """
+        # claimed_id delegates to selected_id here.
+        self.request.identity = IDENTIFIER_SELECT
+        selected_id = 'http://anon.unittest/9861'
+        claimed_id = 'http://monkeyhat.unittest/'
+        answer = self.request.answer(True, identity=selected_id,
+                                     claimed_id=claimed_id)
+        self._expectAnswer(answer, selected_id, claimed_id)
+
+    def test_answerAllowWithDelegatedIdentityOpenID1(self):
+        """claimed_id parameter doesn't exist in OpenID 1.
+        """
+        self.request.namespace = OPENID1_NS
+        # claimed_id delegates to selected_id here.
+        self.request.identity = IDENTIFIER_SELECT
+        selected_id = 'http://anon.unittest/9861'
+        claimed_id = 'http://monkeyhat.unittest/'
+        self.failUnlessRaises(server.VersionError,
+                              self.request.answer, True,
+                              identity=selected_id,
+                              claimed_id=claimed_id)
 
     def test_answerAllowWithAnotherIdentity(self):
         # XXX - Check on this, I think this behavior is legal in OpenID 2.0?

@@ -648,7 +648,7 @@ class CheckIDRequest(OpenIDRequest):
         else:
             return True
 
-    def answer(self, allow, server_url=None, identity=None):
+    def answer(self, allow, server_url=None, identity=None, claimed_id=None):
         """Respond to this request.
 
         @param allow: Allow this user to claim this identity, and allow the
@@ -667,10 +667,22 @@ class CheckIDRequest(OpenIDRequest):
 
         @type server_url: str
 
-        @param identity: The identifier to answer with.  Only for use
+        @param identity: The OP-local identifier to answer with.  Only for use
             when the relying party requested identifier selection.
-
         @type identity: str or None
+
+        @param claimed_id: The claimed identifier to answer with, for use
+            with identifier selection in the case where the claimed identifier
+            and the OP-local identifier differ, i.e. when the claimed_id uses
+            delegation.
+
+            If C{identity} is provided but this is not, C{claimed_id} will
+            default to the value of C{identity}.  When answering requests
+            that did not ask for identifier selection, the response
+            C{claimed_id} will default to that of the request.
+
+            This parameter is new in OpenID 2.0.
+        @type claimed_id: str or None
 
         @returntype: L{OpenIDResponse}
         """
@@ -685,6 +697,13 @@ class CheckIDRequest(OpenIDRequest):
 
         response = OpenIDResponse(self)
 
+        if claimed_id and self.namespace == OPENID1_NS:
+            raise VersionError("claimed_id is new in OpenID 2.0 and not "
+                               "available for %s" % (self.namespace,))
+
+        if identity and not claimed_id:
+            claimed_id = identity
+
         if allow:
             if self.identity == IDENTIFIER_SELECT:
                 if not identity:
@@ -692,7 +711,7 @@ class CheckIDRequest(OpenIDRequest):
                         "This request uses IdP-driven identifier selection."
                         "You must supply an identifier in the response.")
                 response_identity = identity
-                response_claimed_id = identity
+                response_claimed_id = claimed_id
 
             elif self.identity:
                 if identity and (self.identity != identity):
@@ -1475,6 +1494,12 @@ class ProtocolError(Exception):
         # include an openid.mode, I'm not going to worry too much about
         # returning you something you can't parse.
         return None
+
+
+
+class VersionError(Exception):
+    """Raised when an operation was attempted that is not compatible with
+    the protocol version being used."""
 
 
 
