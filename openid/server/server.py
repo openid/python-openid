@@ -692,6 +692,7 @@ class CheckIDRequest(OpenIDRequest):
                         "This request uses IdP-driven identifier selection."
                         "You must supply an identifier in the response.")
                 response_identity = identity
+                response_claimed_id = identity
 
             elif self.identity:
                 if identity and (self.identity != identity):
@@ -699,6 +700,7 @@ class CheckIDRequest(OpenIDRequest):
                         "Request was for identity %r, cannot reply "
                         "with identity %r" % (self.identity, identity))
                 response_identity = self.identity
+                response_claimed_id = self.claimed_id
 
             else:
                 if identity:
@@ -722,6 +724,9 @@ class CheckIDRequest(OpenIDRequest):
             if response_identity is not None:
                 response.fields.setArg(
                     OPENID_NS, 'identity', response_identity)
+                if self.namespace == OPENID2_NS:
+                    response.fields.setArg(
+                        OPENID_NS, 'claimed_id', response_claimed_id)
         else:
             response.fields.setArg(OPENID_NS, 'mode', mode)
             if self.immediate:

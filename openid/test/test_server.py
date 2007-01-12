@@ -644,10 +644,14 @@ class TestCheckID(unittest.TestCase):
 
         self.failUnless(request.trustRootValid())
 
-    def _expectAnswer(self, answer, identity=None):
+    def _expectAnswer(self, answer, identity=None, claimed_id=None):
         expected_list = [('mode', 'id_res'), ('return_to', self.request.return_to)]
         if identity:
             expected_list.append(('identity', identity))
+            if claimed_id:
+                expected_list.append(('claimed_id', claimed_id))
+            else:
+                expected_list.append(('claimed_id', identity))
 
         for k, expected in expected_list:
             actual = answer.fields.getArg(OPENID_NS, k)
@@ -662,9 +666,19 @@ class TestCheckID(unittest.TestCase):
         
 
     def test_answerAllow(self):
+        """Check the fields specified by "Positive Assertions"
+
+        including mode=id_res, identity, claimed_id, return_to
+        """
         answer = self.request.answer(True)
         self.failUnlessEqual(answer.request, self.request)
         self._expectAnswer(answer, self.request.identity)
+
+    def test_answerAllowDelegatedIdentity(self):
+        self.request.claimed_id = 'http://delegating.unittest/'
+        answer = self.request.answer(True)
+        self._expectAnswer(answer, self.request.identity,
+                           self.request.claimed_id)
 
     def test_answerAllowWithoutIdentityReally(self):
         self.request.identity = None
