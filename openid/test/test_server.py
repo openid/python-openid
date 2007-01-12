@@ -182,6 +182,7 @@ class TestDecode(unittest.TestCase):
             'openid.ns': OPENID2_NS,
             'openid.mode': 'checkid_setup',
             'openid.identity': self.id_url,
+            'openid.claimed_id': self.id_url,
             'openid.assoc_handle': self.assoc_handle,
             'openid.realm': self.tr_url,
             }
@@ -696,6 +697,7 @@ class TestCheckID(unittest.TestCase):
         msg.setArg(OPENID_NS, 'return_to', 'http://real_trust_root/foo')
         msg.setArg(OPENID_NS, 'assoc_handle', 'bogus')
         msg.setArg(OPENID_NS, 'identity', 'george')
+        msg.setArg(OPENID_NS, 'claimed_id', 'george')
 
         result = server.CheckIDRequest.fromMessage(msg)
 
