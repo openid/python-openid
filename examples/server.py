@@ -37,7 +37,7 @@ class OpenIDHTTPServer(HTTPServer):
     http server that contains a reference to an OpenID Server and
     knows its base URL.
     """
-    def __init__(self, oidserver, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         HTTPServer.__init__(self, *args, **kwargs)
 
         if self.server_port != 80:
@@ -46,9 +46,13 @@ class OpenIDHTTPServer(HTTPServer):
         else:
             self.base_url = 'http://%s/' % (self.server_name,)
 
-        self.openid = oidserver
+        self.openid = None
         self.approved = {}
         self.lastCheckIDRequest = {}
+
+    def setOpenIDServer(self, oidserver):
+        self.openid = oidserver
+
 
 class ServerHandler(BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -194,8 +198,7 @@ class ServerHandler(BaseHTTPRequestHandler):
                 self.isAuthorized(request.identity, request.trust_root)):
                 response = request.answer(True)
             elif request.immediate:
-                response = request.answer(
-                    False, server_url=self.server.base_url + 'openidserver')
+                response = request.answer(False)
             else:
                 self.server.lastCheckIDRequest[self.user] = request
                 self.showDecidePage(request)
@@ -647,14 +650,16 @@ class ServerHandler(BaseHTTPRequestHandler):
 
 
 def main(host, port, data_path):
+    addr = (host, port)
+    httpserver = OpenIDHTTPServer(addr, ServerHandler)
+
     # Instantiate OpenID consumer store and OpenID consumer.  If you
     # were connecting to a database, you would create the database
     # connection and instantiate an appropriate store here.
     store = FileOpenIDStore(data_path)
-    oidserver = server.Server(store)
+    oidserver = server.Server(store, httpserver.base_url + 'openidserver')
 
-    addr = (host, port)
-    httpserver = OpenIDHTTPServer(oidserver, addr, ServerHandler)
+    httpserver.setOpenIDServer(oidserver)
 
     print 'Server running at:'
     print httpserver.base_url
