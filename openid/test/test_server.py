@@ -75,7 +75,11 @@ class TestDecode(unittest.TestCase):
         self.rt_url = "http://rp.unittest/foobot/?qux=zam"
         self.tr_url = "http://rp.unittest/"
         self.assoc_handle = "{assoc}{handle}"
-        self.decode = server.Decoder().decode
+        self.op_endpoint = 'http://endpoint.unittest/encode'
+        self.store = _memstore.MemoryStore()
+        self.server = server.Server(self.store, self.op_endpoint)
+        self.decode = self.server.decoder.decode
+        self.decode = server.Decoder(self.server).decode
 
     def test_none(self):
         args = {}
@@ -434,6 +438,9 @@ class TestEncode(unittest.TestCase):
     def setUp(self):
         self.encoder = server.Encoder()
         self.encode = self.encoder.encode
+        self.op_endpoint = 'http://endpoint.unittest/encode'
+        self.store = _memstore.MemoryStore()
+        self.server = server.Server(self.store, self.op_endpoint)
 
     def test_id_res(self):
         request = server.CheckIDRequest(
@@ -441,6 +448,7 @@ class TestEncode(unittest.TestCase):
             trust_root = 'http://burr.unittest/',
             return_to = 'http://burr.unittest/999',
             immediate = False,
+            server = self.server,
             )
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
@@ -467,6 +475,7 @@ class TestEncode(unittest.TestCase):
             trust_root = 'http://burr.unittest/',
             return_to = 'http://burr.unittest/999',
             immediate = False,
+            server = self.server,
             )
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
@@ -532,11 +541,13 @@ class TestSigningEncode(unittest.TestCase):
         self._dumb_key = server.Signatory._dumb_key
         self._normal_key = server.Signatory._normal_key
         self.store = _memstore.MemoryStore()
+        self.server = server.Server(self.store, "http://signing.unittest/enc")
         self.request = server.CheckIDRequest(
             identity = 'http://bombom.unittest/',
             trust_root = 'http://burr.unittest/',
             return_to = 'http://burr.unittest/999',
             immediate = False,
+            server = self.server,
             )
         self.response = server.OpenIDResponse(self.request)
         self.response.fields = Message.fromOpenIDArgs({
@@ -586,6 +597,7 @@ class TestSigningEncode(unittest.TestCase):
             trust_root = 'http://burr.unittest/',
             return_to = 'http://burr.unittest/999',
             immediate = False,
+            server = self.server,
             )
         response = server.OpenIDResponse(request)
         response.fields.setArg(OPENID_NS, 'mode', 'cancel')
@@ -617,11 +629,15 @@ class TestSigningEncode(unittest.TestCase):
 
 class TestCheckID(unittest.TestCase):
     def setUp(self):
+        self.op_endpoint = 'http://endpoint.unittest/'
+        self.store = _memstore.MemoryStore()
+        self.server = server.Server(self.store, self.op_endpoint)
         self.request = server.CheckIDRequest(
             identity = 'http://bambam.unittest/',
             trust_root = 'http://bar.unittest/',
             return_to = 'http://bar.unittest/999',
             immediate = False,
+            server = self.server,
             )
 
     def test_trustRootInvalid(self):
@@ -640,12 +656,17 @@ class TestCheckID(unittest.TestCase):
             trust_root = 'http://bar.unittest/',
             return_to = None,
             immediate = False,
+            server = self.server,
             )
 
         self.failUnless(request.trustRootValid())
 
     def _expectAnswer(self, answer, identity=None, claimed_id=None):
-        expected_list = [('mode', 'id_res'), ('return_to', self.request.return_to)]
+        expected_list = [
+            ('mode', 'id_res'),
+            ('return_to', self.request.return_to),
+            ('op_endpoint', self.op_endpoint),
+            ]
         if identity:
             expected_list.append(('identity', identity))
             if claimed_id:
@@ -668,7 +689,7 @@ class TestCheckID(unittest.TestCase):
     def test_answerAllow(self):
         """Check the fields specified by "Positive Assertions"
 
-        including mode=id_res, identity, claimed_id, return_to
+        including mode=id_res, identity, claimed_id, op_endpoint, return_to
         """
         answer = self.request.answer(True)
         self.failUnlessEqual(answer.request, self.request)
@@ -733,6 +754,10 @@ class TestCheckID(unittest.TestCase):
         self.failUnlessRaises(ValueError, self.request.answer, True,
                               identity=None)
 
+    def test_answerAllowForgotEndpoint(self):
+        self.server.op_endpoint = None
+        self.failUnlessRaises(RuntimeError, self.request.answer, True)
+
     def test_checkIDWithNoIdentityOpenID1(self):
         msg = Message(OPENID1_NS)
         msg.setArg(OPENID_NS, 'return_to', 'bogus')
@@ -742,7 +767,7 @@ class TestCheckID(unittest.TestCase):
 
         self.failUnlessRaises(server.ProtocolError,
                               server.CheckIDRequest.fromMessage,
-                              msg)
+                              msg, self.server)
 
     def test_trustRootOpenID1(self):
         """Ignore openid.realm in OpenID 1"""
@@ -754,7 +779,7 @@ class TestCheckID(unittest.TestCase):
         msg.setArg(OPENID_NS, 'assoc_handle', 'bogus')
         msg.setArg(OPENID_NS, 'identity', 'george')
 
-        result = server.CheckIDRequest.fromMessage(msg)
+        result = server.CheckIDRequest.fromMessage(msg, self.server)
 
         self.failUnless(result.trust_root == 'http://real_trust_root/')
 
@@ -769,7 +794,7 @@ class TestCheckID(unittest.TestCase):
         msg.setArg(OPENID_NS, 'identity', 'george')
         msg.setArg(OPENID_NS, 'claimed_id', 'george')
 
-        result = server.CheckIDRequest.fromMessage(msg)
+        result = server.CheckIDRequest.fromMessage(msg, self.server)
 
         self.failUnless(result.trust_root == 'http://real_trust_root/')
 
@@ -828,7 +853,8 @@ class TestCheckID(unittest.TestCase):
         base, result_args = result.split('?', 1)
         result_args = dict(cgi.parse_qsl(result_args))
         message = Message.fromPostArgs(result_args)
-        rebuilt_request = server.CheckIDRequest.fromMessage(message)
+        rebuilt_request = server.CheckIDRequest.fromMessage(message,
+                                                            self.server)
         # argh, lousy hack
         self.request.message = message
         self.failUnlessEqual(rebuilt_request.__dict__, self.request.__dict__)
@@ -851,11 +877,15 @@ class TestCheckID(unittest.TestCase):
 class TestCheckIDExtension(unittest.TestCase):
 
     def setUp(self):
+        self.op_endpoint = 'http://endpoint.unittest/ext'
+        self.store = _memstore.MemoryStore()
+        self.server = server.Server(self.store, self.op_endpoint)
         self.request = server.CheckIDRequest(
             identity = 'http://bambam.unittest/',
             trust_root = 'http://bar.unittest/',
             return_to = 'http://bar.unittest/999',
             immediate = False,
+            server = self.server,
             )
         self.response = server.OpenIDResponse(self.request)
         self.response.fields.setArg(OPENID_NS, 'mode', 'id_res')
@@ -1206,7 +1236,7 @@ class Counter(object):
 class TestServer(unittest.TestCase, CatchLogs):
     def setUp(self):
         self.store = _memstore.MemoryStore()
-        self.server = server.Server(self.store)
+        self.server = server.Server(self.store, "http://server.unittest/endpt")
         CatchLogs.setUp(self)
 
     def test_dispatch(self):

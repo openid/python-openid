@@ -96,7 +96,7 @@ Upgrading
 @group Response Encodings: ENCODE_KVFORM, ENCODE_URL
 """
 
-import time
+import time, warnings
 from copy import deepcopy
 
 from openid import cryptutil
@@ -116,6 +116,8 @@ BROWSER_REQUEST_MODES = ['checkid_setup', 'checkid_immediate']
 
 ENCODE_KVFORM = ('kvform',)
 ENCODE_URL = ('URL/redirect',)
+
+UNUSED = None
 
 class OpenIDRequest(object):
     """I represent an incoming OpenID request.
@@ -164,7 +166,7 @@ class CheckAuthRequest(OpenIDRequest):
         self.namespace = OPENID2_NS
 
 
-    def fromMessage(klass, message):
+    def fromMessage(klass, message, server=UNUSED):
         """Construct me from an OpenID Message.
 
         @param message: An OpenID check_authentication Message
@@ -385,7 +387,7 @@ class AssociateRequest(OpenIDRequest):
         self.namespace = OPENID2_NS
 
 
-    def fromMessage(klass, message):
+    def fromMessage(klass, message, server=UNUSED):
         """Construct me from an OpenID Message.
 
         @param message: The OpenID associate request
@@ -511,7 +513,7 @@ class CheckIDRequest(OpenIDRequest):
     """
 
     def __init__(self, identity, return_to, trust_root=None, immediate=False,
-                 assoc_handle=None):
+                 assoc_handle=None, server=None):
         """Construct me.
 
         These parameters are assigned directly as class attributes, see
@@ -525,6 +527,8 @@ class CheckIDRequest(OpenIDRequest):
         self.claimed_id = identity
         self.return_to = return_to
         self.trust_root = trust_root or return_to
+        self.server = server
+        assert self.server is not None
         if immediate:
             self.immediate = True
             self.mode = "checkid_immediate"
@@ -539,7 +543,7 @@ class CheckIDRequest(OpenIDRequest):
             raise UntrustedReturnURL(None, self.return_to, self.trust_root)
 
 
-    def fromMessage(klass, message):
+    def fromMessage(klass, message, server):
         """Construct me from an OpenID message.
 
         @raises ProtocolError: When not all required parameters are present
@@ -553,11 +557,15 @@ class CheckIDRequest(OpenIDRequest):
         @param message: An OpenID checkid_* request Message
         @type message: openid.message.Message
 
+        @param server: The L{Server} this message was sent to.
+        @type server: L{Server}
+
         @returntype: L{CheckIDRequest}
         """
         self = klass.__new__(klass)
         self.message = message
         self.namespace = message.getOpenIDNamespace()
+        self.server = server
         mode = message.getArg(OPENID_NS, 'mode')
         if mode == "checkid_immediate":
             self.immediate = True
@@ -655,12 +663,15 @@ class CheckIDRequest(OpenIDRequest):
             consumer to have this information?
         @type allow: bool
 
-        @param server_url: When an immediate mode request does not
-            succeed, it gets back a URL where the request may be
-            carried out in a not-so-immediate fashion.  Pass my URL
-            in here (the fully qualified address of this server's
-            endpoint, i.e.  C{http://example.com/server}), and I
-            will use it as a base for the URL for a new request.
+        @param server_url: DEPRECATED.  Passing C{op_endpoint} to the
+            L{Server} constructor makes this optional.
+
+            When an OpenID 1.x immediate mode request does not succeed,
+            it gets back a URL where the request may be carried out
+            in a not-so-immediate fashion.  Pass my URL in here (the
+            fully qualified address of this server's endpoint, i.e.
+            C{http://example.com/server}), and I will use it as a base for the
+            URL for a new request.
 
             Optional for requests where C{CheckIDRequest.immediate} is C{False}
             or C{allow} is C{True}.
@@ -689,6 +700,15 @@ class CheckIDRequest(OpenIDRequest):
         # FIXME: undocumented exceptions
         if not self.return_to:
             raise NoReturnToError
+
+        if not server_url:
+            if self.namespace != OPENID1_NS and not self.server.op_endpoint:
+                # In other words, that warning I raised in Server.__init__?
+                # You should pay attention to it now.
+                raise RuntimeError("%s should be constructed with op_endpoint "
+                                   "to respond to OpenID 2.0 messages." %
+                                   (self.server,))
+            server_url = self.server.op_endpoint
 
         if allow:
             mode = 'id_res'
@@ -744,6 +764,7 @@ class CheckIDRequest(OpenIDRequest):
 
             response.fields.updateArgs(OPENID_NS, {
                 'mode': mode,
+                'op_endpoint': server_url,
                 'return_to': self.return_to,
                 'response_nonce': mkNonce(),
                 })
@@ -763,7 +784,8 @@ class CheckIDRequest(OpenIDRequest):
                 # Make a new request just like me, but with immediate=False.
                 setup_request = self.__class__(
                     self.identity, self.return_to, self.trust_root,
-                    immediate=False, assoc_handle=self.assoc_handle)
+                    immediate=False, assoc_handle=self.assoc_handle,
+                    server=self.server)
                 setup_url = setup_request.encodeToURL(server_url)
                 response.fields.setArg(OPENID_NS, 'user_setup_url', setup_url)
 
@@ -1218,6 +1240,14 @@ class Decoder(object):
         'associate': AssociateRequest.fromMessage,
         }
 
+    def __init__(self, server):
+        """Construct a Decoder.
+
+        @param server: The server which I am decoding requests for.
+            (Necessary because some replies reference their server.)
+        @type server: L{Server}
+        """
+        self.server = server
 
     def decode(self, query):
         """I transform query parameters into an L{OpenIDRequest}.
@@ -1245,10 +1275,10 @@ class Decoder(object):
             raise ProtocolError(message, text=fmt % (message,))
 
         handler = self._handlers.get(mode, self.defaultDecoder)
-        return handler(message)
+        return handler(message, self.server)
 
 
-    def defaultDecoder(self, message):
+    def defaultDecoder(self, message, server):
         """Called to decode queries when no handler for that mode is found.
 
         @raises ProtocolError: This implementation always raises
@@ -1300,23 +1330,37 @@ class Server(object):
 
     @ivar encoder: I'm using this to encode things.
     @type encoder: L{Encoder}
+
+    @ivar op_endpoint: My URL.
+    @type op_endpoint: str
     """
 
     signatoryClass = Signatory
     encoderClass = SigningEncoder
     decoderClass = Decoder
 
-    def __init__(self, store):
+    def __init__(self, store, op_endpoint=None):
         """A new L{Server}.
 
         @param store: The back-end where my associations are stored.
         @type store: L{openid.store.interface.OpenIDStore}
+
+        @param op_endpoint: My URL, the fully qualified address of this
+            server's endpoint, i.e. C{http://example.com/server}
+        @type op_endpoint: str
         """
         self.store = store
         self.signatory = self.signatoryClass(self.store)
         self.encoder = self.encoderClass(self.signatory)
-        self.decoder = self.decoderClass()
+        self.decoder = self.decoderClass(self)
         self.negotiator = default_negotiator.copy()
+
+        if not op_endpoint:
+            warnings.warn("%s.%s constructor requires op_endpoint parameter "
+                          "for OpenID 2.0 servers" %
+                          (self.__class__.__module__, self.__class__.__name__),
+                          stacklevel=2)
+        self.op_endpoint = op_endpoint
 
 
     def handleRequest(self, request):
