@@ -650,10 +650,6 @@ def main(host, port, data_path):
     # Instantiate OpenID consumer store and OpenID consumer.  If you
     # were connecting to a database, you would create the database
     # connection and instantiate an appropriate store here.
-    if port == 80:
-        server_url = 'http://%s/openidserver' % host
-    else:
-        server_url = 'http://%s:%s/openidserver' % (host, port)
     store = FileOpenIDStore(data_path)
     oidserver = server.Server(store)
 
