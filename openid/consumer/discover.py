@@ -167,6 +167,24 @@ class OpenIDServiceEndpoint(object):
 
     fromOPEndpointURL = classmethod(fromOPEndpointURL)
 
+
+    def __str__(self):
+        return ("<%s.%s "
+                "server_url=%r "
+                "claimed_id=%r "
+                "local_id=%r "
+                "canonicalID=%r "
+                "used_yadis=%s "
+                ">"
+                 % (self.__class__.__module__, self.__class__.__name__,
+                    self.server_url,
+                    self.claimed_id,
+                    self.local_id,
+                    self.canonicalID,
+                    self.used_yadis))
+
+
+
 def findOPLocalIdentifier(service_element, type_uris):
     """Find the OP-Local Identifier for this xrd:Service element.
 
