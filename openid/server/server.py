@@ -170,7 +170,7 @@ class CheckAuthRequest(OpenIDRequest):
         """Construct me from an OpenID Message.
 
         @param message: An OpenID check_authentication Message
-        @type query: openid.message.Message
+        @type message: L{openid.message.Message}
 
         @returntype: L{CheckAuthRequest}
         """
@@ -298,7 +298,7 @@ class DiffieHellmanSHA1ServerSession(object):
         @param message: The associate request message
         @type message: openid.message.Message
 
-        @returntype: L{DiffieHellmanServerSession}
+        @returntype: L{DiffieHellmanSHA1ServerSession}
 
         @raises ProtocolError: When parameters required to establish the
             session are missing.
