@@ -23,7 +23,7 @@ def fetch(url, body=None, headers=None):
     """Invoke the fetch method on the default fetcher. Most users
     should need only this method.
 
-    @raises: any exceptions that may be raised by the default fetcher
+    @raises Exception: any exceptions that may be raised by the default fetcher
     """
     fetcher = getDefaultFetcher()
     return fetcher.fetch(url, body, headers)
@@ -136,7 +136,7 @@ class HTTPFetchingError(Exception):
     """Exception that is wrapped around all exceptions that are raised
     by the underlying fetcher when using the ExceptionWrappingFetcher
 
-    @var why: The exception that caused this exception
+    @ivar why: The exception that caused this exception
     """
     def __init__(self, why=None):
         Exception.__init__(self, why)
@@ -145,7 +145,7 @@ class HTTPFetchingError(Exception):
 class ExceptionWrappingFetcher(HTTPFetcher):
     """Fetcher that wraps another fetcher, causing all exceptions
 
-    @var uncaught_exceptions: Exceptions that should be exposed to the
+    @cvar uncaught_exceptions: Exceptions that should be exposed to the
         user if they are raised by the fetch call
     """
 
