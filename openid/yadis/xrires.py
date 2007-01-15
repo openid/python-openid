@@ -58,7 +58,7 @@ class ProxyResolver(object):
         the resolver I'm querying does, so the Services I return may well
         include Services that were not of the types you asked for.
 
-        May raise fetchers.HTTPFetchingError or L{etxrd.XRDError} if
+        May raise fetchers.HTTPFetchingError or L{etxrd.XRDSError} if
         the fetching or parsing don't go so well.
 
         @param xri: An XRI to resolve.
