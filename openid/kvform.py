@@ -58,9 +58,9 @@ def seqToKV(seq, strict=False):
 def kvToSeq(data, strict=False):
     """
 
-    After one parse, seqToKV and kvToSeq are inverses, with no warnings:
-        seq = kvToSeq(s)
+    After one parse, seqToKV and kvToSeq are inverses, with no warnings::
 
+        seq = kvToSeq(s)
         seqToKV(kvToSeq(seq)) == seq
     """
     def err(msg):
