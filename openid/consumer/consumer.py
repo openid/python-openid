@@ -830,9 +830,9 @@ class GenericConsumer(object):
                 'Expected %s, got %s' %
                 (to_match.claimed_id, endpoint.claimed_id))
 
-        if to_match.local_id != endpoint.local_id:
+        if to_match.getLocalID() != endpoint.getLocalID():
             raise ProtocolError('local_id mismatch. Expected %s, got %s' %
-                                (to_match.local_id, endpoint.local_id))
+                                (to_match.getLocalID(), endpoint.getLocalID()))
 
         # If the server URL is None, this must be an OpenID 1
         # response, because op_endpoint is a required parameter in

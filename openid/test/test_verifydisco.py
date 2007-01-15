@@ -172,8 +172,32 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
         self.failUnlessLogEmpty()
 
 # XXX: test the implementation of _discoverAndVerify
-# XXX: test the implementation of _verifyDiscoverySingle
 
+
+class TestVerifyDiscoverySingle(CatchLogs, TestIdRes):
+    # XXX: more test the implementation of _verifyDiscoverySingle
+    def setUp(self):
+        CatchLogs.setUp(self)
+        TestIdRes.setUp(self)
+
+    def tearDown(self):
+        CatchLogs.tearDown(self)
+        TestIdRes.tearDown(self)
+
+    def test_endpointWithoutLocalID(self):
+        # An endpoint like this with no local_id is generated as a result of
+        # e.g. Yadis discovery with no LocalID tag.
+        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint.server_url = "http://localhost:8000/openidserver"
+        endpoint.claimed_id = "http://localhost:8000/id/id-jo"
+        to_match = discover.OpenIDServiceEndpoint()
+        to_match.server_url = "http://localhost:8000/openidserver"
+        to_match.claimed_id = "http://localhost:8000/id/id-jo"
+        to_match.local_id = "http://localhost:8000/id/id-jo"
+        result = self.consumer._verifyDiscoverySingle(endpoint, to_match)
+        # result should always be None, raises exception on failure.
+        self.failUnlessEqual(result, None)
+        self.failUnlessLogEmpty()
 
 if __name__ == '__main__':
     unittest.main()
