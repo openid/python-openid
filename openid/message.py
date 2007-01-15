@@ -369,9 +369,9 @@ class Message(object):
             raising a KeyError instead of returning the default.
 
         @rtype: str or the type of default
-        @raises: KeyError (if default is no_default)
-        @raises: UndefinedOpenIDNamespace (if the message has not yet
-            had an OpenID namespace set)
+        @raises KeyError: if default is no_default
+        @raises UndefinedOpenIDNamespace: if the message has not yet
+            had an OpenID namespace set
         """
         namespace = self._fixNS(namespace)
         args_key = (namespace, key)
