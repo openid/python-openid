@@ -444,14 +444,13 @@ class ServerHandler(BaseHTTPRequestHandler):
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS
     xmlns:xrds="xri://$xrds"
-    xmlns:openid="http://openid.net/xmlns/2.0"
     xmlns="xri://$xrd*($v*2.0)">
   <XRD>
 
     <Service priority="0">
       <Type>http://openid.net/signon/2.0</Type>
       <URI>%s</URI>
-      <openid:Delegate>%s</openid:Delegate>
+      <LocalID>%s</LocalID>
     </Service>
 
   </XRD>
@@ -468,7 +467,6 @@ class ServerHandler(BaseHTTPRequestHandler):
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS
     xmlns:xrds="xri://$xrds"
-    xmlns:openid="http://openid.net/xmlns/2.0"
     xmlns="xri://$xrd*($v*2.0)">
   <XRD>
 
