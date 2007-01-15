@@ -559,7 +559,7 @@ class GenericConsumer(object):
         """Check an id_res message to see if it is a
         checkid_immediate cancel response.
 
-        @raises: SetupNeededError if it is a checkid_immediate cancellation
+        @raises SetupNeededError: if it is a checkid_immediate cancellation
         """
         # In OpenID 1, we check to see if this is a cancel from
         # immediate mode by the presence of the user_setup_url
@@ -816,7 +816,7 @@ class GenericConsumer(object):
 
         @rtype: NoneType
 
-        @raises: ProtocolError, if the endpoint does not match the
+        @raises ProtocolError: when the endpoint does not match the
             discovered information.
         """
         # Every type URI that's in the to_match endpoint has to be
@@ -865,7 +865,7 @@ class GenericConsumer(object):
         @returns: The result of performing discovery on the claimed
             identifier in `to_match'
 
-        @raises: ProtocolError, if discovery fails.
+        @raises ProtocolError: when discovery fails.
         """
         oidutil.log('Performing discovery on %s' % (to_match.claimed_id,))
         _, services = discover(to_match.claimed_id)
@@ -978,7 +978,7 @@ class GenericConsumer(object):
 
         @rtype: openid.association.Association
 
-        @raises: errors that the fetcher might raise. These are
+        @raises Exception: errors that the fetcher might raise. These are
             intended to be propagated up to the library's entrance point.
         """
         # Get our preferred session/association type from the negotiatior.
@@ -1045,7 +1045,7 @@ class GenericConsumer(object):
         @returns: An association object or None if the association
             processing failed.
 
-        @raises: ServerError
+        @raises ServerError: when the remote OpenID server returns an error.
         """
         assoc_session, args = self._createAssociateRequest(
             endpoint, assoc_type, session_type)
@@ -1127,7 +1127,7 @@ class GenericConsumer(object):
         @returns: The association type for this message
         @rtype: str
 
-        @raises: KeyError, if the session_type field is absent.
+        @raises KeyError: when the session_type field is absent.
         """
         # If it's an OpenID 1 message, allow session_type to default
         # to None (which signifies "no-encryption")
@@ -1165,8 +1165,8 @@ class GenericConsumer(object):
             used when making the request
         @type assoc_session: depends on the session type of the request
 
-        @raises: ProtocolError, if data is malformed
-        @raises: KeyError, if a field is missing
+        @raises ProtocolError: when data is malformed
+        @raises KeyError: when a field is missing
 
         @rtype: openid.association.Association
         """
@@ -1256,7 +1256,7 @@ class AuthRequest(object):
         Anonymous requests are not allowed when the request is made
         with OpenID 1.
 
-        @raises: ValueError when attempting to set an OpenID1 request
+        @raises ValueError: when attempting to set an OpenID1 request
             as anonymous
         """
         if is_anonymous and self.message.isOpenID1():
