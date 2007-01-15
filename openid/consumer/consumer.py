@@ -536,8 +536,10 @@ class GenericConsumer(object):
         """Make a Direct Request to an OpenID Provider and return the
         result as a Message object.
 
-        @raises fetchers.HTTPFetchingError
-        @rtype: openid.message.Message
+        @raises openid.fetchers.HTTPFetchingError: if an error is
+            encountered in making the HTTP post.
+
+        @rtype: L{openid.message.Message}
         """
         # XXX: TESTME
         resp = fetchers.fetch(server_url, body=request_message.toURLEncoded())
@@ -574,8 +576,8 @@ class GenericConsumer(object):
         @param message: the response paramaters.
         @param endpoint: the discovered endpoint object. May be None.
 
-        @raises ProtocolError
-        @raises DiscoveryFailure
+        @raises ProtocolError: FIXME
+        @raises DiscoveryFailure: FIXME
 
         @returntype: L{Response}
         """
