@@ -204,7 +204,7 @@ def findOPLocalIdentifier(service_element, type_uris):
         code needs to do that anyway.
     @type type_uris: [str]
 
-    @raises: DiscoveryFailure
+    @raises DiscoveryFailure: when discovery fails.
 
     @returns: The OP-Local Identifier for this service element, if one
         is present, or None otherwise.
@@ -308,7 +308,7 @@ def discoverYadis(uri):
     @return: (claimed_id, services)
     @rtype: (str, list(OpenIDServiceEndpoint))
 
-    @raises: DiscoveryFailure
+    @raises DiscoveryFailure: when discovery fails.
     """
     # Might raise a yadis.discover.DiscoveryFailure if no document
     # came back for that URI at all.  I don't think falling back
