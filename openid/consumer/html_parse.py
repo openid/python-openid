@@ -4,14 +4,14 @@ the head of HTML or XHTML documents and parses out their attributes
 according to the OpenID spec. It is a liberal parser, but it requires
 these things from the data in order to work:
 
- * There must be an open <html> tag
+ - There must be an open <html> tag
 
- * There must be an open <head> tag inside of the <html> tag
+ - There must be an open <head> tag inside of the <html> tag
 
- * Only <link>s that are found inside of the <head> tag are parsed
+ - Only <link>s that are found inside of the <head> tag are parsed
    (this is by design)
 
- * The parser follows the OpenID specification in resolving the
+ - The parser follows the OpenID specification in resolving the
    attributes of the link tags. This means that the attributes DO NOT
    get resolved as they would by an XML or HTML parser. In particular,
    only certain entities get replaced, and href attributes do not get
@@ -19,10 +19,10 @@ these things from the data in order to work:
 
 From http://openid.net/specs.bml#linkrel:
 
- * The openid.server URL MUST be an absolute URL. OpenID consumers
+ - The openid.server URL MUST be an absolute URL. OpenID consumers
    MUST NOT attempt to resolve relative URLs.
 
- * The openid.server URL MUST NOT include entities other than &amp;,
+ - The openid.server URL MUST NOT include entities other than &amp;,
    &lt;, &gt;, and &quot;.
 
 The parser ignores SGML comments and <![CDATA[blocks]]>. Both kinds of
@@ -30,40 +30,40 @@ quoting are allowed for attributes.
 
 The parser deals with invalid markup in these ways:
 
- * Tag names are not case-sensitive
+ - Tag names are not case-sensitive
 
- * The <html> tag is accepted even when it is not at the top level
+ - The <html> tag is accepted even when it is not at the top level
 
- * The <head> tag is accepted even when it is not a direct child of
+ - The <head> tag is accepted even when it is not a direct child of
    the <html> tag, but a <html> tag must be an ancestor of the <head>
    tag
 
- * <link> tags are accepted even when they are not direct children of
+ - <link> tags are accepted even when they are not direct children of
    the <head> tag, but a <head> tag must be an ancestor of the <link>
    tag
 
- * If there is no closing tag for an open <html> or <head> tag, the
+ - If there is no closing tag for an open <html> or <head> tag, the
    remainder of the document is viewed as being inside of the tag. If
    there is no closing tag for a <link> tag, the link tag is treated
    as a short tag. Exceptions to this rule are that <html> closes
    <html> and <body> or <head> closes <head>
 
- * Attributes of the <link> tag are not required to be quoted.
+ - Attributes of the <link> tag are not required to be quoted.
 
- * In the case of duplicated attribute names, the attribute coming
+ - In the case of duplicated attribute names, the attribute coming
    last in the tag will be the value returned.
 
- * Any text that does not parse as an attribute within a link tag will
+ - Any text that does not parse as an attribute within a link tag will
    be ignored. (e.g. <link pumpkin rel='openid.server' /> will ignore
    pumpkin)
 
- * If there are more than one <html> or <head> tag, the parser only
+ - If there are more than one <html> or <head> tag, the parser only
    looks inside of the first one.
 
- * The contents of <script> tags are ignored entirely, except unclosed
+ - The contents of <script> tags are ignored entirely, except unclosed
    <script> tags. Unclosed <script> tags are ignored.
 
- * Any other invalid markup is ignored, including unclosed SGML
+ - Any other invalid markup is ignored, including unclosed SGML
    comments and unclosed <![CDATA[blocks.
 """
 
