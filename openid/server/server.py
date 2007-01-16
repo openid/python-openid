@@ -35,14 +35,14 @@ Overview
     Other types of requests relate to establishing associations between client
     and server and verifying the authenticity of previous communications.
     L{Server} contains all the logic and data necessary to respond to
-    such requests; just pass it to L{Server.handleRequest}.
+    such requests; just pass the request to L{Server.handleRequest}.
 
 
 OpenID Extensions
 =================
 
     Do you want to provide other information for your users
-    in addition to authentication?  Version 1.2 of the OpenID
+    in addition to authentication?  Version 2.0 of the OpenID
     protocol allows consumers to add extensions to their requests.
     For example, with sites using the U{Simple Registration
     Extension<http://www.openidenabled.com/openid/simple-registration-extension/>},
@@ -85,6 +85,7 @@ Upgrading
     in version 1.2 of this library.  If your store has entries created from
     version 1.0 code, you should empty it.
 
+    FIXME: add notes on 1.2 -> 2.0 upgrade here.
 
 @group Requests: OpenIDRequest, AssociateRequest, CheckIDRequest,
     CheckAuthRequest
@@ -696,6 +697,8 @@ class CheckIDRequest(OpenIDRequest):
         @type claimed_id: str or None
 
         @returntype: L{OpenIDResponse}
+
+        @change: Version 2.0 deprecates C{server_url} and adds C{claimed_id}.
         """
         # FIXME: undocumented exceptions
         if not self.return_to:
@@ -1307,13 +1310,13 @@ class Server(object):
 
     Example::
 
-        oserver = Server(FileOpenIDStore(data_path))
+        oserver = Server(FileOpenIDStore(data_path), "http://example.com/op")
         request = oserver.decodeRequest(query)
-        if request.mode in ["checkid_immediate", "checkid_setup"]:
+        if request.mode in ['checkid_immediate', 'checkid_setup']:
             if self.isAuthorized(request.identity, request.trust_root):
                 response = request.answer(True)
             elif request.immediate:
-                response = request.answer(False, self.base_url)
+                response = request.answer(False)
             else:
                 self.showDecidePage(request)
                 return
@@ -1348,6 +1351,11 @@ class Server(object):
         @param op_endpoint: My URL, the fully qualified address of this
             server's endpoint, i.e. C{http://example.com/server}
         @type op_endpoint: str
+
+        @change: C{op_endpoint} is new in library version 2.0.  It
+            currently defaults to C{None} for compatibility with
+            earlier versions of the library, but you must provide it
+            if you want to respond to any version 2 OpenID requests.
         """
         self.store = store
         self.signatory = self.signatoryClass(self.store)
@@ -1373,6 +1381,8 @@ class Server(object):
 
         @raises NotImplementedError: When I do not have a handler defined
             for that type of request.
+
+        @returntype: L{OpenIDResponse}
         """
         handler = getattr(self, 'openid_' + request.mode, None)
         if handler is not None:
@@ -1384,7 +1394,7 @@ class Server(object):
 
 
     def openid_check_authentication(self, request):
-        """Handle and respond to {check_authentication} requests.
+        """Handle and respond to C{check_authentication} requests.
 
         @returntype: L{OpenIDResponse}
         """
@@ -1392,7 +1402,7 @@ class Server(object):
 
 
     def openid_associate(self, request):
-        """Handle and respond to {associate} requests.
+        """Handle and respond to C{associate} requests.
 
         @returntype: L{OpenIDResponse}
         """
@@ -1444,7 +1454,7 @@ class Server(object):
 
         @returntype: L{WebResponse}
 
-        @see: L{Encoder.encode}
+        @see: L{SigningEncoder.encode}
         """
         return self.encoder.encode(response)
 
