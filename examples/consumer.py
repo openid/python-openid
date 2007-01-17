@@ -128,7 +128,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             self.parsed_uri = urlparse.urlparse(self.path)
             self.query = {}
             for k, v in cgi.parse_qsl(self.parsed_uri[4]):
-                self.query[k] = v
+                self.query[k] = v.decode('utf-8')
 
             path = self.parsed_uri[2]
             if path == '/':
@@ -412,7 +412,7 @@ Content-type: text/html
 
         self.wfile.write('''\
     <div id="verify-form">
-      <form method="get" action=%s>
+      <form method="get" accept-charset="UTF-8" action=%s>
         Identifier:
         <input type="text" name="openid_identifier" value=%s />
         <input type="submit" value="Verify" />
