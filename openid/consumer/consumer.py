@@ -19,7 +19,7 @@ OVERVIEW
            site, and hits a login button.
 
         2. The consumer site discovers the user's OpenID server using
-           the YADIS protocol.
+           the Yadis protocol.
 
         3. The consumer site sends the browser a redirect to the
            identity server.  This is the authentication request as
@@ -132,7 +132,7 @@ USING THIS LIBRARY
     optional second parameter.  The library just expects the session
     object to support a C{dict}-like interface, if it is provided.
 
-    Next, the application should call the 'begin' method on the
+    Next, the application should call the 'C{L{begin<Consumer.begin>}}' method on the
     C{L{Consumer}} instance.  This method takes the OpenID URL.  The
     C{L{begin<Consumer.begin>}} method returns an C{L{AuthRequest}}
     object.
@@ -259,7 +259,7 @@ class Consumer(object):
             normalizing and resolving any redirects the server might
             issue.
 
-        @type user_url: str
+        @type user_url: unicode
 
         @returns: An object containing the discovered information will
             be returned, with a method for building a redirect URL to
