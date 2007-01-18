@@ -1,4 +1,6 @@
 # -*- test-case-name: openid.test.test_discover -*-
+"""Functions to discover OpenID endpoints from identifiers.
+"""
 
 import urlparse
 
