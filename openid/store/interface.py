@@ -10,8 +10,12 @@ class OpenIDStore(object):
     mechanisms that the OpenID library needs, for both servers and
     consumers.
 
+    @change: Version 2.0 removed the C{storeNonce} and C{getAuthKey} methods,
+        and changed the behavior of the C{L{useNonce}} method to support
+        one-way nonces.
+
     @sort: storeAssociation, getAssociation, removeAssociation,
-        storeNonce, useNonce, isDumb
+        useNonce, isDumb
     """
 
     def storeAssociation(self, server_url, association):
@@ -120,36 +124,20 @@ class OpenIDStore(object):
         """
         raise NotImplementedError
 
-
-    def storeNonce(self, nonce):
-        """
-        Stores a nonce.  This is used by the consumer to prevent
-        replay attacks.
-
-
-        @param nonce: The nonce to store.
-
-        @type nonce: C{str}
-
-
-        @return: C{None}
-
-        @rtype: C{NoneType}
-        """
-        raise NotImplementedError
-
     def useNonce(self, nonce):
-        """
-        This method is called when the library is attempting to use a
-        nonce.  If the nonce is in the store, this method removes it
-        and returns a value which evaluates as true.  Otherwise it
-        returns a value which evaluates as false.
+        """Called when using a nonce.
 
-        This method is allowed and encouraged to treat nonces older
-        than some period (a very conservative window would be 6 hours,
-        for example) as no longer existing, and return False and
-        remove them.
+        This method should return C{True} if the nonce has not been
+        used before, and store it for a while to make sure nobody
+        tries to use the same value again.  If the nonce has already
+        been used, return C{False}.
 
+        @change: In earlier versions, round-trip nonces were used and
+           a nonce was only valid if it had been previously stored
+           with C{storeNonce}.  Version 2.0 uses one-way nonces,
+           requiring a different implementation here that does not
+           depend on a C{storeNonce} call.  (C{storeNonce} is no
+           longer part of the interface.
 
         @param nonce: The nonce to use.
 
@@ -158,7 +146,7 @@ class OpenIDStore(object):
 
         @return: Whether or not the nonce was valid.
 
-        @rtype: C{bool} or C{int}
+        @rtype: C{bool}
         """
         raise NotImplementedError
 
