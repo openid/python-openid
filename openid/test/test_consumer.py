@@ -474,11 +474,7 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
 
 
     def test_idResMissingNoSigs(self):
-        def _vrfy(vid, surl):
-            endpoint = OpenIDServiceEndpoint()
-            endpoint.claimed_id = vid
-            endpoint.server_url = surl
-            endpoint.local_id = vid
+        def _vrfy(resp_msg, endpoint=None):
             return endpoint
 
         self.consumer._verifyDiscoveryResults = _vrfy
