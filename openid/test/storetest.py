@@ -39,6 +39,11 @@ def testStore(store):
     OpenIDStore -> NoneType
     """
 
+    # Empty store has no associations (this just makes sure that all
+    # of the stores have a getExpired method and that it doesn't just
+    # blow up)
+    assert store.getExpired() == [], store.getExpired()
+
     ### Association functions
     now = int(time.time())
 

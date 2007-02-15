@@ -356,21 +356,8 @@ class FileOpenIDStore(OpenIDStore):
             os.close(fd)
             return True
 
-    def clean(self):
-        """Remove expired entries from the database. This is
-        potentially expensive, so only run when it is acceptable to
-        take time.
-
-        () -> NoneType
-        """
-        nonces = os.listdir(self.nonce_dir)
-        now = time.time()
-
-        # Check all nonces for expiry
-        for nonce in nonces:
-            if not checkTimestamp(nonce, now=now):
-                filename = os.path.join(self.nonce_dir, nonce)
-                _removeIfPresent(filename)
+    def _allAssocs(self):
+        all_associations = []
 
         association_filenames = os.listdir(self.association_dir)
         for association_filename in association_filenames:
@@ -393,5 +380,35 @@ class FileOpenIDStore(OpenIDStore):
                 except ValueError:
                     _removeIfPresent(association_filename)
                 else:
-                    if association.getExpiresIn() == 0:
-                        _removeIfPresent(association_filename)
+                    all_associations.append(
+                        (association_filename, association))
+
+        return all_associations
+
+    def clean(self):
+        """Remove expired entries from the database. This is
+        potentially expensive, so only run when it is acceptable to
+        take time.
+
+        () -> NoneType
+        """
+        nonces = os.listdir(self.nonce_dir)
+        now = time.time()
+
+        # Check all nonces for expiry
+        for nonce in nonces:
+            if not checkTimestamp(nonce, now=now):
+                filename = os.path.join(self.nonce_dir, nonce)
+                _removeIfPresent(filename)
+
+        for assoc_filename, assoc in self._allAssocs():
+            if assoc.getExpiresIn() == 0:
+                _removeIfPresent(assoc_filename)
+
+    def getExpired(self):
+        """Return the server URL for all expired associations"""
+        urls = []
+        for _, assoc in self._allAssocs():
+            if assoc.getExpiresIn() <= 0:
+                urls.append(assoc.server_url)
+        return urls

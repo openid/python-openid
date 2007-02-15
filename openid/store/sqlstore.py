@@ -256,6 +256,14 @@ class SQLStore(OpenIDStore):
 
     useNonce = _inTxn(txn_useNonce)
 
+    def txn_getExpired(self):
+        """Get the server URLs for all associations that have expired"""
+        self.db_get_expired(int(time.time()))
+        rows = self.cur.fetchall()
+        return [row[0] for row in rows]
+
+    getExpired = _inTxn(txn_getExpired)
+
 class SQLiteStore(SQLStore):
     """
     This is an SQLite-based specialization of C{L{SQLStore}}.
@@ -308,6 +316,9 @@ class SQLiteStore(SQLStore):
     get_assoc_sql = (
         'SELECT handle, secret, issued, lifetime, assoc_type '
         'FROM %(associations)s WHERE server_url = ? AND handle = ?;')
+
+    get_expired_sql = ('SELECT server_url '
+                       'FROM %(associations)s WHERE issued + lifetime < ?;')
 
     remove_assoc_sql = ('DELETE FROM %(associations)s '
                         'WHERE server_url = ? AND handle = ?;')
@@ -386,6 +397,9 @@ class MySQLStore(SQLStore):
                      'VALUES (%%s, %%s, %%s, %%s, %%s, %%s);')
     get_assocs_sql = ('SELECT handle, secret, issued, lifetime, assoc_type'
                       ' FROM %(associations)s WHERE server_url = %%s;')
+    get_expired_sql = ('SELECT server_url '
+                       'FROM %(associations)s WHERE issued + lifetime < %%s;')
+
     get_assoc_sql = (
         'SELECT handle, secret, issued, lifetime, assoc_type'
         ' FROM %(associations)s WHERE server_url = %%s AND handle = %%s;')
@@ -470,6 +484,9 @@ class PostgreSQLStore(SQLStore):
                         'WHERE server_url = %%s AND handle = %%s;')
     get_assocs_sql = ('SELECT handle, secret, issued, lifetime, assoc_type'
                       ' FROM %(associations)s WHERE server_url = %%s;')
+    get_expired_sql = ('SELECT server_url '
+                       'FROM %(associations)s WHERE issued + lifetime < %%s;')
+
     get_assoc_sql = (
         'SELECT handle, secret, issued, lifetime, assoc_type'
         ' FROM %(associations)s WHERE server_url = %%s AND handle = %%s;')

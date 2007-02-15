@@ -58,3 +58,6 @@ class DumbStore(OpenIDStore):
         @rtype: C{bool}
         """
         return True
+
+    def getExpired(self):
+        return []

@@ -69,6 +69,16 @@ class MemoryStore(object):
             self.nonces[nonce] = None
             return True
 
+    def getExpired(self):
+        expired = []
+        for server_url, assocs in self.server_assocs.iteritems():
+            best = assocs.best()
+            if best is None or best.getExpiresIn() == 0:
+                print best
+                expired.append(server_url)
+
+        return expired
+
     def __eq__(self, other):
         return ((self.server_assocs == other.server_assocs) and
                 (self.nonces == other.nonces))

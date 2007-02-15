@@ -161,3 +161,10 @@ class OpenIDStore(object):
         @rtype: C{bool} or C{int}
         """
         raise NotImplementedError
+
+    def getExpired(self):
+        """Return all server URLs that have expired associations
+
+        @rtype: C{[str]}
+        """
+        raise NotImplementedError
