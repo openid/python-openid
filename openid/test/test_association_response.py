@@ -10,7 +10,7 @@ from openid.server.server import DiffieHellmanSHA1ServerSession
 from openid.consumer.consumer import GenericConsumer, \
      DiffieHellmanSHA1ConsumerSession, ProtocolError
 from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_1_1_TYPE, OPENID_2_0_TYPE
-import _memstore
+from openid.store import memstore
 import unittest
 
 # Some values we can use for convenience (see mkAssocResponse)
@@ -35,7 +35,7 @@ def mkAssocResponse(*keys):
 class BaseAssocTest(CatchLogs, unittest.TestCase):
     def setUp(self):
         CatchLogs.setUp(self)
-        self.store = _memstore.MemoryStore()
+        self.store = memstore.MemoryStore()
         self.consumer = GenericConsumer(self.store)
         self.endpoint = OpenIDServiceEndpoint()
 

@@ -4,7 +4,7 @@ from openid.server import server
 from openid import association, cryptutil, oidutil
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
      IDENTIFIER_SELECT, no_default
-import _memstore
+from openid.store import memstore
 import cgi
 
 import unittest
@@ -76,7 +76,7 @@ class TestDecode(unittest.TestCase):
         self.tr_url = "http://rp.unittest/"
         self.assoc_handle = "{assoc}{handle}"
         self.op_endpoint = 'http://endpoint.unittest/encode'
-        self.store = _memstore.MemoryStore()
+        self.store = memstore.MemoryStore()
         self.server = server.Server(self.store, self.op_endpoint)
         self.decode = self.server.decoder.decode
         self.decode = server.Decoder(self.server).decode
@@ -439,7 +439,7 @@ class TestEncode(unittest.TestCase):
         self.encoder = server.Encoder()
         self.encode = self.encoder.encode
         self.op_endpoint = 'http://endpoint.unittest/encode'
-        self.store = _memstore.MemoryStore()
+        self.store = memstore.MemoryStore()
         self.server = server.Server(self.store, self.op_endpoint)
 
     def test_id_res(self):
@@ -540,7 +540,7 @@ class TestSigningEncode(unittest.TestCase):
     def setUp(self):
         self._dumb_key = server.Signatory._dumb_key
         self._normal_key = server.Signatory._normal_key
-        self.store = _memstore.MemoryStore()
+        self.store = memstore.MemoryStore()
         self.server = server.Server(self.store, "http://signing.unittest/enc")
         self.request = server.CheckIDRequest(
             identity = 'http://bombom.unittest/',
@@ -630,7 +630,7 @@ class TestSigningEncode(unittest.TestCase):
 class TestCheckID(unittest.TestCase):
     def setUp(self):
         self.op_endpoint = 'http://endpoint.unittest/'
-        self.store = _memstore.MemoryStore()
+        self.store = memstore.MemoryStore()
         self.server = server.Server(self.store, self.op_endpoint)
         self.request = server.CheckIDRequest(
             identity = 'http://bambam.unittest/',
@@ -878,7 +878,7 @@ class TestCheckIDExtension(unittest.TestCase):
 
     def setUp(self):
         self.op_endpoint = 'http://endpoint.unittest/ext'
-        self.store = _memstore.MemoryStore()
+        self.store = memstore.MemoryStore()
         self.server = server.Server(self.store, self.op_endpoint)
         self.request = server.CheckIDRequest(
             identity = 'http://bambam.unittest/',
@@ -1008,7 +1008,7 @@ class TestAssociate(unittest.TestCase):
     def setUp(self):
         self.request = server.AssociateRequest.fromMessage(
             Message.fromPostArgs({}))
-        self.store = _memstore.MemoryStore()
+        self.store = memstore.MemoryStore()
         self.signatory = server.Signatory(self.store)
 
     def test_dhSHA1(self):
@@ -1235,7 +1235,7 @@ class Counter(object):
 
 class TestServer(unittest.TestCase, CatchLogs):
     def setUp(self):
-        self.store = _memstore.MemoryStore()
+        self.store = memstore.MemoryStore()
         self.server = server.Server(self.store, "http://server.unittest/endpt")
         CatchLogs.setUp(self)
 
@@ -1341,7 +1341,7 @@ class TestServer(unittest.TestCase, CatchLogs):
 
 class TestSignatory(unittest.TestCase, CatchLogs):
     def setUp(self):
-        self.store = _memstore.MemoryStore()
+        self.store = memstore.MemoryStore()
         self.signatory = server.Signatory(self.store)
         self._dumb_key = self.signatory._dumb_key
         self._normal_key = self.signatory._normal_key

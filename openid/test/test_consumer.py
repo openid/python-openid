@@ -24,10 +24,9 @@ from openid.dh import DiffieHellman
 
 from openid.fetchers import HTTPResponse, HTTPFetchingError
 from openid import fetchers
+from openid.store import memstore
 
 from support import CatchLogs
-
-import _memstore
 
 assocs = [
     ('another 20-byte key.', 'Snarky'),
@@ -86,7 +85,7 @@ class GoodAssociation:
         return message.getArg(OPENID_NS, 'sig') == GOODSIG
 
 
-class GoodAssocStore(_memstore.MemoryStore):
+class GoodAssocStore(memstore.MemoryStore):
     def getAssociation(self, server_url, handle=None):
         return GoodAssociation()
 
@@ -131,7 +130,7 @@ def setConsumerSession(con):
     con.session_types = {'DH-SHA1': makeFastConsumerSession}
 
 def _test_success(server_url, user_url, delegate_url, links, immediate=False):
-    store = _memstore.MemoryStore()
+    store = memstore.MemoryStore()
     if immediate:
         mode = 'checkid_immediate'
     else:
@@ -266,7 +265,7 @@ class TestIdRes(unittest.TestCase):
     consumer_class = GenericConsumer
 
     def setUp(self):
-        self.store = _memstore.MemoryStore()
+        self.store = memstore.MemoryStore()
         self.consumer = self.consumer_class(self.store)
         self.return_to = "nonny"
         self.endpoint = OpenIDServiceEndpoint()
@@ -1092,7 +1091,7 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
 
     def setUp(self):
         CatchLogs.setUp(self)
-        self.store = _memstore.MemoryStore()
+        self.store = memstore.MemoryStore()
 
         self.consumer = self.consumer_class(self.store)
 
@@ -1149,7 +1148,7 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
 
     def setUp(self):
         CatchLogs.setUp(self)
-        self.store = _memstore.MemoryStore()
+        self.store = memstore.MemoryStore()
         self.fetcher = MockFetcher()
         fetchers.setDefaultFetcher(self.fetcher)
         self.consumer = self.consumer_class(self.store)

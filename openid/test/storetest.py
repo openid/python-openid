@@ -307,8 +307,8 @@ def test_postgresql():
         conn_remove.close()
 
 def test_memstore():
-    import _memstore
-    testStore(_memstore.MemoryStore())
+    from openid.store import memstore
+    testStore(memstore.MemoryStore())
 
 def test():
     test_filestore()
