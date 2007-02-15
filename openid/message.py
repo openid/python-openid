@@ -431,6 +431,20 @@ class Message(object):
         return not (self == other)
 
 
+    def getAliasedArg(self, aliased_key, default=None):
+        try:
+            alias, key = aliased_key.split('.', 1)
+        except ValueError:
+            # need more than x values to unpack
+            ns = None
+        else:
+            ns = self.namespaces.getNamespaceURI(alias)
+
+        if ns is None:
+            key = aliased_key
+            ns = self.getOpenIDNamespace()
+
+        return self.getArg(ns, key, default)
 
 class NamespaceMap(object):
     """Maintains a bijective map between namespace uris and aliases.
