@@ -40,8 +40,8 @@ from openid.consumer import consumer
 from openid.oidutil import appendArgs
 from openid.cryptutil import randomString
 from openid.yadis.discover import DiscoveryFailure
-from openid.fetchers import (HTTPFetchingError, setDefaultFetcher,
-                             Urllib2Fetcher)
+from openid.fetchers import \
+     HTTPFetchingError, setDefaultFetcher, Urllib2Fetcher
 
 SREG_URI = 'http://openid.net/sreg/1.0'
 
