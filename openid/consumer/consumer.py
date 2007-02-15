@@ -226,7 +226,7 @@ class Consumer(object):
 
     _token = 'last_token'
 
-    def __init__(self, session, store):
+    def __init__(self, session, store, consumer_class=None):
         """Initialize a Consumer instance.
 
         You should create a new instance of the Consumer object with
@@ -245,7 +245,9 @@ class Consumer(object):
         @see: L{openid.store}
         """
         self.session = session
-        self.consumer = GenericConsumer(store)
+        if consumer_class is None:
+            consumer_class = GenericConsumer
+        self.consumer = consumer_class(store)
         self._token_key = self.session_key_prefix + self._token
 
     def begin(self, user_url, anonymous=False):
