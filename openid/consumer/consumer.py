@@ -1383,6 +1383,9 @@ class AuthRequest(object):
         return message.toFormMarkup(self.endpoint.server_url,
                     form_tag_attrs)
 
+    def shouldSendRedirect(self):
+        return self.endpoint.compatibilityMode()
+
 FAILURE = 'failure'
 SUCCESS = 'success'
 CANCEL = 'cancel'
