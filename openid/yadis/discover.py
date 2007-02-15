@@ -1,4 +1,4 @@
-# -*- test-case-name: yadis.test.test_discover -*-
+# -*- test-case-name: openid.test.test_yadis_discover -*-
 __all__ = ['discover', 'DiscoveryResult', 'DiscoveryFailure']
 
 from cStringIO import StringIO
