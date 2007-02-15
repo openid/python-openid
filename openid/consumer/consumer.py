@@ -900,6 +900,7 @@ class GenericConsumer(object):
                 % (to_match.claimed_id,), None)
 
     def _checkAuth(self, message, server_url):
+        oidutil.log('Using OpenID check_authentication')
         request = self._createCheckAuthRequest(message)
         if request is None:
             return False
@@ -930,7 +931,7 @@ class GenericConsumer(object):
                     check_args['ns'] = message.getOpenIDNamespace()
                     continue
 
-                val = message.getArg(OPENID_NS, k)
+                val = message.getAliasedArg(k)
 
                 # Signed value is missing
                 if val is None:
