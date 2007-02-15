@@ -161,21 +161,3 @@ class OpenIDStore(object):
         @rtype: C{bool} or C{int}
         """
         raise NotImplementedError
-
-    def isDumb(self):
-        """
-        This method must return C{True} if the store is a
-        dumb-mode-style store.  Unlike all other methods in this
-        class, this one provides a default implementation, which
-        returns C{False}.
-
-        In general, any custom subclass of C{L{OpenIDStore}} won't
-        override this method, as custom subclasses are only likely to
-        be created when the store is fully functional.
-
-        @return: C{True} if the store works fully, C{False} if the
-           consumer will have to use dumb mode to use this store.
-
-        @rtype: C{bool}
-        """
-        return False

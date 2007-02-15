@@ -50,10 +50,8 @@ def testStore(store):
 
     def checkRetrieve(url, handle=None, expected=None):
         retrieved_assoc = store.getAssociation(url, handle)
-        if expected is None or store.isDumb():
-            assert retrieved_assoc is None
-        else:
-            assert retrieved_assoc == expected, (retrieved_assoc, expected)
+        assert retrieved_assoc == expected, (retrieved_assoc, expected)
+        if expected is not None:
             if retrieved_assoc is expected:
                 print ('Unexpected: retrieved a reference to the expected '
                        'value instead of a new object')
@@ -62,8 +60,7 @@ def testStore(store):
 
     def checkRemove(url, handle, expected):
         present = store.removeAssociation(url, handle)
-        expectedPresent = (not store.isDumb()) and expected
-        assert bool(expectedPresent) == bool(present)
+        assert bool(expected) == bool(present)
 
     assoc = genAssoc(issued=0)
 
@@ -155,7 +152,6 @@ def testStore(store):
     def checkUseNonce(nonce, expected, server_url):
         stamp, salt = split(nonce)
         actual = store.useNonce(server_url, stamp, salt)
-        expected = store.isDumb() or expected
         assert bool(actual) == bool(expected)
 
     for url in [server_url, '']:
@@ -310,11 +306,6 @@ def test_postgresql():
         cursor.execute('DROP DATABASE %s;' % (db_name,))
         conn_remove.close()
 
-def test_dumbstore():
-    from openid.store import dumbstore
-    store = dumbstore.DumbStore()
-    testStore(store)
-
 def test_memstore():
     import _memstore
     testStore(_memstore.MemoryStore())
@@ -324,7 +315,6 @@ def test():
     test_sqlite()
     test_mysql()
     test_postgresql()
-    test_dumbstore()
     test_memstore()
 
 if __name__ == '__main__':

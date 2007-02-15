@@ -58,15 +58,3 @@ class DumbStore(OpenIDStore):
         @rtype: C{bool}
         """
         return True
-
-    def isDumb(self):
-        """
-        This store is a dumb mode store, so this method is overridden
-        to return C{True}.
-
-
-        @return: C{True}
-
-        @rtype: C{bool}
-        """
-        return True

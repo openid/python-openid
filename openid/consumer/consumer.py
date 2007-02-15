@@ -960,9 +960,6 @@ class GenericConsumer(object):
         @returns: A valid association for the endpoint's server_url or None
         @rtype: openid.association.Association or NoneType
         """
-        if self.store.isDumb():
-            return None
-
         assoc = self.store.getAssociation(endpoint.server_url)
 
         if assoc is None or assoc.expiresIn <= 0:

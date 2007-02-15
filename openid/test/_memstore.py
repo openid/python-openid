@@ -49,9 +49,6 @@ class MemoryStore(object):
             assocs = self.server_assocs[server_url] = ServerAssocs()
             return assocs
 
-    def isDumb(self):
-        return False
-
     def storeAssociation(self, server_url, assoc):
         assocs = self._getServerAssocs(server_url)
         assocs.set(copy.deepcopy(assoc))
