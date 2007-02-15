@@ -34,6 +34,7 @@ distribution or http://www.openidenabled.com/
 """)
     sys.exit(1)
 
+from openid.store import memstore
 from openid.store import filestore
 from openid.consumer import consumer
 from openid.oidutil import appendArgs
@@ -426,7 +427,10 @@ def main(host, port, data_path, weak_ssl=False):
     # Instantiate OpenID consumer store and OpenID consumer.  If you
     # were connecting to a database, you would create the database
     # connection and instantiate an appropriate store here.
-    store = filestore.FileOpenIDStore(data_path)
+    if data_path:
+        store = filestore.FileOpenIDStore(data_path)
+    else:
+        store = memstore.MemoryStore()
 
     if weak_ssl:
         setDefaultFetcher(Urllib2Fetcher())
@@ -440,7 +444,6 @@ def main(host, port, data_path, weak_ssl=False):
 
 if __name__ == '__main__':
     host = 'localhost'
-    data_path = 'cstore'
     port = 8001
     weak_ssl = False
 
@@ -451,9 +454,9 @@ if __name__ == '__main__':
     else:
         parser = optparse.OptionParser('Usage:\n %prog [options]')
         parser.add_option(
-            '-d', '--data-path', dest='data_path', default=data_path,
+            '-d', '--data-path', dest='data_path',
             help='Data directory for storing OpenID consumer state. '
-            'Defaults to "%default" in the current directory.')
+            'Setting this option implies using a "FileStore."')
         parser.add_option(
             '-p', '--port', dest='port', type='int', default=port,
             help='Port on which to listen for HTTP requests. '
