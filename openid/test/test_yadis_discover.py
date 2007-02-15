@@ -9,6 +9,7 @@
 import unittest
 import urlparse
 import re
+import types
 
 from openid.yadis.discover import discover, DiscoveryFailure
 
@@ -137,14 +138,19 @@ class _TestCase(unittest.TestCase):
             self.failUnlessEqual(
                 self.expected.response_text, result.response_text, msg)
 
-            expected_keys = self.expected.__dict__.keys()
+            expected_keys = dir(self.expected)
             expected_keys.sort()
-            actual_keys = result.__dict__.keys()
+            actual_keys = dir(result)
             actual_keys.sort()
             self.failUnlessEqual(actual_keys, expected_keys)
 
-            for k, exp_v in self.expected.__dict__.items():
-                act_v = result.__dict__.get(k)
+            for k in dir(self.expected):
+                if k.startswith('__') and k.endswith('__'):
+                    continue
+                exp_v = getattr(self.expected, k)
+                if isinstance(exp_v, types.MethodType):
+                    continue
+                act_v = getattr(result, k)
                 assert act_v == exp_v, (k, exp_v, act_v)
 
     def shortDescription(self):
