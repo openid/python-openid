@@ -35,12 +35,9 @@ class MemoryStore(object):
 
     Use for single long-running processes.  No persistence supplied.
     """
-    AUTH_KEY_LEN = 20
-
     def __init__(self):
         self.server_assocs = {}
         self.nonces = {}
-        self.auth_key = cryptutil.randomString(self.AUTH_KEY_LEN)
 
     def _getServerAssocs(self, server_url):
         try:
@@ -72,13 +69,9 @@ class MemoryStore(object):
             self.nonces[nonce] = None
             return True
 
-    def getAuthKey(self):
-        return self.auth_key
-
     def __eq__(self, other):
         return ((self.server_assocs == other.server_assocs) and
-                (self.nonces == other.nonces) and
-                (self.auth_key == other.auth_key))
+                (self.nonces == other.nonces))
 
     def __ne__(self, other):
         return not (self == other)
