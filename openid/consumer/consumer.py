@@ -183,12 +183,13 @@ USING THIS LIBRARY
 
 import time
 import cgi
+import copy
 from urlparse import urlparse
 
 from openid import fetchers
 
 from openid.consumer.discover import discover, OpenIDServiceEndpoint, \
-     DiscoveryFailure, OPENID_1_1_TYPE, OPENID_2_0_TYPE
+     DiscoveryFailure, OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
      IDENTIFIER_SELECT, no_default
 from openid import cryptutil
@@ -422,6 +423,10 @@ class SetupNeededError(Exception):
 class ProtocolError(ValueError):
     """Exception that indicates that a message violated the
     protocol. It is raised and caught internally to this file."""
+
+class TypeURIMismatch(ProtocolError):
+    """A protocol error arising from type URIs mismatching
+    """
 
 class ServerError(Exception):
     """Exception that is raised when the server returns a 400 response
@@ -807,7 +812,14 @@ class GenericConsumer(object):
         if to_match.local_id is None:
             raise ProtocolError('Missing required field openid.identity')
 
-        self._verifyDiscoverySingle(endpoint, to_match)
+        to_match_1_0 = copy.copy(to_match)
+        to_match_1_0.type_uris = [OPENID_1_0_TYPE]
+
+        try:
+            self._verifyDiscoverySingle(endpoint, to_match)
+        except TypeURIMismatch:
+            self._verifyDiscoverySingle(endpoint, to_match_1_0)
+
         return endpoint
 
     def _verifyDiscoverySingle(self, endpoint, to_match):
@@ -827,7 +839,7 @@ class GenericConsumer(object):
         # present in the discovered endpoint.
         for type_uri in to_match.type_uris:
             if not endpoint.usesExtension(type_uri):
-                raise ProtocolError(
+                raise TypeURIMismatch(
                     'Required type %r not present' % (type_uri,))
 
         if to_match.claimed_id != endpoint.claimed_id:
