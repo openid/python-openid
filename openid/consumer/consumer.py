@@ -924,10 +924,15 @@ class GenericConsumer(object):
         signed = message.getArg(OPENID_NS, 'signed')
         if signed:
             for k in signed.split(','):
+                if k == 'ns':
+                    check_args['ns'] = message.getOpenIDNamespace()
+                    continue
+
                 val = message.getArg(OPENID_NS, k)
 
                 # Signed value is missing
                 if val is None:
+                    oidutil.log('Missing signed field %r' % (k,))
                     return None
 
                 check_args[k] = val
