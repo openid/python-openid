@@ -45,7 +45,7 @@ class DiscoveryResult(object):
 
     def usedYadisLocation(self):
         """Was the Yadis protocol's indirection used?"""
-        return self.normalized_uri == self.xrds_uri
+        return self.normalized_uri != self.xrds_uri
 
     def isXRDS(self):
         """Is the response text supposed to be an XRDS document?"""
@@ -79,11 +79,42 @@ def discover(uri):
     # or if we already have it
     result.content_type = resp.headers.get('content-type')
 
+    result.xrds_uri = whereIsYadis(resp)
+
+    if result.xrds_uri and result.usedYadisLocation():
+        resp = fetchers.fetch(result.xrds_uri)
+        if resp.status != 200:
+            exc = DiscoveryFailure(
+                'HTTP Response status from Yadis host is not 200. '
+                'Got status %r' % (resp.status,), resp)
+            exc.identity_url = result.normalized_uri
+            raise exc
+        result.content_type = resp.headers.get('content-type')
+
+    result.response_text = resp.body
+    return result
+
+
+
+def whereIsYadis(resp):
+    """Given a HTTPResponse, return the location of the Yadis document.
+
+    May be the URL just retrieved, another URL, or None, if I can't
+    find any.
+
+    [non-blocking]
+
+    @returns: str or None
+    """
+    # Attempt to find out where to go to discover the document
+    # or if we already have it
+    content_type = resp.headers.get('content-type')
+
     # According to the spec, the content-type header must be an exact
     # match, or else we have to look for an indirection.
-    if (result.content_type and
-        result.content_type.split(';', 1)[0].lower() == YADIS_CONTENT_TYPE):
-        result.xrds_uri = result.normalized_uri
+    if (content_type and
+        content_type.split(';', 1)[0].lower() == YADIS_CONTENT_TYPE):
+        return resp.final_url
     else:
         # Try the header
         yadis_loc = resp.headers.get(YADIS_HEADER_NAME.lower())
@@ -99,19 +130,5 @@ def discover(uri):
             except MetaNotFound:
                 pass
 
-        # At this point, we have not found a YADIS Location URL. We
-        # will return the content that we scanned so that the caller
-        # can try to treat it as an XRDS if it wishes.
-        if yadis_loc:
-            result.xrds_uri = yadis_loc
-            resp = fetchers.fetch(yadis_loc)
-            if resp.status != 200:
-                exc = DiscoveryFailure(
-                    'HTTP Response status from Yadis host is not 200. '
-                    'Got status %r' % (resp.status,), resp)
-                exc.identity_url = result.normalized_uri
-                raise exc
-            result.content_type = resp.headers.get('content-type')
+        return yadis_loc
 
-    result.response_text = resp.body
-    return result
