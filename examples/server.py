@@ -341,7 +341,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             </table>
             <p>Allow this authentication to proceed?</p>
             <input type="checkbox" id="remember" name="remember" value="yes"
-                checked="checked" /><label for="remember">Remember this
+                /><label for="remember">Remember this
                 decision</label><br />
             <input type="submit" name="yes" value="yes" />
             <input type="submit" name="no" value="no" />
@@ -367,7 +367,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             <p>Allow this authentication to proceed?</p>
             <form method="POST" action="/allow">
               <input type="checkbox" id="remember" name="remember" value="yes"
-                  checked="checked" /><label for="remember">Remember this
+                  /><label for="remember">Remember this
                   decision</label><br />
               <input type="submit" name="yes" value="yes" />
               <input type="submit" name="no" value="no" />
@@ -397,7 +397,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             <p>Allow this authentication to proceed?</p>
             <form method="POST" action="/allow">
               <input type="checkbox" id="remember" name="remember" value="yes"
-                  checked="checked" /><label for="remember">Remember this
+                  /><label for="remember">Remember this
                   decision</label><br />
               <input type="hidden" name="login_as" value="%(expected_user)s"/>
               <input type="submit" name="yes" value="yes" />
