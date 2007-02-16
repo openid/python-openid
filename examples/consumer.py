@@ -193,10 +193,17 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
 
                 trust_root = self.server.base_url
                 return_to = self.buildURL('process')
-                form_html = request.formMarkup(trust_root, return_to, 
-                    form_tag_attrs={'id':'openid_message'})
+                if request.shouldSendRedirect():
+                    redirect_url = request.redirectURL(trust_root, return_to)
+                    self.send_response(302)
+                    self.send_header('Location', redirect_url)
+                    self.writeUserHeader()
+                    self.end_headers()
+                else:
+                    form_html = request.formMarkup(trust_root, return_to,
+                        form_tag_attrs={'id':'openid_message'})
 
-                self.autoSubmit(form_html, 'openid_message')
+                    self.autoSubmit(form_html, 'openid_message')
 
     def requestRegistrationData(self, request):
         required = ','.join(['nickname'])
