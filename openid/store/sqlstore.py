@@ -1,6 +1,10 @@
 """
 This module contains C{L{OpenIDStore}} implementations that use
 various SQL databases to back them.
+
+Example of how to initialize a store database::
+
+    python -c 'from openid.store import sqlstore; import pysqlite2.dbapi2; sqlstore.SQLiteStore(pysqlite2.dbapi2.connect("cstore.db")).createTables()'
 """
 import re
 import time
