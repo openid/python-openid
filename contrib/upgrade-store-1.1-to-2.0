@@ -1,7 +1,18 @@
 #!/usr/bin/env python
 # SQL Store Upgrade Script
-# doesn't depend on the openid library, so you can run this python
-# script to update databases for ruby or php as well
+# for version 1.x to 2.0 of the OpenID library.
+# Doesn't depend on the openid library, so you can run this python
+# script to update databases for ruby or PHP as well.
+#
+# Testers note:
+#
+#   A SQLite3 db with the 1.2 schema exists in
+#   openid/test/data/openid-1.2-consumer-sqlitestore.db if you want something
+#   to try upgrading.
+#
+#   TODO:
+#    * test data for mysql and postgresql.
+#    * automated tests.
 
 import os
 import getpass
