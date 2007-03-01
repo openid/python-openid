@@ -132,8 +132,18 @@ Fetcher API
    urljr.fetchers.HTTPFetcher.  get() and post() have been replaced by
    fetch(), see urljr.fetchers for details.
 
-Upgrading
----------
+Upgrading from 1.1 or 1.2
+-------------------------
+
+One of the additions to the OpenID protocol was a specified nonce
+format for one-way nonces.  As a result, the nonce table in the store
+has changed.  You'll need to run contrib/upgrade-store-1.1-to-2.0 to
+upgrade your store, or you'll encounter errors about the wrong number
+of columns in the oid_nonces table.
+
+
+Upgrading from 1.0
+------------------
 
 The server changed the way it indexes associations in the store, so if
 you're upgrading a server installation, we recommend you clear the old
