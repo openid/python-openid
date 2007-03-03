@@ -315,7 +315,12 @@ class Consumer(object):
         """
         auth_req = self.consumer.begin(service)
         self.session[self._token_key] = auth_req.endpoint
-        auth_req.anonymous = anonymous
+
+        try:
+            auth_req.setAnonymous(anonymous)
+        except ValueError, e:
+            raise ProtocolError(str(e))
+
         return auth_req
 
     def complete(self, query, return_to=None):
