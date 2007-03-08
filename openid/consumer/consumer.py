@@ -264,6 +264,14 @@ class Consumer(object):
 
         @type user_url: unicode
 
+        @param anonymous: Whether to make an anonymous request of the OpenID
+            provider.  Such a request does not ask for an authorization
+            assertion for an OpenID identifier, but may be used with
+            extensions to pass other data.  e.g. "I don't care who you are,
+            but I'd like to know your time zone."
+
+        @type anonymous: bool
+
         @returns: An object containing the discovered information will
             be returned, with a method for building a redirect URL to
             the server, as described in step 3 of the overview. This
