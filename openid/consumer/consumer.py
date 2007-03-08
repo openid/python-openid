@@ -1325,9 +1325,34 @@ class AuthRequest(object):
         self.message.setArg(namespace, key, value)
 
     def getMessage(self, realm, return_to=None, immediate=False):
-        """Not specifying a return_to URL means that the user will not
-        be returned to the site issuing the request upon its
-        completion."""
+        """Produce a L{openid.message.Message} representing this request.
+
+        @param realm: The URL (or URL pattern) that identifies your
+            web site to the user when she is authorizing it.
+
+        @type realm: str
+
+        @param return_to: The URL that the OpenID provider will send the
+            user back to after attempting to verify her identity.
+
+            Not specifying a return_to URL means that the user will not
+            be returned to the site issuing the request upon its
+            completion.
+
+        @type return_to: str
+
+        @param immediate: If True, the OpenID provider is to send back
+            a response immediately, useful for behind-the-scenes
+            authentication attempts.  Otherwise the OpenID provider
+            may engage the user before providing a response.  This is
+            the default case, as the user may need to provide
+            credentials or approve the request before a positive
+            response can be sent.
+
+        @type immediate: bool
+
+        @returntype: L{openid.message.Message}
+        """
         if return_to:
             return_to = oidutil.appendArgs(return_to, self.return_to_args)
         elif immediate:
@@ -1379,6 +1404,43 @@ class AuthRequest(object):
         return message
 
     def redirectURL(self, realm, return_to=None, immediate=False):
+        """Returns a URL with an encoded OpenID request.
+
+        The resulting URL is the OpenID provider's endpoint URL with
+        parameters appended as query arguments.  You should redirect
+        the user agent to this URL.
+
+        OpenID 2.0 endpoints also accept POST requests, see
+        L{shouldSendRedirect} and L{toFormMarkup}.
+
+        @param realm: The URL (or URL pattern) that identifies your
+            web site to the user when she is authorizing it.
+
+        @type realm: str
+
+        @param return_to: The URL that the OpenID provider will send the
+            user back to after attempting to verify her identity.
+
+            Not specifying a return_to URL means that the user will not
+            be returned to the site issuing the request upon its
+            completion.
+
+        @type return_to: str
+
+        @param immediate: If True, the OpenID provider is to send back
+            a response immediately, useful for behind-the-scenes
+            authentication attempts.  Otherwise the OpenID provider
+            may engage the user before providing a response.  This is
+            the default case, as the user may need to provide
+            credentials or approve the request before a positive
+            response can be sent.
+
+        @type immediate: bool
+
+        @returns: The URL to redirect the user agent to.
+
+        @returntype: str
+        """
         message = self.getMessage(realm, return_to, immediate)
         return message.toURL(self.endpoint.server_url)
 
