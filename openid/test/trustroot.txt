@@ -68,7 +68,7 @@ return_to matching
 ========================================
 
 ----------------------------------------
-32: matches
+33: matches
 ----------------------------------------
 http://*/                             http://cnn.com/
 http://*/                             http://livejournal.com/
@@ -102,6 +102,7 @@ http://foo.com                        http://Foo.com
 http://foo.com/?x=y                   http://foo.com/?x=y&a=b
 http://foo.com/x                      http://foo.com/x?y
 http://mylid.net/j3h.                 http://mylid.net/j3h.?x=y
+http://j3h.us                         http://j3h.us?ride=unicycle
 
 ----------------------------------------
 23: does not match

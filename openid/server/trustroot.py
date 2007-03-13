@@ -27,6 +27,9 @@ _top_level_domains = (
 
 def _parseURL(url):
     proto, netloc, path, params, query, frag = urlparse(url)
+    if not path:
+        path = '/'
+
     path = urlunparse(('', '', path, params, query, frag))
 
     if ':' in netloc:
@@ -39,9 +42,6 @@ def _parseURL(url):
         port = ''
 
     host = host.lower()
-    if not path:
-        path = '/'
-
     return proto, host, port, path
 
 class TrustRoot(object):
