@@ -28,6 +28,10 @@ _top_level_domains = (
 def _parseURL(url):
     proto, netloc, path, params, query, frag = urlparse(url)
     if not path:
+        # Python <2.4 does not parse URLs with no path properly
+        if not query and '?' in netloc:
+            netloc, query = netloc.split('?', 1)
+
         path = '/'
 
     path = urlunparse(('', '', path, params, query, frag))
