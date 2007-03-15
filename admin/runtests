@@ -65,6 +65,8 @@ def pyunitTests():
     from openid.test import test_nonce
     from openid.test import test_association_response
     from openid.test import test_verifydisco
+    from openid.test import test_sreg
+
     # yadis tests
     from openid.test import test_parsehtml
     from openid.test import test_yadis_discover
@@ -85,6 +87,7 @@ def pyunitTests():
         test_auth_request,
         test_negotiation,
         test_verifydisco,
+        test_sreg,
         ]
 
     # Some modules have data-driven tests, and they use custom methods

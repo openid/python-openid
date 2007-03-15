@@ -1297,6 +1297,15 @@ class AuthRequest(object):
         else:
             self._anonymous = is_anonymous
 
+    def addExtension(self, extension_request):
+        """Add an extension to this checkid request.
+
+        @param extension_request: An object that implements the
+            extension request interface for adding arguments to an
+            OpenID message.
+        """
+        extension_request.toMessage(self.message)
+
     def addExtensionArg(self, namespace, key, value):
         """Add an extension argument to this OpenID authentication
         request.

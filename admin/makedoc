@@ -6,6 +6,7 @@ epydoc --html --output doc/ --name "Python-OpenID" --top openid \
     --ignore-param-mismatch --no-private \
     openid/__init__.py \
     openid/dh.py \
+    openid/sreg.py \
     openid/association.py \
     openid/consumer/__init__.py \
     openid/consumer/consumer.py \
