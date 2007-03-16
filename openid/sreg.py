@@ -37,6 +37,12 @@ OpenID providers.
 
 from openid.extension import Extension
 
+try:
+    basestring
+except NameError:
+    # For Python 2.2
+    basestring = (str, unicode)
+
 __all__ = [
     'SRegRequest',
     'SRegResponse',
