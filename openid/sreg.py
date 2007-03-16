@@ -101,6 +101,20 @@ def supportsSReg(endpoint):
     return (endpoint.usesExtension(ns_uri_1_1) or
             endpoint.usesExtension(ns_uri_1_0))
 
+class SRegNamespaceError(ValueError):
+    """The simple registration namespace was not found and could not
+    be created using the expected name (there's another extension
+    using the name 'sreg')
+
+    This is not I{illegal}, for OpenID 2, although it probably
+    indicates a problem, since it's not expected that other extensions
+    will re-use the alias that is in use for OpenID 1.
+
+    If this is an OpenID 1 request, then there is no recourse. This
+    should not happen unless some code has modified the namespaces for
+    the message that is being processed.
+    """
+
 def getSRegNS(message):
     """Extract the simple registration namespace URI from the given
     OpenID message. Handles OpenID 1 and 2, as well as both sreg
@@ -135,10 +149,7 @@ def getSRegNS(message):
         except KeyError, why:
             # An alias for the string 'sreg' already exists, but it's
             # defined for something other than simple registration
-            if message.isOpenID1():
-                raise ValueError(why[0])
-            else:
-                message.namespaces.add(ns_uri_1_1)
+            raise SRegNamespaceError(why[0])
 
     return sreg_ns_uri
 

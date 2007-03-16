@@ -82,13 +82,14 @@ class GetNSTest(unittest.TestCase):
     def test_openID1DefinedBadly(self):
         self.msg.openid1 = True
         self.msg.namespaces.addAlias('http://invalid/', 'sreg')
-        self.failUnlessRaises(ValueError, sreg.getSRegNS, self.msg)
+        self.failUnlessRaises(sreg.SRegNamespaceError,
+                              sreg.getSRegNS, self.msg)
 
     def test_openID2DefinedBadly(self):
         self.msg.openid1 = False
         self.msg.namespaces.addAlias('http://invalid/', 'sreg')
-        ns_uri = sreg.getSRegNS(self.msg)
-        self.failUnlessEqual(sreg.ns_uri_1_1, ns_uri)
+        self.failUnlessRaises(sreg.SRegNamespaceError,
+                              sreg.getSRegNS, self.msg)
 
     def test_openID2Defined_1_1(self):
         self.msg.namespaces.add(sreg.ns_uri)
