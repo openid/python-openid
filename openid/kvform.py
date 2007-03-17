@@ -23,7 +23,9 @@ def seqToKV(seq, strict=False):
 
     lines = []
     for k, v in seq:
-        if not isinstance(k, types.StringType):
+        if isinstance(k, types.UnicodeType):
+            k = k.encode('UTF8')
+        elif not isinstance(k, types.StringType):
             err('Converting key to string: %r' % k)
             k = str(k)
 
@@ -40,7 +42,7 @@ def seqToKV(seq, strict=False):
 
         if isinstance(v, types.UnicodeType):
             v = v.encode('UTF8')
-        if not isinstance(v, types.StringType):
+        elif not isinstance(v, types.StringType):
             err('Converting value to string: %r' % v)
             v = str(v)
 

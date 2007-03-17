@@ -6,14 +6,14 @@ class KVBaseTest(unittest.TestCase):
     def shortDescription(self):
         return '%s test for %r' % (self.__class__.__name__, self.kvform)
 
-    def log(self, unused_message, unused_priority=None):
-        self.warnings += 1
+    def log(self, message, unused_priority=None):
+        self.warnings.append(message)
 
     def checkWarnings(self, num_warnings):
-        self.failUnlessEqual(num_warnings, self.warnings)
+        self.failUnlessEqual(num_warnings, len(self.warnings), repr(self.warnings))
 
     def setUp(self):
-        self.warnings = 0
+        self.warnings = []
         self.old_log = oidutil.log
         self.log_func = oidutil.log = self.log
         self.failUnless(self.log_func is oidutil.log,
@@ -46,10 +46,11 @@ class KVDictTest(KVBaseTest):
         self.failUnlessEqual(d, d2)
 
 class KVSeqTest(KVBaseTest):
-    def __init__(self, seq, kv):
+    def __init__(self, seq, kv, expected_warnings):
         unittest.TestCase.__init__(self)
         self.kvform = kv
         self.seq = seq
+        self.expected_warnings = expected_warnings
 
     def cleanSeq(self, seq):
         """Create a new sequence by stripping whitespace from start
@@ -71,6 +72,7 @@ class KVSeqTest(KVBaseTest):
         clean_seq = self.cleanSeq(seq)
 
         self.failUnlessEqual(seq, clean_seq)
+        self.checkWarnings(self.expected_warnings)
 
 kvdict_cases = [
     # (kvform, parsed dictionary, expected warnings)
@@ -105,13 +107,14 @@ kvdict_cases = [
     ]
 
 kvseq_cases = [
-    ([], ''),
-    ([('openid', 'useful'), ('a', 'b')], 'openid:useful\na:b\n'),
-    ([(' openid', 'useful'), ('a', 'b')], ' openid:useful\na:b\n'),
+    ([], '', 0),
+    ([('openid', 'useful'), ('a', 'b')], 'openid:useful\na:b\n', 0),
+    ([(' openid', 'useful'), ('a', 'b')], ' openid:useful\na:b\n', 2),
     ([(' openid ', ' useful '),
-      (' a ', ' b ')], ' openid : useful \n a : b \n'),
+      (' a ', ' b ')], ' openid : useful \n a : b \n', 8),
     ([(' open id ', ' use ful '),
-      (' a ', ' b ')], ' open id : use ful \n a : b \n'),
+      (' a ', ' b ')], ' open id : use ful \n a : b \n', 8),
+    ([(u'foo', 'bar')], 'foo:bar\n', 0),
     ]
 
 kvexc_cases = [
