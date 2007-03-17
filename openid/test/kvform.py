@@ -57,6 +57,10 @@ class KVSeqTest(KVBaseTest):
         and end of each value of each pair"""
         clean = []
         for k, v in self.seq:
+            if type(k) is str:
+                k = k.decode('utf8')
+            if type(v) is str:
+                v = v.decode('utf8')
             clean.append((k.strip(), v.strip()))
         return clean
 
@@ -64,6 +68,7 @@ class KVSeqTest(KVBaseTest):
         # seq serializes to expected kvform
         actual = kvform.seqToKV(self.seq)
         self.failUnlessEqual(self.kvform, actual)
+        self.failUnless(type(actual) is str)
 
         # Parse back to sequence. Expected to be unchanged, except
         # stripping whitespace from start and end of values
@@ -108,12 +113,28 @@ kvdict_cases = [
 
 kvseq_cases = [
     ([], '', 0),
+
+    # Make sure that we handle non-ascii characters (also wider than 8 bits)
+    ([(u'\u03bbx', u'x')], '\xce\xbbx:x\n', 0),
+
+    # If it's a UTF-8 str, make sure that it's equivalent to the same
+    # string, decoded.
+    ([('\xce\xbbx', 'x')], '\xce\xbbx:x\n', 0),
+
     ([('openid', 'useful'), ('a', 'b')], 'openid:useful\na:b\n', 0),
+
+    # Warnings about leading whitespace
     ([(' openid', 'useful'), ('a', 'b')], ' openid:useful\na:b\n', 2),
+
+    # Warnings about leading and trailing whitespace
     ([(' openid ', ' useful '),
       (' a ', ' b ')], ' openid : useful \n a : b \n', 8),
+
+    # warnings about leading and trailing whitespace, but not about
+    # internal whitespace.
     ([(' open id ', ' use ful '),
       (' a ', ' b ')], ' open id : use ful \n a : b \n', 8),
+
     ([(u'foo', 'bar')], 'foo:bar\n', 0),
     ]
 

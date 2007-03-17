@@ -23,9 +23,9 @@ def seqToKV(seq, strict=False):
 
     lines = []
     for k, v in seq:
-        if isinstance(k, types.UnicodeType):
-            k = k.encode('UTF8')
-        elif not isinstance(k, types.StringType):
+        if isinstance(k, types.StringType):
+            k = k.decode('UTF8')
+        elif not isinstance(k, types.UnicodeType):
             err('Converting key to string: %r' % k)
             k = str(k)
 
@@ -40,9 +40,9 @@ def seqToKV(seq, strict=False):
         if k.strip() != k:
             err('Key has whitespace at beginning or end: %r' % k)
 
-        if isinstance(v, types.UnicodeType):
-            v = v.encode('UTF8')
-        elif not isinstance(v, types.StringType):
+        if isinstance(v, types.StringType):
+            v = v.decode('UTF8')
+        elif not isinstance(v, types.UnicodeType):
             err('Converting value to string: %r' % v)
             v = str(v)
 
@@ -55,7 +55,7 @@ def seqToKV(seq, strict=False):
 
         lines.append(k + ':' + v + '\n')
 
-    return ''.join(lines)
+    return ''.join(lines).encode('UTF8')
 
 def kvToSeq(data, strict=False):
     """
@@ -105,7 +105,7 @@ def kvToSeq(data, strict=False):
                        'whitespace in value %r')
                 err(fmt % (line_num, v))
 
-            pairs.append((k_s, v_s))
+            pairs.append((k_s.decode('UTF8'), v_s.decode('UTF8')))
         else:
             err('Line %d does not contain a colon' % line_num)
 
