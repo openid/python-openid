@@ -389,7 +389,12 @@ data = {
 
 class SRegResponseTest(unittest.TestCase):
     def test_construct(self):
-        sreg.SRegResponse(data)
+        resp = sreg.SRegResponse(data)
+
+        self.failUnless(resp)
+
+        empty_resp = sreg.SRegResponse({})
+        self.failIf(empty_resp)
 
         # XXX: finish this test
 

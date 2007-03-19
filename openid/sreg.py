@@ -487,6 +487,9 @@ class SRegResponse(Extension):
         checkFieldName(field_name)
         return self.data[field_name]
 
+    def __nonzero__(self):
+        return bool(self.data)
+
 def sendSRegFields(request_message, data, response_message):
     """Convenience function for copying all the sreg data that was
     requested from a supplied set of sreg data into the response
