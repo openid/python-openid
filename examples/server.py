@@ -136,7 +136,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         if 'yes' in query:
             if 'login_as' in query:
                 self.user = self.query['login_as']
-            
+
             trust_root = request.trust_root
             if self.query.get('remember', 'no') == 'yes':
                 duration = 'always'
@@ -437,7 +437,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'application/xrds+xml')
         self.end_headers()
-        
+
         endpoint_url = self.server.base_url + 'openidserver'
         user_url = self.server.base_url + 'id/' + user
         self.wfile.write("""\
@@ -461,7 +461,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'application/xrds+xml')
         self.end_headers()
-        
+
         endpoint_url = self.server.base_url + 'openidserver'
         self.wfile.write("""\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -477,7 +477,7 @@ class ServerHandler(BaseHTTPRequestHandler):
 
   </XRD>
 </xrds:XRDS>
-"""%endpoint_url)    
+"""%endpoint_url)
 
     def showMainPage(self):
         yadis_tag = '<meta http-equiv="x-xrds-location" content="%s">'%\
