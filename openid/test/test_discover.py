@@ -65,7 +65,7 @@ class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
 # string exception is raised.
 import warnings
 warnings.filterwarnings('ignore', 'raising a string.*', DeprecationWarning,
-                        r'^openid\.test\.test_discover$', 76)
+                        r'^openid\.test\.test_discover$', 77)
 
 class ErrorRaisingFetcher(object):
     """Just raise an exception when fetch is called"""
