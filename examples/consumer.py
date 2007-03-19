@@ -42,8 +42,7 @@ from openid.cryptutil import randomString
 from openid.yadis.discover import DiscoveryFailure
 from openid.fetchers import \
      HTTPFetchingError, setDefaultFetcher, Urllib2Fetcher
-
-SREG_URI = 'http://openid.net/sreg/1.0'
+from openid import sreg
 
 # Used with an OpenID provider affiliate program.
 OPENID_PROVIDER_NAME = 'MyOpenID'
@@ -163,6 +162,9 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                         css_class='error', form_contents=openid_url)
             return
 
+        immediate = 'immediate' in self.query
+        use_sreg = 'use_sreg' in self.query
+
         oidconsumer = self.getConsumer()
         try:
             request = oidconsumer.begin(openid_url)
@@ -188,28 +190,30 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                 # Here we find out the identity server that will verify the
                 # user's identity, and get a token that allows us to
                 # communicate securely with the identity server.
-
-                self.requestRegistrationData(request)
+                if use_sreg:
+                    self.requestRegistrationData(request)
 
                 trust_root = self.server.base_url
                 return_to = self.buildURL('process')
                 if request.shouldSendRedirect():
-                    redirect_url = request.redirectURL(trust_root, return_to)
+                    redirect_url = request.redirectURL(
+                        trust_root, return_to, immediate=immediate)
                     self.send_response(302)
                     self.send_header('Location', redirect_url)
                     self.writeUserHeader()
                     self.end_headers()
                 else:
-                    form_html = request.formMarkup(trust_root, return_to,
-                        form_tag_attrs={'id':'openid_message'})
+                    form_html = request.formMarkup(
+                        trust_root, return_to,
+                        form_tag_attrs={'id':'openid_message'},
+                        immediate=immediate)
 
                     self.autoSubmit(form_html, 'openid_message')
 
     def requestRegistrationData(self, request):
-        required = ','.join(['nickname'])
-        optional = ','.join(['fullname', 'email'])
-        request.addExtensionArg(SREG_URI, 'required', required)
-        request.addExtensionArg(SREG_URI, 'optional', optional)
+        sreg_request = sreg.SRegRequest(
+            required=['nickname'], optional=['fullname', 'email'])
+        request.addExtension(sreg_request)
 
     def doProcess(self):
         """Handle the redirect from the OpenID server.
@@ -222,7 +226,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         # the return type.
         info = oidconsumer.complete(self.query)
 
-        sreg = None
+        sreg_resp = None
         css_class = 'error'
         if info.status == consumer.FAILURE and info.identity_url:
             # In the case of failure, if info is non-None, it is the
@@ -242,7 +246,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # comment posting, etc. here.
             fmt = "You have successfully verified %s as your identity."
             message = fmt % (cgi.escape(info.identity_url),)
-            sreg = info.extensionResponse(SREG_URI, require_signed=True)
+            sreg_resp = sreg.SRegResponse.fromOpenIDResponse(info.message)
             if info.endpoint.canonicalID:
                 # You should authorize i-name users by their canonicalID,
                 # rather than their more human-friendly identifiers.  That
@@ -253,6 +257,9 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         elif info.status == consumer.CANCEL:
             # cancelled
             message = 'Verification cancelled'
+        elif info.status == consumer.SETUP_NEEDED:
+            message = '<a href=%s>Setup needed</a>' % (
+                quoteattr(info.setup_url),)
         else:
             # Either we don't understand the code or there is no
             # openid_url included with the error. Give a generic
@@ -260,17 +267,13 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # information in a log.
             message = 'Verification failed.'
 
-        self.render(message, css_class, info.identity_url, sreg_data=sreg)
+        self.render(message, css_class, info.identity_url, sreg_data=sreg_resp)
 
     def doAffiliate(self):
         """Direct the user sign up with an affiliate OpenID provider."""
-        sreg_required = ['nickname']
-        sreg_optional = ['fullname', 'email']
-        href = '%s&openid.sreg.required=%s&openid.sreg.optional=%s' % (
-            OPENID_PROVIDER_URL,
-            ','.join(sreg_required),
-            ','.join(sreg_optional),
-            )
+        sreg_req = sreg.SRegRequest(['nickname'], ['fullname', 'email'])
+        sreg_req.toMessage().toURL(OPENID_PROVIDER_URL)
+
         message = """Get an OpenID at <a href=%s>%s</a>""" % (
             quoteattr(href), OPENID_PROVIDER_NAME)
         self.render(message)
@@ -282,17 +285,6 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         else:
             sreg_list = sreg_data.items()
             sreg_list.sort()
-            sreg_fields = {
-                'fullname':'Full Name',
-                'nickname':'Nickname',
-                'dob':'Date of Birth',
-                'email':'E-mail Address',
-                'gender':'Gender',
-                'postcode':'Postal Code',
-                'country':'Country',
-                'language':'Language',
-                'timezone':'Time Zone',
-                }
             self.wfile.write(
                 '<h2>Registration Data</h2>'
                 '<table class="sreg">'
@@ -301,7 +293,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
 
             odd = ' class="odd"'
             for k, v in sreg_list:
-                field_name = sreg_fields.get(k, k)
+                field_name = sreg.sreg_data_fields.get(k, k)
                 value = cgi.escape(v)
                 self.wfile.write(
                     '<tr%s><td>%s</td><td>%s</td></tr>' % (odd, field_name, value))
@@ -423,7 +415,9 @@ Content-type: text/html
       <form method="get" accept-charset="UTF-8" action=%s>
         Identifier:
         <input type="text" name="openid_identifier" value=%s />
-        <input type="submit" value="Verify" />
+        <input type="submit" value="Verify" /><br />
+        <input type="checkbox" name="immediate" id="immediate" /><label for="immediate">Use immediate mode</label>
+        <input type="checkbox" name="use_sreg" id="use_sreg" /><label for="use_sreg">Request registration data</label>
       </form>
     </div>
   </body>

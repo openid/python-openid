@@ -29,6 +29,7 @@ distribution or http://www.openidenabled.com/
 """)
     sys.exit(1)
 
+from openid import sreg
 from openid.server import server
 from openid.store.filestore import FileOpenIDStore
 
@@ -194,18 +195,22 @@ class ServerHandler(BaseHTTPRequestHandler):
             return
 
         if request.mode in ["checkid_immediate", "checkid_setup"]:
-            if (self.user and
-                self.isAuthorized(request.identity, request.trust_root)):
-                response = request.answer(True)
-            elif request.immediate:
-                response = request.answer(False)
-            else:
-                self.server.lastCheckIDRequest[self.user] = request
-                self.showDecidePage(request)
-                return
+            self.handleCheckIDRequest(request)
         else:
             response = self.server.openid.handleRequest(request)
-        self.displayResponse(response)
+            self.displayResponse(response)
+
+    def handleCheckIDRequest(self, request):
+        is_authorized = self.isAuthorized(request.identity, request.trust_root)
+        if is_authorized:
+            response = request.answer(True)
+            self.displayResponse(response)
+        elif request.immediate:
+            response = request.answer(False)
+            self.displayResponse(response)
+        else:
+            self.server.lastCheckIDRequest[self.user] = request
+            self.showDecidePage(request)
 
     def displayResponse(self, response):
         try:
