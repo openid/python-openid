@@ -49,8 +49,9 @@ class DumbStore(OpenIDStore):
     def useNonce(self, server_url, timestamp, salt):
         """
         In a system truly limited to dumb mode, nonces must all be
-        accepted.  This therefore always returns C{True}, which makes
-        replay attacks feasible during the lifespan of the token.
+        accepted.  This therefore always returns C{True}, which means
+        that the code using this store will depend on the OpenID
+        server to protect against replay attacks.
 
 
         @return: C{True}
