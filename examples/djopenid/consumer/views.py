@@ -10,29 +10,52 @@ from openid.fetchers import HTTPFetchingError
 from openid import sreg
 
 def getOpenIDStore():
+    """
+    Return an OpenID store object fit for the currently-chosen
+    database backend, if any.
+    """
     return util.getOpenIDStore('/tmp/djopenid_c_store', 'c_')
 
 def getConsumer(request):
+    """
+    Get a Consumer object to perform OpenID authentication.
+    """
     return consumer.Consumer(request.session, getOpenIDStore())
 
 @util.sendResponse
 def startOpenID(request):
+    """
+    Start the OpenID authentication process.  Renders an
+    authentication form and accepts its POST.
+
+    * Renders an error message if OpenID cannot be initiated
+
+    * Requests some Simple Registration data using the OpenID
+      library's Simple Registration machinery
+
+    * Generates the appropriate trust root and return URL values for
+      this application (tweak where appropriate)
+
+    * Generates the appropriate redirect based on the OpenID protocol
+      version.
+    """
     if request.POST:
         # Start OpenID authentication.
-
         openid_url = request.POST['openid_url']
         c = getConsumer(request)
-
         error = None
 
         try:
             auth_request = c.begin(openid_url)
         except HTTPFetchingError, e:
+            # A fetching error occurred (DNS resolution, etc.)
             error = "OpenID discovery error: not a valid OpenID"
         except DiscoveryFailure, e:
+            # Some other protocol-level failure occurred.
             error = "OpenID discovery error: %s" % (str(e),)
 
         if error:
+            # Render the page with an error.
             return 'consumer/index.html', {'error': error}
 
         # Add Simple Registration request information.  Some fields
@@ -48,6 +71,8 @@ def startOpenID(request):
         trust_root = util.getTrustRoot(request)
         return_to = trust_root + 'consumer/finish/'
 
+        # Send the browser to the server either by sending a redirect
+        # URL or by generating a POST form.
         if auth_request.shouldSendRedirect():
             url = auth_request.redirectURL(trust_root, return_to)
             response = HttpResponseRedirect(url)
@@ -64,7 +89,11 @@ def startOpenID(request):
 
 @util.sendResponse
 def finishOpenID(request):
-
+    """
+    Finish the OpenID authentication process.  Invoke the OpenID
+    library with the response from the OpenID server and render a page
+    detailing the result.
+    """
     result = {}
 
     if request.GET:
@@ -75,6 +104,8 @@ def finishOpenID(request):
         # we'll convert it to a normal dict.
         GET_data = util.normalDict(request.GET)
 
+        # Get a response object indicating the result of the OpenID
+        # protocol.
         response = c.complete(GET_data)
 
         # Get a Simple Registration response object if response
