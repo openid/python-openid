@@ -1,7 +1,6 @@
 
 """
-Based on the Django backend type in use, return a reference to an
-OpenID association store which uses that backend.
+Utility code for the Django example consumer and server.
 """
 
 from django.db import connection
