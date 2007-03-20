@@ -565,9 +565,9 @@ class NamespaceMap(object):
         # Fall back to generating a numerical alias
         i = 0
         while True:
-            alias = str(i)
+            alias = 'ext' + str(i)
             try:
-                self.addAlias(namespace_uri, str(i))
+                self.addAlias(namespace_uri, alias)
             except KeyError:
                 i += 1
             else:

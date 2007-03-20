@@ -775,7 +775,7 @@ class NamespaceMapTest(unittest.TestCase):
             nsm.add(uripat%n)
 
         for (uri, alias) in nsm.iteritems():
-            self.failUnless(uri[22:]==alias)
+            self.failUnless(uri[22:]==alias[3:])
 
         i=0
         it = nsm.iterAliases()

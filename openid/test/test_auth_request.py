@@ -91,9 +91,9 @@ class TestAuthRequestMixin(support.OpenIDTestMixin):
         # namespaces. Really it doesn't care that it has alias "0",
         # but that is tested anyway
         post_args = msg.toPostArgs()
-        self.failUnlessEqual('bag:', post_args['openid.ns.0'])
-        self.failUnlessEqual('brown', post_args['openid.0.color'])
-        self.failUnlessEqual('paper', post_args['openid.0.material'])
+        self.failUnlessEqual('bag:', post_args['openid.ns.ext0'])
+        self.failUnlessEqual('brown', post_args['openid.ext0.color'])
+        self.failUnlessEqual('paper', post_args['openid.ext0.material'])
 
     def test_standard(self):
         msg = self.authreq.getMessage(self.realm, self.return_to,
