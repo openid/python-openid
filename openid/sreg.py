@@ -35,7 +35,9 @@ OpenID providers.
     namespace and XRD Type value
 """
 
+from openid.message import registerNamespaceAlias, NamespaceAliasRegistrationError
 from openid.extension import Extension
+from openid import oidutil
 
 try:
     basestring
@@ -87,6 +89,12 @@ ns_uri_1_1 = 'http://openid.net/extensions/sreg/1.1'
 # This attribute will always hold the preferred URI to use when adding
 # sreg support to an XRDS file or in an OpenID namespace declaration.
 ns_uri = ns_uri_1_1
+
+try:
+    registerNamespaceAlias(ns_uri_1_1, 'sreg')
+except NamespaceAliasRegistrationError, e:
+    oidutil.log('registerNamespaceAlias(%r, %r) failed: %s' % (ns_uri_1_1,
+                                                               'sreg', str(e),))
 
 def supportsSReg(endpoint):
     """Does the given endpoint advertise support for simple
@@ -170,6 +178,8 @@ class SRegRequest(Extension):
     @group Consumer: requestField, requestFields, getExtensionArgs, addToOpenIDRequest
     @group Server: fromOpenIDRequest, parseExtensionArgs
     """
+
+    ns_alias = 'sreg'
 
     def __init__(self, required=None, optional=None, policy_url=None,
                  sreg_ns_uri=ns_uri):
@@ -378,6 +388,8 @@ class SRegResponse(Extension):
     @group Read-only dictionary interface: keys, iterkeys, items, iteritems,
         __iter__, get, __getitem__, keys, has_key
     """
+
+    ns_alias = 'sreg'
 
     def __init__(self, data=None, sreg_ns_uri=ns_uri):
         if data is None:

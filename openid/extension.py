@@ -7,6 +7,7 @@ class Extension(object):
         extension
     """
     ns_uri = None
+    ns_alias = None
 
     def getExtensionArgs(self):
         """Get the string arguments that should be added to an OpenID
@@ -24,5 +25,11 @@ class Extension(object):
         if message is None:
             message = Message()
 
-        message.addArgs(self.ns_uri, self.getExtensionArgs())
+        try:
+            message.namespaces.addAlias(self.ns_uri, self.ns_alias)
+        except KeyError:
+            if message.namespaces.getAlias(self.ns_uri) != self.ns_alias:
+                raise
+
+        message.updateArgs(self.ns_uri, self.getExtensionArgs())
         return message

@@ -58,6 +58,39 @@ class UndefinedOpenIDNamespace(ValueError):
 # should raise an exception instead of returning a default.
 no_default = object()
 
+# Global namespace / alias registration map.  See
+# registerNamespaceAlias.
+registered_aliases = {}
+
+class NamespaceAliasRegistrationError(Exception):
+    """
+    Raised when an alias or namespace URI has already been registered.
+    """
+    pass
+
+def registerNamespaceAlias(namespace_uri, alias):
+    """
+    Registers a (namespace URI, alias) mapping in a global namespace
+    alias map.  Raises NamespaceAliasRegistrationError if either the
+    namespace URI or alias has already been registered with a
+    different value.  This function is required if you want to use a
+    namespace with an OpenID 1 message.
+    """
+    global registered_aliases
+
+    if registered_aliases.get(alias) == namespace_uri:
+        return
+
+    if namespace_uri in registered_aliases.values():
+        raise NamespaceAliasRegistrationError, \
+              'Namespace uri %r already registered' % (namespace_uri,)
+
+    if alias in registered_aliases:
+        raise NamespaceAliasRegistrationError, \
+              'Alias %r already registered' % (alias,)
+
+    registered_aliases[alias] = namespace_uri
+
 class Message(object):
     """
     In the implementation of this object, None represents the global
@@ -73,10 +106,6 @@ class Message(object):
     """
 
     allowed_openid_namespaces = [OPENID1_NS, OPENID2_NS]
-
-    default_namespaces = {
-        'sreg':SREG_URI,
-        }
 
     def __init__(self, openid_namespace=None):
         """Create an empty Message"""
@@ -124,6 +153,8 @@ class Message(object):
     fromOpenIDArgs = classmethod(fromOpenIDArgs)
 
     def _fromOpenIDArgs(self, openid_args):
+        global registered_aliases
+
         ns_args = []
 
         # Resolve namespaces
@@ -156,7 +187,10 @@ class Message(object):
                 # Only try to map an alias to a default if it's an
                 # OpenID 1.x message.
                 if openid_ns_uri == OPENID1_NS:
-                    ns_uri = self.default_namespaces.get(ns_alias)
+                    for _alias, _uri in registered_aliases.iteritems():
+                        if _alias == ns_alias:
+                            ns_uri = _uri
+                            break
 
                 if ns_uri is None:
                     ns_uri = openid_ns_uri
@@ -449,12 +483,6 @@ class Message(object):
 class NamespaceMap(object):
     """Maintains a bijective map between namespace uris and aliases.
     """
-    # namespaces that should use a certain alias (for
-    # backwards-compatibility or beauty). If a URI in this dictionary
-    # is added to the namespace map without an explicit desired name,
-    # it will default to the value supplied here.
-    default_aliases = {SREG_URI:'sreg'}
-
     def __init__(self):
         self.alias_to_namespace = {}
         self.namespace_to_alias = {}
@@ -527,20 +555,12 @@ class NamespaceMap(object):
     def add(self, namespace_uri):
         """Add this namespace URI to the mapping, without caring what
         alias it ends up with"""
+        global registered_aliases
+
         # See if this namespace is already mapped to an alias
         alias = self.namespace_to_alias.get(namespace_uri)
         if alias is not None:
             return alias
-
-        # See if there is a default alias for this namespace
-        default_alias = self.default_aliases.get(namespace_uri)
-        if default_alias is not None:
-            try:
-                self.addAlias(namespace_uri, default_alias)
-            except KeyError:
-                pass
-            else:
-                return default_alias
 
         # Fall back to generating a numerical alias
         i = 0

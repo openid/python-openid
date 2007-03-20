@@ -1,5 +1,5 @@
 from openid import sreg
-from openid.message import NamespaceMap, Message
+from openid.message import NamespaceMap, Message, registerNamespaceAlias
 
 import unittest
 
@@ -60,17 +60,13 @@ class GetNSTest(unittest.TestCase):
 
     def test_openID2Empty(self):
         ns_uri = sreg.getSRegNS(self.msg)
+        self.failUnlessEqual(self.msg.namespaces.getAlias(ns_uri), 'sreg')
         self.failUnlessEqual(sreg.ns_uri, ns_uri)
 
     def test_openID1Empty(self):
         self.msg.openid1 = True
         ns_uri = sreg.getSRegNS(self.msg)
-        self.failUnlessEqual(sreg.ns_uri, ns_uri)
-
-    def test_openID1Defined_1_1(self):
-        self.msg.openid1 = True
-        self.msg.namespaces.add(sreg.ns_uri)
-        ns_uri = sreg.getSRegNS(self.msg)
+        self.failUnlessEqual(self.msg.namespaces.getAlias(ns_uri), 'sreg')
         self.failUnlessEqual(sreg.ns_uri, ns_uri)
 
     def test_openID1Defined_1_0(self):
@@ -78,6 +74,18 @@ class GetNSTest(unittest.TestCase):
         self.msg.namespaces.add(sreg.ns_uri_1_0)
         ns_uri = sreg.getSRegNS(self.msg)
         self.failUnlessEqual(sreg.ns_uri_1_0, ns_uri)
+
+    def test_openID1Defined_1_0_overrideAlias(self):
+        for openid_version in [True, False]:
+            for sreg_version in [sreg.ns_uri_1_0, sreg.ns_uri_1_1]:
+                for alias in ['sreg', 'bogus']:
+                    self.setUp()
+
+                    self.msg.openid1 = openid_version
+                    self.msg.namespaces.addAlias(sreg_version, alias)
+                    ns_uri = sreg.getSRegNS(self.msg)
+                    self.failUnlessEqual(self.msg.namespaces.getAlias(ns_uri), alias)
+                    self.failUnlessEqual(sreg_version, ns_uri)
 
     def test_openID1DefinedBadly(self):
         self.msg.openid1 = True
@@ -91,15 +99,21 @@ class GetNSTest(unittest.TestCase):
         self.failUnlessRaises(sreg.SRegNamespaceError,
                               sreg.getSRegNS, self.msg)
 
-    def test_openID2Defined_1_1(self):
-        self.msg.namespaces.add(sreg.ns_uri)
-        ns_uri = sreg.getSRegNS(self.msg)
-        self.failUnlessEqual(sreg.ns_uri, ns_uri)
-
     def test_openID2Defined_1_0(self):
         self.msg.namespaces.add(sreg.ns_uri_1_0)
         ns_uri = sreg.getSRegNS(self.msg)
         self.failUnlessEqual(sreg.ns_uri_1_0, ns_uri)
+
+    def test_openID1_sregNSfromArgs(self):
+        args = {
+            'sreg.optional': 'nickname',
+            'sreg.required': 'dob',
+            }
+
+        m = Message.fromOpenIDArgs(args)
+
+        self.failUnless(m.getArg(sreg.ns_uri_1_1, 'optional') == 'nickname')
+        self.failUnless(m.getArg(sreg.ns_uri_1_1, 'required') == 'dob')
 
 class SRegRequestTest(unittest.TestCase):
     def test_constructEmpty(self):
