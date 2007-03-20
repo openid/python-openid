@@ -122,12 +122,9 @@ USING THIS LIBRARY
     is entered in that field and the form is submitted, it should make
     a request to the your site which includes that OpenID URL.
 
-    First, the application should instantiate the C{L{Consumer}} class
-    using the store of choice.  If the application has any sort of
-    session framework that provides per-client state management, a
-    dict-like object to access the session should be passed as the
-    optional second parameter.  The library just expects the session
-    object to support a C{dict}-like interface, if it is provided.
+    First, the application should L{instantiate a Consumer<Consumer.__init__>}
+    with a session for per-user state and store for shared state.
+    using the store of choice.
 
     Next, the application should call the 'C{L{begin<Consumer.begin>}}' method on the
     C{L{Consumer}} instance.  This method takes the OpenID URL.  The
@@ -155,9 +152,9 @@ USING THIS LIBRARY
     the URL by the OpenID provider as the information necessary to
     finish the request.
 
-    Get an C{L{Consumer}} instance, and call its
-    C{L{complete<Consumer.complete>}} method, passing in all the
-    received query arguments.
+    Get an C{L{Consumer}} instance with the same session and store as
+    before and call its C{L{complete<Consumer.complete>}} method,
+    passing in all the received query arguments.
 
     There are multiple possible return types possible from that
     method. These indicate the whether or not the login was
