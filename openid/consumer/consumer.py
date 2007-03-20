@@ -1,5 +1,6 @@
 # -*- test-case-name: openid.test.test_consumer -*-
-"""
+"""OpenID support for Relying Parties (aka Consumers).
+
 This module documents the main interface with the OpenID consumer
 library.  The only part of the library which has to be used and isn't
 documented in full here is the store required to create an
@@ -18,16 +19,16 @@ OVERVIEW
         1. The user enters their OpenID into a field on the consumer's
            site, and hits a login button.
 
-        2. The consumer site discovers the user's OpenID server using
+        2. The consumer site discovers the user's OpenID provider using
            the Yadis protocol.
 
         3. The consumer site sends the browser a redirect to the
-           identity server.  This is the authentication request as
+           OpenID provider.  This is the authentication request as
            described in the OpenID specification.
 
-        4. The identity server's site sends the browser a redirect
+        4. The OpenID provider's site sends the browser a redirect
            back to the consumer site.  This redirect contains the
-           server's response to the authentication request.
+           provider's response to the authentication request.
 
     The most important part of the flow to note is the consumer's site
     must handle two separate HTTP requests in order to perform the
@@ -63,13 +64,12 @@ LIBRARY DESIGN
 STORES AND DUMB MODE
 ====================
 
-    OpenID is a protocol that works best when the consumer site is
-    able to store some state.  This is the normal mode of operation
-    for the protocol, and is sometimes referred to as smart mode.
-    There is also a fallback mode, known as dumb mode, which is
-    available when the consumer site is not able to store state.  This
-    mode should be avoided when possible, as it leaves the
-    implementation more vulnerable to replay attacks.
+    OpenID is a protocol that works best when the consumer site is able
+    to store some state.  This is the normal mode of operation for the
+    protocol.  There is also a fallback mode, known as "dumb mode" or
+    "stateless mode," which is available when the consumer site is not
+    able to store state.  This mode should be avoided when possible, as
+    it leaves the implementation more vulnerable to replay attacks.
 
     The mode the library works in for normal operation is determined
     by the store that it is given.  The store is an abstraction that
@@ -97,8 +97,8 @@ IMMEDIATE MODE
 ==============
 
     In the flow described above, the user may need to confirm to the
-    identity server that it's ok to authorize his or her identity.
-    The server may draw pages asking for information from the user
+    OpenID provider that it's ok to disclose his or her identity.
+    The provider may draw pages asking for information from the user
     before it redirects the browser back to the consumer's site.  This
     is generally transparent to the consumer site, so it is typically
     ignored as an implementation detail.
@@ -147,7 +147,7 @@ USING THIS LIBRARY
     resulting URL to the user's browser.
 
     That's the first half of the authentication process.  The second
-    half of the process is done after the user's ID server sends the
+    half of the process is done after the user's OpenID Provider sends the
     user's browser a redirect back to your site to complete their
     login.
 
@@ -155,7 +155,7 @@ USING THIS LIBRARY
     given as the C{return_to} URL to the
     C{L{redirectURL<AuthRequest.redirectURL>}} call made
     above.  The request will have several query parameters added to
-    the URL by the identity server as the information necessary to
+    the URL by the OpenID provider as the information necessary to
     finish the request.
 
     Get an C{L{Consumer}} instance, and call its
