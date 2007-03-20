@@ -1,7 +1,7 @@
 
 from djopenid import util
 
-from django.views.decorators import http
+from django import http
 from django.http import HttpResponseRedirect
 
 from openid.consumer import consumer
