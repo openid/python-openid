@@ -44,6 +44,20 @@
     <div class="message">
       OpenID authentication succeeded; you authenticated as
         <a href="{{ url }}">{{ url|escape }}</a>.
+
+      <p>
+      {% if sreg %}
+        Simple Registration data returned:
+
+        <ul>
+        {% for pair in sreg %}
+          <li>{{ pair.0 }}: {{ pair.1 }}</li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        The server returned no Simple Registration data.
+      {% endif %}
+      </p>
     </div>
   {% endif %}
 

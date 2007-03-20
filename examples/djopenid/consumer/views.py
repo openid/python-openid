@@ -7,6 +7,7 @@ from django.http import HttpResponseRedirect
 from openid.consumer import consumer
 from openid.consumer.discover import DiscoveryFailure
 from openid.fetchers import HTTPFetchingError
+from openid import sreg
 
 def getOpenIDStore():
     return util.getOpenIDStore('/tmp/djopenid_c_store', 'c_')
@@ -34,6 +35,16 @@ def startOpenID(request):
         if error:
             return 'consumer/index.html', {'error': error}
 
+        # Add Simple Registration request information.  Some fields
+        # are optional, some are required.  It's possible that the
+        # server doesn't support sreg or won't return any of the
+        # fields.
+        sreg_request = sreg.SRegRequest(optional=['email', 'nickname'],
+                                        required=['dob'])
+        auth_request.addExtension(sreg_request)
+
+        # Compute the trust root and return URL values to build the
+        # redirect information.
         trust_root = util.getTrustRoot(request)
         return_to = trust_root + 'consumer/finish/'
 
@@ -66,6 +77,13 @@ def finishOpenID(request):
 
         response = c.complete(GET_data)
 
+        # Get a Simple Registration response object if response
+        # information was included in the OpenID response.
+        sreg_response = {}
+        if response.status == consumer.SUCCESS:
+            sreg_response = sreg.SRegResponse.fromOpenIDResponse(response.message)
+
+        # Map different consumer status codes to template contexts.
         results = {
             consumer.CANCEL:
             {'message': 'OpenID authentication cancelled.'},
@@ -74,7 +92,8 @@ def finishOpenID(request):
             {'error': 'OpenID authentication failed.'},
 
             consumer.SUCCESS:
-            {'url': response.identity_url,},
+            {'url': response.identity_url,
+             'sreg': sreg_response.items(),},
             }
 
         result = results[response.status]
