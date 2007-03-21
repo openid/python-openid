@@ -75,7 +75,7 @@ def startOpenID(request):
         # URL or by generating a POST form.
         if auth_request.shouldSendRedirect():
             url = auth_request.redirectURL(trust_root, return_to)
-            response = HttpResponseRedirect(url)
+            return HttpResponseRedirect(url)
         else:
             # Beware: this renders a template whose content is a form
             # and some javascript to submit it upon page load.  Non-JS
@@ -85,8 +85,6 @@ def startOpenID(request):
             form_html = auth_request.formMarkup(trust_root, return_to,
                                                 False, {'id': form_id})
             return 'consumer/request_form.html', {'html': form_html}
-
-        return response
 
     return 'consumer/index.html', {}
 
