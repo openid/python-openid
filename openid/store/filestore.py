@@ -26,7 +26,7 @@ except ImportError:
             try:
                 fd = os.open(name, os.O_CREAT | os.O_EXCL | os.O_RDWR, 0600)
             except OSError, why:
-                if why[0] != EEXIST:
+                if why.errno != EEXIST:
                     raise
             else:
                 return fd, name
@@ -82,7 +82,7 @@ def _removeIfPresent(filename):
     try:
         os.unlink(filename)
     except OSError, why:
-        if why[0] == ENOENT:
+        if why.errno == ENOENT:
             # Someone beat us to it, but it's gone, so that's OK
             return 0
         else:
@@ -102,7 +102,7 @@ def _ensureDir(dir_name):
     try:
         os.makedirs(dir_name)
     except OSError, why:
-        if why[0] != EEXIST or not os.path.isdir(dir_name):
+        if why.errno != EEXIST or not os.path.isdir(dir_name):
             raise
 
 class FileOpenIDStore(OpenIDStore):
@@ -220,7 +220,7 @@ class FileOpenIDStore(OpenIDStore):
             try:
                 os.rename(tmp, filename)
             except OSError, why:
-                if why[0] != EEXIST:
+                if why.errno != EEXIST:
                     raise
 
                 # We only expect EEXIST to happen only on Windows. It's
@@ -229,7 +229,7 @@ class FileOpenIDStore(OpenIDStore):
                 try:
                     os.unlink(filename)
                 except OSError, why:
-                    if why[0] == ENOENT:
+                    if why.errno == ENOENT:
                         pass
                     else:
                         raise
@@ -289,7 +289,7 @@ class FileOpenIDStore(OpenIDStore):
         try:
             assoc_file = file(filename, 'rb')
         except IOError, why:
-            if why[0] == ENOENT:
+            if why.errno == ENOENT:
                 # No association exists for that URL and handle
                 return None
             else:
@@ -348,7 +348,7 @@ class FileOpenIDStore(OpenIDStore):
         try:
             fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0200)
         except OSError, why:
-            if why[0] == EEXIST:
+            if why.errno == EEXIST:
                 return False
             else:
                 raise
@@ -364,7 +364,7 @@ class FileOpenIDStore(OpenIDStore):
             try:
                 association_file = file(association_filename, 'rb')
             except IOError, why:
-                if why[0] == ENOENT:
+                if why.errno == ENOENT:
                     pass
                 else:
                     raise
