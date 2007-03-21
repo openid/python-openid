@@ -1,0 +1,22 @@
+{% extends "server/index.html" %}
+
+{% block body %}
+
+The site <tt>{{ trust_root|escape }}</tt> has requested verification
+of your OpenID.
+
+<form method="post" action="/server/processTrustResult/">
+{% if idSelect %}
+  Because you entered the server URL when authenticating, enter a
+  username here to return an identity URL of your choice:
+
+  <input type="text" name="name" size="30" />
+{% else %}
+  Verify your identity to the relying party?
+{% endif %}
+
+  <input type="submit" value="Yes" name="allow" />
+  <input type="submit" value="No" name="cancel" />
+</form>
+
+{% endblock %}

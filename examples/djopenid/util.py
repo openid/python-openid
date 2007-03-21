@@ -81,6 +81,11 @@ def getOpenIDStore(filestore_path, table_prefix):
 
     return s
 
+def renderTemplate(request, template_name, response_data):
+    context = RequestContext(request, response_data)
+    template = loader.get_template(template_name)
+    return template.render(context)
+
 def sendResponse(func):
     """
     A decorator to make Django views nicer to use and easier to read.
@@ -105,11 +110,9 @@ def sendResponse(func):
             return result
         else:
             template_name, response_data = result
-            context = RequestContext(request, response_data)
-            template = loader.get_template(template_name)
 
             response_class = response_data.get('response_class', http.HttpResponse)
-            return response_class(template.render(context))
+            return response_class(renderTemplate(request, template_name, response_data))
     return _responseWrapper
 
 def getTrustRoot(req):
