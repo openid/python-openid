@@ -1,4 +1,12 @@
 
+"""
+This module implements an example server for the OpenID library.  Some
+functionality has been omitted intentionally; this code is intended to
+be instructive on the use of this library.  This server does not
+perform actual user authentication and serves up only one OpenID URL,
+with the exception of IDP-generated identifiers.
+"""
+
 import cgi
 
 from djopenid import util
@@ -60,11 +68,18 @@ def getRequest(request):
 
 @util.sendResponse
 def server(request):
+    """
+    Respond to requests for the server's primary web page.
+    """
     return 'server/index.html', {'user_url': getUserURL(request),
                                  'server_xrds_url': getIdpXRDSURL(request)}
 
 @util.sendResponse
 def idpXrds(request):
+    """
+    Respond to requests for the IDP's XRDS document, which is used in
+    IDP-driven identifier selection.
+    """
     body = util.renderTemplate(request, 'server/xrds.html',
                                {'server_url': getServerURL(request)})
     r = http.HttpResponse(body)
@@ -73,34 +88,58 @@ def idpXrds(request):
 
 @util.sendResponse
 def idPage(request):
+    """
+    Serve the identity page for OpenID URLs.
+    """
     return 'server/idPage.html', {'server_url': getServerURL(request)}
 
 @util.sendResponse
 def trustPage(request):
+    """
+    Display the trust page template, which allows the user to decide
+    whether to approve the OpenID verification.
+    """
     return 'server/trust.html', {}
 
 @util.sendResponse
 def endpoint(request):
+    """
+    Respond to low-level OpenID protocol messages.
+    """
     s = getServer(request)
 
     query = util.normalDict(request.GET or request.POST)
 
+    # First, decode the incoming request into something the OpenID
+    # library can use.
     try:
         openid_request = s.decodeRequest(query)
     except ProtocolError, why:
+        # This means the incoming request was invalid.
         return 'server/endpoint.html', {'error': str(why)}
 
+    # If we did not get a request, display text indicating that this
+    # is an endpoint.
     if openid_request is None:
-        # Display text indicating that this is an endpoint.
         return 'server/endpoint.html', {}
 
+    # We got a request; if the mode is checkid_*, we will handle it by
+    # getting feedback from the user or by checking the session.
     if openid_request.mode in ["checkid_immediate", "checkid_setup"]:
         return handleCheckIDRequest(request, openid_request)
     else:
+        # We got some other kind of OpenID request, so we let the
+        # server handle this.
         response = s.handleRequest(openid_request)
         return displayResponse(request, response)
 
 def handleCheckIDRequest(request, openid_request):
+    """
+    Handle checkid_* requests.  Get input from the user to find out
+    whether she trusts the RP involved.  Possibly, get intput about
+    what Simple Registration information, if any, to send in the
+    response.
+    """
     if openid_request.immediate:
         # Always respond with 'cancel' to immediate mode requests
         # because we don't track information about a logged-in user.
@@ -110,10 +149,15 @@ def handleCheckIDRequest(request, openid_request):
         response = openid_request.answer(False)
         return displayResponse(request, response)
     else:
+        # Store the incoming request object in the session so we can
+        # get to it later.
         setRequest(request, openid_request)
         return showDecidePage(request, openid_request)
 
 def showDecidePage(request, openid_request):
+    """
+    Render a page to the user so a trust decision can be made.
+    """
     idSelect = openid_request.idSelect()
     identity = openid_request.identity
     trust_root = openid_request.trust_root
@@ -124,22 +168,35 @@ def showDecidePage(request, openid_request):
 
 @util.sendResponse
 def processTrustResult(request):
+    """
+    Handle the result of a trust decision and respond to the RP
+    accordingly.
+    """
+    # Get the request from the session so we can construct the
+    # appropriate response.
     openid_request = getRequest(request)
 
     result = None
     response_identity = openid_request.identity
 
+    # If the decision was to allow the verification, respond
+    # accordingly.
     if 'allow' in request.POST:
         result = True
     elif 'cancel' in request.POST:
+        # Otherwise, respond with False.
         result = False
 
+    # If the request was an IDP-driven identifier selection request
+    # (i.e., the IDP URL was entered at the RP), look at the form to
+    # find out what identity URL the user wanted to send.
     if openid_request.idSelect():
         response_identity = getUserURL(request, name=request.POST['name'])
 
+    # Generate a response with the appropriate answer.
     response = openid_request.answer(result, identity=response_identity)
 
-    # Send Simple Registration data in the response.
+    # Send Simple Registration data in the response, if appropriate.
     if result:
         sreg_data = {
             'fullname': 'Example User',
@@ -159,14 +216,23 @@ def processTrustResult(request):
     return displayResponse(request, response)
 
 def displayResponse(request, response):
+    """
+    Display an OpenID response.  Errors will be displayed directly to
+    the user; successful responses and other protocol-level messages
+    will be sent using the proper mechanism (i.e., direct response,
+    redirection, etc.).
+    """
     s = getServer(request)
 
+    # Encode the response into something that is renderable.
     try:
         webresponse = s.encodeResponse(response)
     except EncodingError, why:
+        # If it couldn't be encoded, display an error.
         text = why.response.encodeToKVForm()
         return 'server/endpoint.html', {'error': cgi.escape(text)}
 
+    # Construct the appropriate django framework response.
     r = http.HttpResponse(webresponse.body)
     r.status_code = webresponse.code
 
