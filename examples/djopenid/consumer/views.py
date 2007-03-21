@@ -77,11 +77,14 @@ def startOpenID(request):
             url = auth_request.redirectURL(trust_root, return_to)
             response = HttpResponseRedirect(url)
         else:
+            # Beware: this renders a template whose content is a form
+            # and some javascript to submit it upon page load.  Non-JS
+            # users will have to click the form submit button to
+            # initiate OpenID authentication.
             form_id = 'openid_message'
             form_html = auth_request.formMarkup(trust_root, return_to,
                                                 False, {'id': form_id})
-            response = http.HttpResponse(form_html)
-            response['Content-Type'] = 'text/html'
+            return 'consumer/request_form.html', {'html': form_html}
 
         return response
 
