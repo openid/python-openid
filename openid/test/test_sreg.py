@@ -1,5 +1,6 @@
 from openid import sreg
 from openid.message import NamespaceMap, Message, registerNamespaceAlias
+from openid.server.server import OpenIDRequest, OpenIDResponse
 
 import unittest
 
@@ -420,13 +421,19 @@ class SendFieldsTest(unittest.TestCase):
         req_msg = Message()
         req_msg.updateArgs(sreg.ns_uri, sreg_req.getExtensionArgs())
 
+        req = OpenIDRequest()
+        req.message = req_msg
+        req.namespace = req_msg.getOpenIDNamespace()
+
         # -> send checkid_* request
 
         # Create an empty response message
         resp_msg = Message()
+        resp = OpenIDResponse(req)
+        resp.fields = resp_msg
 
         # Put the requested data fields in the response message
-        sreg.sendSRegFields(req_msg, data, resp_msg)
+        sreg.sendSRegFields(req, data, resp)
 
         # <- send id_res response
 

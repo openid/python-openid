@@ -19,7 +19,7 @@ OpenID providers.
       # [ get the user's approval and data, informing the user that
       #   the fields in sreg_response were requested ]
       sreg_resp = SRegResponse.extractResponse(sreg_req, user_data)
-      openid_response.addExtension(sreg_resp)
+      sreg_resp.addToOpenIDResponse(openid_response)
 
   3. The relying party uses C{L{SRegResponse.fromOpenIDResponse}} to
      extract the data from the OpenID response::
@@ -502,27 +502,27 @@ class SRegResponse(Extension):
     def __nonzero__(self):
         return bool(self.data)
 
-def sendSRegFields(request_message, data, response_message):
+def sendSRegFields(openid_request, data, openid_response):
     """Convenience function for copying all the sreg data that was
     requested from a supplied set of sreg data into the response
     message. If no data were requested, no data will be sent.
 
-    @param request_message: The OpenID (checkid_*) request that may be
+    @param openid_request: The OpenID (checkid_*) request that may be
         requesting sreg data.
-    @type request_message: C{L{openid.message.Message}}
+    @type openid_request: C{L{openid.server.server.OpenIDRequest}}
 
     @param data: The simple registration data to send. All
         requested fields that are present in this dictionary will be
         added to the response message.
     @type data: {str:str}
 
-    @param response_message: The OpenID C{id_res} response to which the
+    @param openid_response: The OpenID C{id_res} response to which the
         simple registration data should be added
-    @type response_message: openid.message.Message
+    @type openid_response: openid.server.OpenIDResponse
 
-    @returns: Does not return a value; updates the response_message
+    @returns: Does not return a value; updates the openid_response
         instead.
     """
-    request = SRegRequest.fromOpenIDRequest(request_message)
-    response = SRegResponse.extractResponse(request, data)
-    response.addToOpenIDResponse(response_message)
+    sreg_request = SRegRequest.fromOpenIDRequest(openid_request.message)
+    sreg_response = SRegResponse.extractResponse(sreg_request, data)
+    sreg_response.addToOpenIDResponse(openid_response.fields)
