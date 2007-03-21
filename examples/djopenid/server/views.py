@@ -28,11 +28,14 @@ def getServer(request):
     """
     return Server(getOpenIDStore(), getServerURL(request))
 
-def getUserURL(request, name='user'):
+def getUserURL(request, name=None):
     """
     Return the URL of the OpenID that this application serves.
     """
-    return util.getTrustRoot(request) + "server/%s/" % (name,)
+    if name:
+        return util.getTrustRoot(request) + "server/id/%s/" % (name,)
+    else:
+        return util.getTrustRoot(request) + "server/user/"
 
 def getIdpXRDSURL(request):
     """
@@ -135,6 +138,23 @@ def processTrustResult(request):
         response_identity = getUserURL(request, name=request.POST['name'])
 
     response = openid_request.answer(result, identity=response_identity)
+
+    # Send Simple Registration data in the response.
+    if result:
+        sreg_data = {
+            'fullname': 'Example User',
+            'nickname': 'example',
+            'dob': '1970-01-01',
+            'email': 'invalid@example.com',
+            'gender': 'F',
+            'postcode': '12345',
+            'country': 'ES',
+            'language': 'eu',
+            'timezone': 'America/New_York',
+            }
+
+        sreg.sendSRegFields(openid_request, sreg_data,
+                            response)
 
     return displayResponse(request, response)
 
