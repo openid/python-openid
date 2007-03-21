@@ -35,6 +35,12 @@ SETUP
     same time, run the command twice with two different values for
     PORT.
 
+ 6. Point your web browser at the server at
+
+    http://localhost:PORT/
+
+    to begin.
+
 ABOUT THE CODE
 ==============
 
