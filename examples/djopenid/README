@@ -21,15 +21,19 @@ SETUP
     the database type or path, although the default settings should be
     sufficient for most systems.
 
- 4. In examples/djopenid/ run these commands:
+ 4. In examples/djopenid/ run:
 
-    A. python manage.py syncdb
+    python manage.py syncdb
 
-    B. pyhton manage.py runserver
+ 5. To run the example consumer or server, run
 
-    This will initialize the Django environment and run a
-    single-process web server (usually on localhost, port 8000) which
-    you can visit to try out the functionality.
+    python manage.py runserver PORT
+
+    where PORT is the port number on which to listen.
+
+    Note that if you want to try both the consumer and server at the
+    same time, run the command twice with two different values for
+    PORT.
 
 CONTACT
 =======
