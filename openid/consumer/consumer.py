@@ -478,7 +478,11 @@ class GenericConsumer(object):
         self.negotiator = default_negotiator.copy()
 
     def begin(self, service_endpoint):
-        assoc = self._getAssociation(service_endpoint)
+        if self.store is None:
+            assoc = None
+        else:
+            assoc = self._getAssociation(service_endpoint)
+
         request = AuthRequest(service_endpoint, assoc)
         request.return_to_args[self.openid1_nonce_query_arg_name] = mkNonce()
         return request
@@ -654,12 +658,16 @@ class GenericConsumer(object):
         except ValueError, why:
             raise ProtocolError('Malformed nonce: %s' % (why[0],))
 
-        if not self.store.useNonce(server_url, timestamp, salt):
+        if (self.store is not None and
+            not self.store.useNonce(server_url, timestamp, salt)):
             raise ProtocolError('Nonce already used or out of range')
 
     def _idResCheckSignature(self, message, server_url):
         assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
-        assoc = self.store.getAssociation(server_url, assoc_handle)
+        if self.store is None:
+            assoc = None
+        else:
+            assoc = self.store.getAssociation(server_url, assoc_handle)
 
         if assoc:
             if assoc.getExpiresIn() <= 0:
@@ -967,7 +975,11 @@ class GenericConsumer(object):
 
         invalidate_handle = response.getArg(OPENID_NS, 'invalidate_handle')
         if invalidate_handle is not None:
-            self.store.removeAssociation(server_url, invalidate_handle)
+            if self.store is None:
+                oidutil.log('Unexpectedly got invalidate_handle without '
+                            'a store!')
+            else:
+                self.store.removeAssociation(server_url, invalidate_handle)
 
         if is_valid == 'true':
             return True

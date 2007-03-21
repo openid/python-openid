@@ -15,7 +15,7 @@ class OpenIDStore(object):
         one-way nonces.
 
     @sort: storeAssociation, getAssociation, removeAssociation,
-        useNonce, isDumb
+        useNonce
     """
 
     def storeAssociation(self, server_url, association):

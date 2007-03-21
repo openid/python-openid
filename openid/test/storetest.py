@@ -2,6 +2,7 @@ from openid.association import Association
 from openid.cryptutil import randomString
 from openid.store.nonce import *
 
+import unittest
 import string
 import time
 import socket
@@ -38,7 +39,6 @@ def testStore(store):
 
     OpenIDStore -> NoneType
     """
-
     # Empty store has no associations (this just makes sure that all
     # of the stores have a getExpired method and that it doesn't just
     # blow up)
@@ -315,12 +315,25 @@ def test_memstore():
     from openid.store import memstore
     testStore(memstore.MemoryStore())
 
-def test():
-    test_filestore()
-    test_sqlite()
-    test_mysql()
-    test_postgresql()
-    test_memstore()
+test_functions = [
+    test_filestore,
+    test_sqlite,
+    test_mysql,
+    test_postgresql,
+    test_memstore,
+    ]
+
+def pyUnitTests():
+    tests = map(unittest.FunctionTestCase, test_functions)
+    load = unittest.defaultTestLoader.loadTestsFromTestCase
+    return unittest.TestSuite(tests)
 
 if __name__ == '__main__':
-    test()
+    import sys
+    suite = pyUnitTests()
+    runner = unittest.TextTestRunner()
+    result = runner.run(suite)
+    if result.wasSuccessful():
+        sys.exit(0)
+    else:
+        sys.exit(1)

@@ -329,6 +329,25 @@ class TestIdResCheckSignature(TestIdRes):
             ProtocolError, self.consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
+    def test_stateless_noStore(self):
+        # assoc_handle missing assoc, consumer._checkAuth returns goodthings
+        self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
+        self.consumer.store = None
+        self.consumer._processCheckAuthResponse = (
+            lambda response, server_url: True)
+        self.consumer._makeKVPost = lambda args, server_url: {}
+        self.consumer._idResCheckSignature(self.message,
+                                           self.endpoint.server_url)
+
+    def test_statelessRaisesError_noStore(self):
+        # assoc_handle missing assoc, consumer._checkAuth returns goodthings
+        self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
+        self.consumer._checkAuth = lambda unused1, unused2: False
+        self.consumer.store = None
+        self.failUnlessRaises(
+            ProtocolError, self.consumer._idResCheckSignature,
+            self.message, self.endpoint.server_url)
+
 
 class TestQueryFormat(TestIdRes):
     def test_notAList(self):
@@ -520,7 +539,14 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
 
 
 
-class TestCheckAuthResponse(TestIdRes):
+class TestCheckAuthResponse(TestIdRes, CatchLogs):
+    def setUp(self):
+        CatchLogs.setUp(self)
+        TestIdRes.setUp(self)
+
+    def tearDown(self):
+        CatchLogs.tearDown(self)
+
     def _createAssoc(self):
         issued = time.time()
         lifetime = 1000
@@ -553,7 +579,7 @@ class TestCheckAuthResponse(TestIdRes):
         """Make sure that the handle is invalidated when is_valid is false
 
         From "Verifying directly with the OpenID Provider"::
-        
+
             If the OP responds with "is_valid" set to "true", and
             "invalidate_handle" is present, the Relying Party SHOULD
             NOT send further authentication requests with that handle.
@@ -576,12 +602,25 @@ class TestCheckAuthResponse(TestIdRes):
             })
         r = self.consumer._processCheckAuthResponse(response, self.server_url)
         self.failUnless(r)
+        self.failUnlessLogEmpty()
+
+    def test_invalidateMissing_noStore(self):
+        """invalidate_handle with a handle that is not present"""
+        response = Message.fromOpenIDArgs({
+            'is_valid':'true',
+            'invalidate_handle':'missing',
+            })
+        self.consumer.store = None
+        r = self.consumer._processCheckAuthResponse(response, self.server_url)
+        self.failUnless(r)
+        self.failUnlessLogMatches(
+            'Unexpectedly got invalidate_handle without a store')
 
     def test_invalidatePresent(self):
         """invalidate_handle with a handle that exists
 
         From "Verifying directly with the OpenID Provider"::
-        
+
             If the OP responds with "is_valid" set to "true", and
             "invalidate_handle" is present, the Relying Party SHOULD
             NOT send further authentication requests with that handle.
@@ -828,6 +867,16 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
                                    })
         self.failUnlessRaises(ProtocolError, self.consumer._idResCheckNonce,
                               self.response, self.endpoint)
+
+    def test_successWithNoStore(self):
+        """When there is no store, checking the nonce succeeds"""
+        self.consumer.store = None
+        self.response = Message.fromOpenIDArgs(
+                                  {'response_nonce': mkNonce(),
+                                   'ns':OPENID2_NS,
+                                   })
+        self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.failUnlessLogEmpty()
 
     def test_tamperedNonce(self):
         """Malformed nonce"""
@@ -1732,6 +1781,22 @@ if cryptutil.SHA256_AVAILABLE:
         message_namespace = OPENID2_NS
 else:
     warnings.warn("Not running SHA256 association session tests.")
+
+class TestNoStore(unittest.TestCase):
+    def setUp(self):
+        self.consumer = GenericConsumer(None)
+
+    def test_completeNoGetAssoc(self):
+        """_getAssociation is never called when the store is None"""
+        def notCalled(unused):
+            self.fail('This method was unexpectedly called')
+
+        endpoint = OpenIDServiceEndpoint()
+        endpoint.claimed_id = 'identity_url'
+
+        self.consumer._getAssociation = notCalled
+        auth_request = self.consumer.begin(endpoint)
+        # _getAssociation was not called
 
 if __name__ == '__main__':
     unittest.main()
