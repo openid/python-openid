@@ -35,6 +35,14 @@ SETUP
     same time, run the command twice with two different values for
     PORT.
 
+ABOUT THE CODE
+==============
+
+The example server and consumer code provided in this package are
+intended to be instructional in the use of this OpenID library.  While
+it is not recommended to use the example code in production, the code
+should be sufficient to explain the general use of the library.
+
 CONTACT
 =======
 
