@@ -448,7 +448,7 @@ class TestEncode(unittest.TestCase):
             trust_root = 'http://burr.unittest/',
             return_to = 'http://burr.unittest/999',
             immediate = False,
-            server = self.server,
+            op_endpoint = self.server.op_endpoint,
             )
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
@@ -475,7 +475,7 @@ class TestEncode(unittest.TestCase):
             trust_root = 'http://burr.unittest/',
             return_to = 'http://burr.unittest/999',
             immediate = False,
-            server = self.server,
+            op_endpoint = self.server.op_endpoint,
             )
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
@@ -547,7 +547,7 @@ class TestSigningEncode(unittest.TestCase):
             trust_root = 'http://burr.unittest/',
             return_to = 'http://burr.unittest/999',
             immediate = False,
-            server = self.server,
+            op_endpoint = self.server.op_endpoint,
             )
         self.response = server.OpenIDResponse(self.request)
         self.response.fields = Message.fromOpenIDArgs({
@@ -597,7 +597,7 @@ class TestSigningEncode(unittest.TestCase):
             trust_root = 'http://burr.unittest/',
             return_to = 'http://burr.unittest/999',
             immediate = False,
-            server = self.server,
+            op_endpoint = self.server.op_endpoint,
             )
         response = server.OpenIDResponse(request)
         response.fields.setArg(OPENID_NS, 'mode', 'cancel')
@@ -637,7 +637,7 @@ class TestCheckID(unittest.TestCase):
             trust_root = 'http://bar.unittest/',
             return_to = 'http://bar.unittest/999',
             immediate = False,
-            server = self.server,
+            op_endpoint = self.server.op_endpoint,
             )
 
     def test_trustRootInvalid(self):
@@ -656,7 +656,7 @@ class TestCheckID(unittest.TestCase):
             trust_root = 'http://bar.unittest/',
             return_to = None,
             immediate = False,
-            server = self.server,
+            op_endpoint = self.server.op_endpoint,
             )
 
         self.failUnless(request.trustRootValid())
@@ -755,7 +755,7 @@ class TestCheckID(unittest.TestCase):
                               identity=None)
 
     def test_answerAllowForgotEndpoint(self):
-        self.server.op_endpoint = None
+        self.request.op_endpoint = None
         self.failUnlessRaises(RuntimeError, self.request.answer, True)
 
     def test_checkIDWithNoIdentityOpenID1(self):
@@ -779,7 +779,7 @@ class TestCheckID(unittest.TestCase):
         msg.setArg(OPENID_NS, 'assoc_handle', 'bogus')
         msg.setArg(OPENID_NS, 'identity', 'george')
 
-        result = server.CheckIDRequest.fromMessage(msg, self.server)
+        result = server.CheckIDRequest.fromMessage(msg, self.server.op_endpoint)
 
         self.failUnless(result.trust_root == 'http://real_trust_root/')
 
@@ -794,7 +794,7 @@ class TestCheckID(unittest.TestCase):
         msg.setArg(OPENID_NS, 'identity', 'george')
         msg.setArg(OPENID_NS, 'claimed_id', 'george')
 
-        result = server.CheckIDRequest.fromMessage(msg, self.server)
+        result = server.CheckIDRequest.fromMessage(msg, self.server.op_endpoint)
 
         self.failUnless(result.trust_root == 'http://real_trust_root/')
 
@@ -854,7 +854,7 @@ class TestCheckID(unittest.TestCase):
         result_args = dict(cgi.parse_qsl(result_args))
         message = Message.fromPostArgs(result_args)
         rebuilt_request = server.CheckIDRequest.fromMessage(message,
-                                                            self.server)
+                                                            self.server.op_endpoint)
         # argh, lousy hack
         self.request.message = message
         self.failUnlessEqual(rebuilt_request.__dict__, self.request.__dict__)
@@ -885,7 +885,7 @@ class TestCheckIDExtension(unittest.TestCase):
             trust_root = 'http://bar.unittest/',
             return_to = 'http://bar.unittest/999',
             immediate = False,
-            server = self.server,
+            op_endpoint = self.server.op_endpoint,
             )
         self.response = server.OpenIDResponse(self.request)
         self.response.fields.setArg(OPENID_NS, 'mode', 'id_res')

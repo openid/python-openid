@@ -167,7 +167,7 @@ class CheckAuthRequest(OpenIDRequest):
         self.namespace = OPENID2_NS
 
 
-    def fromMessage(klass, message, server=UNUSED):
+    def fromMessage(klass, message, op_endpoint=UNUSED):
         """Construct me from an OpenID Message.
 
         @param message: An OpenID check_authentication Message
@@ -388,7 +388,7 @@ class AssociateRequest(OpenIDRequest):
         self.namespace = OPENID2_NS
 
 
-    def fromMessage(klass, message, server=UNUSED):
+    def fromMessage(klass, message, op_endpoint=UNUSED):
         """Construct me from an OpenID Message.
 
         @param message: The OpenID associate request
@@ -514,7 +514,7 @@ class CheckIDRequest(OpenIDRequest):
     """
 
     def __init__(self, identity, return_to, trust_root=None, immediate=False,
-                 assoc_handle=None, server=None):
+                 assoc_handle=None, op_endpoint=None):
         """Construct me.
 
         These parameters are assigned directly as class attributes, see
@@ -528,8 +528,8 @@ class CheckIDRequest(OpenIDRequest):
         self.claimed_id = identity
         self.return_to = return_to
         self.trust_root = trust_root or return_to
-        self.server = server
-        assert self.server is not None
+        self.op_endpoint = op_endpoint
+        assert self.op_endpoint is not None
         if immediate:
             self.immediate = True
             self.mode = "checkid_immediate"
@@ -544,7 +544,7 @@ class CheckIDRequest(OpenIDRequest):
             raise UntrustedReturnURL(None, self.return_to, self.trust_root)
 
 
-    def fromMessage(klass, message, server):
+    def fromMessage(klass, message, op_endpoint):
         """Construct me from an OpenID message.
 
         @raises ProtocolError: When not all required parameters are present
@@ -558,15 +558,16 @@ class CheckIDRequest(OpenIDRequest):
         @param message: An OpenID checkid_* request Message
         @type message: openid.message.Message
 
-        @param server: The L{Server} this message was sent to.
-        @type server: L{Server}
+        @param op_endpoint: The endpoint URL of the server that this
+            message was sent to.
+        @type op_endpoint: str
 
         @returntype: L{CheckIDRequest}
         """
         self = klass.__new__(klass)
         self.message = message
         self.namespace = message.getOpenIDNamespace()
-        self.server = server
+        self.op_endpoint = op_endpoint
         mode = message.getArg(OPENID_NS, 'mode')
         if mode == "checkid_immediate":
             self.immediate = True
@@ -705,13 +706,13 @@ class CheckIDRequest(OpenIDRequest):
             raise NoReturnToError
 
         if not server_url:
-            if self.namespace != OPENID1_NS and not self.server.op_endpoint:
+            if self.namespace != OPENID1_NS and not self.op_endpoint:
                 # In other words, that warning I raised in Server.__init__?
                 # You should pay attention to it now.
                 raise RuntimeError("%s should be constructed with op_endpoint "
                                    "to respond to OpenID 2.0 messages." %
-                                   (self.server,))
-            server_url = self.server.op_endpoint
+                                   (self,))
+            server_url = self.op_endpoint
 
         if allow:
             mode = 'id_res'
@@ -788,7 +789,7 @@ class CheckIDRequest(OpenIDRequest):
                 setup_request = self.__class__(
                     self.identity, self.return_to, self.trust_root,
                     immediate=False, assoc_handle=self.assoc_handle,
-                    server=self.server)
+                    op_endpoint=self.op_endpoint)
                 setup_url = setup_request.encodeToURL(server_url)
                 response.fields.setArg(OPENID_NS, 'user_setup_url', setup_url)
 
@@ -1278,7 +1279,7 @@ class Decoder(object):
             raise ProtocolError(message, text=fmt % (message,))
 
         handler = self._handlers.get(mode, self.defaultDecoder)
-        return handler(message, self.server)
+        return handler(message, self.server.op_endpoint)
 
 
     def defaultDecoder(self, message, server):
