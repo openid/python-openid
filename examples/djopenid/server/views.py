@@ -5,6 +5,14 @@ functionality has been omitted intentionally; this code is intended to
 be instructive on the use of this library.  This server does not
 perform actual user authentication and serves up only one OpenID URL,
 with the exception of IDP-generated identifiers.
+
+Some code conventions used here:
+
+* 'request' is a Django request object.
+
+* 'openid_request' is an OpenID library request object.
+
+* 'openid_response' is an OpenID library response
 """
 
 import cgi
@@ -130,8 +138,8 @@ def endpoint(request):
     else:
         # We got some other kind of OpenID request, so we let the
         # server handle this.
-        response = s.handleRequest(openid_request)
-        return displayResponse(request, response)
+        openid_response = s.handleRequest(openid_request)
+        return displayResponse(request, openid_response)
 
 def handleCheckIDRequest(request, openid_request):
     """
@@ -146,8 +154,8 @@ def handleCheckIDRequest(request, openid_request):
         # If we did, then the answer would depend on whether that user
         # had trusted the request's trust root and whether the user is
         # even logged in.
-        response = openid_request.answer(False)
-        return displayResponse(request, response)
+        openid_response = openid_request.answer(False)
+        return displayResponse(request, openid_response)
     else:
         # Store the incoming request object in the session so we can
         # get to it later.
@@ -196,7 +204,8 @@ def processTrustResult(request):
         response_identity = getUserURL(request, name=request.POST['name'])
 
     # Generate a response with the appropriate answer.
-    response = openid_request.answer(result, identity=response_identity)
+    openid_response = openid_request.answer(result,
+                                            identity=response_identity)
 
     # Send Simple Registration data in the response, if appropriate.
     if result:
@@ -213,11 +222,11 @@ def processTrustResult(request):
             }
 
         sreg.sendSRegFields(openid_request, sreg_data,
-                            response)
+                            openid_response)
 
-    return displayResponse(request, response)
+    return displayResponse(request, openid_response)
 
-def displayResponse(request, response):
+def displayResponse(request, openid_response):
     """
     Display an OpenID response.  Errors will be displayed directly to
     the user; successful responses and other protocol-level messages
@@ -228,7 +237,7 @@ def displayResponse(request, response):
 
     # Encode the response into something that is renderable.
     try:
-        webresponse = s.encodeResponse(response)
+        webresponse = s.encodeResponse(openid_response)
     except EncodingError, why:
         # If it couldn't be encoded, display an error.
         text = why.response.encodeToKVForm()
