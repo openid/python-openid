@@ -161,10 +161,12 @@ def showDecidePage(request, openid_request):
     idSelect = openid_request.idSelect()
     identity = openid_request.identity
     trust_root = openid_request.trust_root
+    default_url = getUserURL(request)
 
     return 'server/trust.html', {'idSelect': idSelect,
                                  'identity': identity,
-                                 'trust_root': trust_root,}
+                                 'trust_root': trust_root,
+                                 'default_url': default_url}
 
 @util.sendResponse
 def processTrustResult(request):
