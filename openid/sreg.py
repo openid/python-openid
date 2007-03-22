@@ -21,10 +21,10 @@ OpenID providers.
       sreg_resp = SRegResponse.extractResponse(sreg_req, user_data)
       sreg_resp.addToOpenIDResponse(openid_response)
 
-  3. The relying party uses C{L{SRegResponse.fromOpenIDResponse}} to
+  3. The relying party uses C{L{SRegResponse.fromSuccessResponse}} to
      extract the data from the OpenID response::
 
-      sreg_resp = SRegResponse.fromOpenIDResponse(success_response.message)
+      sreg_resp = SRegResponse.fromSuccessResponse(success_response)
 
 @since: 2.0
 
@@ -384,7 +384,7 @@ class SRegResponse(Extension):
         stored in the response message.
 
     @group Server: extractResponse, addToOpenIDResponse
-    @group Consumer: fromOpenIDResponse
+    @group Consumer: fromSuccessResponse
     @group Read-only dictionary interface: keys, iterkeys, items, iteritems,
         __iter__, get, __getitem__, keys, has_key
     """
@@ -431,21 +431,29 @@ class SRegResponse(Extension):
     # overridden for testing
     _getSRegNS = staticmethod(getSRegNS)
 
-    def fromOpenIDResponse(cls, openid_response_message):
-        """Create a C{L{SRegResponse}} object from an id_res
-        response message
+    def fromSuccessResponse(cls, success_response, signed_only=True):
+        """Create a C{L{SRegResponse}} object from a successful OpenID
+        library response
+        (C{L{openid.consumer.consumer.SuccessResponse}}) response
+        message
 
-        @param openid_response_message: The OpenID id_res response
-            message object
-        @type openid_response_message: C{L{openid.message.Message}}
+        @param success_respons: A SuccessResponse from consumer.complete()
+        @type success_response: C{L{openid.consumer.consumer.SuccessResponse}}
+
+        @param signed_only: Whether to process only data that was
+            signed in the id_res message from the server.
+        @type signed_only: bool
 
         @rtype: SRegResponse
         @returns: A simple registration response containing the data
             that was supplied with the C{id_res} response.
         """
         self = cls()
-        self.ns_uri = self._getSRegNS(openid_response_message)
-        args = openid_response_message.getArgs(self.ns_uri)
+        self.ns_uri = self._getSRegNS(success_response.message)
+        if signed_only:
+            args = success_response.getSignedNS(self.ns_uri)
+        else:
+            args = success_response.message.getArgs(self.ns_uri)
 
         for field_name in data_fields:
             if field_name in args:
@@ -453,7 +461,7 @@ class SRegResponse(Extension):
 
         return self
 
-    fromOpenIDResponse = classmethod(fromOpenIDResponse)
+    fromSuccessResponse = classmethod(fromSuccessResponse)
 
     def addToOpenIDResponse(self, response_message):
         """Add the data fields contained in this simple registration

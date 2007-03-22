@@ -113,7 +113,7 @@ def finishOpenID(request):
         # information was included in the OpenID response.
         sreg_response = {}
         if response.status == consumer.SUCCESS:
-            sreg_response = sreg.SRegResponse.fromOpenIDResponse(response.message)
+            sreg_response = sreg.SRegResponse.fromSuccessResponse(response)
 
         # Map different consumer status codes to template contexts.
         results = {

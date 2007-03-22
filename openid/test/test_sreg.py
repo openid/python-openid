@@ -402,6 +402,14 @@ data = {
     'language':'en-us',
     }
 
+class DummySuccessResponse(object):
+    def __init__(self, message, signed_stuff):
+        self.message = message
+        self.signed_stuff = signed_stuff
+
+    def getSignedNS(self, ns_uri):
+        return self.signed_stuff
+
 class SRegResponseTest(unittest.TestCase):
     def test_construct(self):
         resp = sreg.SRegResponse(data)
@@ -412,6 +420,24 @@ class SRegResponseTest(unittest.TestCase):
         self.failIf(empty_resp)
 
         # XXX: finish this test
+
+    def test_fromSuccessResponse_signed(self):
+        message = Message.fromOpenIDArgs({
+            'sreg.nickname':'The Mad Stork',
+            })
+        success_resp = DummySuccessResponse(message, {})
+        sreg_resp = sreg.SRegResponse.fromSuccessResponse(success_resp)
+        self.failIf(sreg_resp)
+
+    def test_fromSuccessResponse_unsigned(self):
+        message = Message.fromOpenIDArgs({
+            'sreg.nickname':'The Mad Stork',
+            })
+        success_resp = DummySuccessResponse(message, {})
+        sreg_resp = sreg.SRegResponse.fromSuccessResponse(success_resp,
+                                                          signed_only=False)
+        self.failUnlessEqual([('nickname', 'The Mad Stork')],
+                             sreg_resp.items())
 
 class SendFieldsTest(unittest.TestCase):
     def test(self):
