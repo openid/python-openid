@@ -49,6 +49,16 @@ intended to be instructional in the use of this OpenID library.  While
 it is not recommended to use the example code in production, the code
 should be sufficient to explain the general use of the library.
 
+If you aren't familiar with the Django web framework, you can quickly
+start looking at the important code by looking in the 'views' modules:
+
+  djopenid.consumer.views
+  djopenid.server.views
+
+Each view is a python callable that responds to an HTTP request.
+Regardless of whether you use a framework, your application should
+look similar to these example applications.
+
 CONTACT
 =======
 
