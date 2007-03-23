@@ -246,7 +246,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # comment posting, etc. here.
             fmt = "You have successfully verified %s as your identity."
             message = fmt % (cgi.escape(info.identity_url),)
-            sreg_resp = sreg.SRegResponse.fromOpenIDResponse(info.message)
+            sreg_resp = sreg.SRegResponse.fromSuccessResponse(info)
             if info.endpoint.canonicalID:
                 # You should authorize i-name users by their canonicalID,
                 # rather than their more human-friendly identifiers.  That
