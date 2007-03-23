@@ -19,6 +19,16 @@ information on running the examples.
 Library documentation is available in html form in the doc directory.
 
 
+LOGGING
+=======
+
+This library offers a logging hook that will record unexpected
+conditions that occur in library code. If a condition is recoverable,
+the library will recover and issue a log message. If it is not
+recoverable, the library will raise an exception. See the
+documentation for the openid.oidutil module for more on the logging
+hook.
+
 DOCUMENTATION
 =============
 

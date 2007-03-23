@@ -1,3 +1,10 @@
+"""This module contains general utility code that is used throughout
+the library.
+
+For users of this library, the C{L{log}} function is probably the most
+interesting.
+"""
+
 __all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64']
 
 import binascii
@@ -23,7 +30,36 @@ def importElementTree():
     else:
         raise
 
-def log(message, unused_level=0):
+def log(message, level=0):
+    """Handle a log message from the OpenID library.
+
+    This implementation writes the string it to C{sys.stderr},
+    followed by a newline.
+
+    Currently, the library does not use the second parameter to this
+    function, but that may change in the future.
+
+    To install your own logging hook::
+
+      from openid import oidutil
+
+      def myLoggingFunction(message, level):
+          ...
+
+      oidutil.log = myLoggingFunction
+
+    @param message: A string containing a debugging message from the
+        OpenID library
+    @type message: str
+
+    @param level: The severity of the log message. This parameter is
+        currently unused, but in the future, the library may indicate
+        more important information with a higher level value.
+    @type level: int or None
+
+    @returns: Nothing.
+    """
+
     sys.stderr.write(message)
     sys.stderr.write('\n')
 
