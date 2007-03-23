@@ -64,6 +64,24 @@ def log(message, level=0):
     sys.stderr.write('\n')
 
 def appendArgs(url, args):
+    """Append query arguments to a HTTP(s) URL. If the URL already has
+    query arguemtns, these arguments will be added, and the existing
+    arguments will be preserved. Duplicate arguments will not be
+    detected or collapsed (both will appear in the output).
+
+    @param url: The url to which the arguments will be appended
+    @type url: str
+
+    @param args: The query arguments to add to the URL. If a
+        dictionary is passed, the items will be sorted before
+        appending them to the URL. If a sequence of pairs is passed,
+        the order of the sequence will be preserved.
+    @type args: A dictionary from string to string, or a sequence of
+        pairs of strings.
+
+    @returns: The URL with the parameters added
+    @rtype: str
+    """
     if hasattr(args, 'items'):
         args = args.items()
         args.sort()
