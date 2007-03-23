@@ -1,6 +1,6 @@
 include LICENSE NOTICE INSTALL CHANGELOG MANIFEST.in NEWS
 graft admin
 recursive-include examples README *.py
-recursive-include openid/test dhpriv linkparse.txt n2b64 trustroot.txt *.py
+recursive-include openid/test *.txt dhpriv n2b64 *.py
 recursive-include openid/test/data *
 recursive-include doc *.css *.html
