@@ -437,7 +437,7 @@ class SRegResponse(Extension):
         (C{L{openid.consumer.consumer.SuccessResponse}}) response
         message
 
-        @param success_respons: A SuccessResponse from consumer.complete()
+        @param success_response: A SuccessResponse from consumer.complete()
         @type success_response: C{L{openid.consumer.consumer.SuccessResponse}}
 
         @param signed_only: Whether to process only data that was
