@@ -1,8 +1,36 @@
 # -*- test-case-name: openid.test.test_association -*-
 """
 This module contains code for dealing with associations between
-consumers and servers.
+consumers and servers. Associations contain a shared secret that is
+used to sign C{openid.mode=id_res} messages.
+
+Users of the library should not usually need to interact directly with
+associations. The L{store<openid.store>},
+L{server<openid.server.server>} and
+L{consumer<openid.consumer.consumer>} objects will create and manage
+the associations. The consumer and server code will make use of a
+C{L{SessionNegotiator}} when managing associations, which enables
+users to express a preference for what kind of associations should be
+allowed, and what kind of exchange should be done to establish the
+association.
+
+@var default_negotiator: A C{L{SessionNegotiator}} that allows all
+    association types that are specified by the OpenID
+    specification. It prefers to use HMAC-SHA1/DH-SHA1, if it's
+    available. If HMAC-SHA256 is not supported by your Python runtime,
+    HMAC-SHA256 and DH-SHA256 will not be available.
+
+@var encrypted_negotiator: A C{L{SessionNegotiator}} that
+    does not support C{'no-encryption'} associations. It prefers
+    HMAC-SHA1/DH-SHA1 association types if available.
 """
+
+__all__ = [
+    'default_negotiator',
+    'encrypted_negotiator',
+    'SessionNegotiator',
+    'Association',
+    ]
 
 import time
 
@@ -59,6 +87,53 @@ def checkSessionType(assoc_type, session_type):
             % (session_type, assoc_type))
 
 class SessionNegotiator(object):
+    """A session negotiator controls the allowed and preferred
+    association types and association session types. Both the
+    C{L{Consumer<openid.consumer.consumer.Consumer>}} and
+    C{L{Server<openid.server.server.Server>}} use negotiators when
+    creating associations.
+
+    You can create and use negotiators if you:
+
+     - Do not want to do Diffie-Hellman key exchange because you use
+       transport-layer encryption (e.g. SSL)
+
+     - Want to use only SHA-256 associations
+
+     - Do not want to support plain-text associations over a non-secure
+       channel
+
+    It is up to you to set a policy for what kinds of associations to
+    accept. By default, the library will make any kind of association
+    that is allowed in the OpenID 2.0 specification.
+
+    Use of negotiators in the library
+    =================================
+
+    When a consumer makes an association request, it calls
+    C{L{getAllowedType}} to get the preferred association type and
+    association session type.
+
+    The server gets a request for a particular association/session
+    type and calls C{L{isAllowed}} to determine if it should
+    create an association. If it is supported, negotiation is
+    complete. If it is not, the server calls C{L{getAllowedType}} to
+    get an allowed association type to return to the consumer.
+
+    If the consumer gets an error response indicating that the
+    requested association/session type is not supported by the server
+    that contains an assocation/session type to try, it calls
+    C{L{isAllowed}} to determine if it should try again with the
+    given combination of association/session type.
+
+    @ivar allowed_types: A list of association/session types that are
+        allowed by the server. The order of the pairs in this list
+        determines preference. If an association/session type comes
+        earlier in the list, the library is more likely to use that
+        type.
+    @type allowed_types: [(str, str)]
+    """
+
     def __init__(self, allowed_types):
         self.allowed_types = allowed_types
 
