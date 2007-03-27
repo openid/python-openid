@@ -1428,7 +1428,7 @@ class AuthRequest(object):
         the user agent to this URL.
 
         OpenID 2.0 endpoints also accept POST requests, see
-        L{shouldSendRedirect} and L{toFormMarkup}.
+        C{L{shouldSendRedirect}} and C{L{formMarkup}}.
 
         @param realm: The URL (or URL pattern) that identifies your
             web site to the user when she is authorizing it.
