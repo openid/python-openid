@@ -6,7 +6,6 @@ from django.http import HttpResponseRedirect
 
 from openid.consumer import consumer
 from openid.consumer.discover import DiscoveryFailure
-from openid.fetchers import HTTPFetchingError
 from openid import sreg
 
 def getOpenIDStore():
@@ -47,9 +46,6 @@ def startOpenID(request):
 
         try:
             auth_request = c.begin(openid_url)
-        except HTTPFetchingError, e:
-            # A fetching error occurred (DNS resolution, etc.)
-            error = "OpenID discovery error: not a valid OpenID"
         except DiscoveryFailure, e:
             # Some other protocol-level failure occurred.
             error = "OpenID discovery error: %s" % (str(e),)
