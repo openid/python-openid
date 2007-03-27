@@ -126,4 +126,7 @@ def finishOpenID(request):
 
         result = results[response.status]
 
+        if isinstance(response, consumer.FailureResponse):
+            result['failure_reason'] = response.message
+
     return 'consumer/index.html', result

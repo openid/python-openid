@@ -67,6 +67,12 @@
     </div>
   {% endif %}
 
+  {% if failure_reason %}
+    <div class="error">
+      {{ failure_reason|escape }}
+    </div>
+  {% endif %}
+
   <form method="post" action="/consumer/">
     <input type="text" size="40" name="openid_url" />
     <input type="submit" value="Begin" />
