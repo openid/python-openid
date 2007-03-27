@@ -127,6 +127,10 @@ def finishOpenID(request):
         result = results[response.status]
 
         if isinstance(response, consumer.FailureResponse):
+            # In a real application, this information should be
+            # written to a log for debugging/tracking OpenID
+            # authentication failures. In general, the messages are
+            # not user-friendly, but intended for developers.
             result['failure_reason'] = response.message
 
     return 'consumer/index.html', result
