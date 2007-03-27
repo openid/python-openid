@@ -975,6 +975,8 @@ class GenericConsumer(object):
 
         invalidate_handle = response.getArg(OPENID_NS, 'invalidate_handle')
         if invalidate_handle is not None:
+            oidutil.log(
+                'Received "invalidate_handle" from server %s' % (server_url,))
             if self.store is None:
                 oidutil.log('Unexpectedly got invalidate_handle without '
                             'a store!')

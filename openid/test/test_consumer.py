@@ -602,7 +602,9 @@ class TestCheckAuthResponse(TestIdRes, CatchLogs):
             })
         r = self.consumer._processCheckAuthResponse(response, self.server_url)
         self.failUnless(r)
-        self.failUnlessLogEmpty()
+        self.failUnlessLogMatches(
+            'Received "invalidate_handle"'
+            )
 
     def test_invalidateMissing_noStore(self):
         """invalidate_handle with a handle that is not present"""
@@ -614,6 +616,7 @@ class TestCheckAuthResponse(TestIdRes, CatchLogs):
         r = self.consumer._processCheckAuthResponse(response, self.server_url)
         self.failUnless(r)
         self.failUnlessLogMatches(
+            'Received "invalidate_handle"',
             'Unexpectedly got invalidate_handle without a store')
 
     def test_invalidatePresent(self):
