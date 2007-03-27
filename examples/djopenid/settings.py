@@ -1,6 +1,14 @@
 # Django settings for djopenid project.
 
 import os
+import sys
+import warnings
+
+try:
+    import openid
+except ImportError, e:
+    warnings.warn("Could not import OpenID library.  Please consult the djopenid README.")
+    sys.exit(1)
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
