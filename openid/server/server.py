@@ -1337,6 +1337,10 @@ class Server(object):
 
     @ivar op_endpoint: My URL.
     @type op_endpoint: str
+
+    @ivar negotiator: I use this to determine which kinds of
+        associations I can make and how.
+    @type negotiator: L{openid.association.SessionNegotiator}
     """
 
     signatoryClass = Signatory
