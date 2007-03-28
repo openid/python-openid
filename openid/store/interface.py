@@ -124,7 +124,7 @@ class OpenIDStore(object):
         """
         raise NotImplementedError
 
-    def useNonce(self, nonce):
+    def useNonce(self, server_url, timestamp, salt):
         """Called when using a nonce.
 
         This method should return C{True} if the nonce has not been
@@ -139,10 +139,18 @@ class OpenIDStore(object):
            depend on a C{storeNonce} call.  (C{storeNonce} is no
            longer part of the interface.
 
-        @param nonce: The nonce to use.
+        @param server_url: The URL of the server from which the nonce
+            originated
 
-        @type nonce: C{str}
+        @type server_url: C{str}
 
+        @param timestamp: The time that the nonce was created (to the
+            nearest second), in seconds since January 1 1970 UTC.
+        @type timestamp: C{int}
+
+        @param salt: A random string that makes two nonces from the
+            same server issued during the same second unique.
+        @type salt: str
 
         @return: Whether or not the nonce was valid.
 
