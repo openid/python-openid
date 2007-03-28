@@ -189,7 +189,8 @@ from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
 from openid import cryptutil
 from openid import kvform
 from openid import oidutil
-from openid.association import Association, default_negotiator
+from openid.association import Association, default_negotiator, \
+     SessionNegotiator
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.yadis.manager import Discovery
@@ -370,6 +371,28 @@ class Consumer(object):
 
         return response
 
+    def setAssociationPreference(self, association_preferences):
+        """Set the order in which association types/sessions should be
+        attempted. For instance, to only allow HMAC-SHA256
+        associations created with a DH-SHA256 association session:
+
+        >>> consumer.setAssociationPreference([('HMAC-SHA256', 'DH-SHA256')])
+
+        Any association type/association type pair that is not in this
+        list will not be attempted at all.
+
+        @param association_preferences: The list of allowed
+            (association type, association session type) pairs that
+            should be allowed for this consumer to use, in order from
+            most preferred to least preferred.
+        @type association_preferences: [(str, str)]
+
+        @returns: None
+
+        @see: C{L{openid.association.SessionNegotiator}}
+        """
+        self.consumer.negotiator = SessionNegotiator(association_preferences)
+
 class DiffieHellmanSHA1ConsumerSession(object):
     session_type = 'DH-SHA1'
     hash_func = staticmethod(cryptutil.sha1)
@@ -457,6 +480,13 @@ class GenericConsumer(object):
     """This is the implementation of the common logic for OpenID
     consumers. It is unaware of the application in which it is
     running.
+
+    @ivar negotiator: An object that controls the kind of associations
+        that the consumer makes. It defaults to
+        C{L{openid.association.default_negotiator}}. Assign a
+        different negotiator to it if you have specific requirements
+        for how associations are made.
+    @type negotiator: C{L{openid.association.SessionNegotiator}}
     """
 
     # The name of the query parameter that gets added to the return_to

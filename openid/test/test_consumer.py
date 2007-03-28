@@ -1346,6 +1346,16 @@ class ConsumerTest(unittest.TestCase):
                                    self.identity_url,
                                    self.consumer.session_key_prefix)
 
+    def test_setAssociationPreference(self):
+        self.consumer.setAssociationPreference([])
+        self.failUnless(isinstance(self.consumer.consumer.negotiator,
+                                   association.SessionNegotiator))
+        self.failUnlessEqual([],
+                             self.consumer.consumer.negotiator.allowed_types)
+        self.consumer.setAssociationPreference([('FOO', 'BAR')])
+        self.failUnlessEqual([('FOO', 'BAR')],
+                             self.consumer.consumer.negotiator.allowed_types)
+
     def withDummyDiscovery(self, callable, dummy_getNextService):
         class DummyDisco(object):
             def __init__(self, *ignored):
