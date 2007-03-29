@@ -222,6 +222,8 @@ class Consumer(object):
 
     _token = 'last_token'
 
+    _discover = staticmethod(discover)
+
     def __init__(self, session, store, consumer_class=None):
         """Initialize a Consumer instance.
 
@@ -284,7 +286,7 @@ class Consumer(object):
         """
         disco = Discovery(self.session, user_url, self.session_key_prefix)
         try:
-            service = disco.getNextService(discover)
+            service = disco.getNextService(self._discover)
         except fetchers.HTTPFetchingError, why:
             raise DiscoveryFailure(
                 'Error fetching XRDS document: %s' % (why[0],), None)
@@ -502,6 +504,8 @@ class GenericConsumer(object):
         'DH-SHA256':DiffieHellmanSHA256ConsumerSession,
         'no-encryption':PlainTextConsumerSession,
         }
+
+    _discover = staticmethod(discover)
 
     def __init__(self, store):
         self.store = store
@@ -929,7 +933,7 @@ class GenericConsumer(object):
         @raises ProtocolError: when discovery fails.
         """
         oidutil.log('Performing discovery on %s' % (to_match.claimed_id,))
-        _, services = discover(to_match.claimed_id)
+        _, services = self._discover(to_match.claimed_id)
         if not services:
             raise DiscoveryFailure('No OpenID information found at %s' %
                                    (to_match.claimed_id,), None)

@@ -1587,11 +1587,10 @@ class TestDiscoveryVerification(unittest.TestCase):
     services = []
 
     def setUp(self):
-        from openid.consumer import consumer
-        self._orig_discover = consumer.discover
-        consumer.discover = self.discoveryFunc
         self.store = GoodAssocStore()
         self.consumer = GenericConsumer(self.store)
+
+        self.consumer._discover = self.discoveryFunc
 
         self.identifier = "http://idp.unittest/1337"
         self.server_url = "http://endpoint.unittest/"
@@ -1605,11 +1604,6 @@ class TestDiscoveryVerification(unittest.TestCase):
 
         self.endpoint = OpenIDServiceEndpoint()
         self.endpoint.server_url = self.server_url
-
-    def tearDown(self):
-        from openid.consumer import consumer
-        consumer.discover = self._orig_discover
-
 
     def test_theGoodStuff(self):
         endpoint = OpenIDServiceEndpoint()
