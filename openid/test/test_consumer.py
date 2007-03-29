@@ -1805,5 +1805,28 @@ class TestNoStore(unittest.TestCase):
         auth_request = self.consumer.begin(endpoint)
         # _getAssociation was not called
 
+
+
+
+class NonAnonymousAuthRequest(object):
+    endpoint = 'unused'
+
+    def setAnonymous(self, unused):
+        raise ValueError('Should trigger ProtocolError')
+
+class TestConsumerAnonymous(unittest.TestCase):
+    def test_beginWithoutDiscoveryAnonymousFail(self):
+        """Make sure that ValueError for setting an auth request
+        anonymous gets converted to a ProtocolError
+        """
+        sess = {}
+        consumer = Consumer(sess, None)
+        def bogusBegin(unused):
+            return NonAnonymousAuthRequest()
+        consumer.consumer.begin = bogusBegin
+        self.failUnlessRaises(
+            ProtocolError,
+            consumer.beginWithoutDiscovery, None)
+
 if __name__ == '__main__':
     unittest.main()
