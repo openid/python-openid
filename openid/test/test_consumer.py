@@ -1876,5 +1876,21 @@ class TestDiscoverAndVerify(unittest.TestCase):
         result = self.consumer._discoverAndVerify(self.to_match)
         self.failUnlessEqual(matching_endpoint, result)
 
+from openid.extension import Extension
+class SillyExtension(Extension):
+    ns_uri = 'http://silly.example.com/'
+    ns_alias = 'silly'
+
+    def getExtensionArgs(self):
+        return {'i_am':'silly'}
+
+class TestAddExtension(unittest.TestCase):
+
+    def test_SillyExtension(self):
+        ext = SillyExtension()
+        ar = AuthRequest(OpenIDServiceEndpoint(), None)
+        ar.addExtension(ext)
+        ext_args = ar.message.getArgs(ext.ns_uri)
+        self.failUnlessEqual(ext.getExtensionArgs(), ext_args)
 if __name__ == '__main__':
     unittest.main()
