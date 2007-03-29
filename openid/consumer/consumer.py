@@ -201,6 +201,30 @@ __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
            'SUCCESS', 'FAILURE', 'CANCEL', 'SETUP_NEEDED',
            ]
 
+def makeKVPost(request_message, server_url):
+    """Make a Direct Request to an OpenID Provider and return the
+    result as a Message object.
+
+    @raises openid.fetchers.HTTPFetchingError: if an error is
+        encountered in making the HTTP post.
+
+    @rtype: L{openid.message.Message}
+    """
+    # XXX: TESTME
+    resp = fetchers.fetch(server_url, body=request_message.toURLEncoded())
+
+    response_message = Message.fromKVForm(resp.body)
+    if resp.status == 400:
+        raise ServerError.fromMessage(response_message)
+
+    elif resp.status != 200:
+        fmt = 'bad status code from server %s: %s'
+        error_message = fmt % (server_url, resp.status)
+        raise fetchers.HTTPFetchingError(error_message)
+
+    return response_message
+
+
 class Consumer(object):
     """An OpenID consumer implementation that performs discovery and
     does session management.
@@ -323,8 +347,8 @@ class Consumer(object):
 
         try:
             auth_req.setAnonymous(anonymous)
-        except ValueError, e:
-            raise ProtocolError(str(e))
+        except ValueError, why:
+            raise ProtocolError(str(why))
 
         return auth_req
 
@@ -471,6 +495,8 @@ class ServerError(Exception):
         self.message = message
 
     def fromMessage(cls, message):
+        """Generate a ServerError instance, extracting the error text
+        and the error code from the message."""
         error_text = message.getArg(
             OPENID_NS, 'error', '<no error message supplied>')
         error_code = message.getArg(OPENID_NS, 'error_code')
@@ -512,6 +538,9 @@ class GenericConsumer(object):
         self.negotiator = default_negotiator.copy()
 
     def begin(self, service_endpoint):
+        """Create an AuthRequest object for the specified
+        service_endpoint. This method will create an association if
+        necessary."""
         if self.store is None:
             assoc = None
         else:
@@ -522,6 +551,10 @@ class GenericConsumer(object):
         return request
 
     def complete(self, message, endpoint, return_to=None):
+        """Process the OpenID message, using the specified endpoint
+        and return_to URL as context. This method will handle any
+        OpenID message that is sent to the return_to URL.
+        """
         mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
 
         if return_to is not None:
@@ -584,28 +617,7 @@ class GenericConsumer(object):
 
         return True
 
-    def _makeKVPost(self, request_message, server_url):
-        """Make a Direct Request to an OpenID Provider and return the
-        result as a Message object.
-
-        @raises openid.fetchers.HTTPFetchingError: if an error is
-            encountered in making the HTTP post.
-
-        @rtype: L{openid.message.Message}
-        """
-        # XXX: TESTME
-        resp = fetchers.fetch(server_url, body=request_message.toURLEncoded())
-
-        response_message = Message.fromKVForm(resp.body)
-        if resp.status == 400:
-            raise ServerError.fromMessage(response_message)
-
-        elif resp.status != 200:
-            fmt = 'bad status code from server %s: %s'
-            error_message = fmt % (server_url, resp.status)
-            raise fetchers.HTTPFetchingError(error_message)
-
-        return response_message
+    _makeKVPost = staticmethod(makeKVPost)
 
     def _checkSetupNeeded(self, message):
         """Check an id_res message to see if it is a
@@ -628,8 +640,15 @@ class GenericConsumer(object):
         @param message: the response paramaters.
         @param endpoint: the discovered endpoint object. May be None.
 
-        @raises ProtocolError: FIXME
-        @raises DiscoveryFailure: FIXME
+        @raises ProtocolError: If the message contents are not
+            well-formed according to the OpenID specification. This
+            includes missing fields or not signing fields that should
+            be signed.
+
+        @raises DiscoveryFailure: If the subject of the id_res message
+            does not match the supplied endpoint, and discovery on the
+            identifier in the message fails (this should only happen
+            when using OpenID 2)
 
         @returntype: L{Response}
         """
@@ -944,8 +963,8 @@ class GenericConsumer(object):
         for endpoint in services:
             try:
                 self._verifyDiscoverySingle(endpoint, to_match)
-            except ProtocolError, e:
-                failure_messages.append(e[0])
+            except ProtocolError, why:
+                failure_messages.append(why[0])
             else:
                 # It matches, so discover verification has
                 # succeeded. Return this endpoint.
@@ -974,11 +993,13 @@ class GenericConsumer(object):
             return self._processCheckAuthResponse(response, server_url)
 
     def _createCheckAuthRequest(self, message):
+        """Generate a check_authentication request message given an
+        id_res message.
+        """
         # Arguments that are always passed to the server and not
         # included in the signature.
         whitelist = ['assoc_handle', 'sig', 'signed', 'invalidate_handle']
 
-        # XXX: should really build a Message object here
         check_args = {}
         for k in whitelist:
             val = message.getArg(OPENID_NS, k)
@@ -1005,6 +1026,9 @@ class GenericConsumer(object):
         return Message.fromOpenIDArgs(check_args)
 
     def _processCheckAuthResponse(self, response, server_url):
+        """Process the response message from a check_authentication
+        request, invalidating associations if requested.
+        """
         is_valid = response.getArg(OPENID_NS, 'is_valid', 'false')
 
         invalidate_handle = response.getArg(OPENID_NS, 'invalidate_handle')
@@ -1305,6 +1329,17 @@ class GenericConsumer(object):
             expires_in, assoc_handle, secret, assoc_type)
 
 class AuthRequest(object):
+    """An object that holds the state necessary for generating an
+    OpenID authentication request. This object holds the association
+    with the server and the discovered information with which the
+    request will be made.
+
+    It is separate from the consumer because you may wish to add
+    things to the request before sending it on its way to the
+    server. It also has serialization options that let you encode the
+    authentication request as a URL or as a form POST.
+    """
+
     def __init__(self, endpoint, assoc):
         """
         Creates a new AuthRequest object.  This just stores each
@@ -1510,6 +1545,11 @@ class AuthRequest(object):
                     form_tag_attrs)
 
     def shouldSendRedirect(self):
+        """Should this OpenID authentication request be sent as a HTTP
+        redirect or as a POST (form submission)?
+
+        @rtype: bool
+        """
         return self.endpoint.compatibilityMode()
 
 FAILURE = 'failure'
@@ -1560,6 +1600,9 @@ class SuccessResponse(Response):
         self.signed_fields = signed_fields
 
     def isOpenID1(self):
+        """Was this authentication response an OpenID 1 authentication
+        response?
+        """
         return self.message.isOpenID1()
 
     def isSigned(self, ns_uri, ns_key):
@@ -1584,7 +1627,7 @@ class SuccessResponse(Response):
         """
         msg_args = self.message.getArgs(ns_uri)
 
-        for key, value in msg_args.iteritems():
+        for key in msg_args.iterkeys():
             if not self.isSigned(ns_uri, key):
                 return None
 
