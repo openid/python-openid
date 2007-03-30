@@ -1,7 +1,0 @@
-INSTALLATION
-============
-
-To install the base library, just run the following command:
-
-python setup.py install
-
