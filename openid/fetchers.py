@@ -11,6 +11,7 @@ import time
 import cStringIO
 import sys
 
+import openid
 import openid.urinorm
 
 # try to import pycurl, which will let us use CurlHTTPFetcher
@@ -18,6 +19,8 @@ try:
     import pycurl
 except ImportError:
     pycurl = None
+
+USER_AGENT = "python-openid/%s (%s)" % (openid.__version__, sys.platform)
 
 def fetch(url, body=None, headers=None):
     """Invoke the fetch method on the default fetcher. Most users
@@ -177,6 +180,10 @@ class Urllib2Fetcher(HTTPFetcher):
         if headers is None:
             headers = {}
 
+        headers.setdefault(
+            'User-Agent',
+            "%s Python-urllib/%s" % (USER_AGENT, urllib2.__version__,))
+
         req = urllib2.Request(url, data=body, headers=headers)
         try:
             f = urllib2.urlopen(req)
@@ -260,6 +267,12 @@ class CurlHTTPFetcher(HTTPFetcher):
         stop = int(time.time()) + self.ALLOWED_TIME
         off = self.ALLOWED_TIME
 
+        if headers is None:
+            headers = {}
+
+        headers.setdefault('User-Agent',
+                           "%s %s" % (USER_AGENT, pycurl.version,))
+            
         header_list = []
         if headers is not None:
             for header_name, header_value in headers.iteritems():
