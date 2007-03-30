@@ -293,7 +293,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
 
             odd = ' class="odd"'
             for k, v in sreg_list:
-                field_name = sreg.sreg_data_fields.get(k, k)
+                field_name = sreg.data_fields.get(k, k)
                 value = cgi.escape(v)
                 self.wfile.write(
                     '<tr%s><td>%s</td><td>%s</td></tr>' % (odd, field_name, value))
