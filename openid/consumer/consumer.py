@@ -61,20 +61,41 @@ LIBRARY DESIGN
     appropriate for the action the site wants to take.
 
 
-STORES AND DUMB MODE
-====================
+SESSIONS, STORES, AND STATELESS MODE
+====================================
 
-    OpenID is a protocol that works best when the consumer site is able
-    to store some state.  This is the normal mode of operation for the
-    protocol.  There is also a fallback mode, known as "dumb mode" or
-    "stateless mode," which is available when the consumer site is not
-    able to store state.  This mode should be avoided when possible, as
-    it leaves the implementation more vulnerable to replay attacks.
+    The C{L{Consumer}} object keeps track of two types of state:
 
-    The mode the library works in for normal operation is determined
-    by the store that it is given.  The store is an abstraction that
-    handles the data that the consumer needs to manage between http
-    requests in order to operate efficiently and securely.
+        1. State of the user's current authentication attempt.  Things like
+           the identity URL, the list of endpoints discovered for that
+           URL, and in case where some endpoints are unreachable, the list
+           of endpoints already tried.  This state needs to be held from
+           Consumer.begin() to Consumer.complete(), but it is only applicable
+           to a single session with a single user agent, and at the end of
+           the authentication process (i.e. when an OP replies with either
+           C{id_res} or C{cancel}) it may be discarded.
+
+        2. State of relationships with servers, i.e. shared secrets
+           (associations) with servers and nonces seen on signed messages.
+           This information should persist from one session to the next and
+           should not be bound to a particular user-agent.
+
+
+    These two types of storage are reflected in the first two arguments of
+    Consumer's constructor, C{session} and C{store}.  C{session} is a
+    dict-like object and we hope your web framework provides you with one
+    of these bound to the user agent.  C{store} is an instance of
+    L{openid.store.interface.OpenIDStore}.
+
+    Since the store does hold secrets shared between your application and the
+    OpenID provider, you should be careful about how you use it in a shared
+    hosting environment.  If the filesystem or database permissions of your
+    web host allow strangers to read from them, do not store your data there!
+    If you have no safe place to store your data, construct your consumer
+    with C{None} for the store, and it will operate only in stateless mode.
+    Stateless mode may be slower, put more load on the OpenID provider, and
+    trusts the provider to keep you safe from replay attacks.
+
 
     Several store implementation are provided, and the interface is
     fully documented so that custom stores can be used as well.  See
@@ -83,14 +104,6 @@ STORES AND DUMB MODE
     are provided allow the consumer site to store the necessary data
     in several different ways, including several SQL databases and
     normal files on disk.
-
-    There is an additional concrete store provided that puts the
-    system in dumb mode.  This is not recommended, as it removes the
-    library's ability to stop replay attacks reliably.  It still uses
-    time-based checking to make replay attacks only possible within a
-    small window, but they remain possible within that window.  This
-    store should only be used if the consumer site has no way to
-    retain data between requests at all.
 
 
 IMMEDIATE MODE
