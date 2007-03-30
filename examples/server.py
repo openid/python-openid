@@ -140,17 +140,14 @@ class ServerHandler(BaseHTTPRequestHandler):
 
             trust_root = request.trust_root
             if self.query.get('remember', 'no') == 'yes':
-                duration = 'always'
-            else:
-                duration = 'once'
+                self.server.approved[(identity, trust_root)] = 'always'
+
             if request.idSelect():
                 identity = self.server.base_url + 'id/' + query['identifier']
-                response = request.answer(True, identity = identity)
             else:
                 identity = request.identity
-                response = request.answer(True)
 
-            self.server.approved[(identity, trust_root)] = duration
+            response = self.approved(request, identity)
 
         elif 'no' in query:
             response = request.answer(False)
@@ -176,11 +173,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             return False
 
         key = (identity_url, trust_root)
-        approval = self.server.approved.get(key)
-        if approval == 'once':
-            del self.server.approved[key]
-
-        return approval is not None
+        return self.server.approved.get(key) is not None
 
     def serverEndPoint(self, query):
         try:
@@ -200,10 +193,26 @@ class ServerHandler(BaseHTTPRequestHandler):
             response = self.server.openid.handleRequest(request)
             self.displayResponse(response)
 
+    def approved(self, request, identifier=None):
+        sreg_req = sreg.SRegRequest.fromOpenIDRequest(request.message)
+
+        # In a real application, this data would be user-specific,
+        # and the user should be asked for permission to release
+        # it.
+        sreg_data = {
+            'nickname':self.user
+            }
+
+        sreg_resp = sreg.SRegResponse.extractResponse(sreg_req, sreg_data)
+        response = request.answer(True, identity=identifier)
+        sreg_resp.addToOpenIDResponse(response.fields)
+
+        return response
+
     def handleCheckIDRequest(self, request):
         is_authorized = self.isAuthorized(request.identity, request.trust_root)
         if is_authorized:
-            response = request.answer(True)
+            response = self.approved(request)
             self.displayResponse(response)
         elif request.immediate:
             response = request.answer(False)
@@ -322,7 +331,8 @@ class ServerHandler(BaseHTTPRequestHandler):
         ''' % error_message)
 
     def showDecidePage(self, request):
-        expected_user = request.identity[len(self.server.base_url):]
+        id_url_base = self.server.base_url+'id/'
+        expected_user = request.identity[len(id_url_base):]
 
         if request.idSelect(): # We are being asked to select an ID
             msg = '''\
@@ -334,7 +344,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             </p>
             '''
             fdata = {
-                'id_url_base': self.server.base_url+'id/',
+                'id_url_base': id_url_base,
                 'trust_root': request.trust_root,
                 }
             form = '''\
