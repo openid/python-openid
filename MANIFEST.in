@@ -1,4 +1,4 @@
-include LICENSE NOTICE CHANGELOG MANIFEST.in NEWS
+include LICENSE NOTICE CHANGELOG MANIFEST.in NEWS background-associations.txt
 graft admin
 recursive-include examples README *.py
 recursive-include openid/test *.txt dhpriv n2b64 *.py
