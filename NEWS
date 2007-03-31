@@ -1,3 +1,37 @@
+What's New in Python OpenID 2.0
+===============================
+
+The big news here is compatibility with version 2.0 of the OpenID protocol.
+Highlights include:
+
+ * Simple Registration support in a new module openid.sreg.  (Those
+   previously using SuccessResponse.extensionResponse are advised to
+   look here.)
+ * OpenID provider-driven identifier selection.
+ * "Negotiators" allow you to define which association types to use.
+ * Examples for Django.
+
+Dependencies
+------------
+
+Python 2.5 is now supported.  Support for Python 2.2 discontinued.
+Seperate installation of yadis and urljr packages is no longer
+required; they have been included in this package.  
+
+
+Upgrading from 1.1 or 1.2
+-------------------------
+
+One of the additions to the OpenID protocol was a specified nonce
+format for one-way nonces.  As a result, the nonce table in the store
+has changed.  You'll need to run contrib/upgrade-store-1.1-to-2.0 to
+upgrade your store, or you'll encounter errors about the wrong number
+of columns in the oid_nonces table.
+    
+Consumers should now pass an additional parameter to Consumer.complete() 
+to defend against return_to tampering.
+
+
 What's New in Python OpenID 1.1.2
 =================================
 
@@ -131,16 +165,6 @@ Fetcher API
  * fetcher was openid.consumer.fetchers.OpenIDHTTPFetcher, is now
    urljr.fetchers.HTTPFetcher.  get() and post() have been replaced by
    fetch(), see urljr.fetchers for details.
-
-Upgrading from 1.1 or 1.2
--------------------------
-
-One of the additions to the OpenID protocol was a specified nonce
-format for one-way nonces.  As a result, the nonce table in the store
-has changed.  You'll need to run contrib/upgrade-store-1.1-to-2.0 to
-upgrade your store, or you'll encounter errors about the wrong number
-of columns in the oid_nonces table.
-
 
 Upgrading from 1.0
 ------------------
