@@ -1733,7 +1733,7 @@ class SetupNeededResponse(Response):
     @ivar setup_url: A URL that can be used to send the user to the
         server to set up for authentication. The user should be
         redirected in to the setup_url, either in the current window
-        or in a new browser window.
+        or in a new browser window.  C{None} in OpenID 2.0.
 
     @cvar status: SETUP_NEEDED
     """

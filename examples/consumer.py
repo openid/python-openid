@@ -258,8 +258,13 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # cancelled
             message = 'Verification cancelled'
         elif info.status == consumer.SETUP_NEEDED:
-            message = '<a href=%s>Setup needed</a>' % (
-                quoteattr(info.setup_url),)
+            if info.setup_url:
+                message = '<a href=%s>Setup needed</a>' % (
+                    quoteattr(info.setup_url),)
+            else:
+                # This means auth didn't succeed, but you're welcome to try
+                # non-immediate mode.
+                message = 'Setup needed'
         else:
             # Either we don't understand the code or there is no
             # openid_url included with the error. Give a generic
