@@ -1620,26 +1620,33 @@ class TestDiscoveryVerification(unittest.TestCase):
     def test_otherServer(self):
         # a set of things without the stuff
         endpoint = OpenIDServiceEndpoint()
-        endpoint.type_uris = [OPENID2_NS]
+        endpoint.type_uris = [OPENID_2_0_TYPE]
         endpoint.claimed_id = self.identifier
         endpoint.server_url = "http://the-MOON.unittest/"
         endpoint.local_id = self.identifier
         self.services = [endpoint]
-        self.failUnlessRaises(ProtocolError,
-                              self.consumer._verifyDiscoveryResults,
-                              self.message, endpoint)
-
+        try:
+            r = self.consumer._verifyDiscoveryResults(self.message, endpoint)
+        except ProtocolError, e:
+            # Should we make more ProtocolError subclasses?
+            self.failUnless('OP Endpoint mismatch' in str(e), e)
+        else:
+            self.fail("expected ProtocolError, %r returned." % (r,))
+            
 
     def test_foreignDelegate(self):
         # a set of things with the server stuff but other delegate
         endpoint = OpenIDServiceEndpoint()
-        endpoint.type_uris = [OPENID2_NS]
+        endpoint.type_uris = [OPENID_2_0_TYPE]
         endpoint.claimed_id = self.identifier
         endpoint.server_url = self.server_url
         endpoint.local_id = "http://unittest/juan-carlos"
-        self.failUnlessRaises(ProtocolError,
-                              self.consumer._verifyDiscoveryResults,
-                              self.message, endpoint)
+        try:
+            r = self.consumer._verifyDiscoveryResults(self.message, endpoint)
+        except ProtocolError, e:
+            self.failUnless('local_id mismatch' in str(e), e)
+        else:
+            self.fail("expected ProtocolError, %r returned." % (r,))
 
 
     def test_nothingDiscovered(self):
