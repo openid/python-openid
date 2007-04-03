@@ -25,7 +25,7 @@ IDENTIFIER_SELECT = "http://openid.net/identifier_select/2.0"
 SREG_URI = 'http://openid.net/sreg/1.0'
 
 # The OpenID 1.X namespace URI
-OPENID1_NS = 'http://openid.net/sso/1.0'
+OPENID1_NS = 'http://openid.net/signon/1.0'
 
 # The OpenID 2.0 namespace URI
 OPENID2_NS = 'http://openid.net/signon/2.0'
