@@ -1524,7 +1524,6 @@ class IDPDrivenTest(unittest.TestCase):
         self.consumer = GenericConsumer(self.store)
         self.endpoint = OpenIDServiceEndpoint()
         self.endpoint.server_url = "http://idp.unittest/"
-        self.endpoint.type_uris = ['http://openid.net/server/2.0']
 
 
     def test_idpDrivenBegin(self):
