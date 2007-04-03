@@ -5,7 +5,7 @@ from support import CatchLogs
 from openid.message import Message, OPENID2_NS, OPENID1_NS, OPENID_NS
 from openid import association
 from openid.consumer.consumer import GenericConsumer, ServerError
-from openid.consumer.discover import OpenIDServiceEndpoint
+from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_2_0_TYPE
 
 class ErrorRaisingConsumer(GenericConsumer):
     """
@@ -37,7 +37,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         self.consumer = ErrorRaisingConsumer(store=None)
 
         self.endpoint = OpenIDServiceEndpoint()
-        self.endpoint.type_uris = [OPENID2_NS]
+        self.endpoint.type_uris = [OPENID_2_0_TYPE]
         self.endpoint.server_url = 'bogus'
 
     def testBadResponse(self):

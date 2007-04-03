@@ -18,7 +18,7 @@ except ImportError:
     ElementTree = None
 
 # This doesn't REALLY belong here, but where is better?
-IDENTIFIER_SELECT = "http://openid.net/identifier_select/2.0"
+IDENTIFIER_SELECT = 'http://specs.openid.net/auth/2.0/identifier_select'
 
 # URI for Simple Registration extension, the only commonly deployed
 # OpenID 1.x extension, and so a special case
@@ -28,7 +28,7 @@ SREG_URI = 'http://openid.net/sreg/1.0'
 OPENID1_NS = 'http://openid.net/signon/1.0'
 
 # The OpenID 2.0 namespace URI
-OPENID2_NS = 'http://openid.net/signon/2.0'
+OPENID2_NS = 'http://specs.openid.net/auth/2.0'
 
 # The namespace consisting of pairs with keys that are prefixed with
 # "openid."  but not in another namespace.

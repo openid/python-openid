@@ -17,8 +17,8 @@ from openid.yadis import xri
 from openid.consumer import html_parse
 
 OPENID_1_0_NS = 'http://openid.net/xmlns/1.0'
-OPENID_IDP_2_0_TYPE = 'http://openid.net/server/2.0'
-OPENID_2_0_TYPE = 'http://openid.net/signon/2.0'
+OPENID_IDP_2_0_TYPE = 'http://specs.openid.net/auth/2.0/server'
+OPENID_2_0_TYPE = 'http://specs.openid.net/auth/2.0/signon'
 OPENID_1_1_TYPE = 'http://openid.net/signon/1.1'
 OPENID_1_0_TYPE = 'http://openid.net/signon/1.0'
 
@@ -62,7 +62,7 @@ class OpenIDServiceEndpoint(object):
 
     def supportsType(self, type_uri):
         """Does this endpoint support this type?"""
-        return ((type_uri == OPENID_2_0_MESSAGE_NS and
+        return ((type_uri == OPENID_2_0_TYPE and
                  OPENID_IDP_2_0_TYPE in self.type_uris) or
                 self.usesExtension(type_uri))
 

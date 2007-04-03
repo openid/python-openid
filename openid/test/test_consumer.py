@@ -1607,7 +1607,7 @@ class TestDiscoveryVerification(unittest.TestCase):
 
     def test_theGoodStuff(self):
         endpoint = OpenIDServiceEndpoint()
-        endpoint.type_uris = [OPENID2_NS]
+        endpoint.type_uris = [OPENID_2_0_TYPE]
         endpoint.claimed_id = self.identifier
         endpoint.server_url = self.server_url
         endpoint.local_id = self.identifier

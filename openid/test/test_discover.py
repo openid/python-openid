@@ -184,7 +184,7 @@ class BaseTestDiscovery(unittest.TestCase):
             self.failIf(s.compatibilityMode())
             self.failUnless(s.isOPIdentifier())
             self.failUnlessEqual(s.preferredNamespace(),
-                                 discover.OPENID_2_0_TYPE)
+                                 discover.OPENID_2_0_MESSAGE_NS)
         else:
             self.failUnlessEqual(claimed_id, s.claimed_id)
             self.failUnlessEqual(local_id, s.getLocalID())
@@ -652,9 +652,11 @@ class TestEndpointSupportsType(unittest.TestCase):
             discover.OPENID_IDP_2_0_TYPE,
             ]:
             if t in types:
-                self.failUnless(self.endpoint.supportsType(t))
+                self.failUnless(self.endpoint.supportsType(t),
+                                "Must support %r" % (t,))
             else:
-                self.failIf(self.endpoint.supportsType(t))
+                self.failIf(self.endpoint.supportsType(t),
+                            "Shouldn't support %r" % (t,))
 
     def test_supportsNothing(self):
         self.failUnlessSupportsOnly()
