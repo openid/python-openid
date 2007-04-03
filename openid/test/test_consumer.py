@@ -1541,14 +1541,15 @@ class IDPDrivenTest(unittest.TestCase):
             'openid.sig': GOODSIG,
             })
 
-        endpoint = OpenIDServiceEndpoint()
-        endpoint.claimed_id = identifier
-        endpoint.server_url = self.endpoint.server_url
-        endpoint.local_id = identifier
+        discovered_endpoint = OpenIDServiceEndpoint()
+        discovered_endpoint.claimed_id = identifier
+        discovered_endpoint.server_url = self.endpoint.server_url
+        discovered_endpoint.local_id = identifier
         iverified = []
-        def verifyDiscoveryResults(identifier, server_url):
-            iverified.append(endpoint)
-            return endpoint
+        def verifyDiscoveryResults(identifier, endpoint):
+            self.failUnless(endpoint is self.endpoint)
+            iverified.append(discovered_endpoint)
+            return discovered_endpoint
         self.consumer._verifyDiscoveryResults = verifyDiscoveryResults
         self.consumer._idResCheckNonce = lambda *args: True
         response = self.consumer._doIdRes(message, self.endpoint)
@@ -1557,7 +1558,7 @@ class IDPDrivenTest(unittest.TestCase):
         self.failUnlessEqual(response.identity_url, "=directed_identifier")
 
         # assert that discovery attempt happens and returns good
-        self.failUnlessEqual(iverified, [endpoint])
+        self.failUnlessEqual(iverified, [discovered_endpoint])
 
 
     def test_idpDrivenCompleteFraud(self):
@@ -1569,7 +1570,7 @@ class IDPDrivenTest(unittest.TestCase):
             'openid.signed': 'identity,return_to',
             'openid.sig': GOODSIG,
             })
-        def verifyDiscoveryResults(identifier, server_url):
+        def verifyDiscoveryResults(identifier, endpoint):
             raise DiscoveryFailure("PHREAK!", None)
         self.consumer._verifyDiscoveryResults = verifyDiscoveryResults
         self.failUnlessRaises(DiscoveryFailure, self.consumer._doIdRes,
