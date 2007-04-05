@@ -32,6 +32,7 @@ distribution or http://www.openidenabled.com/
 from openid import sreg
 from openid.server import server
 from openid.store.filestore import FileOpenIDStore
+from openid.consumer import discover
 
 class OpenIDHTTPServer(HTTPServer):
     """
@@ -463,14 +464,14 @@ class ServerHandler(BaseHTTPRequestHandler):
   <XRD>
 
     <Service priority="0">
-      <Type>http://openid.net/signon/2.0</Type>
+      <Type>%s</Type>
       <URI>%s</URI>
       <LocalID>%s</LocalID>
     </Service>
 
   </XRD>
 </xrds:XRDS>
-"""%(endpoint_url, user_url))
+"""%(discover.OPENID_2_0_TYPE, endpoint_url, user_url))
 
     def showServerYadis(self):
         self.send_response(200)
@@ -486,13 +487,13 @@ class ServerHandler(BaseHTTPRequestHandler):
   <XRD>
 
     <Service priority="0">
-      <Type>http://openid.net/server/2.0</Type>
+      <Type>%s</Type>
       <URI>%s</URI>
     </Service>
 
   </XRD>
 </xrds:XRDS>
-"""%endpoint_url)
+"""%(discover.OPENID_IDP_2_0_TYPE, endpoint_url,))
 
     def showMainPage(self):
         yadis_tag = '<meta http-equiv="x-xrds-location" content="%s">'%\
