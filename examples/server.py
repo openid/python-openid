@@ -139,14 +139,14 @@ class ServerHandler(BaseHTTPRequestHandler):
             if 'login_as' in query:
                 self.user = self.query['login_as']
 
-            trust_root = request.trust_root
-            if self.query.get('remember', 'no') == 'yes':
-                self.server.approved[(identity, trust_root)] = 'always'
-
             if request.idSelect():
                 identity = self.server.base_url + 'id/' + query['identifier']
             else:
                 identity = request.identity
+
+            trust_root = request.trust_root
+            if self.query.get('remember', 'no') == 'yes':
+                self.server.approved[(identity, trust_root)] = 'always'
 
             response = self.approved(request, identity)
 
