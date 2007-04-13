@@ -39,7 +39,6 @@ from openid.store import filestore
 from openid.consumer import consumer
 from openid.oidutil import appendArgs
 from openid.cryptutil import randomString
-from openid.yadis.discover import DiscoveryFailure
 from openid.fetchers import \
      HTTPFetchingError, setDefaultFetcher, Urllib2Fetcher
 from openid import sreg
@@ -168,13 +167,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         oidconsumer = self.getConsumer()
         try:
             request = oidconsumer.begin(openid_url)
-        except HTTPFetchingError, exc:
-            fetch_error_string = 'Error in discovery: %s' % (
-                cgi.escape(str(exc.why)))
-            self.render(fetch_error_string,
-                        css_class='error',
-                        form_contents=openid_url)
-        except DiscoveryFailure, exc:
+        except consumer.DiscoveryFailure, exc:
             fetch_error_string = 'Error in discovery: %s' % (
                 cgi.escape(str(exc[0])))
             self.render(fetch_error_string,
