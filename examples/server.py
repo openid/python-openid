@@ -206,7 +206,7 @@ class ServerHandler(BaseHTTPRequestHandler):
 
         sreg_resp = sreg.SRegResponse.extractResponse(sreg_req, sreg_data)
         response = request.answer(True, identity=identifier)
-        sreg_resp.addToOpenIDResponse(response.fields)
+        sreg_resp.toMessage(response.fields)
 
         return response
 

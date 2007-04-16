@@ -19,7 +19,7 @@ OpenID providers.
       # [ get the user's approval and data, informing the user that
       #   the fields in sreg_response were requested ]
       sreg_resp = SRegResponse.extractResponse(sreg_req, user_data)
-      sreg_resp.addToOpenIDResponse(openid_response)
+      sreg_resp.toMessage(openid_response.fields)
 
   3. The relying party uses C{L{SRegResponse.fromSuccessResponse}} to
      extract the data from the OpenID response::
@@ -383,7 +383,7 @@ class SRegResponse(Extension):
     @ivar ns_uri: The URI under which the simple registration data was
         stored in the response message.
 
-    @group Server: extractResponse, addToOpenIDResponse
+    @group Server: extractResponse
     @group Consumer: fromSuccessResponse
     @group Read-only dictionary interface: keys, iterkeys, items, iteritems,
         __iter__, get, __getitem__, keys, has_key
@@ -463,18 +463,11 @@ class SRegResponse(Extension):
 
     fromSuccessResponse = classmethod(fromSuccessResponse)
 
-    def addToOpenIDResponse(self, response_message):
-        """Add the data fields contained in this simple registration
-        response to the supplied message, in the appropriate
-        namespace.
-
-        @param response_message: The OpenID id_res response message
-            that will be returned to the relying party
-        @type response_message: C{L{openid.message.Message}}
-
-        @returns: Nothing; updates the response_message
+    def getExtensionArgs(self):
         """
-        response_message.updateArgs(self.ns_uri, self.data)
+        Return the sreg data to be sent in the response.
+        """
+        return self.data
 
     # Read-only dictionary interface
     def get(self, field_name, default=None):
@@ -533,4 +526,4 @@ def sendSRegFields(openid_request, data, openid_response):
     """
     sreg_request = SRegRequest.fromOpenIDRequest(openid_request.message)
     sreg_response = SRegResponse.extractResponse(sreg_request, data)
-    sreg_response.addToOpenIDResponse(openid_response.fields)
+    sreg_response.toMessage(openid_response.fields)
