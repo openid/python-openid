@@ -555,8 +555,6 @@ class NamespaceMap(object):
     def add(self, namespace_uri):
         """Add this namespace URI to the mapping, without caring what
         alias it ends up with"""
-        global registered_aliases
-
         # See if this namespace is already mapped to an alias
         alias = self.namespace_to_alias.get(namespace_uri)
         if alias is not None:
