@@ -245,8 +245,9 @@ class Message(object):
                     # look in the signed list.
                     pass
             else:
-                ns_key = 'openid.ns.' + alias
-                args[ns_key] = ns_uri
+                if self.getOpenIDNamespace() != OPENID1_NS:
+                    ns_key = 'openid.ns.' + alias
+                    args[ns_key] = ns_uri
 
         for (ns_uri, ns_key), value in self.args.iteritems():
             key = self.getKey(ns_uri, ns_key)
