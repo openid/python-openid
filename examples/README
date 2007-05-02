@@ -56,7 +56,7 @@ To run the example system:
 
 5. Enter an identity url managed by the sample identity server:
 
-        http://localhost:8000/bob
+        http://localhost:8000/id/bob
 
 
 6. The browser will be redirected to the sample server, which will be
