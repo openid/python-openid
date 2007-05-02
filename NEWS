@@ -27,7 +27,10 @@ format for one-way nonces.  As a result, the nonce table in the store
 has changed.  You'll need to run contrib/upgrade-store-1.1-to-2.0 to
 upgrade your store, or you'll encounter errors about the wrong number
 of columns in the oid_nonces table.
-    
+
+If you've written your own custom store or code that interacts directly with it,
+you'll need to review the change notes in openid.store.interface.
+
 Consumers should now pass an additional parameter to Consumer.complete() 
 to defend against return_to tampering.
 
