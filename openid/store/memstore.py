@@ -1,6 +1,9 @@
 """A simple store using only in-process memory."""
 from openid import cryptutil
+from openid.store.nonce import SKEW as NONCE_SKEW
+
 import copy
+import time
 
 class ServerAssocs(object):
     def __init__(self):
@@ -63,6 +66,9 @@ class MemoryStore(object):
         return assocs.remove(handle)
 
     def useNonce(self, server_url, timestamp, salt):
+        if abs(timestamp - time.time()) > NONCE_SKEW:
+            return False
+
         nonce = (str(server_url), int(timestamp), str(salt))
         if nonce in self.nonces:
             return False
