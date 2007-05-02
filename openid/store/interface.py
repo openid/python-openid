@@ -10,9 +10,9 @@ class OpenIDStore(object):
     mechanisms that the OpenID library needs, for both servers and
     consumers.
 
-    @change: Version 2.0 removed the C{storeNonce} and C{getAuthKey} methods,
-        and changed the behavior of the C{L{useNonce}} method to support
-        one-way nonces.
+    @change: Version 2.0 removed the C{storeNonce}, C{getAuthKey}, and C{isDumb}
+        methods, and changed the behavior of the C{L{useNonce}} method
+        to support one-way nonces.
 
     @sort: storeAssociation, getAssociation, removeAssociation,
         useNonce
@@ -137,7 +137,7 @@ class OpenIDStore(object):
            with C{storeNonce}.  Version 2.0 uses one-way nonces,
            requiring a different implementation here that does not
            depend on a C{storeNonce} call.  (C{storeNonce} is no
-           longer part of the interface.
+           longer part of the interface.)
 
         @param server_url: The URL of the server from which the nonce
             originated
