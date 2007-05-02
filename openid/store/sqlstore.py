@@ -11,6 +11,7 @@ import time
 
 from openid.association import Association
 from openid.store.interface import OpenIDStore
+from openid.store import nonce
 
 def _inTxn(func):
     def wrapped(self, *args, **kwargs):
@@ -248,6 +249,9 @@ class SQLStore(OpenIDStore):
         remove it from the set.
 
         str -> bool"""
+        if abs(timestamp - time.time()) > nonce.SKEW:
+            return False
+
         try:
             self.db_add_nonce(server_url, timestamp, salt)
         except self.dbapi.IntegrityError:
