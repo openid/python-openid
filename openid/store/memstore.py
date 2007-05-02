@@ -1,3 +1,4 @@
+"""A simple store using only in-process memory."""
 from openid import cryptutil
 import copy
 
