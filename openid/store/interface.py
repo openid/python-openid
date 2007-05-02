@@ -130,7 +130,9 @@ class OpenIDStore(object):
         This method should return C{True} if the nonce has not been
         used before, and store it for a while to make sure nobody
         tries to use the same value again.  If the nonce has already
-        been used, return C{False}.
+        been used or the timestamp is not current, return C{False}.
+
+        You may use L{openid.store.nonce.SKEW} for your timestamp window.
 
         @change: In earlier versions, round-trip nonces were used and
            a nonce was only valid if it had been previously stored
