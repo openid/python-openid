@@ -35,6 +35,7 @@ except ImportError:
 
 from openid.association import Association
 from openid.store.interface import OpenIDStore
+from openid.store import nonce
 from openid import cryptutil, oidutil
 
 _filename_allowed = string.ascii_letters + string.digits + '.'
@@ -396,9 +397,9 @@ class FileOpenIDStore(OpenIDStore):
         now = time.time()
 
         # Check all nonces for expiry
-        for nonce in nonces:
-            if not checkTimestamp(nonce, now=now):
-                filename = os.path.join(self.nonce_dir, nonce)
+        for nonce_fname in nonces:
+            if not nonce.checkTimestamp(nonce_fname, now=now):
+                filename = os.path.join(self.nonce_dir, nonce_fname)
                 _removeIfPresent(filename)
 
         for assoc_filename, assoc in self._allAssocs():
