@@ -331,6 +331,9 @@ class FileOpenIDStore(OpenIDStore):
 
         str -> bool
         """
+        if abs(timestamp - time.time()) > nonce.SKEW:
+            return False
+
         if server_url:
             proto, rest = server_url.split('://', 1)
         else:
