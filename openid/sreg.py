@@ -396,6 +396,7 @@ class SRegResponse(Extension):
     ns_alias = 'sreg'
 
     def __init__(self, data=None, sreg_ns_uri=ns_uri):
+        Extension.__init__(self)
         if data is None:
             self.data = {}
         else:
@@ -468,17 +469,23 @@ class SRegResponse(Extension):
     fromSuccessResponse = classmethod(fromSuccessResponse)
 
     def getExtensionArgs(self):
-        """
-        Return the sreg data to be sent in the response.
+        """Get the fields to put in the simple registration namespace
+        when adding them to an id_res message.
+
+        @see: openid.extension
         """
         return self.data
 
     # Read-only dictionary interface
     def get(self, field_name, default=None):
+        """Like dict.get, except that it checks that the field name is
+        defined by the simple registration specification"""
         checkFieldName(field_name)
         return self.data.get(field_name, default)
 
     def items(self):
+        """All of the data values in this simple registration response
+        """
         return self.data.items()
 
     def iteritems(self):
