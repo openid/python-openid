@@ -465,13 +465,15 @@ class ServerHandler(BaseHTTPRequestHandler):
 
     <Service priority="0">
       <Type>%s</Type>
+      <Type>%s</Type>
       <URI>%s</URI>
       <LocalID>%s</LocalID>
     </Service>
 
   </XRD>
 </xrds:XRDS>
-"""%(discover.OPENID_2_0_TYPE, endpoint_url, user_url))
+"""%(discover.OPENID_2_0_TYPE, discover.OPENID_1_0_TYPE,
+     endpoint_url, user_url))
 
     def showServerYadis(self):
         self.send_response(200)
