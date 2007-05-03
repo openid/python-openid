@@ -154,10 +154,11 @@ def testStore(store):
 
     ### Nonce functions
 
-    def checkUseNonce(nonce, expected, server_url):
+    def checkUseNonce(nonce, expected, server_url, msg=''):
         stamp, salt = split(nonce)
         actual = store.useNonce(server_url, stamp, salt)
-        assert bool(actual) == bool(expected)
+        assert bool(actual) == bool(expected), "%r != %r: %s" % (actual, expected,
+                                                                 msg)
 
     for url in [server_url, '']:
         # Random nonce (not in store)
@@ -170,6 +171,11 @@ def testStore(store):
         # the first, time it is called after the store.
         checkUseNonce(nonce1, False, url)
         checkUseNonce(nonce1, False, url)
+
+        # Nonces from when the universe was an hour old should not pass these days.
+        old_nonce = mkNonce(3600)
+        checkUseNonce(old_nonce, False, url, "Old nonce (%r) passed." % (old_nonce,))
+
 
 def test_filestore():
     from openid.store import filestore
