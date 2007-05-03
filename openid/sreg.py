@@ -35,7 +35,8 @@ OpenID providers.
     namespace and XRD Type value
 """
 
-from openid.message import registerNamespaceAlias, NamespaceAliasRegistrationError
+from openid.message import registerNamespaceAlias, \
+     NamespaceAliasRegistrationError
 from openid.extension import Extension
 from openid import oidutil
 
