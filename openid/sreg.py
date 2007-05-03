@@ -187,6 +187,7 @@ class SRegRequest(Extension):
     def __init__(self, required=None, optional=None, policy_url=None,
                  sreg_ns_uri=ns_uri):
         """Initialize an empty simple registration request"""
+        Extension.__init__(self)
         self.required = []
         self.optional = []
         self.policy_url = policy_url
