@@ -188,7 +188,6 @@ USING THIS LIBRARY
     objects.
 """
 
-import time
 import cgi
 import copy
 from urlparse import urlparse
@@ -200,7 +199,6 @@ from openid.consumer.discover import discover, OpenIDServiceEndpoint, \
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
      IDENTIFIER_SELECT, no_default
 from openid import cryptutil
-from openid import kvform
 from openid import oidutil
 from openid.association import Association, default_negotiator, \
      SessionNegotiator
