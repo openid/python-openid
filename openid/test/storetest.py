@@ -1,6 +1,6 @@
 from openid.association import Association
 from openid.cryptutil import randomString
-from openid.store.nonce import *
+from openid.store.nonce import mkNonce, split
 
 import unittest
 import string
