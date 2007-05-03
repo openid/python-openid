@@ -6,13 +6,18 @@ __all__ = [
     'AttributeRequest',
     'FetchRequest',
     'FetchResponse',
+    'StoreRequest',
+    'StoreResponse',
     ]
+
 from openid import extension
 from openid.message import NamespaceMap
+
 
 class AXError(ValueError):
     """Results from data that does not meet the attribute exchange 1.0
     specification"""
+
 
 class AXMessage(extension.Extension):
     """Abstract class containing common code for attribute exchange messages
@@ -86,11 +91,12 @@ class AttrInfo(object):
     #
     #pylint:disable-msg=R0903
 
-    def __init__(self, type_uri, count=None, required=False, alias=None):
+    def __init__(self, type_uri, count=1, required=False, alias=None):
         self.required = required
         self.count = count
         self.type_uri = type_uri
         self.alias = alias
+
 
 def toTypeURIs(namespace_map, alias_list_s):
     """Given a namespace mapping and a string containing a
@@ -124,61 +130,6 @@ def toTypeURIs(namespace_map, alias_list_s):
 
     return uris
 
-def parseAXValues(ax_args):
-    """Parse an attribute exchange {type_uri:[value]} mapping out of a
-    set of attribute exchange arguments
-
-    @param ax_args: The unqualified attribute exchange parameters
-
-    @returns: which types were requested without a count parameter and
-        a mapping from type URI to list of (unicode) values. The
-        dictionary containing the types that were requested without a
-        count will only contain those values; membership in the
-        dictionary is a sufficient test of whether the value was
-        requested as a singleton.
-
-    @rtype: [str], {str:[unicode]}
-
-    @raises KeyError: When an expected value is not present in the
-        source data (for example, a type alias is declared, but there
-        is no count or value)
-    """
-
-    # Container for the parsed data
-    data = {}
-
-    # Which values were requested without a "count"
-    singletons = []
-
-    aliases = NamespaceMap()
-
-    for key, value in ax_args.iteritems():
-        if key.startswith('type.'):
-            type_uri = value
-            alias = key[5:]
-            aliases.addAlias(type_uri, alias)
-
-    for type_uri, alias in aliases.iteritems():
-        try:
-            count_s = ax_args['count.' + alias]
-        except KeyError:
-            singletons.append(type_uri)
-            value = ax_args['value.' + alias]
-            if value == u'':
-                values = []
-            else:
-                values = [value]
-        else:
-            count = int(count_s)
-            values = []
-            for i in range(1, count + 1):
-                value_key = 'value.%s.%d' % (alias, i)
-                value = ax_args[value_key]
-                values.append(value)
-
-        data[type_uri] = values
-
-    return singletons, data
 
 class FetchRequest(AXMessage):
     """An attribute exchange 'fetch_request' message. This message is
@@ -234,7 +185,7 @@ class FetchRequest(AXMessage):
             if attribute.alias is None:
                 alias = aliases.add(type_uri)
             else:
-                # XxXX: this will raise an exception when the second
+                # This will raise an exception when the second
                 # attribute with the same alias is added. I think it
                 # would be better to complain at the time that the
                 # attribute is added to this object so that the code
@@ -254,7 +205,7 @@ class FetchRequest(AXMessage):
             else:
                 if_available.append(alias)
 
-            if attribute.count is not None:
+            if attribute.count != 1:
                 ax_args['count.' + alias] = str(attribute.count)
 
             ax_args['type.' + alias] = type_uri
@@ -295,7 +246,9 @@ class FetchRequest(AXMessage):
         @raises KeyError: if the message is not consistent in its use
             of namespace aliases.
 
-        XXX: ValueError, too
+        @raises AXError: When parseExtensionArgs would raise same.
+
+        @see: parseExtensionArgs
         """
         ax_args = message.getArgs(cls.ns_uri)
         self = cls()
@@ -309,7 +262,11 @@ class FetchRequest(AXMessage):
 
         @raises KeyError: if the message is not consistent in its use
             of namespace aliases.
-        XXX: ValueError, too
+
+        @raises AXError: If the data to be parsed does not follow the
+            attribute exchange specification. At least when
+            'if_available' or 'required' is not specified for a
+            particular attribute type.
         """
         # Raises an exception if the mode is not the expected value
         self._checkMode(ax_args)
@@ -321,16 +278,14 @@ class FetchRequest(AXMessage):
                 alias = key[5:]
                 type_uri = value
                 aliases.addAlias(type_uri, alias)
-                count_s = ax_args.get('count.' + alias)
-                attr_req = AttrInfo(type_uri, alias=alias)
 
+                count_s = ax_args.get('count.' + alias)
                 if count_s:
                     count = int(count_s)
                 else:
-                    count = None
-                attr_req.count = count
+                    count = 1
 
-                self.add(attr_req)
+                self.add(AttrInfo(type_uri, alias=alias, count=count))
 
         required = toTypeURIs(aliases, ax_args.get('required'))
 
@@ -343,7 +298,7 @@ class FetchRequest(AXMessage):
 
         for type_uri in aliases.iterNamespaceURIs():
             if type_uri not in all_type_uris:
-                raise ValueError(
+                raise AXError(
                     'Type URI %r was in the request but not '
                     'present in "required" or "if_available"' % (type_uri,))
 
@@ -355,7 +310,7 @@ class FetchRequest(AXMessage):
         """
         return self.requested_attributes.itervalues()
 
-    def iter(self):
+    def __iter__(self):
         """Iterate over the attribute type URIs in this fetch_request
         """
         return iter(self.requested_attributes)
@@ -367,25 +322,25 @@ class FetchRequest(AXMessage):
 
     __contains__ = has_key
 
-class FetchResponse(AXMessage):
-    """A fetch_response attribute exchange message
+
+class AXKeyValueMessage(AXMessage):
+    """An abstract class that implements a message that has attribute
+    keys and values. It contains the common code between
+    fetch_response and store_request.
     """
-    mode = 'fetch_response'
 
-    def __init__(self, request=None):
+    # This class is abstract, so it's OK that it doesn't override the
+    # abstract method in Extension:
+    #
+    #pylint:disable-msg=W0223
+
+    def __init__(self):
         AXMessage.__init__(self)
-        self.request = request
         self.data = {}
-        self.update_url = None
-
-        if request:
-            for type_uri in self.request:
-                self.data[type_uri] = []
-            self.update_url = request.update_url
 
     def addValue(self, type_uri, value):
         """Add a single value for the given attribute type to the
-        response. If there are already values specified for this type,
+        message. If there are already values specified for this type,
         this value will be sent in addition to the values already
         specified.
 
@@ -395,22 +350,14 @@ class FetchResponse(AXMessage):
             party for this attribute
         @type value: unicode
 
-        @raises KeyError: If the type_uri has not been declared to be
-            in this response.
-
-        @raises ValueError: If adding this value would exceed the
-            maximum number of allowed responses for this attribute
-
         @returns: None
         """
-        num_allowed = self.request.requested_attributes[type_uri].count
-        if len(self.data[type_uri]) == num_allowed:
-            raise ValueError(
-                'Cannot add any more values for the attribute %r. The '
-                'request asked for up to %s values.' %
-                (type_uri, num_allowed,))
+        try:
+            values = self.data[type_uri]
+        except KeyError:
+            values = self.data[type_uri] = []
 
-        self.data[type_uri].append(value)
+        values.append(value)
 
     def setValues(self, type_uri, values):
         """Set the values for the given attribute type. This replaces
@@ -420,31 +367,162 @@ class FetchResponse(AXMessage):
 
         @param values: A list of values to send for this attribute.
         @type values: [unicode]
-
-        @raises ValueError: If the number of values specified is
-            greater than the number of values allowed for this
-            attribute.
-
-        @raises KeyError: If the attribute type has not been declared
-            to be in this response.
-
-        @returns: None
         """
-        num_set = len(values)
-        num_allowed = self.request.requested_attributes[type_uri].count
-
-        if num_set > num_allowed:
-            raise ValueError(
-                'Attempted to send more than the allowed number of values '
-                'in the response for %r. Up to %s allowed, got %s' %
-                (type_uri, num_allowed, num_set))
-
-        if type_uri not in self.data:
-            raise KeyError(type_uri)
 
         self.data[type_uri] = values
 
-    def getExtensionArgs(self):
+    def _getExtensionKVArgs(self, aliases=None):
+        """Get the extension arguments for the key/value pairs
+        contained in this message.
+
+        @param aliases: An alias mapping. Set to None if you don't
+            care about the aliases for this request.
+        """
+        if aliases is None:
+            aliases = NamespaceMap()
+
+        ax_args = {}
+
+        for type_uri, values in self.data.iteritems():
+            alias = aliases.add(type_uri)
+
+            ax_args['type.' + alias] = type_uri
+
+            if len(values) == 1:
+                ax_args['value.' + alias] = values[0]
+            else:
+                ax_args['count.' + alias] = str(len(values))
+
+                for i, value in enumerate(values):
+                    key = 'value.%s.%d' % (alias, i + 1)
+                    ax_args[key] = value
+
+        return ax_args
+
+    def parseExtensionArgs(self, ax_args):
+        """Parse attribiute exchange key/value arguments into this
+        object.
+
+        @param ax_args: The attribute exchange fetch_response
+            arguments, with namespacing removed.
+        @type ax_args: {unicode:unicode}
+
+        @returns: None
+
+        @raises ValueError: If the message has bad values for
+            particular fields
+
+        @raises KeyError: If the namespace mapping is bad or required
+            arguments are missing
+        """
+        self._checkMode(ax_args)
+
+        aliases = NamespaceMap()
+
+        for key, value in ax_args.iteritems():
+            if key.startswith('type.'):
+                type_uri = value
+                alias = key[5:]
+                aliases.addAlias(type_uri, alias)
+
+        for type_uri, alias in aliases.iteritems():
+            try:
+                count_s = ax_args['count.' + alias]
+            except KeyError:
+                value = ax_args['value.' + alias]
+
+                if value == u'':
+                    values = []
+                else:
+                    values = [value]
+            else:
+                count = int(count_s)
+                values = []
+                for i in range(1, count + 1):
+                    value_key = 'value.%s.%d' % (alias, i)
+                    value = ax_args[value_key]
+                    values.append(value)
+
+            self.data[type_uri] = values
+
+    def getSingle(self, type_uri, default=None):
+        """Get a single value for an attribute. If no value was sent
+        for this attribute, use the supplied default. If there is more
+        than one value for this attribute, this method will fail.
+
+        @type type_uri: str
+        @param type_uri: The URI for the attribute
+
+        @param default: The value to return if the attribute was not
+            sent in the fetch_response.
+
+        @returns: The value of the attribute in the fetch_response
+            message, or the default supplied
+        @rtype: unicode or NoneType
+
+        @raises ValueError: If there is more than one value for this
+            parameter in the fetch_response message.
+        @raises KeyError: If the attribute was not sent in this response
+        """
+        values = self.data.get(type_uri)
+        if not values:
+            return default
+        elif len(values) == 1:
+            return values[0]
+        else:
+            raise AXError(
+                'More than one value present for %r' % (type_uri,))
+
+    def get(self, type_uri):
+        """Get the list of values for this attribute in the
+        fetch_response.
+
+        XXX: what to do if the values are not present? default
+        parameter? this is funny because it's always supposed to
+        return a list, so the default may break that, though it's
+        provided by the user's code, so it might be okay. If no
+        default is supplied, should the return be None or []?
+
+        @param type_uri: The URI of the attribute
+
+        @returns: The list of values for this attribute in the
+            response. May be an empty list.
+        @rtype: [unicode]
+
+        @raises KeyError: If the attribute was not sent in the response
+        """
+        return self.data[type_uri]
+
+    def count(self, type_uri):
+        """Get the number of responses for a particular attribute in
+        this fetch_response message.
+
+        @param type_uri: The URI of the attribute
+
+        @returns: The number of values sent for this attribute
+
+        @raises KeyError: If the attribute was not sent in the
+            response. KeyError will not be raised if the number of
+            values was zero.
+        """
+        return len(self.get(type_uri))
+
+
+class FetchResponse(AXKeyValueMessage):
+    """A fetch_response attribute exchange message
+    """
+    mode = 'fetch_response'
+
+    def __init__(self, update_url=None):
+        AXKeyValueMessage.__init__(self)
+        self.update_url = update_url
+
+    # This takes an argument, when base getExtensionArgs
+    # doesn't. That's by design. If you call it with the base
+    # arguments, it'll work as expected.
+    #
+    #pylint:disable-msg=W0221
+    def getExtensionArgs(self, request=None):
         """Serialize this object into arguments in the attribute
         exchange namespace
 
@@ -452,42 +530,56 @@ class FetchResponse(AXMessage):
             arguments that represent this fetch_response.
         @rtype: {unicode;unicode}
         """
+
+        aliases = NamespaceMap()
+
+        if request is not None:
+            # Validate the data in the context of the request (the
+            # same attributes should be present in each, and the
+            # counts in the response must be no more than the counts
+            # in the request)
+
+            for type_uri in self.data:
+                if type_uri not in request:
+                    raise KeyError(
+                        'Response attribute not present in request: %r'
+                        % (type_uri,))
+
+            for attr_info in request.iterAttrs():
+                # Copy the aliases from the request so that reading
+                # the response in light of the request is easier
+                if attr_info.alias is None:
+                    aliases.add(attr_info.type_uri)
+                else:
+                    aliases.addAlias(attr_info.type_uri, attr_info.alias)
+
+                try:
+                    values = self.data[attr_info.type_uri]
+                except KeyError:
+                    values = []
+
+                if attr_info.count < len(values):
+                    raise AXError(
+                        'More than the number of requested values were '
+                        'specified for %r' % (attr_info.type_uri,))
+
+        kv_args = self._getExtensionKVArgs(aliases)
+
+        # Add the KV args into the response with the args that are
+        # unique to the fetch_response
         ax_args = self._newArgs()
 
         if self.update_url:
             ax_args['update_url'] = self.update_url
 
-        aliases = NamespaceMap()
+        ax_args.update(kv_args)
 
-        for type_uri, attr_request in \
-                self.request.requested_attributes.iteritems():
-            values = self.data[type_uri]
-            alias = attr_request.alias
-            if alias is None:
-                alias = aliases.add(type_uri)
-            else:
-                aliases.addAlias(type_uri, alias)
+        return ax_args
 
-            if len(values) > attr_request.count:
-                raise ValueError(
-                    'More than the number of requested values were '
-                    'specified for %r' % (type_uri,))
-
-            if attr_request.count is None:
-                if len(values) == 0:
-                    value = u''
-                else:
-                    (value,) = values
-
-                ax_args['value.' + alias] = value
-            else:
-                for i, value in enumerate(values):
-                    key = 'value.%s.%d' % (alias, i + 1)
-                    ax_args[key] = value
-
-                ax_args['count.' + alias] = str(len(values))
-
-            ax_args['type.' + alias] = type_uri
+    def parseExtensionArgs(self, ax_args):
+        """@see Extension.parseExtensionArgs"""
+        super(FetchResponse, self).parseExtensionArgs(ax_args)
+        self.update_url = ax_args.get('update_url')
 
     def fromSuccessResponse(cls, success_response, signed=True):
         """Construct a FetchResponse object from an OpenID library
@@ -514,85 +606,58 @@ class FetchResponse(AXMessage):
 
     fromSuccessResponse = classmethod(fromSuccessResponse)
 
-    def parseExtensionArgs(self, ax_args):
-        """Parse these attrbiute exchange fetch_response arguments
-        into this FetchResponse object.
 
-        @param ax_args: The attribute exchange fetch_response
-            arguments, with namespacing removed.
-        @type ax_args: {unicode:unicode}
+class StoreRequest(AXKeyValueMessage):
+    """A store request attribute exchange message representation
+    """
+    mode = 'store_request'
 
-        @returns: None
-
-        @raises ValueError: If the message has bad values for
-            particular fields
-
-        @raises KeyError: If the namespace mapping is bad or required
-            arguments are missing
+    # This takes an argument, when base getExtensionArgs
+    # doesn't. That's by design. If you call it with the base
+    # arguments, it'll work as expected.
+    #
+    #pylint:disable-msg=W0221
+    def getExtensionArgs(self, aliases=None):
         """
-        self._checkMode(ax_args)
+        @param aliases: The namespace aliases to use when making this
+            store response. Leave as None to use defaults.
 
-        # XXX: without the request as context, we can't validate
-        # whether the response's format actually matches what it
-        # should. We'll just pretend that it doesn't matter, as long
-        # as it's well-formed, until the spec discussion is complete.
+        @see Extension.parseExtensionArgs"""
+        ax_args = self._newArgs()
+        kv_args = self._getExtensionKVArgs(aliases)
+        ax_args.update(kv_args)
+        return ax_args
 
-        _, self.data = parseAXValues(ax_args)
 
-        self.update_url = ax_args.get('update_url')
+class StoreResponse(AXMessage):
+    """An indication that the store request was processed along with
+    this OpenID transaction.
+    """
 
-    def getSingle(self, type_uri, default=None):
-        """Get a single value for an attribute. If no value was sent
-        for this attribute, use the supplied default. If there is more
-        than one value for this attribute, this method will fail.
+    SUCCESS_MODE = 'store_response_success'
+    FAILURE_MODE = 'store_response_failure'
 
-        @type type_uri: str
-        @param type_uri: The URI for the attribute
+    def __init__(self, succeeded=True, error_message=None):
+        AXMessage.__init__(self)
 
-        @param default: The value to return if the attribute was not
-            sent in the fetch_response.
-
-        @returns: The value of the attribute in the fetch_response
-            message, or the default supplied
-        @rtype: unicode or NoneType
-
-        @raises ValueError: If there is more than one value for this
-            parameter in the fetch_response message.
-        @raises KeyError: If the attribute was not sent in this response
-        """
-        values = self.data[type_uri]
-        if not values:
-            return default
-        elif len(values) == 1:
-            return values[0]
+        if succeeded and error_message is not None:
+            raise AXError('An error message may only be included in a '
+                             'failing fetch response')
+        if succeeded:
+            self.mode = self.SUCCESS_MODE
         else:
-            raise ValueError(
-                'More than one value present for %r' % (type_uri,))
+            self.mode = self.FAILURE_MODE
 
-    def get(self, type_uri):
-        """Get the list of values for this attribute in the
-        fetch_response.
+        self.error_message = error_message
 
-        @param type_uri: The URI of the attribute
+    def succeeded(self):
+        """Was this response a success response?"""
+        return self.mode == self.SUCCESS_MODE
 
-        @returns: The list of values for this attribute in the
-            response. May be an empty list.
-        @rtype: [unicode]
+    def getExtensionArgs(self):
+        """@see Extension.parseExtensionArgs"""
+        ax_args = self._newArgs()
+        if not self.succeeded() and self.error_message:
+            ax_args['error'] = self.error_message
 
-        @raises KeyError: If the attribute was not sent in the response
-        """
-        return self.data[type_uri]
-
-    def count(self, type_uri):
-        """Get the number of responses for a particular attribute in
-        this fetch_response message.
-
-        @param type_uri: The URI of the attribute
-
-        @returns: The number of values sent for this attribute
-
-        @raises KeyError: If the attribute was not sent in the
-            response. KeyError will not be raised if the number of
-            values was zero.
-        """
-        return len(self.get(type_uri))
+        return ax_args
