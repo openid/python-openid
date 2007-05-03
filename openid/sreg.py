@@ -41,10 +41,10 @@ from openid.extension import Extension
 from openid import oidutil
 
 try:
-    basestring
+    basestring #pylint:disable-msg=W0104
 except NameError:
     # For Python 2.2
-    basestring = (str, unicode)
+    basestring = (str, unicode) #pylint:disable-msg=W0622
 
 __all__ = [
     'SRegRequest',
@@ -160,7 +160,9 @@ def getSRegNS(message):
             # defined for something other than simple registration
             raise SRegNamespaceError(why[0])
 
-    return sreg_ns_uri
+    # we know that sreg_ns_uri defined, because it's defined in the
+    # else clause of the loop as well, so disable the warning
+    return sreg_ns_uri #pylint:disable-msg=W0631
 
 class SRegRequest(Extension):
     """An object to hold the state of a simple registration request.
