@@ -1389,8 +1389,8 @@ class AuthRequest(object):
         """Add an extension to this checkid request.
 
         @param extension_request: An object that implements the
-            extension request interface for adding arguments to an
-            OpenID message.
+            extension interface for adding arguments to an OpenID
+            message.
         """
         extension_request.toMessage(self.message)
 
