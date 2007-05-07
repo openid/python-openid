@@ -270,7 +270,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
     def doAffiliate(self):
         """Direct the user sign up with an affiliate OpenID provider."""
         sreg_req = sreg.SRegRequest(['nickname'], ['fullname', 'email'])
-        sreg_req.toMessage().toURL(OPENID_PROVIDER_URL)
+        href = sreg_req.toMessage().toURL(OPENID_PROVIDER_URL)
 
         message = """Get an OpenID at <a href=%s>%s</a>""" % (
             quoteattr(href), OPENID_PROVIDER_NAME)
