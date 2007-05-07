@@ -930,6 +930,17 @@ class OpenIDResponse(object):
         return self.fields.toURL(self.request.return_to)
 
 
+    def addExtension(self, extension_response):
+        """
+        Add an extension response to this response message.
+
+        @param extension_response: An object that implements the
+            extension interface for adding arguments to an OpenID
+            message.
+        """
+        extension_response.toMessage(self.fields)
+
+
     def encodeToKVForm(self):
         """Encode a response in key-value colon/newline format.
 

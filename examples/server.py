@@ -194,7 +194,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             response = self.server.openid.handleRequest(request)
             self.displayResponse(response)
 
-    def approved(self, request, identifier=None):
+    def addSRegResponse(self, response):
         sreg_req = sreg.SRegRequest.fromOpenIDRequest(request.message)
 
         # In a real application, this data would be user-specific,
@@ -205,9 +205,11 @@ class ServerHandler(BaseHTTPRequestHandler):
             }
 
         sreg_resp = sreg.SRegResponse.extractResponse(sreg_req, sreg_data)
-        response = request.answer(True, identity=identifier)
-        sreg_resp.toMessage(response.fields)
+        response.addExtension(sreg_resp)
 
+    def approved(self, request, identifier=None):
+        response = request.answer(True, identity=identifier)
+        self.addSRegResponse(response)
         return response
 
     def handleCheckIDRequest(self, request):

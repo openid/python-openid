@@ -148,6 +148,9 @@ class SRegRequestTest(unittest.TestCase):
         class FakeMessage(object):
             copied = False
 
+            def __init__(self):
+                self.message = Message()
+
             def getArgs(msg_self, ns_uri):
                 self.failUnlessEqual(ns_sentinel, ns_uri)
                 return args_sentinel
@@ -163,8 +166,12 @@ class SRegRequestTest(unittest.TestCase):
             def parseExtensionArgs(req_self, args):
                 self.failUnlessEqual(args_sentinel, args)
 
+        openid_req = OpenIDRequest()
+
         msg = FakeMessage()
-        req = TestingReq.fromOpenIDRequest(msg)
+        openid_req.message = msg
+
+        req = TestingReq.fromOpenIDRequest(openid_req)
         self.failUnless(type(req) is TestingReq)
         self.failUnless(msg.copied)
 
@@ -459,7 +466,8 @@ class SendFieldsTest(unittest.TestCase):
         resp.fields = resp_msg
 
         # Put the requested data fields in the response message
-        sreg.sendSRegFields(req, data, resp)
+        sreg_resp = sreg.SRegResponse.extractResponse(sreg_req, data)
+        resp.addExtension(sreg_resp)
 
         # <- send id_res response
 

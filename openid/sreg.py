@@ -203,14 +203,13 @@ class SRegRequest(Extension):
     # overridden for testing.
     _getSRegNS = staticmethod(getSRegNS)
 
-    def fromOpenIDRequest(cls, message):
+    def fromOpenIDRequest(cls, request):
         """Create a simple registration request that contains the
         fields that were requested in the OpenID request with the
         given arguments
 
-        @param message: The arguments that were given for this OpenID
-            authentication request
-        @type message: {str:unicode}
+        @param request: The OpenID request
+        @type request: openid.server.CheckIDRequest
 
         @returns: The newly created simple registration request
         @rtype: C{L{SRegRequest}}
@@ -219,7 +218,7 @@ class SRegRequest(Extension):
 
         # Since we're going to mess with namespace URI mapping, don't
         # mutate the object that was passed in.
-        message = message.copy()
+        message = request.message.copy()
 
         self.ns_uri = self._getSRegNS(message)
         args = message.getArgs(self.ns_uri)
@@ -513,28 +512,3 @@ class SRegResponse(Extension):
 
     def __nonzero__(self):
         return bool(self.data)
-
-def sendSRegFields(openid_request, data, openid_response):
-    """Convenience function for copying all the sreg data that was
-    requested from a supplied set of sreg data into the response
-    message. If no data were requested, no data will be sent.
-
-    @param openid_request: The OpenID (checkid_*) request that may be
-        requesting sreg data.
-    @type openid_request: C{L{openid.server.server.OpenIDRequest}}
-
-    @param data: The simple registration data to send. All
-        requested fields that are present in this dictionary will be
-        added to the response message.
-    @type data: {str:str}
-
-    @param openid_response: The OpenID C{id_res} response to which the
-        simple registration data should be added
-    @type openid_response: openid.server.OpenIDResponse
-
-    @returns: Does not return a value; updates the openid_response
-        instead.
-    """
-    sreg_request = SRegRequest.fromOpenIDRequest(openid_request.message)
-    sreg_response = SRegResponse.extractResponse(sreg_request, data)
-    sreg_response.toMessage(openid_response.fields)
