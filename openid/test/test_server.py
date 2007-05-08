@@ -3,7 +3,7 @@
 from openid.server import server
 from openid import association, cryptutil, oidutil
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
-     IDENTIFIER_SELECT, no_default
+     IDENTIFIER_SELECT, no_default, OPENID1_URL_LIMIT
 from openid.store import memstore
 import cgi
 
@@ -48,6 +48,92 @@ class TestProtocolError(unittest.TestCase):
             'openid.mode': ['error'],
             'openid.error': ['plucky'],
             }
+
+        rt_base, result_args = e.encodeToURL().split('?', 1)
+        result_args = cgi.parse_qs(result_args)
+        self.failUnlessEqual(result_args, expected_args)
+
+    def test_browserWithReturnTo_OpenID2_GET(self):
+        return_to = "http://rp.unittest/consumer"
+        # will be a ProtocolError raised by Decode or CheckIDRequest.answer
+        args = Message.fromPostArgs({
+            'openid.ns': OPENID2_NS,
+            'openid.mode': 'monkeydance',
+            'openid.identity': 'http://wagu.unittest/',
+            'openid.claimed_id': 'http://wagu.unittest/',
+            'openid.return_to': return_to,
+            })
+        e = server.ProtocolError(args, "plucky")
+        self.failUnless(e.hasReturnTo())
+        expected_args = {
+            'openid.mode': ['error'],
+            'openid.error': ['plucky'],
+            }
+
+        rt_base, result_args = e.encodeToURL().split('?', 1)
+        result_args = cgi.parse_qs(result_args)
+        self.failUnlessEqual(result_args, expected_args)
+
+    def test_browserWithReturnTo_OpenID2_GET(self):
+        return_to = "http://rp.unittest/consumer"
+        # will be a ProtocolError raised by Decode or CheckIDRequest.answer
+        args = Message.fromPostArgs({
+            'openid.ns': OPENID2_NS,
+            'openid.mode': 'monkeydance',
+            'openid.identity': 'http://wagu.unittest/',
+            'openid.claimed_id': 'http://wagu.unittest/',
+            'openid.return_to': return_to,
+            })
+        e = server.ProtocolError(args, "plucky")
+        self.failUnless(e.hasReturnTo())
+        expected_args = {
+            'openid.ns': [OPENID2_NS],
+            'openid.mode': ['error'],
+            'openid.error': ['plucky'],
+            }
+
+        rt_base, result_args = e.encodeToURL().split('?', 1)
+        result_args = cgi.parse_qs(result_args)
+        self.failUnlessEqual(result_args, expected_args)
+
+    def test_browserWithReturnTo_OpenID2_POST(self):
+        return_to = "http://rp.unittest/consumer" + ('x' * OPENID1_URL_LIMIT)
+        # will be a ProtocolError raised by Decode or CheckIDRequest.answer
+        args = Message.fromPostArgs({
+            'openid.ns': OPENID2_NS,
+            'openid.mode': 'monkeydance',
+            'openid.identity': 'http://wagu.unittest/',
+            'openid.claimed_id': 'http://wagu.unittest/',
+            'openid.return_to': return_to,
+            })
+        e = server.ProtocolError(args, "plucky")
+        self.failUnless(e.hasReturnTo())
+        expected_args = {
+            'openid.ns': [OPENID2_NS],
+            'openid.mode': ['error'],
+            'openid.error': ['plucky'],
+            }
+
+        self.failUnless(e.whichEncoding() == server.ENCODE_HTML_FORM)
+        self.failUnless(e.toFormMarkup() == e.toMessage().toFormMarkup(
+            args.getArg(OPENID_NS, 'return_to')))
+
+    def test_browserWithReturnTo_OpenID1_exceeds_limit(self):
+        return_to = "http://rp.unittest/consumer" + ('x' * OPENID1_URL_LIMIT)
+        # will be a ProtocolError raised by Decode or CheckIDRequest.answer
+        args = Message.fromPostArgs({
+            'openid.mode': 'monkeydance',
+            'openid.identity': 'http://wagu.unittest/',
+            'openid.return_to': return_to,
+            })
+        e = server.ProtocolError(args, "plucky")
+        self.failUnless(e.hasReturnTo())
+        expected_args = {
+            'openid.mode': ['error'],
+            'openid.error': ['plucky'],
+            }
+
+        self.failUnless(e.whichEncoding() == server.ENCODE_URL)
 
         rt_base, result_args = e.encodeToURL().split('?', 1)
         result_args = cgi.parse_qs(result_args)
@@ -441,6 +527,88 @@ class TestEncode(unittest.TestCase):
         self.op_endpoint = 'http://endpoint.unittest/encode'
         self.store = memstore.MemoryStore()
         self.server = server.Server(self.store, self.op_endpoint)
+
+    def test_id_res_OpenID2_GET(self):
+        """
+        Check that when an OpenID 2 response does not exceed the
+        OpenID 1 message size, a GET response (i.e., redirect) is
+        issued.
+        """
+        request = server.CheckIDRequest(
+            identity = 'http://bombom.unittest/',
+            trust_root = 'http://burr.unittest/',
+            return_to = 'http://burr.unittest/999',
+            immediate = False,
+            op_endpoint = self.server.op_endpoint,
+            )
+        response = server.OpenIDResponse(request)
+        response.fields = Message.fromOpenIDArgs({
+            'ns': OPENID2_NS,
+            'mode': 'id_res',
+            'identity': request.identity,
+            'claimed_id': request.identity,
+            'return_to': request.return_to,
+            })
+
+        self.failIf(response.renderAsForm())
+        self.failUnless(response.whichEncoding() == server.ENCODE_URL)
+        webresponse = self.encode(response)
+        self.failUnless(webresponse.headers.has_key('location'))
+
+    def test_id_res_OpenID2_POST(self):
+        """
+        Check that when an OpenID 2 response exceeds the OpenID 1
+        message size, a POST response (i.e., an HTML form) is
+        returned.
+        """
+        request = server.CheckIDRequest(
+            identity = 'http://bombom.unittest/',
+            trust_root = 'http://burr.unittest/',
+            return_to = 'http://burr.unittest/999',
+            immediate = False,
+            op_endpoint = self.server.op_endpoint,
+            )
+        response = server.OpenIDResponse(request)
+        response.fields = Message.fromOpenIDArgs({
+            'ns': OPENID2_NS,
+            'mode': 'id_res',
+            'identity': request.identity,
+            'claimed_id': request.identity,
+            'return_to': 'x' * OPENID1_URL_LIMIT,
+            })
+
+        self.failUnless(response.renderAsForm())
+        self.failUnless(len(response.encodeToURL()) > OPENID1_URL_LIMIT)
+        self.failUnless(response.whichEncoding() == server.ENCODE_HTML_FORM)
+        webresponse = self.encode(response)
+        self.failUnlessEqual(webresponse.body, response.toFormMarkup())
+
+    def test_id_res_OpenID1_exceeds_limit(self):
+        """
+        Check that when an OpenID 1 response exceeds the OpenID 1
+        message size, a GET response is issued.  Technically, this
+        shouldn't be permitted by the library, but this test is in
+        place to preserve the status quo for OpenID 1.
+        """
+        request = server.CheckIDRequest(
+            identity = 'http://bombom.unittest/',
+            trust_root = 'http://burr.unittest/',
+            return_to = 'http://burr.unittest/999',
+            immediate = False,
+            op_endpoint = self.server.op_endpoint,
+            )
+        response = server.OpenIDResponse(request)
+        response.fields = Message.fromOpenIDArgs({
+            'mode': 'id_res',
+            'identity': request.identity,
+            'return_to': 'x' * OPENID1_URL_LIMIT,
+            })
+
+        self.failIf(response.renderAsForm())
+        self.failUnless(len(response.encodeToURL()) > OPENID1_URL_LIMIT)
+        self.failUnless(response.whichEncoding() == server.ENCODE_URL)
+        webresponse = self.encode(response)
+        self.failUnlessEqual(webresponse.headers['location'], response.encodeToURL())
 
     def test_id_res(self):
         request = server.CheckIDRequest(

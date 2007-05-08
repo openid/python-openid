@@ -107,7 +107,7 @@ from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot
 from openid.association import Association, default_negotiator, getSecretSize
 from openid.message import Message, OPENID_NS, OPENID1_NS, \
-     OPENID2_NS, IDENTIFIER_SELECT
+     OPENID2_NS, IDENTIFIER_SELECT, OPENID1_URL_LIMIT
 
 HTTP_OK = 200
 HTTP_REDIRECT = 302
@@ -117,6 +117,7 @@ BROWSER_REQUEST_MODES = ['checkid_setup', 'checkid_immediate']
 
 ENCODE_KVFORM = ('kvform',)
 ENCODE_URL = ('URL/redirect',)
+ENCODE_HTML_FORM = ('HTML form',)
 
 UNUSED = None
 
@@ -898,6 +899,24 @@ class OpenIDResponse(object):
             self.fields)
 
 
+    def toFormMarkup(self):
+        """Returns the form markup for this response.
+
+        @returntype: str
+        """
+        return self.fields.toFormMarkup(
+            self.fields.getArg(OPENID_NS, 'return_to'))
+
+
+    def renderAsForm(self):
+        """Returns True if this response's encoding is
+        ENCODE_HTML_FORM.  Convenience method for server authors.
+
+        @returntype: bool
+        """
+        return self.whichEncoding() == ENCODE_HTML_FORM
+
+
     def needsSigning(self):
         """Does this response require signing?
 
@@ -914,7 +933,11 @@ class OpenIDResponse(object):
         @returns: one of ENCODE_URL or ENCODE_KVFORM.
         """
         if self.request.mode in BROWSER_REQUEST_MODES:
-            return ENCODE_URL
+            if self.fields.getOpenIDNamespace() == OPENID2_NS and \
+               len(self.encodeToURL()) > OPENID1_URL_LIMIT:
+                return ENCODE_HTML_FORM
+            else:
+                return ENCODE_URL
         else:
             return ENCODE_KVFORM
 
@@ -1199,6 +1222,9 @@ class Encoder(object):
             location = response.encodeToURL()
             wr = self.responseFactory(code=HTTP_REDIRECT,
                                       headers={'location': location})
+        elif encode_as == ENCODE_HTML_FORM:
+            wr = self.responseFactory(code=HTTP_OK,
+                                      body=response.toFormMarkup())
         else:
             # Can't encode this to a protocol message.  You should probably
             # render it to HTML and show it to the user.
@@ -1542,6 +1568,9 @@ class ProtocolError(Exception):
     def encodeToKVForm(self):
         return self.toMessage().toKVForm()
 
+    def toFormMarkup(self):
+        return self.toMessage().toFormMarkup(self.getReturnTo())
+
     def whichEncoding(self):
         """How should I be encoded?
 
@@ -1550,7 +1579,11 @@ class ProtocolError(Exception):
             displayed to the user.
         """
         if self.hasReturnTo():
-            return ENCODE_URL
+            if self.openid_message.getOpenIDNamespace() == OPENID2_NS and \
+               len(self.encodeToURL()) > OPENID1_URL_LIMIT:
+                return ENCODE_HTML_FORM
+            else:
+                return ENCODE_URL
 
         if self.openid_message is None:
             return None

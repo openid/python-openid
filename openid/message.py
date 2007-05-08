@@ -41,6 +41,10 @@ OPENID_NS = oidutil.Symbol('OpenID namespace')
 # with "openid."
 BARE_NS = oidutil.Symbol('Bare namespace')
 
+# Limit, in bytes, of identity provider and return_to URLs, including
+# response payload.  See OpenID 1.1 specification, Appendix D.
+OPENID1_URL_LIMIT = 2047
+
 # All OpenID protocol fields.  Used to check namespace aliases.
 OPENID_PROTOCOL_FIELDS = [
     'ns', 'mode', 'error', 'return_to', 'contact', 'reference',
