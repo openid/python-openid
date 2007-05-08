@@ -66,27 +66,6 @@ class TestProtocolError(unittest.TestCase):
         e = server.ProtocolError(args, "plucky")
         self.failUnless(e.hasReturnTo())
         expected_args = {
-            'openid.mode': ['error'],
-            'openid.error': ['plucky'],
-            }
-
-        rt_base, result_args = e.encodeToURL().split('?', 1)
-        result_args = cgi.parse_qs(result_args)
-        self.failUnlessEqual(result_args, expected_args)
-
-    def test_browserWithReturnTo_OpenID2_GET(self):
-        return_to = "http://rp.unittest/consumer"
-        # will be a ProtocolError raised by Decode or CheckIDRequest.answer
-        args = Message.fromPostArgs({
-            'openid.ns': OPENID2_NS,
-            'openid.mode': 'monkeydance',
-            'openid.identity': 'http://wagu.unittest/',
-            'openid.claimed_id': 'http://wagu.unittest/',
-            'openid.return_to': return_to,
-            })
-        e = server.ProtocolError(args, "plucky")
-        self.failUnless(e.hasReturnTo())
-        expected_args = {
             'openid.ns': [OPENID2_NS],
             'openid.mode': ['error'],
             'openid.error': ['plucky'],
