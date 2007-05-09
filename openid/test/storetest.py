@@ -175,6 +175,33 @@ def testStore(store):
         checkUseNonce(old_nonce, False, url, "Old nonce (%r) passed." % (old_nonce,))
 
 
+    old_nonce1 = mkNonce(now - 20000)
+    old_nonce2 = mkNonce(now - 10000)
+    recent_nonce = mkNonce(now - 600)
+
+    from openid.store import nonce as nonceModule
+    orig_skew = nonceModule.SKEW
+    try:
+        nonceModule.SKEW = 0
+        store.cleanupNonces()
+        # Set SKEW high so stores will keep our nonces.
+        nonceModule.SKEW = 100000
+        assert store.useNonce(server_url, *split(old_nonce1))
+        assert store.useNonce(server_url, *split(old_nonce2))
+        assert store.useNonce(server_url, *split(recent_nonce))
+
+        nonceModule.SKEW = 3600
+        cleaned = store.cleanupNonces()
+        assert cleaned == 2, "Cleaned %r nonces." % (cleaned,)
+
+        nonceModule.SKEW = 100000
+        assert store.useNonce(server_url, *split(old_nonce1))
+        assert store.useNonce(server_url, *split(old_nonce2))
+        assert not store.useNonce(server_url, *split(recent_nonce))
+    finally:
+        nonceModule.SKEW = orig_skew
+
+
 def test_filestore():
     from openid.store import filestore
     import tempfile

@@ -166,3 +166,17 @@ class OpenIDStore(object):
         @rtype: C{[str]}
         """
         raise NotImplementedError
+
+    def cleanupNonces(self):
+        """Run garbage collection on expired nonces.
+
+        Discards any nonce from storage that is old enough that its
+        timestamp would not pass L{useNonce}.
+
+        This method is not called in the normal operation of the
+        library.  It provides a way for store admins to keep
+        their storage from filling up with expired data.
+
+        @return: the number of nonces expired.
+        """
+        raise NotImplementedError
