@@ -396,18 +396,25 @@ class FileOpenIDStore(OpenIDStore):
 
         () -> NoneType
         """
-        nonces = os.listdir(self.nonce_dir)
-        now = time.time()
-
-        # Check all nonces for expiry
-        for nonce_fname in nonces:
-            if not nonce.checkTimestamp(nonce_fname, now=now):
-                filename = os.path.join(self.nonce_dir, nonce_fname)
-                _removeIfPresent(filename)
-
         for assoc_filename, assoc in self._allAssocs():
             if assoc.getExpiresIn() == 0:
                 _removeIfPresent(assoc_filename)
+        cleanupNonces()
+
+    def cleanupNonces(self):
+        nonces = os.listdir(self.nonce_dir)
+        now = time.time()
+
+        removed = 0
+        # Check all nonces for expiry
+        for nonce_fname in nonces:
+            timestamp = nonce_fname.split('-', 1)[0]
+            timestamp = int(timestamp, 16)
+            if abs(timestamp - now) > nonce.SKEW:
+                filename = os.path.join(self.nonce_dir, nonce_fname)
+                _removeIfPresent(filename)
+                removed += 1
+        return removed
 
     def getExpired(self):
         """Return the server URL for all expired associations"""
