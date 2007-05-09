@@ -1,6 +1,6 @@
 """A simple store using only in-process memory."""
 
-from openid.store.nonce import SKEW as NONCE_SKEW
+from openid.store import nonce
 
 import copy
 import time
@@ -66,14 +66,14 @@ class MemoryStore(object):
         return assocs.remove(handle)
 
     def useNonce(self, server_url, timestamp, salt):
-        if abs(timestamp - time.time()) > NONCE_SKEW:
+        if abs(timestamp - time.time()) > nonce.SKEW:
             return False
 
-        nonce = (str(server_url), int(timestamp), str(salt))
-        if nonce in self.nonces:
+        anonce = (str(server_url), int(timestamp), str(salt))
+        if anonce in self.nonces:
             return False
         else:
-            self.nonces[nonce] = None
+            self.nonces[anonce] = None
             return True
 
     def getExpired(self):
