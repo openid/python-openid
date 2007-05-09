@@ -271,6 +271,12 @@ class SQLStore(OpenIDStore):
 
     getExpired = _inTxn(txn_getExpired)
 
+    def txn_cleanupNonces(self):
+        self.db_clean_nonce(int(time.time()) - nonce.SKEW)
+        return self.cur.rowcount
+
+    cleanupNonces = _inTxn(txn_cleanupNonces)
+
 class SQLiteStore(SQLStore):
     """
     This is an SQLite-based specialization of C{L{SQLStore}}.
@@ -331,6 +337,8 @@ class SQLiteStore(SQLStore):
                         'WHERE server_url = ? AND handle = ?;')
 
     add_nonce_sql = 'INSERT INTO %(nonces)s VALUES (?, ?, ?);'
+
+    clean_nonce_sql = 'DELETE FROM %(nonces)s WHERE timestamp < ?;'
 
     def blobDecode(self, buf):
         return str(buf)
@@ -414,6 +422,8 @@ class MySQLStore(SQLStore):
                         'WHERE server_url = %%s AND handle = %%s;')
 
     add_nonce_sql = 'INSERT INTO %(nonces)s VALUES (%%s, %%s, %%s);'
+
+    clean_nonce_sql = 'DELETE FROM %(nonces)s WHERE timestamp < %%s;'
 
     def blobDecode(self, blob):
         return blob.tostring()
@@ -501,6 +511,8 @@ class PostgreSQLStore(SQLStore):
                         'WHERE server_url = %%s AND handle = %%s;')
 
     add_nonce_sql = 'INSERT INTO %(nonces)s VALUES (%%s, %%s, %%s);'
+
+    clean_nonce_sql = 'DELETE FROM %(nonces)s WHERE timestamp < %%s;'
 
     def blobEncode(self, blob):
         import psycopg
