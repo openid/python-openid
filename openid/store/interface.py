@@ -142,7 +142,7 @@ class OpenIDStore(object):
            longer part of the interface.)
 
         @param server_url: The URL of the server from which the nonce
-            originated
+            originated.
 
         @type server_url: C{str}
 
@@ -161,7 +161,7 @@ class OpenIDStore(object):
         raise NotImplementedError
 
     def getExpired(self):
-        """Return all server URLs that have expired associations
+        """Return all server URLs that have expired associations.
 
         @rtype: C{[str]}
         """
