@@ -22,8 +22,6 @@ def generateHandle(n):
 
 generateSecret = randomString
 
-allowed_nonce = string.letters + string.digits
-
 def getTmpDbName():
     hostname = socket.gethostname()
     hostname.replace('.', '_')
