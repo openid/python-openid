@@ -39,8 +39,7 @@ from openid.store import filestore
 from openid.consumer import consumer
 from openid.oidutil import appendArgs
 from openid.cryptutil import randomString
-from openid.fetchers import \
-     HTTPFetchingError, setDefaultFetcher, Urllib2Fetcher
+from openid.fetchers import setDefaultFetcher, Urllib2Fetcher
 from openid import sreg
 
 # Used with an OpenID provider affiliate program.
