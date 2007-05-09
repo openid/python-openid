@@ -86,6 +86,18 @@ class MemoryStore(object):
 
         return expired
 
+    def cleanupNonces(self):
+        now = time.time()
+        expired = []
+        for anonce in self.nonces.iterkeys():
+            if abs(anonce[1] - now) > nonce.SKEW:
+                # removing items while iterating over the set could be bad.
+                expired.append(anonce)
+
+        for anonce in expired:
+            del self.nonces[anonce]
+        return len(expired)
+
     def __eq__(self, other):
         return ((self.server_assocs == other.server_assocs) and
                 (self.nonces == other.nonces))
