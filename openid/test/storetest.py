@@ -195,8 +195,11 @@ def testStore(store):
         assert cleaned == 2, "Cleaned %r nonces." % (cleaned,)
 
         nonceModule.SKEW = 100000
+        # A roundabout method of checking that the old nonces were cleaned is
+        # to see if we're allowed to add them again.
         assert store.useNonce(server_url, *split(old_nonce1))
         assert store.useNonce(server_url, *split(old_nonce2))
+        # The recent nonce wasn't cleaned, so it should still fail.
         assert not store.useNonce(server_url, *split(recent_nonce))
     finally:
         nonceModule.SKEW = orig_skew
