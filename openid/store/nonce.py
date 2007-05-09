@@ -9,7 +9,7 @@ from time import strptime, strftime, gmtime, time
 from calendar import timegm
 import string
 
-NONCE_CHARS = string.letters + string.digits
+NONCE_CHARS = string.ascii_letters + string.digits
 
 # Keep nonces for five hours (allow five hours for the combination of
 # request time and clock skew). This is probably way more than is
