@@ -960,6 +960,9 @@ class OpenIDResponse(object):
         @param extension_response: An object that implements the
             extension interface for adding arguments to an OpenID
             message.
+        @type extension_response: L{openid.extension}
+
+        @returntype: None
         """
         extension_response.toMessage(self.fields)
 
