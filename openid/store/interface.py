@@ -12,7 +12,8 @@ class OpenIDStore(object):
 
     @change: Version 2.0 removed the C{storeNonce}, C{getAuthKey}, and C{isDumb}
         methods, and changed the behavior of the C{L{useNonce}} method
-        to support one-way nonces.
+        to support one-way nonces.  It added C{L{cleanupNonces}},
+        C{L{cleanupAssociations}}, and C{L{cleanup}}.
 
     @sort: storeAssociation, getAssociation, removeAssociation,
         useNonce
@@ -180,3 +181,24 @@ class OpenIDStore(object):
         @returntype: int
         """
         raise NotImplementedError
+
+    def cleanupAssociations(self):
+        """Remove expired associations from the store.
+
+        This method is not called in the normal operation of the
+        library.  It provides a way for store admins to keep
+        their storage from filling up with expired data.
+
+        @return: the number of associations expired.
+        @returntype: int
+        """
+        raise NotImplementedError
+
+    def cleanup(self):
+        """Shortcut for C{L{cleanupNonces}()}, C{L{cleanupAssociations}()}.
+
+        This method is not called in the normal operation of the
+        library.  It provides a way for store admins to keep
+        their storage from filling up with expired data.
+        """
+        return self.cleanupNonces(), self.cleanupAssociations()
