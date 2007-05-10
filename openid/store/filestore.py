@@ -392,17 +392,23 @@ class FileOpenIDStore(OpenIDStore):
 
         return all_associations
 
-    def clean(self):
+    def cleanup(self):
         """Remove expired entries from the database. This is
         potentially expensive, so only run when it is acceptable to
         take time.
 
         () -> NoneType
         """
+        cleanupAssociations()
+        cleanupNonces()
+
+    def cleanupAssociations(self):
+        removed = 0
         for assoc_filename, assoc in self._allAssocs():
             if assoc.getExpiresIn() == 0:
                 _removeIfPresent(assoc_filename)
-        cleanupNonces()
+                removed += 1
+        return removed
 
     def cleanupNonces(self):
         nonces = os.listdir(self.nonce_dir)
