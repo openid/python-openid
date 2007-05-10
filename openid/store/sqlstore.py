@@ -277,6 +277,13 @@ class SQLStore(OpenIDStore):
 
     cleanupNonces = _inTxn(txn_cleanupNonces)
 
+    def txn_cleanupAssociations(self):
+        self.db_clean_assoc(int(time.time()))
+        return self.cur.rowcount
+
+    cleanupAssociations = _inTxn(txn_cleanupAssociations)
+
+
 class SQLiteStore(SQLStore):
     """
     This is an SQLite-based specialization of C{L{SQLStore}}.
@@ -335,6 +342,8 @@ class SQLiteStore(SQLStore):
 
     remove_assoc_sql = ('DELETE FROM %(associations)s '
                         'WHERE server_url = ? AND handle = ?;')
+
+    clean_assoc_sql = 'DELETE FROM %(associations)s WHERE issued + lifetime < ?;'
 
     add_nonce_sql = 'INSERT INTO %(nonces)s VALUES (?, ?, ?);'
 
@@ -420,6 +429,8 @@ class MySQLStore(SQLStore):
         ' FROM %(associations)s WHERE server_url = %%s AND handle = %%s;')
     remove_assoc_sql = ('DELETE FROM %(associations)s '
                         'WHERE server_url = %%s AND handle = %%s;')
+
+    clean_assoc_sql = 'DELETE FROM %(associations)s WHERE issued + lifetime < %%s;'
 
     add_nonce_sql = 'INSERT INTO %(nonces)s VALUES (%%s, %%s, %%s);'
 
@@ -509,6 +520,8 @@ class PostgreSQLStore(SQLStore):
         ' FROM %(associations)s WHERE server_url = %%s AND handle = %%s;')
     remove_assoc_sql = ('DELETE FROM %(associations)s '
                         'WHERE server_url = %%s AND handle = %%s;')
+
+    clean_assoc_sql = 'DELETE FROM %(associations)s WHERE issued + lifetime < %%s;'
 
     add_nonce_sql = 'INSERT INTO %(nonces)s VALUES (%%s, %%s, %%s);'
 
