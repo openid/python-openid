@@ -150,6 +150,25 @@ def testStore(store):
     checkRemove(server_url, assoc.handle, False)
     checkRemove(server_url, assoc3.handle, False)
 
+    ### test expired associations
+    # assoc 1: server 1, valid
+    # assoc 2: server 1, expired
+    # assoc 3: server 2, expired
+    # assoc 4: server 3, valid
+    assocValid1 = genAssoc(issued=-3600,lifetime=7200)
+    assocValid2 = genAssoc(issued=-5)
+    assocExpired1 = genAssoc(issued=-7200,lifetime=3600)
+    assocExpired2 = genAssoc(issued=-7200,lifetime=3600)
+
+    store.cleanupAssociations()
+    store.storeAssociation(server_url + '1', assocValid1)
+    store.storeAssociation(server_url + '1', assocExpired1)
+    store.storeAssociation(server_url + '2', assocExpired2)
+    store.storeAssociation(server_url + '3', assocValid2)
+
+    cleaned = store.cleanupAssociations()
+    assert cleaned == 2, cleaned
+
     ### Nonce functions
 
     def checkUseNonce(nonce, expected, server_url, msg=''):
