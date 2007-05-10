@@ -34,6 +34,21 @@ class ServerAssocs(object):
                 best = assoc
         return best
 
+    def cleanup(self):
+        """Remove expired associations.
+
+        @return: tuple of (removed associations, remaining associations)
+        """
+        remove = []
+        for handle, assoc in self.assocs.iteritems():
+            if assoc.getExpiresIn() == 0:
+                remove.append(handle)
+        for handle in remove:
+            del self.assocs[handle]
+        return len(remove), len(self.assocs)
+
+
+
 class MemoryStore(object):
     """In-process memory store.
 
@@ -97,6 +112,20 @@ class MemoryStore(object):
         for anonce in expired:
             del self.nonces[anonce]
         return len(expired)
+
+    def cleanupAssociations(self):
+        remove_urls = []
+        removed_assocs = 0
+        for server_url, assocs in self.server_assocs.iteritems():
+            removed, remaining = assocs.cleanup()
+            removed_assocs += removed
+            if not remaining:
+                remove_urls.append(server_url)
+
+        # Remove entries from server_assocs that had none remaining.
+        for server_url in remove_urls:
+            del self.server_assocs[server_url]
+        return removed_assocs
 
     def __eq__(self, other):
         return ((self.server_assocs == other.server_assocs) and
