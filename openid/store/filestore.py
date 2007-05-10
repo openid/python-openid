@@ -369,7 +369,8 @@ class FileOpenIDStore(OpenIDStore):
                 association_file = file(association_filename, 'rb')
             except IOError, why:
                 if why.errno == ENOENT:
-                    pass
+                    oidutil.log("%s disappeared during %s._allAssocs" % (
+                        association_filename, self.__class__.__name__))
                 else:
                     raise
             else:
