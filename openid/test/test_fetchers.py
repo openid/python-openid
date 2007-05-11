@@ -8,7 +8,8 @@ from openid import fetchers
 # XXX: make these separate test cases
 
 def failUnlessResponseExpected(expected, actual):
-    assert expected.final_url == actual.final_url
+    assert expected.final_url == actual.final_url, (
+        "%r != %r" % (expected.final_url, actual.final_url))
     assert expected.status == actual.status
     assert expected.body == actual.body
     got_headers = dict(actual.headers)
