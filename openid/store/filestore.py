@@ -424,11 +424,3 @@ class FileOpenIDStore(OpenIDStore):
                 _removeIfPresent(filename)
                 removed += 1
         return removed
-
-    def getExpired(self):
-        """Return the server URL for all expired associations"""
-        urls = []
-        for _, assoc in self._allAssocs():
-            if assoc.getExpiresIn() <= 0:
-                urls.append(assoc.server_url)
-        return urls

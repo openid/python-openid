@@ -91,16 +91,6 @@ class MemoryStore(object):
             self.nonces[anonce] = None
             return True
 
-    def getExpired(self):
-        expired = []
-        for server_url, assocs in self.server_assocs.iteritems():
-            best = assocs.best()
-            if best is None or best.getExpiresIn() == 0:
-                print best
-                expired.append(server_url)
-
-        return expired
-
     def cleanupNonces(self):
         now = time.time()
         expired = []

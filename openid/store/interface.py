@@ -160,13 +160,6 @@ class OpenIDStore(object):
         """
         raise NotImplementedError
 
-    def getExpired(self):
-        """Return all server URLs that have expired associations.
-
-        @rtype: C{[str]}
-        """
-        raise NotImplementedError
-
     def cleanupNonces(self):
         """Remove expired nonces from the store.
 

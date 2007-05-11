@@ -263,14 +263,6 @@ class SQLStore(OpenIDStore):
 
     useNonce = _inTxn(txn_useNonce)
 
-    def txn_getExpired(self):
-        """Get the server URLs for all associations that have expired"""
-        self.db_get_expired(int(time.time()))
-        rows = self.cur.fetchall()
-        return [row[0] for row in rows]
-
-    getExpired = _inTxn(txn_getExpired)
-
     def txn_cleanupNonces(self):
         self.db_clean_nonce(int(time.time()) - nonce.SKEW)
         return self.cur.rowcount
