@@ -164,6 +164,8 @@ class OpenIDServiceEndpoint(object):
         """Parse the given document as XRDS looking for OpenID services.
 
         @rtype: [OpenIDServiceEndpoint]
+
+        @raises L{XRDSError}: When the XRDS does not parse.
         """
         return extractServices(uri, xrds, cls)
 
@@ -171,7 +173,15 @@ class OpenIDServiceEndpoint(object):
 
 
     def fromDiscoveryResult(cls, discoveryResult):
-        if discovery_doc.isXRDS():
+        """Create endpoints from a DiscoveryResult.
+        
+        @type discoveryResult: L{DiscoveryResult}
+
+        @rtype: list of L{OpenIDServiceEndpoint}
+
+        @raises L{XRDSError}: When the XRDS does not parse.
+        """
+        if discoveryResult.isXRDS():
             method = cls.fromXRDS
         else:
             method = cls.fromHTML
