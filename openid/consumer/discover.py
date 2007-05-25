@@ -345,10 +345,9 @@ def discoverYadis(uri):
     response = yadisDiscover(uri)
 
     yadis_url = response.normalized_uri
+    body = response.response_text
     try:
-        openid_services = extractServices(
-            response.normalized_uri, response.response_text,
-            OpenIDServiceEndpoint)
+        openid_services = OpenIDServiceEndpoint.fromXRDS(yadis_url, body)
     except XRDSError:
         # Does not parse as a Yadis XRDS file
         openid_services = []
@@ -361,8 +360,6 @@ def discoverYadis(uri):
             # header, re-fetch the document without following the Yadis
             # header, with no Accept header.
             return discoverNoYadis(uri)
-        else:
-            body = response.response_text
 
         # Try to parse the response as HTML to get OpenID 1.0/1.1
         # <link rel="...">
