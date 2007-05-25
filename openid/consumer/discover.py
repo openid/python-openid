@@ -159,6 +159,28 @@ class OpenIDServiceEndpoint(object):
 
     fromHTML = classmethod(fromHTML)
 
+
+    def fromXRDS(cls, uri, xrds):
+        """Parse the given document as XRDS looking for OpenID services.
+
+        @rtype: [OpenIDServiceEndpoint]
+        """
+        return extractServices(uri, xrds, cls)
+
+    fromXRDS = classmethod(fromXRDS)
+
+
+    def fromDiscoveryResult(cls, discoveryResult):
+        if discovery_doc.isXRDS():
+            method = cls.fromXRDS
+        else:
+            method = cls.fromHTML
+        return method(discoveryResult.normalized_uri,
+                      discoveryResult.response_text)
+
+    fromDiscoveryResult = classmethod(fromDiscoveryResult)
+
+
     def fromOPEndpointURL(cls, op_endpoint_url):
         """Construct an OP-Identifier OpenIDServiceEndpoint object for
         a given OP Endpoint URL
