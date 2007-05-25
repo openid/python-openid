@@ -573,31 +573,43 @@ class GenericConsumer(object):
                 return FailureResponse(endpoint,
                                        "openid.return_to does not match return URL")
 
-        if mode == 'cancel':
-            return CancelResponse(endpoint)
-        elif mode == 'error':
-            error = message.getArg(OPENID_NS, 'error')
-            contact = message.getArg(OPENID_NS, 'contact')
-            reference = message.getArg(OPENID_NS, 'reference')
+        modeMethod = getattr(self, '_complete_' + mode,
+                             self._completeInvalid)
+        
+        return modeMethod(message, endpoint)
 
-            return FailureResponse(endpoint, error, contact=contact,
-                                   reference=reference)
-        elif message.isOpenID2() and mode == 'setup_needed':
-            return SetupNeededResponse(endpoint)
+    def _complete_cancel(self, message, endpoint):
+        return CancelResponse(endpoint)
 
-        elif mode == 'id_res':
-            try:
-                self._checkSetupNeeded(message)
-            except SetupNeededError, why:
-                return SetupNeededResponse(endpoint, why.user_setup_url)
-            else:
-                try:
-                    return self._doIdRes(message, endpoint)
-                except (ProtocolError, DiscoveryFailure), why:
-                    return FailureResponse(endpoint, why[0])
+    def _complete_error(self, message, endpoint):
+        error = message.getArg(OPENID_NS, 'error')
+        contact = message.getArg(OPENID_NS, 'contact')
+        reference = message.getArg(OPENID_NS, 'reference')
+
+        return FailureResponse(endpoint, error, contact=contact,
+                               reference=reference)
+
+    def _complete_setup_needed(self, message, endpoint):
+        if not message.isOpenID2():
+            return self._completeInvalid(message, endpoint)
+
+        return SetupNeededResponse(endpoint)
+
+    def _complete_id_res(self, message, endpoint):
+        try:
+            self._checkSetupNeeded(message)
+        except SetupNeededError, why:
+            return SetupNeededResponse(endpoint, why.user_setup_url)
         else:
-            return FailureResponse(endpoint,
-                                   'Invalid openid.mode: %r' % (mode,))
+            try:
+                return self._doIdRes(message, endpoint)
+            except (ProtocolError, DiscoveryFailure), why:
+                return FailureResponse(endpoint, why[0])
+
+    def _completeInvalid(self, message, endpoint):
+        mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
+        return FailureResponse(endpoint,
+                               'Invalid openid.mode: %r' % (mode,))
 
     def _checkReturnTo(self, message, return_to):
         """Check an OpenID message and its openid.return_to value
