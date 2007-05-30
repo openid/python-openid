@@ -2,6 +2,17 @@
 """Functions to discover OpenID endpoints from identifiers.
 """
 
+__all__ = [
+    'DiscoveryFailure',
+    'OPENID_1_0_NS',
+    'OPENID_1_0_TYPE',
+    'OPENID_1_1_TYPE',
+    'OPENID_2_0_TYPE',
+    'OPENID_IDP_2_0_TYPE',
+    'OpenIDServiceEndpoint',
+    'discover',
+    ]
+
 import urlparse
 
 from openid import oidutil, fetchers, urinorm
