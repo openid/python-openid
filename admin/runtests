@@ -67,6 +67,7 @@ def pyunitTests():
     from openid.test import test_sreg
     from openid.test import storetest
     from openid.test import test_ax
+    from openid.test import test_rpverify
 
     # yadis tests
     from openid.test import test_parsehtml
@@ -90,6 +91,7 @@ def pyunitTests():
         test_verifydisco,
         test_sreg,
         test_ax,
+        test_rpverify,
         ]
 
     # Some modules have data-driven tests, and they use custom methods

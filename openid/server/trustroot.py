@@ -255,6 +255,32 @@ class TrustRoot(object):
 
     checkURL = classmethod(checkURL)
 
+    def buildDiscoveryURL(self, return_to):
+        """Given the a return_to string, return a discovery URL for
+        the relying party
+
+        This function does not check to make sure that the realm or
+        return_to are valid or match each other. Its behaviour on invalid
+        inputs is undefined.
+
+        @param return_to: The relying party return URL of the OpenID
+            authentication request
+
+        @rtype: str
+
+        @returns: The URL upon which relying party discovery should be run
+            in order to verify the return_to URL
+        """
+        if not self.wildcard:
+            return self.unparsed
+
+        # Use the domain name from the return_to URL and everything else
+        # from the realm (trust_root)
+        return_to_url_parts = urlparse(return_to)
+        return_to_domain = return_to_url_parts[1]
+
+        return '%s://%s%s' % (self.proto, return_to_domain, self.path)
+
     def __repr__(self):
         return "TrustRoot('%s', '%s', '%s', '%s', '%s', '%s')" % (
             self.unparsed, self.proto, self.wildcard, self.host, self.port,
