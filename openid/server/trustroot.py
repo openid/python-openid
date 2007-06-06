@@ -3,8 +3,20 @@ This module contains the C{L{TrustRoot}} class, which helps handle
 trust root checking.  This module is used by the
 C{L{openid.server.server}} module, but it is also available to server
 implementers who wish to use it for additional trust root checking.
+
+It also implements relying party return_to URL verification, based on
+the realm.
 """
 
+__all__ = [
+    'TrustRoot',
+    'RP_RETURN_TO_URL_TYPE',
+    'extractReturnToURLs',
+    'returnToMatches',
+    'verifyReturnTo',
+    ]
+
+from openid.yadis import services
 from urlparse import urlparse, urlunparse
 
 ############################################
@@ -288,3 +300,105 @@ class TrustRoot(object):
 
     def __str__(self):
         return repr(self)
+
+# The URI for relying party discovery, used in realm verification.
+#
+# XXX: This should probably live somewhere else (like in
+# openid.consumer or openid.yadis somewhere)
+RP_RETURN_TO_URL_TYPE = 'http://specs.openid.net/auth/2.0/return_to'
+
+def _extractReturnURL(endpoint):
+    """If the endpoint is a relying party OpenID return_to endpoint,
+    return the endpoint URL. Otherwise, return None.
+
+    This function is intended to be used as a filter for the Yadis
+    filtering interface.
+
+    @see: C{L{openid.yadis.services}}
+    @see: C{L{openid.yadis.filters}}
+
+    @param endpoint: An XRDS BasicServiceEndpoint, as returned by
+        performing Yadis dicovery.
+
+    @returns: The endpoint URL or None if the endpoint is not a
+        relying party endpoint.
+    @rtype: str or NoneType
+    """
+    if endpoint.matchTypes([RP_RETURN_TO_URL_TYPE]):
+        return endpoint.uri
+    else:
+        return None
+
+def extractReturnToURLs(rp_uri, xrds_text):
+    """Given a relying party discovery URL and its corresponding XRDS
+    document, return a list of return_to URLs.
+
+    @param rp_uri: The discovery URL
+    @param xrds_text: The xrds document, as a string
+    @returns: A list of all relying party URLs that were found in the document.
+    @rtype: [str]
+    """
+    assert isinstance(xrds_text, basestring), xrds_text
+    return services.applyFilter(rp_uri, xrds_text, _extractReturnURL)
+
+def returnToMatches(allowed_return_to_urls, return_to):
+    """Is the return_to URL under one of the supplied allowed
+    return_to URLs?"""
+
+    for allowed_return_to in allowed_return_to_urls:
+        # A return_to pattern works the same as a realm, except that
+        # it's not allowed to use a wildcard. We'll model this by
+        # parsing it as a realm, and not trying to match it if it has
+        # a wildcard.
+
+        return_realm = TrustRoot.parse(allowed_return_to)
+        if (# Parses as a trust root
+            return_realm is not None and
+
+            # Does not have a wildcard
+            not return_realm.wildcard and
+
+            # Matches the return_to that we passed in with it
+            return_realm.validateURL(return_to)
+            ):
+            return True
+
+    # No URL in the list matched
+    return False
+
+def verifyWithRelyingPartyURL(relying_party_url, return_to):
+    """Verify that the return_to URL is listed by the relying party URL.
+
+    Similar to verifyReturnTo, except it takes a relying party URL instead
+    of a realm.
+    """
+    (rp_url_after_redirects, return_to_urls) = services.getServiceEndpoints(
+        relying_party_url, extractReturnToURLs)
+
+    if rp_url_after_redirects != relying_party_url:
+        # Verification caused a redirect
+        return False
+
+    # Return whether the return_to URL matches any one of the
+    # discovered return_to URLs
+    return returnToMatches(return_to_urls, return_to)
+
+def verifyReturnTo(realm_str, return_to,
+                   _vrfy=verifyWithRelyingPartyURL):
+    """Verify that a return_to URL is valid for the given realm.
+
+    This function builds a discovery URL, performs Yadis discovery on
+    it, makes sure that the URL does not redirect, parses out the
+    return_to URLs, and finally checks to see if the current return_to
+    URL matches the return_to.
+
+    @raises DiscoveryFailure: When Yadis discovery fails
+    @returns: True if the return_to URL is valid for the realm
+    """
+    realm = TrustRoot.parse(realm_str)
+    if realm is None:
+        # The realm does not parse as a URL pattern
+        return False
+
+    discovery_url = realm.buildDiscoveryURL(return_to)
+    return _vrfy(discovery_url, return_to)

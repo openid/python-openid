@@ -3,6 +3,7 @@
 
 __all__ = ['TestBuildDiscoveryURL']
 
+from openid.yadis.etxrd import XRDSError
 from openid.server import trustroot
 import unittest
 
@@ -74,6 +75,164 @@ class TestBuildDiscoveryURL(unittest.TestCase):
         self.failUnlessDiscoURL('http://*.example.com/foo',
                                 'http://example.com/foo?x=y',
                                 'http://example.com/foo')
+
+
+
+class TestExtractReturnToURLs(unittest.TestCase):
+    disco_url = 'http://example.com/'
+
+    def failUnlessFileHasReturnURLs(self, filename, expected_return_urls):
+        self.failUnlessXRDSHasReturnURLs(file(filename).read(),
+                                         expected_return_urls)
+
+    def failUnlessXRDSHasReturnURLs(self, data, expected_return_urls):
+        actual_return_urls = list(trustroot.extractReturnToURLs(
+            self.disco_url, data))
+        self.failUnlessEqual(expected_return_urls, actual_return_urls)
+
+    def failUnlessXRDSError(self, text):
+        self.failUnlessRaises(XRDSError, trustroot.extractReturnToURLs, self.disco_url, text)
+
+    def test_empty(self):
+        self.failUnlessXRDSError('')
+
+    def test_badXML(self):
+        self.failUnlessXRDSError('>')
+
+    def test_noEntries(self):
+        self.failUnlessXRDSHasReturnURLs('''\
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds"
+           xmlns="xri://$xrd*($v*2.0)"
+           >
+  <XRD>
+  </XRD>
+</xrds:XRDS>
+''', [])
+
+    def test_noReturnToEntries(self):
+        self.failUnlessXRDSHasReturnURLs('''\
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds"
+           xmlns="xri://$xrd*($v*2.0)"
+           >
+  <XRD>
+    <Service priority="10">
+      <Type>http://specs.openid.net/auth/2.0/server</Type>
+      <URI>http://www.myopenid.com/server</URI>
+    </Service>
+  </XRD>
+</xrds:XRDS>
+''', [])
+
+    def test_oneEntry(self):
+        self.failUnlessXRDSHasReturnURLs('''\
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds"
+           xmlns="xri://$xrd*($v*2.0)"
+           >
+  <XRD>
+    <Service>
+      <Type>http://specs.openid.net/auth/2.0/return_to</Type>
+      <URI>http://rp.example.com/return</URI>
+    </Service>
+  </XRD>
+</xrds:XRDS>
+''', ['http://rp.example.com/return'])
+
+    def test_twoEntries(self):
+        self.failUnlessXRDSHasReturnURLs('''\
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds"
+           xmlns="xri://$xrd*($v*2.0)"
+           >
+  <XRD>
+    <Service priority="0">
+      <Type>http://specs.openid.net/auth/2.0/return_to</Type>
+      <URI>http://rp.example.com/return</URI>
+    </Service>
+    <Service priority="1">
+      <Type>http://specs.openid.net/auth/2.0/return_to</Type>
+      <URI>http://other.rp.example.com/return</URI>
+    </Service>
+  </XRD>
+</xrds:XRDS>
+''', ['http://rp.example.com/return',
+      'http://other.rp.example.com/return'])
+
+    def test_twoEntries_withOther(self):
+        self.failUnlessXRDSHasReturnURLs('''\
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds"
+           xmlns="xri://$xrd*($v*2.0)"
+           >
+  <XRD>
+    <Service priority="0">
+      <Type>http://specs.openid.net/auth/2.0/return_to</Type>
+      <URI>http://rp.example.com/return</URI>
+    </Service>
+    <Service priority="1">
+      <Type>http://specs.openid.net/auth/2.0/return_to</Type>
+      <URI>http://other.rp.example.com/return</URI>
+    </Service>
+    <Service priority="0">
+      <Type>http://example.com/LOLCATS</Type>
+      <URI>http://example.com/invisible+uri</URI>
+    </Service>
+  </XRD>
+</xrds:XRDS>
+''', ['http://rp.example.com/return',
+      'http://other.rp.example.com/return'])
+
+
+
+class TestReturnToMatches(unittest.TestCase):
+    def test_noEntries(self):
+        self.failIf(trustroot.returnToMatches([], 'anything'))
+
+    def test_exactMatch(self):
+        r = 'http://example.com/return.to'
+        self.failUnless(trustroot.returnToMatches([r], r))
+
+    def test_garbageMatch(self):
+        r = 'http://example.com/return.to'
+        self.failUnless(trustroot.returnToMatches(
+            ['This is not a URL at all. In fact, it has characters, like "<" that are not allowed in URLs',
+             r],
+            r))
+
+    def test_descendant(self):
+        r = 'http://example.com/return.to'
+        self.failUnless(trustroot.returnToMatches(
+            [r],
+            'http://example.com/return.to/user:joe'))
+
+    def test_wildcard(self):
+        self.failIf(trustroot.returnToMatches(
+            ['http://*.example.com/return.to'],
+            'http://example.com/return.to'))
+
+    def test_noMatch(self):
+        r = 'http://example.com/return.to'
+        self.failIf(trustroot.returnToMatches(
+            [r],
+            'http://example.com/xss_exploit'))
+
+class TestVerifyReturnTo(unittest.TestCase):
+    def test_bogusRealm(self):
+        self.failIf(trustroot.verifyReturnTo('', None))
+
+    def test_verifyWithDiscoveryCalled(self):
+        sentinel = object()
+        realm = 'http://*.example.com/'
+        return_to = 'http://www.example.com/foo'
+        def vrfy(disco_url, passed_return_to):
+            self.failUnlessEqual('http://www.example.com/', disco_url)
+            self.failUnlessEqual(return_to, passed_return_to)
+            return sentinel
+
+        self.failUnless(
+            trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy) is sentinel)
 
 if __name__ == '__main__':
     unittest.main()
