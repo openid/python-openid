@@ -4,7 +4,8 @@ This module contains the HTTP fetcher interface and several implementations.
 """
 
 __all__ = ['fetch', 'getDefaultFetcher', 'setDefaultFetcher', 'HTTPResponse',
-           'HTTPFetcher', 'createHTTPFetcher', 'HTTPFetchingError', 'HTTPError']
+           'HTTPFetcher', 'createHTTPFetcher', 'HTTPFetchingError',
+           'HTTPError']
 
 import urllib2
 import time
