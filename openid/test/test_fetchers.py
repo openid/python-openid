@@ -1,3 +1,4 @@
+import warnings
 import unittest
 import sys
 import urllib2
@@ -14,7 +15,8 @@ def failUnlessResponseExpected(expected, actual):
     got_headers = dict(actual.headers)
     del got_headers['date']
     del got_headers['server']
-    assert expected.headers == got_headers
+    for k, v in expected.headers.iteritems():
+        assert got_headers[k] == v, (k, v, got_headers[k])
 
 def test_fetcher(fetcher, exc, server):
     def geturl(path):
@@ -75,22 +77,30 @@ def test_fetcher(fetcher, exc, server):
         except:
             assert exc
         else:
-            assert result is None, (fetcher, result)
+            assert False, 'An exception was expected for %r (%r)' % (fetcher, result)
 
 def run_fetcher_tests(server):
-    exc_fetchers = [fetchers.Urllib2Fetcher(),]
-    try:
-        exc_fetchers.append(fetchers.CurlHTTPFetcher())
-    except RuntimeError, why:
-        if why[0] == 'Cannot find pycurl library':
-            try:
-                import pycurl
-            except ImportError:
-                pass
+    exc_fetchers = []
+    for klass, library_name in [
+        (fetchers.Urllib2Fetcher, 'urllib2'),
+        (fetchers.CurlHTTPFetcher, 'pycurl'),
+        (fetchers.HTTPLib2Fetcher, 'httplib2'),
+        ]:
+        try:
+            exc_fetchers.append(klass())
+        except RuntimeError, why:
+            if why[0].startswith('Cannot find %s library' % (library_name,)):
+                try:
+                    __import__(library_name)
+                except ImportError:
+                    warnings.warn(
+                        'Skipping tests for %r fetcher because '
+                        'the library did not import.' % (library_name,))
+                    pass
+                else:
+                    assert False, ('%s present but not detected' % (library_name,))
             else:
-                assert False, 'curl present but not detected'
-        else:
-            raise
+                raise
 
     non_exc_fetchers = []
     for f in exc_fetchers:

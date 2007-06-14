@@ -15,6 +15,14 @@ import sys
 import openid
 import openid.urinorm
 
+# Try to import httplib2 for caching support
+# http://bitworking.org/projects/httplib2/
+try:
+    import httplib2
+except ImportError:
+    # httplib2 not available
+    httplib2 = None
+
 # try to import pycurl, which will let us use CurlHTTPFetcher
 try:
     import pycurl
@@ -330,3 +338,71 @@ class CurlHTTPFetcher(HTTPFetcher):
             raise HTTPError("Timed out fetching: %r" % (url,))
         finally:
             c.close()
+
+class HTTPLib2Fetcher(HTTPFetcher):
+    """A fetcher that uses C{httplib2} for performing HTTP
+    requests. This implementation supports HTTP caching.
+
+    @see: http://bitworking.org/projects/httplib2/
+    """
+
+    def __init__(self, cache=None):
+        """@param cache: An object suitable for use as an C{httplib2}
+            cache. If a string is passed, it is assumed to be a
+            directory name.
+        """
+        if httplib2 is None:
+            raise RuntimeError('Cannot find httplib2 library. '
+                               'See http://bitworking.org/projects/httplib2/')
+
+        super(HTTPLib2Fetcher, self).__init__()
+
+        # An instance of the httplib2 object that performs HTTP requests
+        self.httplib2 = httplib2.Http(cache)
+
+        # We want httplib2 to raise exceptions for errors, just like
+        # the other fetchers.
+        self.httplib2.force_exception_to_status_code = False
+
+    def fetch(self, url, body=None, headers=None):
+        """Perform an HTTP request
+
+        @raises Exception: Any exception that can be raised by httplib2
+
+        @see: C{L{HTTPFetcher.fetch}}
+        """
+        if body:
+            method = 'POST'
+        else:
+            method = 'GET'
+
+        # httplib2 doesn't check to make sure that the URL's scheme is
+        # 'http' so we do it here.
+        if not (url.startswith('http://') or url.startswith('https://')):
+            raise ValueError('URL is not a HTTP URL: %r' % (url,))
+
+        httplib2_response, content = self.httplib2.request(
+            url, method, body=body, headers=headers)
+
+        # Translate the httplib2 response to our HTTP response abstraction
+
+        # When a 400 is returned, there is no "content-location"
+        # header set. This seems like a bug to me. I can't think of a
+        # case where we really care about the final URL when it is an
+        # error response, but being careful about it can't hurt.
+        try:
+            final_url = httplib2_response['content-location']
+        except KeyError:
+            # We're assuming that no redirects occurred
+            assert not httplib2_response.previous
+
+            # And this should never happen for a successful response
+            assert httplib2_response.status != 200
+            final_url = url
+
+        return HTTPResponse(
+            body=content,
+            final_url=final_url,
+            headers=dict(httplib2_response.items()),
+            status=httplib2_response.status,
+            )
