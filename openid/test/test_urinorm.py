@@ -1,7 +1,6 @@
 import os
 import unittest
 import openid.urinorm
-import helper
 
 class UrinormTest(unittest.TestCase):
     def __init__(self, desc, case, expected):
@@ -51,6 +50,3 @@ def pyUnitTests():
 
     tests = parseTests(test_data)
     return unittest.TestSuite(tests)
-
-if __name__ == '__main__':
-    helper.runAsMain()

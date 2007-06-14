@@ -2,7 +2,6 @@ import unittest
 import sys
 import urllib2
 
-import helper
 from openid import fetchers
 
 # XXX: make these separate test cases
@@ -272,6 +271,3 @@ def pyUnitTests():
     loadTests = unittest.defaultTestLoader.loadTestsFromTestCase
     case2 = loadTests(DefaultFetcherTest)
     return unittest.TestSuite([case1, case2])
-
-if __name__ == '__main__':
-    helper.runAsMain()
