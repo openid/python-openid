@@ -273,7 +273,7 @@ class CurlHTTPFetcher(HTTPFetcher):
 
         headers.setdefault('User-Agent',
                            "%s %s" % (USER_AGENT, pycurl.version,))
-            
+
         header_list = []
         if headers is not None:
             for header_name, header_value in headers.iteritems():
