@@ -808,6 +808,44 @@ class TestCheckID(unittest.TestCase):
 
         self.failUnless(request.trustRootValid())
 
+    def test_returnToVerified_callsVerify(self):
+        """Make sure that verifyReturnTo is calling the trustroot
+        function verifyReturnTo
+        """
+        def withVerifyReturnTo(new_verify, callable):
+            old_verify = server.verifyReturnTo
+            try:
+                server.verifyReturnTo = new_verify
+                return callable()
+            finally:
+                server.verifyReturnTo = old_verify
+
+        # Ensure that exceptions are passed through
+        sentinel = Exception()
+        def vrfyExc(trust_root, return_to):
+            self.failUnlessEqual(self.request.trust_root, trust_root)
+            self.failUnlessEqual(self.request.return_to, return_to)
+            raise sentinel
+
+        try:
+            withVerifyReturnTo(vrfyExc, self.request.returnToVerified)
+        except Exception, e:
+            self.failUnless(e is sentinel, e)
+
+        # Ensure that True and False are passed through unchanged
+        def constVerify(val):
+            def verify(trust_root, return_to):
+                self.failUnlessEqual(self.request.trust_root, trust_root)
+                self.failUnlessEqual(self.request.return_to, return_to)
+                return val
+            return verify
+
+        for val in [True, False]:
+            self.failUnlessEqual(
+                val,
+                withVerifyReturnTo(constVerify(val),
+                                   self.request.returnToVerified))
+
     def _expectAnswer(self, answer, identity=None, claimed_id=None):
         expected_list = [
             ('mode', 'id_res'),

@@ -104,7 +104,7 @@ from openid import cryptutil
 from openid import oidutil
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce
-from openid.server.trustroot import TrustRoot
+from openid.server.trustroot import TrustRoot, verifyReturnTo
 from openid.association import Association, default_negotiator, getSecretSize
 from openid.message import Message, OPENID_NS, OPENID1_NS, \
      OPENID2_NS, IDENTIFIER_SELECT, OPENID1_URL_LIMIT
@@ -658,6 +658,30 @@ class CheckIDRequest(OpenIDRequest):
             return tr.validateURL(self.return_to)
         else:
             return True
+
+    def returnToVerified(self):
+        """Does the relying party publish the return_to URL for this
+        response under the realm? It is up to the provider to set a
+        policy for what kinds of realms should be allowed. This
+        return_to URL verification reduces vulnerability to data-theft
+        attacks based on open proxies, corss-site-scripting, or open
+        redirectors.
+
+        This check should only be performed after making sure that the
+        return_to URL matches the realm.
+
+        @see: trustRootValid
+
+        @raises openid.yadis.discover.DiscoveryFailure: if the realm
+            URL does not support Yadis discovery (and so does not
+            support the verification process).
+
+        @returntype: bool
+
+        @returns: True if the realm publishes a document with the
+            return_to URL listed
+        """
+        return verifyReturnTo(self.trust_root, self.return_to)
 
     def answer(self, allow, server_url=None, identity=None, claimed_id=None):
         """Respond to this request.
