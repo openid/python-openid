@@ -772,8 +772,6 @@ class TestSigningEncode(unittest.TestCase):
         self.response.fields.setArg(OPENID_NS, 'sig', 'priorSig==')
         self.failUnlessRaises(server.AlreadySigned, self.encode, self.response)
 
-
-
 class TestCheckID(unittest.TestCase):
     def setUp(self):
         self.op_endpoint = 'http://endpoint.unittest/'
@@ -868,8 +866,9 @@ class TestCheckID(unittest.TestCase):
 
         # One for nonce, one for ns
         self.failUnlessEqual(len(answer.fields.toPostArgs()),
-                             len(expected_list) + 2, answer.fields.toPostArgs())
-        
+                             len(expected_list) + 2,
+                             answer.fields.toPostArgs())
+
 
     def test_answerAllow(self):
         """Check the fields specified by "Positive Assertions"
