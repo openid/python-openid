@@ -1,6 +1,6 @@
 "Test some examples."
 
-import os.path, unittest, urllib2, sys, time
+import os.path, unittest, sys, time
 from cStringIO import StringIO
 
 import twill.commands, twill.parse, twill.unit
@@ -33,14 +33,6 @@ def runExampleServer(host, port, data_path):
 #     return os.path.join(os.path.dirname(sys.modules[__name__].__file__),
 #                         'twill', name)
 
-
-
-class RedirectHandler(urllib2.HTTPRedirectHandler):
-    def __init__(self):
-        self.redirectList = []
-
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        self.redirectList.append(newurl)
 
 class TestServer(unittest.TestCase):
     def setUp(self):
@@ -89,21 +81,16 @@ class TestServer(unittest.TestCase):
 
         c = twill.commands
 
-        redirectHandler = RedirectHandler()
-        
         try:
             c.go(url)
-            c.get_browser()._browser._replace_handler("_redirect",
-                                                      redirectHandler)
+            c.get_browser()._browser.set_handle_redirect(False)
             c.submit("yes")
             c.code(302)
-            self.failUnlessEqual(len(redirectHandler.redirectList), 1,
-                                 redirectHandler.redirectList)
-            finalURL = redirectHandler.redirectList[0]
+            headers = c.get_browser()._browser.response().info()
+            finalURL = headers['Location']
             self.failUnless('openid.mode=id_res' in finalURL, finalURL)
             self.failUnless('openid.identity=' in finalURL, finalURL)
         except twill.commands.TwillAssertionError, e:
-            self.fail(RedirectHandler.wtfList)
             b = c.get_browser()
             msg = '%s\nFinal page:\n%s' % (
                 str(e), b.get_html())
