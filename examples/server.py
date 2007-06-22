@@ -194,8 +194,8 @@ class ServerHandler(BaseHTTPRequestHandler):
             response = self.server.openid.handleRequest(request)
             self.displayResponse(response)
 
-    def addSRegResponse(self, response):
-        sreg_req = sreg.SRegRequest.fromOpenIDRequest(request.message)
+    def addSRegResponse(self, request, response):
+        sreg_req = sreg.SRegRequest.fromOpenIDRequest(request)
 
         # In a real application, this data would be user-specific,
         # and the user should be asked for permission to release
@@ -209,7 +209,7 @@ class ServerHandler(BaseHTTPRequestHandler):
 
     def approved(self, request, identifier=None):
         response = request.answer(True, identity=identifier)
-        self.addSRegResponse(response)
+        self.addSRegResponse(request, response)
         return response
 
     def handleCheckIDRequest(self, request):
