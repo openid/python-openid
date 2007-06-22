@@ -10,13 +10,32 @@ from openid.consumer.discover import \
 from openid.consumer.consumer import AuthRequest
 
 class TwillTest(twill.unit.TestInfo):
-    """Variant of twill.unit.TestInfo that runs scripts from strings,
-    not filename."""
+    """Variant of twill.unit.TestInfo that runs a function as a test script,
+    not twill script from a file.
+    """
+
+    # twill.unit is pretty small to start with, we're overriding
+    # run_script and bypassing twill.parse, so it may make sense to
+    # rewrite twill.unit altogether.
+
+    # Desirable features:
+    #  * better unittest.TestCase integration.
+    #     - handle logs on setup and teardown.
+    #     - treat TwillAssertionError as failed test assertion, make twill
+    #       assertions more consistant with TestCase.failUnless idioms.
+    #     - better error reporting on failed assertions.
+    #     - The amount of functions passed back and forth between TestInfo
+    #       and TestCase is currently pretty silly.
+    #  * access to child process's logs.
+    #       TestInfo.start_server redirects stdout/stderr to StringIO
+    #       objects which are, afaict, inaccessible to the caller of
+    #       test.unit.run_child_process.
+
     def run_script(self):
         time.sleep(self.sleep)
         # twill.commands.go(self.get_url())
         self.script(self)
-        
+
 
 def runExampleServer(host, port, data_path):
     thisfile = os.path.abspath(sys.modules[__name__].__file__)
@@ -29,18 +48,22 @@ def runExampleServer(host, port, data_path):
 
     serverMain(host, port, data_path)
 
-# def scriptName(name):
-#     return os.path.join(os.path.dirname(sys.modules[__name__].__file__),
-#                         'twill', name)
 
 
 class TestServer(unittest.TestCase):
+    """Acceptance tests for examples/server.py.
+
+    These are more acceptance tests than unit tests as they actually
+    start the whole server running and test it on its external HTTP
+    interface.
+    """
+
     def setUp(self):
-        import twill
         self.twillOutput = StringIO()
         self.twillErr = StringIO()
         twill.set_output(self.twillOutput)
         twill.set_errout(self.twillErr)
+        # FIXME: make sure we pick an available port.
         self.server_port = 8080
 
         # We need something to feed the server as a realm, but it needn't
@@ -50,29 +73,34 @@ class TestServer(unittest.TestCase):
 
         twill.commands.reset_browser()
 
+
     def runExampleServer(self):
+        """Zero-arg run-the-server function to be passed to TestInfo."""
         # FIXME - make sure sstore starts clean.
         runExampleServer('127.0.0.1', self.server_port, 'sstore')
 
+
     def v1endpoint(self, port):
+        """Return an OpenID 1.1 OpenIDServiceEndpoint for the server."""
         base = "http://127.0.0.1:%s" % (port,)
         ep = OpenIDServiceEndpoint()
         ep.claimed_id = base + "/id/bob"
         ep.server_url = base + "/openidserver"
         ep.type_uris = [OPENID_1_1_TYPE]
         return ep
-        
+
+
     # TODO: test discovery
 
     def test_checkidv1(self):
+        """OpenID 1.1 checkid_setup request."""
         ti = TwillTest(self.twill_checkidv1, self.runExampleServer,
                        self.server_port, sleep=0.2)
         twill.unit.run_test(ti)
-        
+
         if self.twillErr.getvalue():
             self.fail(self.twillErr.getvalue())
 
-        # self.fail(self.twillOutput.getvalue())
 
     def twill_checkidv1(self, twillInfo):
         endpoint = self.v1endpoint(self.server_port)
@@ -91,13 +119,16 @@ class TestServer(unittest.TestCase):
             self.failUnless('openid.mode=id_res' in finalURL, finalURL)
             self.failUnless('openid.identity=' in finalURL, finalURL)
         except twill.commands.TwillAssertionError, e:
-            b = c.get_browser()
             msg = '%s\nFinal page:\n%s' % (
-                str(e), b.get_html())
+                str(e), c.get_browser().get_html())
             self.fail(msg)
+
 
     def tearDown(self):
         twill.set_output(None)
         twill.set_errout(None)
 
-unittest.main()
+
+
+if __name__ == '__main__':
+    unittest.main()
