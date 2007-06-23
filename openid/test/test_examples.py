@@ -30,6 +30,8 @@ class TwillTest(twill.unit.TestInfo):
     #       TestInfo.start_server redirects stdout/stderr to StringIO
     #       objects which are, afaict, inaccessible to the caller of
     #       test.unit.run_child_process.
+    #  * notice when the child process dies, i.e. if you muck up and
+    #       your runExampleServer function throws an exception.
 
     def run_script(self):
         time.sleep(self.sleep)
@@ -37,9 +39,16 @@ class TwillTest(twill.unit.TestInfo):
         self.script(self)
 
 
+def splitDir(d, count):
+    # in python2.4 and above, it's easier to spell this as
+    # d.rsplit(os.sep, count)
+    for i in xrange(count):
+        d = os.path.dirname(d)
+    return d
+
 def runExampleServer(host, port, data_path):
     thisfile = os.path.abspath(sys.modules[__name__].__file__)
-    topDir = thisfile.rsplit(os.sep, 3)[0]
+    topDir = splitDir(thisfile, 3)
     exampleDir = os.path.join(topDir, 'examples')
     serverExample = os.path.join(exampleDir, 'server.py')
     serverModule = {}
