@@ -144,6 +144,55 @@ def pyunitTests():
     return runner.run(s)
 
 
+def _import_djopenid():
+    """Import djopenid from examples/
+
+    It's not in sys.path, and I don't really want to put it in sys.path.
+    """
+    import os.path, types
+    thisfile = os.path.abspath(sys.modules[__name__].__file__)
+    topDir = thisfile.rsplit(os.sep, 2)[0]
+    djdir = os.path.join(topDir, 'examples', 'djopenid')
+
+    djinit = os.path.join(djdir, '__init__.py')
+
+    djopenid = types.ModuleType('djopenid')
+    execfile(djinit, djopenid.__dict__)
+    djopenid.__file__ = djinit
+
+    # __path__ is the magic that makes child modules of the djopenid package
+    # importable.  New feature in python 2.3, see PEP 302.
+    djopenid.__path__ = [djdir]
+    sys.modules['djopenid'] = djopenid
+
+
+
+def django_tests():
+    """Runs tests from examples/djopenid.
+
+    @returns: number of failed tests.
+    """
+    import os
+    # Django uses this to find out where its settings are.
+    os.environ['DJANGO_SETTINGS_MODULE'] = 'djopenid.settings'
+
+    _import_djopenid()
+
+    try:
+        import django.test.simple
+    except ImportError, e:
+        warnings.warn("django.test.simple not found; "
+                      "django examples not tested.")
+        return 0
+    import djopenid.server.models, djopenid.consumer.models
+    print "Testing Django examples:"
+
+    # These tests do get put in to a pyunit test suite, so we could run them
+    # with the other pyunit tests, but django also establishes a test database
+    # for them, so we let it do that thing instead.
+    return django.test.simple.run_tests([djopenid.server.models,
+                                         djopenid.consumer.models])
+
 try:
     bool
 except NameError:
@@ -154,11 +203,14 @@ def main():
     fixpath()
     other_failed = otherTests()
     pyunit_result = pyunitTests()
+    django_failures = django_tests()
 
     if other_failed:
         print 'Failures:', ', '.join(other_failed)
 
-    failed = bool(other_failed) or bool(not pyunit_result.wasSuccessful())
+    failed = (bool(other_failed) or
+              bool(not pyunit_result.wasSuccessful()) or
+              (django_failures > 0))
     return failed
 
 if __name__ == '__main__':
