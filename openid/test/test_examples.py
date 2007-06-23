@@ -91,7 +91,7 @@ class TestServer(unittest.TestCase):
 
     def v1endpoint(self, port):
         """Return an OpenID 1.1 OpenIDServiceEndpoint for the server."""
-        base = "http://127.0.0.1:%s" % (port,)
+        base = "http://localhost:%s" % (port,)
         ep = OpenIDServiceEndpoint()
         ep.claimed_id = base + "/id/bob"
         ep.server_url = base + "/openidserver"
