@@ -111,6 +111,16 @@ class TestServer(unittest.TestCase):
             self.fail(self.twillErr.getvalue())
 
 
+    def test_allowed(self):
+        """OpenID 1.1 checkid_setup request."""
+        ti = TwillTest(self.twill_allowed, self.runExampleServer,
+                       self.server_port, sleep=0.2)
+        twill.unit.run_test(ti)
+
+        if self.twillErr.getvalue():
+            self.fail(self.twillErr.getvalue())
+
+
     def twill_checkidv1(self, twillInfo):
         endpoint = self.v1endpoint(self.server_port)
         authreq = AuthRequest(endpoint, assoc=None)
@@ -133,10 +143,41 @@ class TestServer(unittest.TestCase):
             self.fail(msg)
 
 
+    def twill_allowed(self, twillInfo):
+        endpoint = self.v1endpoint(self.server_port)
+        authreq = AuthRequest(endpoint, assoc=None)
+        url = authreq.redirectURL(self.realm, self.return_to)
+
+        c = twill.commands
+
+        try:
+            c.go(url)
+            c.code(200)
+            c.get_browser()._browser.set_handle_redirect(False)
+            c.formvalue(1, 'remember', 'true')
+            c.find('name="login_as" value="bob"')
+            c.submit("yes")
+            c.code(302)
+            # Since we set remember=yes, the second time we shouldn't
+            # see that page.
+            c.go(url)
+            c.code(302)
+            headers = c.get_browser()._browser.response().info()
+            finalURL = headers['Location']
+            self.failUnless(finalURL.startswith(self.return_to))
+        except twill.commands.TwillAssertionError, e:
+            from traceback import format_exc
+            msg = '%s\nTwill output:%s\nTwill errors:%s\nFinal page:\n%s' % (
+                format_exc(),
+                self.twillOutput.getvalue(),
+                self.twillErr.getvalue(),
+                c.get_browser().get_html())
+            self.fail(msg)
+
+
     def tearDown(self):
         twill.set_output(None)
         twill.set_errout(None)
-
 
 
 if __name__ == '__main__':

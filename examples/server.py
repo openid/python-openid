@@ -170,7 +170,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         if self.user is None:
             return False
 
-        if identity_url != self.server.base_url + self.user:
+        if identity_url != self.server.base_url + 'id/' + self.user:
             return False
 
         key = (identity_url, trust_root)
