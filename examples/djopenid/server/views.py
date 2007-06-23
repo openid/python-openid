@@ -221,8 +221,9 @@ def processTrustResult(request):
             'timezone': 'America/New_York',
             }
 
-        sreg.sendSRegFields(openid_request, sreg_data,
-                            openid_response)
+        sreg_req = sreg.SRegRequest.fromOpenIDRequest(openid_request)
+        sreg_resp = sreg.SRegResponse.extractResponse(sreg_req, sreg_data)
+        openid_response.addExtension(sreg_resp)
 
     return displayResponse(request, openid_response)
 
