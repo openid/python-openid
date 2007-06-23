@@ -15,7 +15,7 @@ OpenID providers.
      gets the user's approval and data, creates a C{L{SRegResponse}}
      object and adds it to the C{id_res} response::
 
-      sreg_req = SRegRequest.fromOpenIDRequest(checkid_request.message)
+      sreg_req = SRegRequest.fromOpenIDRequest(checkid_request)
       # [ get the user's approval and data, informing the user that
       #   the fields in sreg_response were requested ]
       sreg_resp = SRegResponse.extractResponse(sreg_req, user_data)
@@ -49,7 +49,6 @@ except NameError:
 __all__ = [
     'SRegRequest',
     'SRegResponse',
-    'sendSRegFields',
     'data_fields',
     'ns_uri',
     'supportsSReg',
