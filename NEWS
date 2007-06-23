@@ -1,7 +1,9 @@
 What's New in Python OpenID 2.0
 ===============================
 
-The big news here is compatibility with version 2.0 of the OpenID protocol.
+The big news here is compatibility with svn revision 313 of the OpenID 2.0 
+draft specification.
+
 Highlights include:
 
  * Simple Registration support in a new module openid.sreg.  (Those
