@@ -551,7 +551,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         if self.user is None:
             user_link = '<a href="/login">not logged in</a>.'
         else:
-            user_link = 'logged in as <a href="/%s">%s</a>.<br /><a href="/loginsubmit?submit=true&success_to=/login">Log out</a>' % \
+            user_link = 'logged in as <a href="/id/%s">%s</a>.<br /><a href="/loginsubmit?submit=true&success_to=/login">Log out</a>' % \
                         (self.user, self.user)
 
         body = ''
