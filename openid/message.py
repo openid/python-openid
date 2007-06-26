@@ -471,6 +471,16 @@ class Message(object):
 
 
     def getAliasedArg(self, aliased_key, default=None):
+        if aliased_key == 'ns':
+            return self.getOpenIDNamespace()
+
+        if aliased_key.startswith('ns.'):
+            uri = self.namespaces.getNamespaceURI(aliased_key[3:])
+            if uri is None:
+                return default
+            else:
+                return uri
+
         try:
             alias, key = aliased_key.split('.', 1)
         except ValueError:

@@ -250,7 +250,7 @@ class Response(Extension):
             if self.auth_age < 0:
                 raise ValueError('Auth age must be above zero')
 
-            ns_args['auth_age'] = str(self.auth_age)
+            ns_args['auth_age'] = str(int(self.auth_age))
 
         return ns_args
 

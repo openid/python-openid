@@ -1115,10 +1115,6 @@ class GenericConsumer(object):
         signed = message.getArg(OPENID_NS, 'signed')
         if signed:
             for k in signed.split(','):
-                if k == 'ns':
-                    check_args['ns'] = message.getOpenIDNamespace()
-                    continue
-
                 val = message.getAliasedArg(k)
 
                 # Signed value is missing
