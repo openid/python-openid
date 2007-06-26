@@ -15,7 +15,7 @@ no-docstring-rgx=__.*__
 module-rgx=[a-z_][a-z0-9_]*$
 
 # Regular expression which should only match correct module level names
-const-rgx=(([a-z_][a-z0-9_]*)|(__.*__))$
+const-rgx=(([a-z_][a-z0-9_]{3,30})|(__.*__)|([A-Z_][A-Z0-9_]{3,30}))$
 
 # Regular expression which should only match correct class names
 class-rgx=[A-Z_][a-zA-Z0-9]+$
