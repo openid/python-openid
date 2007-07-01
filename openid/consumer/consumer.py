@@ -850,6 +850,8 @@ class GenericConsumer(object):
 
         @param endpoint: The endpoint that resulted from doing discovery
         @param resp_msg: The id_res message object
+
+        @returns: the verified endpoint
         """
         if resp_msg.getOpenIDNamespace() == OPENID2_NS:
             return self._verifyDiscoveryResultsOpenID2(resp_msg, endpoint)
@@ -1023,6 +1025,11 @@ class GenericConsumer(object):
                 % (to_match.claimed_id,), None)
 
     def _checkAuth(self, message, server_url):
+        """Make a check_authentication request to verify this message.
+
+        @returns: True if the request is valid.
+        @rtype: bool
+        """
         oidutil.log('Using OpenID check_authentication')
         request = self._createCheckAuthRequest(message)
         if request is None:
