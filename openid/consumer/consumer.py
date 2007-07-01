@@ -212,6 +212,7 @@ __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
            'SUCCESS', 'FAILURE', 'CANCEL', 'SETUP_NEEDED',
            ]
 
+
 def makeKVPost(request_message, server_url):
     """Make a Direct Request to an OpenID Provider and return the
     result as a Message object.
@@ -224,16 +225,35 @@ def makeKVPost(request_message, server_url):
     # XXX: TESTME
     resp = fetchers.fetch(server_url, body=request_message.toURLEncoded())
 
-    response_message = Message.fromKVForm(resp.body)
-    if resp.status == 400:
+    # Process response in separate function that can be shared by async code.
+    return _httpResponseToMessage(resp, server_url)
+
+
+def _httpResponseToMessage(response, server_url):
+    """Adapt a POST response to a Message.
+
+    @type response: L{openid.fetchers.HTTPResponse}
+    @param response: Result of a POST to an OpenID endpoint.
+
+    @rtype: L{openid.message.Message}
+
+    @raises openid.fetchers.HTTPFetchingError: if the server returned a
+        status of other than 200 or 400.
+
+    @raises ServerError: if the server returned an OpenID error.
+    """
+    # Should this function be named Message.fromHTTPResponse instead?
+    response_message = Message.fromKVForm(response.body)
+    if response.status == 400:
         raise ServerError.fromMessage(response_message)
 
-    elif resp.status != 200:
+    elif response.status != 200:
         fmt = 'bad status code from server %s: %s'
-        error_message = fmt % (server_url, resp.status)
+        error_message = fmt % (server_url, response.status)
         raise fetchers.HTTPFetchingError(error_message)
 
     return response_message
+
 
 
 class Consumer(object):

@@ -14,7 +14,7 @@ from openid.consumer.consumer import \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
      SetupNeededError, DiffieHellmanSHA256ConsumerSession, ServerError, \
-     ProtocolError
+     ProtocolError, _httpResponseToMessage
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
@@ -1899,5 +1899,47 @@ class TestAddExtension(unittest.TestCase):
         ar.addExtension(ext)
         ext_args = ar.message.getArgs(ext.ns_uri)
         self.failUnlessEqual(ext.getExtensionArgs(), ext_args)
+
+
+
+class TestKVPost(unittest.TestCase):
+    def setUp(self):
+        self.server_url = 'http://unittest/%s' % (self.id(),)
+
+    def test_200(self):
+        from openid.fetchers import HTTPResponse
+        response = HTTPResponse()
+        response.status = 200
+        response.body = "foo:bar\nbaz:quux\n"
+        r = _httpResponseToMessage(response, self.server_url)
+        expected_msg = Message.fromOpenIDArgs({'foo':'bar','baz':'quux'})
+        self.failUnlessEqual(expected_msg, r)
+
+
+    def test_400(self):
+        response = HTTPResponse()
+        response.status = 400
+        response.body = "error:bonk\nerror_code:7\n"
+        try:
+            r = _httpResponseToMessage(response, self.server_url)
+        except ServerError, e:
+            self.failUnlessEqual(e.error_text, 'bonk')
+            self.failUnlessEqual(e.error_code, '7')
+        else:
+            self.fail("Expected ServerError, got return %r" % (r,))
+
+
+    def test_500(self):
+        # 500 as an example of any non-200, non-400 code.
+        response = HTTPResponse()
+        response.status = 500
+        response.body = "foo:bar\nbaz:quux\n"
+        self.failUnlessRaises(fetchers.HTTPFetchingError,
+                              _httpResponseToMessage, response,
+                              self.server_url)
+
+
+
+
 if __name__ == '__main__':
     unittest.main()
