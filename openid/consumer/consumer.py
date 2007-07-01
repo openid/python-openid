@@ -1714,6 +1714,22 @@ class SuccessResponse(Response):
         """
         return self.getSigned(OPENID_NS, 'return_to')
 
+    def __eq__(self, other):
+        return (
+            (self.endpoint == other.endpoint) and
+            (self.identity_url == other.identity_url) and
+            (self.message == other.message) and
+            (self.signed_fields == other.signed_fields) and
+            (self.status == other.status))
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __repr__(self):
+        return '<%s.%s id=%r signed=%r>' % (
+            self.__class__.__module__,
+            self.__class__.__name__,
+            self.identity_url, self.signed_fields)
 
 
 class FailureResponse(Response):
