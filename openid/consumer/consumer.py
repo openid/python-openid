@@ -994,13 +994,18 @@ class GenericConsumer(object):
         @returns: The result of performing discovery on the claimed
             identifier in `to_match'
 
-        @raises ProtocolError: when discovery fails.
+        @raises DiscoveryFailure: when discovery fails.
         """
         oidutil.log('Performing discovery on %s' % (to_match.claimed_id,))
         _, services = self._discover(to_match.claimed_id)
         if not services:
             raise DiscoveryFailure('No OpenID information found at %s' %
                                    (to_match.claimed_id,), None)
+        return _verifyDiscoveredServices(services, to_match)
+
+
+    def _verifyDiscoveredServices(self, services, to_match):
+        """See @L{_discoverAndVerify)"""
 
         # Search the services resulting from discovery to find one
         # that matches the information from the assertion
