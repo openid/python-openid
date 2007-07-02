@@ -1125,9 +1125,6 @@ class GenericConsumer(object):
         @returns: a new association object
 
         @rtype: openid.association.Association
-
-        @raises Exception: errors that the fetcher might raise. These are
-            intended to be propagated up to the library's entrance point.
         """
         # Get our preferred session/association type from the negotiatior.
         assoc_type, session_type = self.negotiator.getAllowedType()
