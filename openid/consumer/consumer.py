@@ -1124,7 +1124,7 @@ class GenericConsumer(object):
 
         @returns: a new association object
 
-        @rtype: openid.association.Association
+        @rtype: L{openid.association.Association}
         """
         # Get our preferred session/association type from the negotiatior.
         assoc_type, session_type = self.negotiator.getAllowedType()
@@ -1133,37 +1133,11 @@ class GenericConsumer(object):
             assoc = self._requestAssociation(
                 endpoint, assoc_type, session_type)
         except ServerError, why:
-            # Any error message whose code is not 'unsupported-type'
-            # should be considered a total failure.
-            if why.error_code != 'unsupported-type' or \
-                   why.message.isOpenID1():
-                oidutil.log(
-                    'Server error when requesting an association from %r: %s'
-                    % (endpoint.server_url, why.error_text))
-                return None
-
-            # The server didn't like the association/session type
-            # that we sent, and it sent us back a message that
-            # might tell us how to handle it.
-            oidutil.log(
-                'Unsupported association type %s: %s' % (assoc_type,
-                                                         why.error_text,))
-
-            # Extract the session_type and assoc_type from the
-            # error message
-            assoc_type = why.message.getArg(OPENID_NS, 'assoc_type')
-            session_type = why.message.getArg(OPENID_NS, 'session_type')
-
-            if assoc_type is None or session_type is None:
-                oidutil.log('Server responded with unsupported association '
-                            'session but did not supply a fallback.')
-                return None
-            elif not self.negotiator.isAllowed(assoc_type, session_type):
-                fmt = ('Server sent unsupported session/association type: '
-                       'session_type=%s, assoc_type=%s')
-                oidutil.log(fmt % (session_type, assoc_type))
-                return None
-            else:
+            supportedTypes = self._extractSupportedAssociationType(why,
+                                                                   endpoint,
+                                                                   assoc_type)
+            if supportedTypes is not None:
+                assoc_type, session_type = supportedTypes
                 # Attempt to create an association from the assoc_type
                 # and session_type that the server told us it
                 # supported.
@@ -1182,6 +1156,49 @@ class GenericConsumer(object):
                     return assoc
         else:
             return assoc
+
+    def _extractSupportedAssociationType(self, server_error, endpoint,
+                                         assoc_type):
+        """Handle ServerErrors resulting from association requests.
+
+        @returns: If server replied with an C{unsupported-type} error,
+            return a tuple of supported C{association_type}, C{session_type}.
+            Otherwise logs the error and returns None.
+        @rtype: tuple or None
+        """
+        # Any error message whose code is not 'unsupported-type'
+        # should be considered a total failure.
+        if server_error.error_code != 'unsupported-type' or \
+               server_error.message.isOpenID1():
+            oidutil.log(
+                'Server error when requesting an association from %r: %s'
+                % (endpoint.server_url, server_error.error_text))
+            return None
+
+        # The server didn't like the association/session type
+        # that we sent, and it sent us back a message that
+        # might tell us how to handle it.
+        oidutil.log(
+            'Unsupported association type %s: %s' % (assoc_type,
+                                                     server_error.error_text,))
+
+        # Extract the session_type and assoc_type from the
+        # error message
+        assoc_type = server_error.message.getArg(OPENID_NS, 'assoc_type')
+        session_type = server_error.message.getArg(OPENID_NS, 'session_type')
+
+        if assoc_type is None or session_type is None:
+            oidutil.log('Server responded with unsupported association '
+                        'session but did not supply a fallback.')
+            return None
+        elif not self.negotiator.isAllowed(assoc_type, session_type):
+            fmt = ('Server sent unsupported session/association type: '
+                   'session_type=%s, assoc_type=%s')
+            oidutil.log(fmt % (session_type, assoc_type))
+            return None
+        else:
+            return assoc_type, session_type
+
 
     def _requestAssociation(self, endpoint, assoc_type, session_type):
         """Make and process one association request to this endpoint's
