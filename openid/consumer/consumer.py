@@ -1001,7 +1001,7 @@ class GenericConsumer(object):
         if not services:
             raise DiscoveryFailure('No OpenID information found at %s' %
                                    (to_match.claimed_id,), None)
-        return _verifyDiscoveredServices(services, to_match)
+        return self._verifyDiscoveredServices(services, to_match)
 
 
     def _verifyDiscoveredServices(self, services, to_match):
