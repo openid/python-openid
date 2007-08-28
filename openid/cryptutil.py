@@ -131,7 +131,7 @@ except AttributeError:
         # on Windows.
         try:
             _urandom = file('/dev/urandom', 'rb')
-        except OSError:
+        except IOError:
             raise ImportError('No adequate source of randomness found!')
         else:
             def getBytes(n):
