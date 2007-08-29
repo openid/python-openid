@@ -14,69 +14,25 @@ class TestBuildDiscoveryURL(unittest.TestCase):
     return_to URL
     """
 
-    def failUnlessDiscoURL(self, realm, return_to,
-                                  expected_discovery_url):
+    def failUnlessDiscoURL(self, realm, expected_discovery_url):
         """Build a discovery URL out of the realm and a return_to and
         make sure that it matches the expected discovery URL
         """
         realm_obj = trustroot.TrustRoot.parse(realm)
-        actual_discovery_url = realm_obj.buildDiscoveryURL(return_to)
+        actual_discovery_url = realm_obj.buildDiscoveryURL()
         self.failUnlessEqual(expected_discovery_url, actual_discovery_url)
 
     def test_trivial(self):
         """There is no wildcard and the realm is the same as the return_to URL
         """
         self.failUnlessDiscoURL('http://example.com/foo',
-                                'http://example.com/foo',
                                 'http://example.com/foo')
 
     def test_wildcard(self):
-        """There is a wildcard, but there is no difference in the path"""
-        self.failUnlessDiscoURL('http://*.example.com/foo',
-                                'http://example.com/foo',
-                                'http://example.com/foo')
-
-    def test_wildcardSibling(self):
-        """There is a wildcard, there is no difference in the path,
-        and the domain name on the return_to URL has more subdomains
-        in it than segments in the realm"""
-        self.failUnlessDiscoURL('http://*.example.com/foo',
-                                'http://strong.types.example.com/foo',
-                                'http://strong.types.example.com/foo')
-
-    def test_pathDifference(self):
-        """There is no wildcard and the return_to URL's path is not
-        the same as the realm
-        """
-        self.failUnlessDiscoURL('http://example.com/foo',
-                                'http://example.com/foo/bar',
-                                'http://example.com/foo')
-
-    def test_queryAdded(self):
-        """There is no a wildcard and the return_to URL has a query is not
-        the same as the realm
-        """
-        self.failUnlessDiscoURL('http://example.com/foo',
-                                'http://example.com/foo?x=y',
-                                'http://example.com/foo')
-
-    def test_pathDifference_wild(self):
-        """There is a wildcard and the return_to URL's path is not
-        the same as the realm
+        """There is a wildcard
         """
         self.failUnlessDiscoURL('http://*.example.com/foo',
-                                'http://example.com/foo/bar',
-                                'http://example.com/foo')
-
-    def test_queryAdded_wild(self):
-        """There is a wildcard and the return_to URL has a query is not
-        the same as the realm
-        """
-        self.failUnlessDiscoURL('http://*.example.com/foo',
-                                'http://example.com/foo?x=y',
-                                'http://example.com/foo')
-
-
+                                'http://www.example.com/foo')
 
 class TestExtractReturnToURLs(unittest.TestCase):
     disco_url = 'http://example.com/'
@@ -221,19 +177,19 @@ class TestReturnToMatches(unittest.TestCase):
 
 class TestVerifyReturnTo(unittest.TestCase):
     def test_bogusRealm(self):
-        self.failIf(trustroot.verifyReturnTo('', None))
+        self.failIf(trustroot.verifyReturnTo(''))
 
     def test_verifyWithDiscoveryCalled(self):
         sentinel = object()
         realm = 'http://*.example.com/'
         return_to = 'http://www.example.com/foo'
-        def vrfy(disco_url, passed_return_to):
+
+        def vrfy(disco_url):
             self.failUnlessEqual('http://www.example.com/', disco_url)
-            self.failUnlessEqual(return_to, passed_return_to)
             return sentinel
 
         self.failUnless(
-            trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy) is sentinel)
+            trustroot.verifyReturnTo(realm, _vrfy=vrfy) is sentinel)
 
 if __name__ == '__main__':
     unittest.main()

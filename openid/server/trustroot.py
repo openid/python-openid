@@ -267,7 +267,7 @@ class TrustRoot(object):
 
     checkURL = classmethod(checkURL)
 
-    def buildDiscoveryURL(self, return_to):
+    def buildDiscoveryURL(self):
         """Given the a return_to string, return a discovery URL for
         the relying party
 
@@ -283,15 +283,13 @@ class TrustRoot(object):
         @returns: The URL upon which relying party discovery should be run
             in order to verify the return_to URL
         """
-        if not self.wildcard:
+        if self.wildcard:
+            # Use "www." in place of the star
+            assert self.host.startswith('.'), self.host
+            www_domain = 'www' + self.host
+            return '%s://%s%s' % (self.proto, www_domain, self.path)
+        else:
             return self.unparsed
-
-        # Use the domain name from the return_to URL and everything else
-        # from the realm (trust_root)
-        return_to_url_parts = urlparse(return_to)
-        return_to_domain = return_to_url_parts[1]
-
-        return '%s://%s%s' % (self.proto, return_to_domain, self.path)
 
     def __repr__(self):
         return "TrustRoot('%s', '%s', '%s', '%s', '%s', '%s')" % (
@@ -383,8 +381,8 @@ def verifyWithRelyingPartyURL(relying_party_url, return_to):
     # discovered return_to URLs
     return returnToMatches(return_to_urls, return_to)
 
-def verifyReturnTo(realm_str, return_to,
-                   _vrfy=verifyWithRelyingPartyURL):
+# _vrfy parameter is there to make testing easier
+def verifyReturnTo(realm_str, _vrfy=verifyWithRelyingPartyURL):
     """Verify that a return_to URL is valid for the given realm.
 
     This function builds a discovery URL, performs Yadis discovery on
@@ -400,5 +398,4 @@ def verifyReturnTo(realm_str, return_to,
         # The realm does not parse as a URL pattern
         return False
 
-    discovery_url = realm.buildDiscoveryURL(return_to)
-    return _vrfy(discovery_url, return_to)
+    return _vrfy(realm.buildDiscoveryURL())
