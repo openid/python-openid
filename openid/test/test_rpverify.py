@@ -197,7 +197,8 @@ class TestReturnToMatches(unittest.TestCase):
     def test_garbageMatch(self):
         r = 'http://example.com/return.to'
         self.failUnless(trustroot.returnToMatches(
-            ['This is not a URL at all. In fact, it has characters, like "<" that are not allowed in URLs',
+            ['This is not a URL at all. In fact, it has characters, '
+             'like "<" that are not allowed in URLs',
              r],
             r))
 
