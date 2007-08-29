@@ -337,7 +337,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         id_url_base = self.server.base_url+'id/'
         # XXX: This may break if there are any synonyms for id_url_base,
         # such as referring to it by IP address or a CNAME.
-        assert request.identity.startswith(id_url_base)
+        assert request.identity.startswith(id_url_base), repr((request.identity, id_url_base))
         expected_user = request.identity[len(id_url_base):]
 
         if request.idSelect(): # We are being asked to select an ID
