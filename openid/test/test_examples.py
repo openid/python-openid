@@ -1,5 +1,6 @@
 "Test some examples."
 
+import socket
 import os.path, unittest, sys, time
 from cStringIO import StringIO
 
@@ -91,7 +92,7 @@ class TestServer(unittest.TestCase):
 
     def v1endpoint(self, port):
         """Return an OpenID 1.1 OpenIDServiceEndpoint for the server."""
-        base = "http://localhost:%s" % (port,)
+        base = "http://%s:%s" % (socket.getfqdn('127.0.0.1'), port)
         ep = OpenIDServiceEndpoint()
         ep.claimed_id = base + "/id/bob"
         ep.server_url = base + "/openidserver"
