@@ -185,7 +185,7 @@ class OpenIDServiceEndpoint(object):
 
     def fromDiscoveryResult(cls, discoveryResult):
         """Create endpoints from a DiscoveryResult.
-        
+
         @type discoveryResult: L{DiscoveryResult}
 
         @rtype: list of L{OpenIDServiceEndpoint}
