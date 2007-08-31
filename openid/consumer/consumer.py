@@ -515,6 +515,19 @@ class TypeURIMismatch(ProtocolError):
     """A protocol error arising from type URIs mismatching
     """
 
+    def __init__(self, expected, endpoint):
+        ProtocolError.__init__(self, expected, endpoint)
+        self.expected = expected
+        self.endpoint = endpoint
+
+    def __str__(self):
+        s = '<%s.%s: Required type %s not found in %s for endpoint %s>' % (
+            self.__class__.__module__, self.__class__.__name__,
+            self.expected, self.endpoint.type_uris, self.endpoint)
+        return s
+
+
+
 class ServerError(Exception):
     """Exception that is raised when the server returns a 400 response
     code to a direct request."""
@@ -952,8 +965,7 @@ class GenericConsumer(object):
         # present in the discovered endpoint.
         for type_uri in to_match.type_uris:
             if not endpoint.usesExtension(type_uri):
-                raise TypeURIMismatch(
-                    'Required type %r not present' % (type_uri,))
+                raise TypeURIMismatch(type_uri, endpoint)
 
         if to_match.claimed_id != endpoint.claimed_id:
             raise ProtocolError(
