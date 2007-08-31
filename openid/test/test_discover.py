@@ -272,6 +272,27 @@ class TestDiscovery(BaseTestDiscovery):
             local_id='http://smoker.myopenid.com/',
             )
 
+    def test_html1Fragment(self):
+        content_type = 'text/html'
+        data = readDataFile('openid.html')
+        expected_services = 1
+
+        self.documents[self.id_url] = (content_type, data)
+        expected_id = self.id_url
+        self.id_url = self.id_url + '#fragment'
+        id_url, services = discover.discover(self.id_url)
+        self.failUnlessEqual(expected_services, len(services))
+        self.failUnlessEqual(expected_id, id_url)
+
+        self._checkService(
+            services[0],
+            used_yadis=False,
+            types=['1.1'],
+            server_url="http://www.myopenid.com/server",
+            claimed_id=expected_id,
+            local_id='http://smoker.myopenid.com/',
+            )
+
     def test_html2(self):
         services = self._discover(
             content_type='text/html',

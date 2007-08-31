@@ -288,9 +288,11 @@ def normalizeURL(url):
     """Normalize a URL, converting normalization failures to
     DiscoveryFailure"""
     try:
-        return urinorm.urinorm(url)
+        normalized = urinorm.urinorm(url)
     except ValueError, why:
         raise DiscoveryFailure('Normalizing identifier: %s' % (why[0],), None)
+    else:
+        return urlparse.urldefrag(normalized)[0]
 
 def arrangeByType(service_list, preferred_types):
     """Rearrange service_list in a new list so services are ordered by
