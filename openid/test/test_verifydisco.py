@@ -18,6 +18,10 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
         CatchLogs.setUp(self)
         TestIdRes.setUp(self)
 
+    def tearDown(self):
+        CatchLogs.tearDown(self)
+        TestIdRes.tearDown(self)
+
     def failUnlessProtocolError(self, prefix, callable, *args, **kwargs):
         try:
             result = callable(*args, **kwargs)
@@ -81,7 +85,8 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
 
     def test_openID2NoEndpointDoesDisco(self):
         op_endpoint = 'Phone Home'
-        sentinel = object()
+        sentinel = discover.OpenIDServiceEndpoint()
+        sentinel.claimed_id = 'monkeysoft'
         self.consumer._discoverAndVerify = const(sentinel)
         msg = message.Message.fromOpenIDArgs(
             {'ns':message.OPENID2_NS,
@@ -98,7 +103,8 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
         mismatched.local_id = 'green cheese'
 
         op_endpoint = 'Phone Home'
-        sentinel = object()
+        sentinel = discover.OpenIDServiceEndpoint()
+        sentinel.claimed_id = 'monkeysoft'
         self.consumer._discoverAndVerify = const(sentinel)
         msg = message.Message.fromOpenIDArgs(
             {'ns':message.OPENID2_NS,
@@ -170,6 +176,31 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
             consumer.ProtocolError,
             self.consumer._verifyDiscoveryResults, msg, endpoint)
         self.failUnlessLogEmpty()
+
+    def test_openid2Fragment(self):
+        claimed_id = "http://unittest.invalid/"
+        claimed_id_frag = claimed_id + "#fragment"
+        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint.local_id = 'my identity'
+        endpoint.claimed_id = claimed_id
+        endpoint.server_url = 'Phone Home'
+        endpoint.type_uris = [discover.OPENID_2_0_TYPE]
+
+        msg = message.Message.fromOpenIDArgs(
+            {'ns':message.OPENID2_NS,
+             'identity':endpoint.local_id,
+             'claimed_id': claimed_id_frag,
+             'op_endpoint': endpoint.server_url})
+        result = self.consumer._verifyDiscoveryResults(msg, endpoint)
+        
+        self.failUnlessEqual(result.local_id, endpoint.local_id)
+        self.failUnlessEqual(result.server_url, endpoint.server_url)
+        self.failUnlessEqual(result.type_uris, endpoint.type_uris)
+
+        self.failUnlessEqual(result.claimed_id, claimed_id_frag)
+        
+        self.failUnlessLogEmpty()
+
 
 # XXX: test the implementation of _discoverAndVerify
 

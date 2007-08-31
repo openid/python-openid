@@ -190,7 +190,7 @@ USING THIS LIBRARY
 
 import cgi
 import copy
-from urlparse import urlparse
+from urlparse import urlparse, urldefrag
 
 from openid import fetchers
 
@@ -900,26 +900,36 @@ class GenericConsumer(object):
         elif to_match.claimed_id is None:
             return OpenIDServiceEndpoint.fromOPEndpointURL(to_match.server_url)
 
+        # Fragments do not influence discovery, so we can't compare a
+        # claimed identifier with a fragment to discovered information.
+        defragged_claimed_id, _ = urldefrag(to_match.claimed_id)
+
         # The claimed ID doesn't match, so we have to do discovery
         # again. This covers not using sessions, OP identifier
         # endpoints and responses that didn't match the original
         # request.
-        elif not endpoint:
+        if not endpoint:
             oidutil.log('No pre-discovered information supplied.')
-            return self._discoverAndVerify(to_match)
+            endpoint = self._discoverAndVerify(to_match)
 
-        elif to_match.claimed_id != endpoint.claimed_id:
+        elif defragged_claimed_id != endpoint.claimed_id:
             oidutil.log('Mismatched pre-discovered session data. '
                         'Claimed ID in session=%s, in assertion=%s' %
-                        (endpoint.claimed_id, to_match.claimed_id))
-            return self._discoverAndVerify(to_match)
+                        (endpoint.claimed_id, defragged_claimed_id))
+            endpoint = self._discoverAndVerify(to_match)
 
         # The claimed ID matches, so we use the endpoint that we
         # discovered in initiation. This should be the most common
         # case.
         else:
             self._verifyDiscoverySingle(endpoint, to_match)
-            return endpoint
+
+        # The endpoint we return should have the claimed ID from the
+        # message we just verified, fragment and all.
+        if endpoint.claimed_id != to_match.claimed_id:
+            endpoint = copy.copy(endpoint)
+            endpoint.claimed_id = to_match.claimed_id
+        return endpoint
 
     def _verifyDiscoveryResultsOpenID1(self, resp_msg, endpoint):
         if endpoint is None:
@@ -967,11 +977,14 @@ class GenericConsumer(object):
             if not endpoint.usesExtension(type_uri):
                 raise TypeURIMismatch(type_uri, endpoint)
 
-        if to_match.claimed_id != endpoint.claimed_id:
+        # Fragments do not influence discovery, so we can't compare a
+        # claimed identifier with a fragment to discovered information.
+        defragged_claimed_id, _ = urldefrag(to_match.claimed_id)
+        if defragged_claimed_id != endpoint.claimed_id:
             raise ProtocolError(
                 'Claimed ID does not match (different subjects!), '
                 'Expected %s, got %s' %
-                (to_match.claimed_id, endpoint.claimed_id))
+                (defragged_claimed_id, endpoint.claimed_id))
 
         if to_match.getLocalID() != endpoint.getLocalID():
             raise ProtocolError('local_id mismatch. Expected %s, got %s' %
