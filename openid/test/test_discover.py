@@ -273,6 +273,8 @@ class TestDiscovery(BaseTestDiscovery):
             )
 
     def test_html1Fragment(self):
+        """Ensure that the Claimed Identifier does not have a fragment
+        if one is supplied in the User Input."""
         content_type = 'text/html'
         data = readDataFile('openid.html')
         expected_services = 1
