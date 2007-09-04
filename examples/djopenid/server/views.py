@@ -18,6 +18,7 @@ Some code conventions used here:
 import cgi
 
 from djopenid import util
+from djopenid.util import getViewURL
 
 from django import http
 
@@ -32,32 +33,11 @@ def getOpenIDStore():
     """
     return util.getOpenIDStore('/tmp/djopenid_s_store', 's_')
 
-def getServerURL(request):
-    """
-    Get the OpenID endpoint URL for this application.
-    """
-    return util.getTrustRoot(request) + "server/endpoint/"
-
 def getServer(request):
     """
     Get a Server object to perform OpenID authentication.
     """
-    return Server(getOpenIDStore(), getServerURL(request))
-
-def getUserURL(request, name=None):
-    """
-    Return the URL of the OpenID that this application serves.
-    """
-    if name:
-        return util.getTrustRoot(request) + "server/id/%s/" % (name,)
-    else:
-        return util.getTrustRoot(request) + "server/user/"
-
-def getIdpXRDSURL(request):
-    """
-    Return the URL to the server's XRDS URL.
-    """
-    return util.getTrustRoot(request) + "server/xrds/"
+    return Server(getOpenIDStore(), getViewURL(request, endpoint))
 
 def setRequest(request, openid_request):
     """
@@ -79,8 +59,10 @@ def server(request):
     """
     Respond to requests for the server's primary web page.
     """
-    return 'server/index.html', {'user_url': getUserURL(request),
-                                 'server_xrds_url': getIdpXRDSURL(request)}
+    return 'server/index.html', {
+        'user_url': getViewURL(request, idPage),
+        'server_xrds_url': getViewURL(request, idpXrds),
+        }
 
 @util.sendResponse
 def idpXrds(request):
@@ -89,7 +71,7 @@ def idpXrds(request):
     IDP-driven identifier selection.
     """
     body = util.renderTemplate(request, 'server/xrds.html',
-                               {'server_url': getServerURL(request)})
+                               {'server_url': getViewURL(request, endpoint)})
     r = http.HttpResponse(body)
     r['Content-Type'] = 'application/xrds+xml'
     return r
@@ -99,7 +81,7 @@ def idPage(request):
     """
     Serve the identity page for OpenID URLs.
     """
-    return 'server/idPage.html', {'server_url': getServerURL(request)}
+    return 'server/idPage.html', {'server_url': getViewURL(request, endpoint)}
 
 @util.sendResponse
 def trustPage(request):
@@ -169,7 +151,7 @@ def showDecidePage(request, openid_request):
     idSelect = openid_request.idSelect()
     identity = openid_request.identity
     trust_root = openid_request.trust_root
-    default_url = getUserURL(request)
+    default_url = getViewURL(request, idPage)
 
     return 'server/trust.html', {'idSelect': idSelect,
                                  'identity': identity,
@@ -201,7 +183,9 @@ def processTrustResult(request):
     # (i.e., the IDP URL was entered at the RP), look at the form to
     # find out what identity URL the user wanted to send.
     if openid_request.idSelect():
-        response_identity = getUserURL(request, name=request.POST['name'])
+        response_identity = getViewURL(
+            request,
+            idPage, kwargs={'name':request.POST['name']})
 
     # Generate a response with the appropriate answer.
     openid_response = openid_request.answer(result,

@@ -1,12 +1,12 @@
 
-from djopenid import util
-
 from django import http
 from django.http import HttpResponseRedirect
 
 from openid.consumer import consumer
 from openid.consumer.discover import DiscoveryFailure
 from openid import sreg
+
+from djopenid import util
 
 def getOpenIDStore():
     """
@@ -64,8 +64,8 @@ def startOpenID(request):
 
         # Compute the trust root and return URL values to build the
         # redirect information.
-        trust_root = util.getTrustRoot(request)
-        return_to = trust_root + 'consumer/finish/'
+        trust_root = util.getViewURL(request, startOpenID)
+        return_to = util.getViewURL(request, finishOpenID)
 
         # Send the browser to the server either by sending a redirect
         # URL or by generating a POST form.

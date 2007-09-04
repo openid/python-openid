@@ -3,11 +3,14 @@
 Utility code for the Django example consumer and server.
 """
 
+from urlparse import urljoin
+
 from django.db import connection
 from django.template.context import RequestContext
 from django.template import loader
 from django import http
 from django.core.exceptions import ImproperlyConfigured
+from django.core.urlresolvers import reverse as reverseURL
 
 from django.conf import settings
 
@@ -115,7 +118,11 @@ def sendResponse(func):
             return response_class(renderTemplate(request, template_name, response_data))
     return _responseWrapper
 
-def getTrustRoot(req):
+def getViewURL(req, view_name_or_obj, args=None, kwargs=None):
+    relative_url = reverseURL(view_name_or_obj, args=args, kwargs=kwargs)
+    return urljoin(getBaseURL(req), relative_url)
+
+def getBaseURL(req):
     """
     Given a Django web request object, returns the OpenID 'trust root'
     for that request; namely, the absolute URL to the site root which

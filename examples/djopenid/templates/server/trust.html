@@ -6,7 +6,8 @@ The site <tt>{{ trust_root|escape }}</tt> has requested verification
 of your OpenID.
 
 <div>
-<form method="post" action="/server/processTrustResult/">
+<form method="post"
+      action="{% url djopenid.server.views.processTrustResult %}">
 {% if idSelect %}
   <p>
   Because you entered the server URL when authenticating, enter a
