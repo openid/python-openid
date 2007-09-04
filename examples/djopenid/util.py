@@ -120,7 +120,8 @@ def sendResponse(func):
 
 def getViewURL(req, view_name_or_obj, args=None, kwargs=None):
     relative_url = reverseURL(view_name_or_obj, args=args, kwargs=kwargs)
-    return urljoin(getBaseURL(req), relative_url)
+    full_path = req.META.get('SCRIPT_NAME', '') + relative_url
+    return urljoin(getBaseURL(req), full_path)
 
 def getBaseURL(req):
     """

@@ -73,7 +73,7 @@
     </div>
   {% endif %}
 
-  <form method="post" action="{% url djopenid.consumer.views.startOpenID %}">
+  <form method="post" action="{{ consumer_url }}">
     <input type="text" size="40" name="openid_url" />
     <input type="submit" value="Begin" />
   </form>

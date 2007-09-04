@@ -21,6 +21,10 @@ def getConsumer(request):
     """
     return consumer.Consumer(request.session, getOpenIDStore())
 
+def renderIndexPage(request, **template_args):
+    template_args['consumer_url'] = util.getViewURL(request, startOpenID)
+    return 'consumer/index.html', template_args
+
 @util.sendResponse
 def startOpenID(request):
     """
@@ -52,7 +56,7 @@ def startOpenID(request):
 
         if error:
             # Render the page with an error.
-            return 'consumer/index.html', {'error': error}
+            return renderIndexPage(request, error=error)
 
         # Add Simple Registration request information.  Some fields
         # are optional, some are required.  It's possible that the
@@ -82,7 +86,7 @@ def startOpenID(request):
                                                 False, {'id': form_id})
             return 'consumer/request_form.html', {'html': form_html}
 
-    return 'consumer/index.html', {}
+    return renderIndexPage(request)
 
 @util.sendResponse
 def finishOpenID(request):
@@ -133,4 +137,4 @@ def finishOpenID(request):
             # not user-friendly, but intended for developers.
             result['failure_reason'] = response.message
 
-    return 'consumer/index.html', result
+    return renderIndexPage(request, **result)

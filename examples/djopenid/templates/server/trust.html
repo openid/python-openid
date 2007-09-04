@@ -7,7 +7,7 @@ of your OpenID.
 
 <div>
 <form method="post"
-      action="{% url djopenid.server.views.processTrustResult %}">
+      action="{{ trust_handler_url }}">
 {% if idSelect %}
   <p>
   Because you entered the server URL when authenticating, enter a

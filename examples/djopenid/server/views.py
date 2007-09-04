@@ -89,7 +89,7 @@ def trustPage(request):
     Display the trust page template, which allows the user to decide
     whether to approve the OpenID verification.
     """
-    return 'server/trust.html', {}
+    return 'server/trust.html', {'trust_handler_url':getViewURL(request, processTrustResult)}
 
 @util.sendResponse
 def endpoint(request):
@@ -156,7 +156,9 @@ def showDecidePage(request, openid_request):
     return 'server/trust.html', {'idSelect': idSelect,
                                  'identity': identity,
                                  'trust_root': trust_root,
-                                 'default_url': default_url}
+                                 'default_url': default_url,
+                                 'trust_handler_url':getViewURL(request, processTrustResult),
+                                 }
 
 @util.sendResponse
 def processTrustResult(request):
