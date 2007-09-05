@@ -340,18 +340,6 @@ def _extractReturnURL(endpoint):
     else:
         return None
 
-def extractReturnToURLs(rp_uri, xrds_text):
-    """Given a relying party discovery URL and its corresponding XRDS
-    document, return a list of return_to URLs.
-
-    @param rp_uri: The discovery URL
-    @param xrds_text: The xrds document, as a string
-    @returns: A list of all relying party URLs that were found in the document.
-    @rtype: [str]
-    """
-    assert isinstance(xrds_text, basestring), xrds_text
-    return services.applyFilter(rp_uri, xrds_text, _extractReturnURL)
-
 def returnToMatches(allowed_return_to_urls, return_to):
     """Is the return_to URL under one of the supplied allowed
     return_to URLs?"""
@@ -377,14 +365,11 @@ def returnToMatches(allowed_return_to_urls, return_to):
     # No URL in the list matched
     return False
 
-def verifyWithRelyingPartyURL(relying_party_url):
-    """Verify that the return_to URL is listed by the relying party URL.
-
-    Similar to verifyReturnTo, except it takes a relying party URL instead
-    of a realm.
+def getAllowedReturnURLs(relying_party_url):
+    """Given a relying party discovery URL return a list of return_to URLs.
     """
     (rp_url_after_redirects, return_to_urls) = services.getServiceEndpoints(
-        relying_party_url, extractReturnToURLs)
+        relying_party_url, _extractReturnURL)
 
     if rp_url_after_redirects != relying_party_url:
         # Verification caused a redirect
@@ -394,7 +379,7 @@ def verifyWithRelyingPartyURL(relying_party_url):
     return return_to_urls
 
 # _vrfy parameter is there to make testing easier
-def verifyReturnTo(realm_str, return_to, _vrfy=verifyWithRelyingPartyURL):
+def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):
     """Verify that a return_to URL is valid for the given realm.
 
     This function builds a discovery URL, performs Yadis discovery on

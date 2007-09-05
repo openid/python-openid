@@ -3,7 +3,8 @@
 
 __all__ = ['TestBuildDiscoveryURL']
 
-from openid.yadis.etxrd import XRDSError
+from openid.yadis.discover import DiscoveryResult, DiscoveryFailure
+from openid.yadis import services
 from openid.server import trustroot
 from openid.test.support import CatchLogs
 import unittest
@@ -38,23 +39,41 @@ class TestBuildDiscoveryURL(unittest.TestCase):
 class TestExtractReturnToURLs(unittest.TestCase):
     disco_url = 'http://example.com/'
 
+    def setUp(self):
+        self.original_discover = services.discover
+        services.discover = self.mockDiscover
+        self.data = None
+
+    def tearDown(self):
+        services.discover = self.original_discover
+
+    def mockDiscover(self, uri):
+        result = DiscoveryResult(uri)
+        result.response_text = self.data
+        result.normalized_uri = uri
+        return result
+
     def failUnlessFileHasReturnURLs(self, filename, expected_return_urls):
         self.failUnlessXRDSHasReturnURLs(file(filename).read(),
                                          expected_return_urls)
 
     def failUnlessXRDSHasReturnURLs(self, data, expected_return_urls):
-        actual_return_urls = list(trustroot.extractReturnToURLs(
-            self.disco_url, data))
+        self.data = data
+        actual_return_urls = list(trustroot.getAllowedReturnURLs(
+            self.disco_url))
+
         self.failUnlessEqual(expected_return_urls, actual_return_urls)
 
-    def failUnlessXRDSError(self, text):
-        self.failUnlessRaises(XRDSError, trustroot.extractReturnToURLs, self.disco_url, text)
+    def failUnlessDiscoveryFailure(self, text):
+        self.data = text
+        self.failUnlessRaises(
+            DiscoveryFailure, trustroot.getAllowedReturnURLs, self.disco_url)
 
     def test_empty(self):
-        self.failUnlessXRDSError('')
+        self.failUnlessDiscoveryFailure('')
 
     def test_badXML(self):
-        self.failUnlessXRDSError('>')
+        self.failUnlessDiscoveryFailure('>')
 
     def test_noEntries(self):
         self.failUnlessXRDSHasReturnURLs('''\
