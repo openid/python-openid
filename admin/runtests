@@ -75,6 +75,7 @@ def pyunitTests():
     from openid.test import test_etxrd
     from openid.test import test_xri
     from openid.test import test_xrires
+    from openid.test import test_services
 
     pyunit_modules = [
         test_server,
