@@ -24,6 +24,8 @@ from django import http
 
 from openid.server.server import Server, ProtocolError, CheckIDRequest, \
      EncodingError
+from openid.server.trustroot import verifyReturnTo
+from openid.yadis.discover import DiscoveryFailure
 from openid import sreg
 
 def getOpenIDStore():
@@ -147,17 +149,28 @@ def handleCheckIDRequest(request, openid_request):
 def showDecidePage(request, openid_request):
     """
     Render a page to the user so a trust decision can be made.
+
+    @type openid_request: openid.server.server.CheckIDRequest
     """
     idSelect = openid_request.idSelect()
     identity = openid_request.identity
     trust_root = openid_request.trust_root
     default_url = getViewURL(request, idPage)
+    return_to = openid_request.return_to
+
+    try:
+        # Stringify because template's ifequal can only compare to strings.
+        trust_root_valid = verifyReturnTo(trust_root, return_to) \
+                           and "Valid" or "Invalid"
+    except DiscoveryFailure, err:
+        trust_root_valid = "DISCOVERY_FAILED"
 
     return 'server/trust.html', {'idSelect': idSelect,
                                  'identity': identity,
                                  'trust_root': trust_root,
                                  'default_url': default_url,
                                  'trust_handler_url':getViewURL(request, processTrustResult),
+                                 'trust_root_valid': trust_root_valid,
                                  }
 
 @util.sendResponse
