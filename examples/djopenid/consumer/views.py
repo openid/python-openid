@@ -6,6 +6,8 @@ from django.views.generic.simple import direct_to_template
 from openid.consumer import consumer
 from openid.consumer.discover import DiscoveryFailure
 from openid import sreg
+from openid.yadis.constants import YADIS_HEADER_NAME, YADIS_CONTENT_TYPE
+from openid.server.trustroot import RP_RETURN_TO_URL_TYPE
 
 from djopenid import util
 
@@ -24,7 +26,10 @@ def getConsumer(request):
 
 def renderIndexPage(request, **template_args):
     template_args['consumer_url'] = util.getViewURL(request, startOpenID)
-    return direct_to_template(request, 'consumer/index.html', template_args)
+    response =  direct_to_template(
+        request, 'consumer/index.html', template_args)
+    response[YADIS_HEADER_NAME] = util.getViewURL(request, rpXRDS)
+    return response
 
 def startOpenID(request):
     """
@@ -138,3 +143,16 @@ def finishOpenID(request):
             result['failure_reason'] = response.message
 
     return renderIndexPage(request, **result)
+
+def rpXRDS(request):
+    """
+    Return a relying party verification XRDS document
+    """
+    return_to_url = util.getViewURL(request, finishOpenID)
+    response = direct_to_template(
+        request,
+        'consumer/rp_xrds.xml',
+        {'return_to_url':return_to_url,
+         'RP_RETURN_TO_URL_TYPE':RP_RETURN_TO_URL_TYPE})
+    response['Content-Type'] = YADIS_CONTENT_TYPE
+    return response

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS
+    xmlns:xrds="xri://$xrds"
+    xmlns="xri://$xrd*($v*2.0)">
+  <XRD>
+
+    <Service priority="0">
+      <Type>{{ RP_RETURN_TO_URL_TYPE }}</Type>
+      <URI>{{ return_to_url }}</URI>
+    </Service>
+
+  </XRD>
+</xrds:XRDS>
