@@ -8,6 +8,8 @@ from django.contrib.sessions.middleware import SessionWrapper
 
 from openid.server.server import CheckIDRequest
 from openid.message import Message
+from openid.yadis.constants import YADIS_CONTENT_TYPE
+from openid.yadis.services import applyFilter
 
 def dummyRequest():
     request = HttpRequest()
@@ -56,3 +58,20 @@ class TestProcessTrustResult(TestCase):
         self.failUnless('openid.mode=cancel' in finalURL, finalURL)
         self.failIf('openid.identity=' in finalURL, finalURL)
         self.failIf('openid.sreg.postcode=12345' in finalURL, finalURL)
+
+class TestGenericXRDS(TestCase):
+    def test_genericRender(self):
+        """Render an XRDS document with a single type URI and a single endpoint URL
+        Parse it to see that it matches."""
+        request = dummyRequest()
+
+        type_uris = ['A_TYPE']
+        endpoint_url = 'A_URL'
+        response = util.renderXRDS(request, type_uris, [endpoint_url])
+
+        requested_url = 'http://requested.invalid/'
+        (endpoint,) = applyFilter(requested_url, response.content)
+
+        self.failUnlessEqual(YADIS_CONTENT_TYPE, response['Content-Type'])
+        self.failUnlessEqual(type_uris, endpoint.type_uris)
+        self.failUnlessEqual(endpoint_url, endpoint.uri)

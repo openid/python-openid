@@ -11,11 +11,13 @@ from django.template import loader
 from django import http
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse as reverseURL
+from django.views.generic.simple import direct_to_template
 
 from django.conf import settings
 
 from openid.store.filestore import FileOpenIDStore
 from openid.store import sqlstore
+from openid.yadis.constants import YADIS_CONTENT_TYPE
 
 def getOpenIDStore(filestore_path, table_prefix):
     """
@@ -133,3 +135,14 @@ def normalDict(request_data):
     can have at most one value.
     """
     return dict((k, v[0]) for k, v in request_data.iteritems())
+
+def renderXRDS(request, type_uris, endpoint_urls):
+    """Render an XRDS page with the specified type URIs and endpoint
+    URLs in one service block, and return a response with the
+    appropriate content-type.
+    """
+    response = direct_to_template(
+        request, 'xrds.xml',
+        {'type_uris':type_uris, 'endpoint_urls':endpoint_urls,})
+    response['Content-Type'] = YADIS_CONTENT_TYPE
+    return response

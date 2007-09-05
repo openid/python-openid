@@ -27,6 +27,7 @@ from openid.server.server import Server, ProtocolError, CheckIDRequest, \
      EncodingError
 from openid.server.trustroot import verifyReturnTo
 from openid.yadis.discover import DiscoveryFailure
+from openid.consumer.discover import OPENID_IDP_2_0_TYPE
 from openid import sreg
 
 def getOpenIDStore():
@@ -73,10 +74,8 @@ def idpXrds(request):
     Respond to requests for the IDP's XRDS document, which is used in
     IDP-driven identifier selection.
     """
-    r = direct_to_template(request, 'server/xrds.html',
-                           {'server_url': getViewURL(request, endpoint)})
-    r['Content-Type'] = 'application/xrds+xml'
-    return r
+    return util.renderXRDS(
+        request, [OPENID_IDP_2_0_TYPE], [getViewURL(request, endpoint)])
 
 def idPage(request):
     """

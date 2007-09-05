@@ -148,11 +148,7 @@ def rpXRDS(request):
     """
     Return a relying party verification XRDS document
     """
-    return_to_url = util.getViewURL(request, finishOpenID)
-    response = direct_to_template(
+    return util.renderXRDS(
         request,
-        'consumer/rp_xrds.xml',
-        {'return_to_url':return_to_url,
-         'RP_RETURN_TO_URL_TYPE':RP_RETURN_TO_URL_TYPE})
-    response['Content-Type'] = YADIS_CONTENT_TYPE
-    return response
+        [RP_RETURN_TO_URL_TYPE],
+        [util.getViewURL(request, finishOpenID)])

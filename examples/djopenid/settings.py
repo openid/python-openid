@@ -69,6 +69,8 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = 'djopenid.urls'
 
+TEMPLATE_CONTEXT_PROCESSORS = ()
+
 TEMPLATE_DIRS = (
     os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates')),
 )
