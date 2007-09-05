@@ -1,6 +1,7 @@
 
 from django import http
 from django.http import HttpResponseRedirect
+from django.views.generic.simple import direct_to_template
 
 from openid.consumer import consumer
 from openid.consumer.discover import DiscoveryFailure
@@ -23,9 +24,8 @@ def getConsumer(request):
 
 def renderIndexPage(request, **template_args):
     template_args['consumer_url'] = util.getViewURL(request, startOpenID)
-    return 'consumer/index.html', template_args
+    return direct_to_template(request, 'consumer/index.html', template_args)
 
-@util.sendResponse
 def startOpenID(request):
     """
     Start the OpenID authentication process.  Renders an
@@ -84,11 +84,11 @@ def startOpenID(request):
             form_id = 'openid_message'
             form_html = auth_request.formMarkup(trust_root, return_to,
                                                 False, {'id': form_id})
-            return 'consumer/request_form.html', {'html': form_html}
+            return direct_to_template(
+                request, 'consumer/request_form.html', {'html': form_html})
 
     return renderIndexPage(request)
 
-@util.sendResponse
 def finishOpenID(request):
     """
     Finish the OpenID authentication process.  Invoke the OpenID

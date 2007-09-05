@@ -21,6 +21,7 @@ from djopenid import util
 from djopenid.util import getViewURL
 
 from django import http
+from django.views.generic.simple import direct_to_template
 
 from openid.server.server import Server, ProtocolError, CheckIDRequest, \
      EncodingError
@@ -56,44 +57,46 @@ def getRequest(request):
     """
     return request.session.get('openid_request')
 
-@util.sendResponse
 def server(request):
     """
     Respond to requests for the server's primary web page.
     """
-    return 'server/index.html', {
-        'user_url': getViewURL(request, idPage),
-        'server_xrds_url': getViewURL(request, idpXrds),
-        }
+    return direct_to_template(
+        request,
+        'server/index.html',
+        {'user_url': getViewURL(request, idPage),
+         'server_xrds_url': getViewURL(request, idpXrds),
+         })
 
-@util.sendResponse
 def idpXrds(request):
     """
     Respond to requests for the IDP's XRDS document, which is used in
     IDP-driven identifier selection.
     """
-    body = util.renderTemplate(request, 'server/xrds.html',
-                               {'server_url': getViewURL(request, endpoint)})
-    r = http.HttpResponse(body)
+    r = direct_to_template(request, 'server/xrds.html',
+                           {'server_url': getViewURL(request, endpoint)})
     r['Content-Type'] = 'application/xrds+xml'
     return r
 
-@util.sendResponse
 def idPage(request):
     """
     Serve the identity page for OpenID URLs.
     """
-    return 'server/idPage.html', {'server_url': getViewURL(request, endpoint)}
+    return direct_to_template(
+        request,
+        'server/idPage.html',
+        {'server_url': getViewURL(request, endpoint)})
 
-@util.sendResponse
 def trustPage(request):
     """
     Display the trust page template, which allows the user to decide
     whether to approve the OpenID verification.
     """
-    return 'server/trust.html', {'trust_handler_url':getViewURL(request, processTrustResult)}
+    return direct_to_template(
+        request,
+        'server/trust.html',
+        {'trust_handler_url':getViewURL(request, processTrustResult)})
 
-@util.sendResponse
 def endpoint(request):
     """
     Respond to low-level OpenID protocol messages.
@@ -108,12 +111,18 @@ def endpoint(request):
         openid_request = s.decodeRequest(query)
     except ProtocolError, why:
         # This means the incoming request was invalid.
-        return 'server/endpoint.html', {'error': str(why)}
+        return direct_to_template(
+            request,
+            'server/endpoint.html',
+            {'error': str(why)})
 
     # If we did not get a request, display text indicating that this
     # is an endpoint.
     if openid_request is None:
-        return 'server/endpoint.html', {}
+        return direct_to_template(
+            request,
+            'server/endpoint.html',
+            {})
 
     # We got a request; if the mode is checkid_*, we will handle it by
     # getting feedback from the user or by checking the session.
@@ -165,15 +174,17 @@ def showDecidePage(request, openid_request):
     except DiscoveryFailure, err:
         trust_root_valid = "DISCOVERY_FAILED"
 
-    return 'server/trust.html', {'idSelect': idSelect,
-                                 'identity': identity,
-                                 'trust_root': trust_root,
-                                 'default_url': default_url,
-                                 'trust_handler_url':getViewURL(request, processTrustResult),
-                                 'trust_root_valid': trust_root_valid,
-                                 }
+    return direct_to_template(
+        request,
+        'server/trust.html',
+        {'idSelect': idSelect,
+         'identity': identity,
+         'trust_root': trust_root,
+         'default_url': default_url,
+         'trust_handler_url':getViewURL(request, processTrustResult),
+         'trust_root_valid': trust_root_valid,
+         })
 
-@util.sendResponse
 def processTrustResult(request):
     """
     Handle the result of a trust decision and respond to the RP
@@ -241,7 +252,10 @@ def displayResponse(request, openid_response):
     except EncodingError, why:
         # If it couldn't be encoded, display an error.
         text = why.response.encodeToKVForm()
-        return 'server/endpoint.html', {'error': cgi.escape(text)}
+        return direct_to_template(
+            request,
+            'server/endpoint.html',
+            {'error': cgi.escape(text)})
 
     # Construct the appropriate django framework response.
     r = http.HttpResponse(webresponse.body)

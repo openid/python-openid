@@ -84,40 +84,6 @@ def getOpenIDStore(filestore_path, table_prefix):
 
     return s
 
-def renderTemplate(request, template_name, response_data):
-    context = RequestContext(request, response_data)
-    template = loader.get_template(template_name)
-    return template.render(context)
-
-def sendResponse(func):
-    """
-    A decorator to make Django views nicer to use and easier to read.
-    Wraps a normal Django view and adds these behaviors:
-
-    * The view may return a tuple of (template_name, template_context)
-      where template_name is a normal Django template name and
-      template_context is a dict of template context data.
-
-    * The view may return a plain http.HttpResponse object, which will
-      be returned to Django as-is.
-
-    * The view may return in its template_context a 'response_class'
-      key whose value is an http.HttpResponse subclass.  If this is
-      found, it will be used to instantiate the final response object
-      returned to Django.
-    """
-    def _responseWrapper(request, *args, **kwargs):
-        result = func(request, *args, **kwargs)
-
-        if isinstance(result, http.HttpResponse):
-            return result
-        else:
-            template_name, response_data = result
-
-            response_class = response_data.get('response_class', http.HttpResponse)
-            return response_class(renderTemplate(request, template_name, response_data))
-    return _responseWrapper
-
 def getViewURL(req, view_name_or_obj, args=None, kwargs=None):
     relative_url = reverseURL(view_name_or_obj, args=args, kwargs=kwargs)
     full_path = req.META.get('SCRIPT_NAME', '') + relative_url
