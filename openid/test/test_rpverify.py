@@ -5,6 +5,7 @@ __all__ = ['TestBuildDiscoveryURL']
 
 from openid.yadis.etxrd import XRDSError
 from openid.server import trustroot
+from openid.test.support import CatchLogs
 import unittest
 
 # Too many methods does not apply to unit test objects
@@ -175,21 +176,52 @@ class TestReturnToMatches(unittest.TestCase):
             [r],
             'http://example.com/xss_exploit'))
 
-class TestVerifyReturnTo(unittest.TestCase):
+class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
+
+    def setUp(self):
+        CatchLogs.setUp(self)
+
+    def tearDown(self):
+        CatchLogs.tearDown(self)
+    
     def test_bogusRealm(self):
-        self.failIf(trustroot.verifyReturnTo(''))
+        self.failIf(trustroot.verifyReturnTo('', 'http://example.com/'))
 
     def test_verifyWithDiscoveryCalled(self):
-        sentinel = object()
         realm = 'http://*.example.com/'
         return_to = 'http://www.example.com/foo'
 
         def vrfy(disco_url):
             self.failUnlessEqual('http://www.example.com/', disco_url)
-            return sentinel
+            return [return_to]
 
         self.failUnless(
-            trustroot.verifyReturnTo(realm, _vrfy=vrfy) is sentinel)
+            trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
+        self.failUnlessLogEmpty()
+
+    def test_verifyFailWithDiscoveryCalled(self):
+        realm = 'http://*.example.com/'
+        return_to = 'http://www.example.com/foo'
+
+        def vrfy(disco_url):
+            self.failUnlessEqual('http://www.example.com/', disco_url)
+            return ['http://something-else.invalid/']
+
+        self.failIf(
+            trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
+        self.failUnlessLogMatches("Failed to validate return_to")
+
+    def test_verifyFailIfDiscoveryRedirects(self):
+        realm = 'http://*.example.com/'
+        return_to = 'http://www.example.com/foo'
+
+        def vrfy(disco_url):
+            raise trustroot.RealmVerificationRedirected(
+                disco_url, "http://redirected.invalid")
+
+        self.failIf(
+            trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
+        self.failUnlessLogMatches("Attempting to verify")
 
 if __name__ == '__main__':
     unittest.main()

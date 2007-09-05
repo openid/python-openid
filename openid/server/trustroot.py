@@ -16,6 +16,7 @@ __all__ = [
     'verifyReturnTo',
     ]
 
+from openid import oidutil
 from openid.yadis import services
 from urlparse import urlparse, urlunparse
 
@@ -35,6 +36,20 @@ _top_level_domains = (
     'tj|tk|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|um|us|uy|uz|va|vc|ve|vg|vi|'
     'vn|vu|wf|ws|ye|yt|yu|za|zm|zw'
     ).split('|')
+
+
+class RealmVerificationRedirected(Exception):
+    """Attempting to verify this realm resulted in a redirect.
+    """
+    def __init__(self, relying_party_url, rp_url_after_redirects):
+        self.relying_party_url = relying_party_url
+        self.rp_url_after_redirects = rp_url_after_redirects
+
+    def __str__(self):
+        return ("Attempting to verify %r resulted in "
+                "redirect to %r" %
+                (self.relying_party_url,
+                 self.rp_url_after_redirects))
 
 
 def _parseURL(url):
@@ -268,12 +283,10 @@ class TrustRoot(object):
     checkURL = classmethod(checkURL)
 
     def buildDiscoveryURL(self):
-        """Given the a return_to string, return a discovery URL for
-        the relying party
+        """Return a discovery URL for this realm.
 
-        This function does not check to make sure that the realm or
-        return_to are valid or match each other. Its behaviour on invalid
-        inputs is undefined.
+        This function does not check to make sure that the realm is
+        valid. Its behaviour on invalid inputs is undefined.
 
         @param return_to: The relying party return URL of the OpenID
             authentication request
@@ -364,7 +377,7 @@ def returnToMatches(allowed_return_to_urls, return_to):
     # No URL in the list matched
     return False
 
-def verifyWithRelyingPartyURL(relying_party_url, return_to):
+def verifyWithRelyingPartyURL(relying_party_url):
     """Verify that the return_to URL is listed by the relying party URL.
 
     Similar to verifyReturnTo, except it takes a relying party URL instead
@@ -375,14 +388,13 @@ def verifyWithRelyingPartyURL(relying_party_url, return_to):
 
     if rp_url_after_redirects != relying_party_url:
         # Verification caused a redirect
-        return False
+        raise RealmVerificationRedirected(
+            relying_party_url, rp_url_after_redirects)
 
-    # Return whether the return_to URL matches any one of the
-    # discovered return_to URLs
-    return returnToMatches(return_to_urls, return_to)
+    return return_to_urls
 
 # _vrfy parameter is there to make testing easier
-def verifyReturnTo(realm_str, _vrfy=verifyWithRelyingPartyURL):
+def verifyReturnTo(realm_str, return_to, _vrfy=verifyWithRelyingPartyURL):
     """Verify that a return_to URL is valid for the given realm.
 
     This function builds a discovery URL, performs Yadis discovery on
@@ -398,4 +410,15 @@ def verifyReturnTo(realm_str, _vrfy=verifyWithRelyingPartyURL):
         # The realm does not parse as a URL pattern
         return False
 
-    return _vrfy(realm.buildDiscoveryURL())
+    try:
+        allowable_urls = _vrfy(realm.buildDiscoveryURL())
+    except RealmVerificationRedirected, err:
+        oidutil.log(str(err))
+        return False
+    
+    if returnToMatches(allowable_urls, return_to):
+        return True
+    else:
+        oidutil.log("Failed to validate return_to %r for realm %r, was not "
+                    "in %s" % (return_to, realm_str, allowable_urls))
+        return False
