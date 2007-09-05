@@ -141,6 +141,26 @@ def handleCheckIDRequest(request, openid_request):
     what Simple Registration information, if any, to send in the
     response.
     """
+    # If the request was an IDP-driven identifier selection request
+    # (i.e., the IDP URL was entered at the RP), then return the
+    # default identity URL for this server. In a full-featured
+    # provider, there could be interaction with the user to determine
+    # what URL should be sent.
+    if not openid_request.idSelect():
+
+        id_url = getViewURL(request, idPage)
+
+        # Confirm that this server can actually vouch for that
+        # identifier
+        if id_url != openid_request.identity:
+            # Return an error response
+            error_response = ProtocolError(
+                openid_request.message,
+                "This server cannot verify the URL %r" %
+                (openid_request.identity,))
+
+            return displayResponse(request, error_response)
+
     if openid_request.immediate:
         # Always respond with 'cancel' to immediate mode requests
         # because we don't track information about a logged-in user.
@@ -161,10 +181,7 @@ def showDecidePage(request, openid_request):
 
     @type openid_request: openid.server.server.CheckIDRequest
     """
-    idSelect = openid_request.idSelect()
-    identity = openid_request.identity
     trust_root = openid_request.trust_root
-    default_url = getViewURL(request, idPage)
     return_to = openid_request.return_to
 
     try:
@@ -177,10 +194,7 @@ def showDecidePage(request, openid_request):
     return direct_to_template(
         request,
         'server/trust.html',
-        {'idSelect': idSelect,
-         'identity': identity,
-         'trust_root': trust_root,
-         'default_url': default_url,
+        {'trust_root': trust_root,
          'trust_handler_url':getViewURL(request, processTrustResult),
          'trust_root_valid': trust_root_valid,
          })
@@ -194,31 +208,19 @@ def processTrustResult(request):
     # appropriate response.
     openid_request = getRequest(request)
 
-    result = None
-    response_identity = openid_request.identity
+    # The identifier that this server can vouch for
+    response_identity = getViewURL(request, idPage)
 
     # If the decision was to allow the verification, respond
     # accordingly.
-    if 'allow' in request.POST:
-        result = True
-    elif 'cancel' in request.POST:
-        # Otherwise, respond with False.
-        result = False
-
-    # If the request was an IDP-driven identifier selection request
-    # (i.e., the IDP URL was entered at the RP), look at the form to
-    # find out what identity URL the user wanted to send.
-    if openid_request.idSelect():
-        response_identity = getViewURL(
-            request,
-            idPage, kwargs={'name':request.POST['name']})
+    allowed = 'allow' in request.POST
 
     # Generate a response with the appropriate answer.
-    openid_response = openid_request.answer(result,
+    openid_response = openid_request.answer(allowed,
                                             identity=response_identity)
 
     # Send Simple Registration data in the response, if appropriate.
-    if result:
+    if allowed:
         sreg_data = {
             'fullname': 'Example User',
             'nickname': 'example',

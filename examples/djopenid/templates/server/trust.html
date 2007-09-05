@@ -31,18 +31,7 @@
 <div>
 <form method="post"
       action="{{ trust_handler_url }}">
-{% if idSelect %}
-  <p>
-  Because you entered the server URL when authenticating, enter a
-  username here to return an identity URL of your choice:
-
-  <br/>
-  <input type="text" name="name" size="30" />
-  (If you omit this, <tt>{{ default_url }}</tt> will be sent instead.)
-  </p>
-{% else %}
   Verify your identity to the relying party?
-{% endif %}
 
   <br/>
   <input type="submit" value="Yes (Allow)" name="allow" />
