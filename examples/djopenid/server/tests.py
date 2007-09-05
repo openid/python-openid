@@ -1,6 +1,7 @@
 
 from django.test.testcases import TestCase
 from djopenid.server import views
+from djopenid import util
 
 from django.http import HttpRequest
 from django.contrib.sessions.middleware import SessionWrapper
@@ -11,33 +12,47 @@ from openid.message import Message
 def dummyRequest():
     request = HttpRequest()
     request.session = SessionWrapper("test")
-    request.META['HTTP_HOST'] = 'XXX'
+    request.META['HTTP_HOST'] = 'example.invalid'
     request.META['SERVER_PROTOCOL'] = 'HTTP'
     return request
 
 class TestProcessTrustResult(TestCase):
-    def test_allow(self):
-        request = dummyRequest()
+    def setUp(self):
+        self.request = dummyRequest()
+
+        id_url = util.getViewURL(self.request, views.idPage)
 
         # Set up the OpenID request we're responding to.
         op_endpoint = 'http://127.0.0.1:8080/endpoint'
         message = Message.fromPostArgs({
             'openid.mode': 'checkid_setup',
-            'openid.identity': 'http://127.0.0.1:8080/id/bob',
+            'openid.identity': id_url,
             'openid.return_to': 'http://127.0.0.1/%s' % (self.id(),),
             'openid.sreg.required': 'postcode',
             })
-        openid_request = CheckIDRequest.fromMessage(message, op_endpoint)
+        self.openid_request = CheckIDRequest.fromMessage(message, op_endpoint)
 
-        views.setRequest(request, openid_request)
+        views.setRequest(self.request, self.openid_request)
 
-        # Testing the 'allow' response.
-        request.POST['allow'] = 'Yes'
 
-        response = views.processTrustResult(request)
+    def test_allow(self):
+        self.request.POST['allow'] = 'Yes'
+
+        response = views.processTrustResult(self.request)
 
         self.failUnlessEqual(response.status_code, 302)
         finalURL = response['location']
         self.failUnless('openid.mode=id_res' in finalURL, finalURL)
         self.failUnless('openid.identity=' in finalURL, finalURL)
         self.failUnless('openid.sreg.postcode=12345' in finalURL, finalURL)
+
+    def test_cancel(self):
+        self.request.POST['cancel'] = 'Yes'
+
+        response = views.processTrustResult(self.request)
+
+        self.failUnlessEqual(response.status_code, 302)
+        finalURL = response['location']
+        self.failUnless('openid.mode=cancel' in finalURL, finalURL)
+        self.failIf('openid.identity=' in finalURL, finalURL)
+        self.failIf('openid.sreg.postcode=12345' in finalURL, finalURL)
