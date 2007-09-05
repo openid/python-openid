@@ -400,7 +400,7 @@ def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):
     except RealmVerificationRedirected, err:
         oidutil.log(str(err))
         return False
-    
+
     if returnToMatches(allowable_urls, return_to):
         return True
     else:
