@@ -384,7 +384,7 @@ def discoverYadis(uri):
             # header, with no Accept header.
             return discoverNoYadis(uri)
 
-        # Try to parse the response as HTML to get OpenID 1.0/1.1
+        # Try to parse the response as HTML.
         # <link rel="...">
         openid_services = OpenIDServiceEndpoint.fromHTML(yadis_url, body)
 
