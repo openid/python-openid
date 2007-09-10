@@ -64,6 +64,7 @@ def discover(uri):
 
     @raises Exception: Any exception that can be raised by fetching a URL with
         the given fetcher.
+    @raises DiscoveryFailure: When the HTTP response does not have a 200 code.
     """
     result = DiscoveryResult(uri)
     resp = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
