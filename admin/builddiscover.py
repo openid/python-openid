@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import os
 import os.path
 import urlparse
 
@@ -33,7 +32,9 @@ def buildDiscover(base_url, out_dir):
     """Convert all files in a directory to apache mod_asis files in
     another directory."""
     test_data = discoverdata.readTests(discoverdata.default_test_file)
-    for test_name, template in test_data.iteritems():
+
+    def writeTestFile(test_name):
+        template = test_data[test_name]
 
         data = discoverdata.fillTemplate(
             test_name, template, base_url, discoverdata.example_xrds)
@@ -43,7 +44,11 @@ def buildDiscover(base_url, out_dir):
         out_file.write(data)
 
     manifest = [manifest_header]
-    for _, input_name, id_name, result_name in discoverdata.testlist:
+    for success, input_name, id_name, result_name in discoverdata.testlist:
+        if not success:
+            continue
+        writeTestFile(input_name)
+
         input_url = urlparse.urljoin(base_url, input_name)
         id_url = urlparse.urljoin(base_url, id_name)
         result_url = urlparse.urljoin(base_url, result_name)
