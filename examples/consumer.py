@@ -374,8 +374,8 @@ Content-type: text/html
         text-align: left;
       }
       table {
-        margin: none;
-        padding: none;
+        margin: 0;
+        padding: 0;
       }
       .alert {
         border: 1px solid #e7dc2b;
