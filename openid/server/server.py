@@ -895,7 +895,7 @@ class OpenIDResponse(object):
     @ivar fields: My parameters as a dictionary with each key mapping to
         one value.  Keys are parameter names with no leading "C{openid.}".
         e.g.  "C{identity}" and "C{mac_key}", never "C{openid.identity}".
-    @type fields: dict
+    @type fields: L{openid.message.Message}
 
     @ivar signed: The names of the fields which should be signed.
     @type signed: list of str
