@@ -1,3 +1,4 @@
+# -*- test-case-name: openid.test.test_rpverify -*-
 """
 This module contains the C{L{TrustRoot}} class, which helps handle
 trust root checking.  This module is used by the
