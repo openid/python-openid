@@ -102,17 +102,21 @@ def finishOpenID(request):
     """
     result = {}
 
-    if request.GET:
-        c = getConsumer(request)
+    request_args = util.normalDict(request.GET)
 
+    if request.method == 'POST':
         # Because the object containing the query parameters is a
         # MultiValueDict and the OpenID library doesn't allow that,
         # we'll convert it to a normal dict.
-        GET_data = util.normalDict(request.GET)
+
+        request_args.update(util.normalDict(request.POST))
+
+    if request_args:
+        c = getConsumer(request)
 
         # Get a response object indicating the result of the OpenID
         # protocol.
-        response = c.complete(GET_data)
+        response = c.complete(request_args)
 
         # Get a Simple Registration response object if response
         # information was included in the OpenID response.
