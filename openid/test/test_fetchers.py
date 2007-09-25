@@ -2,6 +2,7 @@ import warnings
 import unittest
 import sys
 import urllib2
+import socket
 
 from openid import fetchers
 
@@ -20,7 +21,7 @@ def failUnlessResponseExpected(expected, actual):
 
 def test_fetcher(fetcher, exc, server):
     def geturl(path):
-        return 'http://%s:%s%s' % (server.server_name,
+        return 'http://%s:%s%s' % (socket.getfqdn(server.server_name),
                                    server.socket.getsockname()[1],
                                    path)
 
@@ -142,7 +143,8 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
             else:
                 extra_headers = [('Content-type', 'text/plain')]
                 if location is not None:
-                    base = ('http://%s:%s' % self.server.server_address)
+                    host, port = self.server.server_address
+                    base = ('http://%s:%s' % (socket.getfqdn(host), port,))
                     location = base + location
                     extra_headers.append(('Location', location))
                 self._respond(http_code, extra_headers, self.path)
