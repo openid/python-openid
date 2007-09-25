@@ -836,7 +836,9 @@ class GenericConsumer(object):
             raise ProtocolError("no openid.return_to in query %r" % (query,))
         parsed_url = urlparse(return_to)
         rt_query = parsed_url[4]
-        for rt_key, rt_value in cgi.parse_qsl(rt_query):
+        parsed_args = cgi.parse_qsl(rt_query)
+
+        for rt_key, rt_value in parsed_args:
             try:
                 value = query[rt_key]
                 if rt_value != value:
@@ -846,6 +848,13 @@ class GenericConsumer(object):
             except KeyError:
                 format = "return_to parameter %s absent from query %r"
                 raise ProtocolError(format % (rt_key, query))
+
+        # Make sure all non-OpenID arguments in the response are also
+        # in the signed return_to.
+        bare_args = message.getArgs(BARE_NS)
+        for pair in bare_args.iteritems():
+            if pair not in parsed_args:
+                raise ProtocolError("Parameter %s not in return_to URL" % (pair[0],))
 
     _verifyReturnToArgs = staticmethod(_verifyReturnToArgs)
 

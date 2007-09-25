@@ -1035,6 +1035,15 @@ class TestReturnToArgs(unittest.TestCase):
         # no return value, success is assumed if there are no exceptions.
         self.consumer._verifyReturnToArgs(query)
 
+    def test_returnToArgsUnexpectedArg(self):
+        query = {
+            'openid.mode': 'id_res',
+            'openid.return_to': 'http://example.com/',
+            'foo': 'bar',
+            }
+        # no return value, success is assumed if there are no exceptions.
+        self.failUnlessRaises(ProtocolError,
+                              self.consumer._verifyReturnToArgs, query)
 
     def test_returnToMismatch(self):
         query = {
