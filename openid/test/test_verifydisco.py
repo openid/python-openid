@@ -113,7 +113,8 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
              'op_endpoint':op_endpoint})
         result = self.consumer._verifyDiscoveryResults(msg, mismatched)
         self.failUnlessEqual(sentinel, result)
-        self.failUnlessLogMatches('Mismatched pre-disco')
+        self.failUnlessLogMatches('Error attempting to use stored',
+                                  'Attempting discovery')
 
     def test_openid2UsePreDiscovered(self):
         endpoint = discover.OpenIDServiceEndpoint()
@@ -132,21 +133,36 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
         self.failUnlessLogEmpty()
 
     def test_openid2UsePreDiscoveredWrongType(self):
+        text = "verify failed"
+
         endpoint = discover.OpenIDServiceEndpoint()
         endpoint.local_id = 'my identity'
         endpoint.claimed_id = 'i am sam'
         endpoint.server_url = 'Phone Home'
         endpoint.type_uris = [discover.OPENID_1_1_TYPE]
 
+        def discoverAndVerify(to_match):
+            self.failUnlessEqual(endpoint.claimed_id, to_match.claimed_id)
+            raise consumer.ProtocolError(text)
+
+        self.consumer._discoverAndVerify = discoverAndVerify
+
         msg = message.Message.fromOpenIDArgs(
             {'ns':message.OPENID2_NS,
              'identity':endpoint.local_id,
              'claimed_id':endpoint.claimed_id,
              'op_endpoint':endpoint.server_url})
-        self.failUnlessRaises(
-            consumer.ProtocolError,
-            self.consumer._verifyDiscoveryResults, msg, endpoint)
-        self.failUnlessLogEmpty()
+
+        try:
+            r = self.consumer._verifyDiscoveryResults(msg, endpoint)
+        except consumer.ProtocolError, e:
+            # Should we make more ProtocolError subclasses?
+            self.failUnless(str(e), text)
+        else:
+            self.fail("expected ProtocolError, %r returned." % (r,))
+
+        self.failUnlessLogMatches('Error attempting to use stored',
+                                  'Attempting discovery')
 
     def test_openid1UsePreDiscovered(self):
         endpoint = discover.OpenIDServiceEndpoint()

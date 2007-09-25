@@ -893,10 +893,6 @@ class GenericConsumer(object):
         elif to_match.claimed_id is None:
             return OpenIDServiceEndpoint.fromOPEndpointURL(to_match.server_url)
 
-        # Fragments do not influence discovery, so we can't compare a
-        # claimed identifier with a fragment to discovered information.
-        defragged_claimed_id, _ = urldefrag(to_match.claimed_id)
-
         # The claimed ID doesn't match, so we have to do discovery
         # again. This covers not using sessions, OP identifier
         # endpoints and responses that didn't match the original
@@ -904,18 +900,17 @@ class GenericConsumer(object):
         if not endpoint:
             oidutil.log('No pre-discovered information supplied.')
             endpoint = self._discoverAndVerify(to_match)
-
-        elif defragged_claimed_id != endpoint.claimed_id:
-            oidutil.log('Mismatched pre-discovered session data. '
-                        'Claimed ID in session=%s, in assertion=%s' %
-                        (endpoint.claimed_id, defragged_claimed_id))
-            endpoint = self._discoverAndVerify(to_match)
-
-        # The claimed ID matches, so we use the endpoint that we
-        # discovered in initiation. This should be the most common
-        # case.
         else:
-            self._verifyDiscoverySingle(endpoint, to_match)
+            # The claimed ID matches, so we use the endpoint that we
+            # discovered in initiation. This should be the most common
+            # case.
+            try:
+                self._verifyDiscoverySingle(endpoint, to_match)
+            except ProtocolError, e:
+                oidutil.log("Error attempting to use stored discovery information: " +
+                            str(e))
+                oidutil.log("Attempting discovery to verify endpoint")
+                endpoint = self._discoverAndVerify(to_match)
 
         # The endpoint we return should have the claimed ID from the
         # message we just verified, fragment and all.
