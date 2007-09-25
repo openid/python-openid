@@ -197,7 +197,7 @@ from openid import fetchers
 from openid.consumer.discover import discover, OpenIDServiceEndpoint, \
      DiscoveryFailure, OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
-     IDENTIFIER_SELECT, no_default
+     IDENTIFIER_SELECT, no_default, BARE_NS
 from openid import cryptutil
 from openid import oidutil
 from openid.association import Association, default_negotiator, \
@@ -608,7 +608,7 @@ class GenericConsumer(object):
 
         modeMethod = getattr(self, '_complete_' + mode,
                              self._completeInvalid)
-        
+
         return modeMethod(message, endpoint)
 
     def _complete_cancel(self, message, endpoint):
@@ -732,23 +732,16 @@ class GenericConsumer(object):
         return SuccessResponse(endpoint, message, signed_fields)
 
     def _idResGetNonceOpenID1(self, message, endpoint):
-        """Extract the nonce from an OpenID 1 response
+        """Extract the nonce from an OpenID 1 response.  Return the
+        nonce from the BARE_NS since we independently check the
+        return_to arguments are the same as those in the response
+        message.
 
         See the openid1_nonce_query_arg_name class variable
 
         @returns: The nonce as a string or None
         """
-        return_to = message.getArg(OPENID1_NS, 'return_to', None)
-        if return_to is None:
-            return None
-
-        parsed_url = urlparse(return_to)
-        query = parsed_url[4]
-        for k, v in cgi.parse_qsl(query):
-            if k == self.openid1_nonce_query_arg_name:
-                return v
-
-        return None
+        return message.getArg(BARE_NS, self.openid1_nonce_query_arg_name)
 
     def _idResCheckNonce(self, message, endpoint):
         if message.isOpenID1():
