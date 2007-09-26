@@ -49,7 +49,7 @@ def startOpenID(request):
     """
     if request.POST:
         # Start OpenID authentication.
-        openid_url = request.POST['openid_url']
+        openid_url = request.POST['openid_identifier']
         c = getConsumer(request)
         error = None
 
