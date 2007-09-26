@@ -1,6 +1,6 @@
 import unittest
 from openid import message
-from openid.test.support import OpenIDTestMixin, CatchLogs
+from openid.test.support import OpenIDTestMixin
 from openid.consumer import consumer
 from openid.test.test_consumer import TestIdRes
 from openid.consumer import discover
@@ -13,15 +13,7 @@ def const(result):
 
     return constResult
 
-class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
-    def setUp(self):
-        CatchLogs.setUp(self)
-        TestIdRes.setUp(self)
-
-    def tearDown(self):
-        CatchLogs.tearDown(self)
-        TestIdRes.tearDown(self)
-
+class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
     def failUnlessProtocolError(self, prefix, callable, *args, **kwargs):
         try:
             result = callable(*args, **kwargs)
@@ -179,6 +171,13 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
         self.failUnlessLogEmpty()
 
     def test_openid1UsePreDiscoveredWrongType(self):
+        class VerifiedError(Exception): pass
+
+        def discoverAndVerify(_to_match):
+            raise VerifiedError
+
+        self.consumer._discoverAndVerify = discoverAndVerify
+
         endpoint = discover.OpenIDServiceEndpoint()
         endpoint.local_id = 'my identity'
         endpoint.claimed_id = 'i am sam'
@@ -188,10 +187,13 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
         msg = message.Message.fromOpenIDArgs(
             {'ns':message.OPENID1_NS,
              'identity':endpoint.local_id})
+
         self.failUnlessRaises(
-            consumer.ProtocolError,
+            VerifiedError,
             self.consumer._verifyDiscoveryResults, msg, endpoint)
-        self.failUnlessLogEmpty()
+
+        self.failUnlessLogMatches('Error attempting to use stored',
+                                  'Attempting discovery')
 
     def test_openid2Fragment(self):
         claimed_id = "http://unittest.invalid/"
@@ -221,16 +223,8 @@ class DiscoveryVerificationTest(CatchLogs, OpenIDTestMixin, TestIdRes):
 # XXX: test the implementation of _discoverAndVerify
 
 
-class TestVerifyDiscoverySingle(CatchLogs, TestIdRes):
+class TestVerifyDiscoverySingle(TestIdRes):
     # XXX: more test the implementation of _verifyDiscoverySingle
-    def setUp(self):
-        CatchLogs.setUp(self)
-        TestIdRes.setUp(self)
-
-    def tearDown(self):
-        CatchLogs.tearDown(self)
-        TestIdRes.tearDown(self)
-
     def test_endpointWithoutLocalID(self):
         # An endpoint like this with no local_id is generated as a result of
         # e.g. Yadis discovery with no LocalID tag.

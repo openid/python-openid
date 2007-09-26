@@ -409,12 +409,14 @@ class Consumer(object):
         """
 
         endpoint = self.session.get(self._token_key)
-        if endpoint is None:
-            response = FailureResponse(None, 'No session state found')
-        else:
-            message = Message.fromPostArgs(query)
-            response = self.consumer.complete(message, endpoint, return_to)
+
+        message = Message.fromPostArgs(query)
+        response = self.consumer.complete(message, endpoint, return_to)
+
+        try:
             del self.session[self._token_key]
+        except KeyError:
+            pass
 
         if (response.status in ['success', 'cancel'] and
             response.identity_url is not None):
@@ -569,6 +571,11 @@ class GenericConsumer(object):
     # OpenID query parameter names.
     openid1_nonce_query_arg_name = 'janrain_nonce'
 
+    # Another query parameter that gets added to the return_to for
+    # OpenID 1; if the user's session state is lost, use this claimed
+    # identifier to do discovery when verifying the response.
+    openid1_return_to_identifier_name = 'openid1_claimed_id'
+
     session_types = {
         'DH-SHA1':DiffieHellmanSHA1ConsumerSession,
         'DH-SHA256':DiffieHellmanSHA256ConsumerSession,
@@ -592,6 +599,11 @@ class GenericConsumer(object):
 
         request = AuthRequest(service_endpoint, assoc)
         request.return_to_args[self.openid1_nonce_query_arg_name] = mkNonce()
+
+        if request.message.isOpenID1():
+            request.return_to_args[self.openid1_return_to_identifier_name] = \
+                request.endpoint.claimed_id
+
         return request
 
     def complete(self, message, endpoint, return_to=None):
@@ -834,6 +846,7 @@ class GenericConsumer(object):
         # XXX: this should be checked by _idResCheckForFields
         if not return_to:
             raise ProtocolError("no openid.return_to in query %r" % (query,))
+
         parsed_url = urlparse(return_to)
         rt_query = parsed_url[4]
         parsed_args = cgi.parse_qsl(rt_query)
@@ -929,18 +942,22 @@ class GenericConsumer(object):
         return endpoint
 
     def _verifyDiscoveryResultsOpenID1(self, resp_msg, endpoint):
-        if endpoint is None:
+        claimed_id = resp_msg.getArg(BARE_NS, self.openid1_return_to_identifier_name)
+
+        if endpoint is None and claimed_id is None:
             raise RuntimeError(
                 'When using OpenID 1, the claimed ID must be supplied, '
                 'either by passing it through as a return_to parameter '
                 'or by using a session, and supplied to the GenericConsumer '
                 'as the argument to complete()')
+        elif endpoint is not None and claimed_id is None:
+            claimed_id = endpoint.claimed_id
 
         to_match = OpenIDServiceEndpoint()
         to_match.type_uris = [OPENID_1_1_TYPE]
         to_match.local_id = resp_msg.getArg(OPENID1_NS, 'identity')
         # Restore delegate information from the initiation phase
-        to_match.claimed_id = endpoint.claimed_id
+        to_match.claimed_id = claimed_id
 
         if to_match.local_id is None:
             raise ProtocolError('Missing required field openid.identity')
@@ -948,12 +965,24 @@ class GenericConsumer(object):
         to_match_1_0 = copy.copy(to_match)
         to_match_1_0.type_uris = [OPENID_1_0_TYPE]
 
-        try:
-            self._verifyDiscoverySingle(endpoint, to_match)
-        except TypeURIMismatch:
-            self._verifyDiscoverySingle(endpoint, to_match_1_0)
+        if endpoint is not None:
+            try:
+                try:
+                    self._verifyDiscoverySingle(endpoint, to_match)
+                except TypeURIMismatch:
+                    self._verifyDiscoverySingle(endpoint, to_match_1_0)
+            except ProtocolError, e:
+                oidutil.log("Error attempting to use stored discovery information: " +
+                            str(e))
+                oidutil.log("Attempting discovery to verify endpoint")
+            else:
+                return endpoint
 
-        return endpoint
+        # Endpoint is either bad (failed verification) or None
+        try:
+            return self._discoverAndVerify(to_match)
+        except TypeURIMismatch:
+            return self._discoverAndVerify(to_match_1_0)
 
     def _verifyDiscoverySingle(self, endpoint, to_match):
         """Verify that the given endpoint matches the information

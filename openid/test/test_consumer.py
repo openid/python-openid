@@ -261,10 +261,12 @@ class TestConstruct(unittest.TestCase):
         self.failUnlessRaises(TypeError, GenericConsumer)
 
 
-class TestIdRes(unittest.TestCase):
+class TestIdRes(unittest.TestCase, CatchLogs):
     consumer_class = GenericConsumer
 
     def setUp(self):
+        CatchLogs.setUp(self)
+
         self.store = memstore.MemoryStore()
         self.consumer = self.consumer_class(self.store)
         self.return_to = "nonny"
@@ -280,7 +282,6 @@ class TestIdRes(unittest.TestCase):
         def dummyVerifyDiscover(_, endpoint):
             return endpoint
         self.consumer._verifyDiscoveryResults = dummyVerifyDiscover
-
 
 class TestIdResCheckSignature(TestIdRes):
     def setUp(self):
@@ -443,6 +444,13 @@ class TestComplete(TestIdRes):
                               message, self.endpoint)
 
     def test_idResURLMismatch(self):
+        class VerifiedError(Exception): pass
+
+        def discoverAndVerify(_to_match):
+            raise VerifiedError
+
+        self.consumer._discoverAndVerify = discoverAndVerify
+
         message = Message.fromPostArgs(
             {'openid.mode': 'id_res',
              'openid.return_to': 'return_to (just anything)',
@@ -452,13 +460,13 @@ class TestComplete(TestIdRes):
              'openid.signed': 'identity,return_to',
              })
         self.consumer.store = GoodAssocStore()
-        r = self.consumer.complete(message, self.endpoint)
-        self.failUnlessEqual(r.status, FAILURE)
-        self.failUnlessEqual(r.identity_url, self.consumer_id)
-        self.failUnless(r.message.startswith('local_id mismatch'),
-                        r.message)
 
+        self.failUnlessRaises(VerifiedError,
+                              self.consumer.complete,
+                              message, self.endpoint)
 
+        self.failUnlessLogMatches('Error attempting to use stored',
+                                  'Attempting discovery')
 
 class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
 
@@ -1431,8 +1439,17 @@ class ConsumerTest(unittest.TestCase):
         self.failUnless(result.endpoint is self.endpoint)
 
     def test_completeEmptySession(self):
+        text = "failed complete"
+
+        def checkEndpoint(message, endpoint, return_to):
+            self.failUnless(endpoint is None)
+            return FailureResponse(endpoint, text)
+
+        self.consumer.consumer.complete = checkEndpoint
+
         response = self.consumer.complete({})
         self.failUnlessEqual(response.status, FAILURE)
+        self.failUnlessEqual(response.message, text)
         self.failUnless(response.identity_url is None)
 
     def _doResp(self, auth_req, exp_resp):
