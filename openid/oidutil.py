@@ -21,8 +21,21 @@ elementtree_modules = [
     'elementtree.ElementTree',
     ]
 
-def importElementTree():
-    for mod_name in elementtree_modules:
+def importElementTree(module_names=None):
+    """Find a working ElementTree implementation, trying the standard
+    places that such a thing might show up.
+
+    >>> ElementTree = importElementTree()
+
+    @param module_names: The names of modules to try to use as
+        ElementTree. Defaults to C{L{elementtree_modules}}
+
+    @returns: An ElementTree module
+    """
+    if module_names is None:
+        module_names = elementtree_modules
+
+    for mod_name in module_names:
         try:
             ElementTree = __import__(mod_name, None, None, ['unused'])
         except ImportError:
