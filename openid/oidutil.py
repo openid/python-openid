@@ -23,9 +23,21 @@ elementtree_modules = [
 def importElementTree():
     for mod_name in elementtree_modules:
         try:
-            return __import__(mod_name, None, None, ['unused'])
+            ElementTree = __import__(mod_name, None, None, ['unused'])
         except ImportError:
             pass
+        else:
+            # Make sure it can actually parse XML
+            try:
+                ElementTree.XML('<unused/>')
+            except (SystemExit, MemoryError, AssertionError):
+                raise
+            except:
+                why = sys.exc_info()[1]
+                log('Not using ElementTree library %r because it failed to '
+                    'parse a trivial document: %s' % (mod_name, why))
+            else:
+                return ElementTree
     else:
         raise
 

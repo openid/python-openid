@@ -27,15 +27,6 @@ from time import strptime
 from openid.oidutil import importElementTree
 ElementTree = importElementTree()
 
-# Use expat if it's present. Otherwise, use xmllib
-try:
-    XMLTreeBuilder = ElementTree.XMLTreeBuilder
-
-    # This will raise an ImportError if an XML parser is not present.
-    p = XMLTreeBuilder()
-except ImportError:
-    from elementtree.SimpleXMLTreeBuilder import TreeBuilder as XMLTreeBuilder
-
 # the different elementtree modules don't have a common exception
 # model. We just want to be able to catch the exceptions that signify
 # malformed XML data and wrap them, so that the other library code
@@ -43,13 +34,11 @@ except ImportError:
 try:
     # Make the parser raise an exception so we can sniff out the type
     # of exceptions
-    p.feed('> purposely malformed XML <')
-    p.close()
+    ElementTree.XML('> purposely malformed XML <')
 except (SystemExit, MemoryError, AssertionError, ImportError):
     raise
 except:
     XMLError = sys.exc_info()[0]
-    del p
 
 from openid.yadis import xri
 
@@ -77,9 +66,7 @@ def parseXRDS(text):
         not contain an XRDS.
     """
     try:
-        parser = XMLTreeBuilder()
-        parser.feed(text)
-        element = parser.close()
+        element = ElementTree.XML(text)
     except XMLError, why:
         exc = XRDSError('Error parsing document as XML')
         exc.reason = why
