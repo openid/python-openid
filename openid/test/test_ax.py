@@ -369,7 +369,7 @@ class StoreRequestTest(unittest.TestCase):
             }
         self.failUnlessEqual(expected_args, args)
 
-    def test_getExtensionArgs_empty(self):
+    def test_getExtensionArgs_nonempty(self):
         self.msg.setValues(self.type_a, ['foo', 'bar'])
         aliases = NamespaceMap()
         aliases.addAlias(self.type_a, self.alias_a)
