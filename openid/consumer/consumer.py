@@ -1065,7 +1065,7 @@ class GenericConsumer(object):
             try:
                 self._verifyDiscoverySingle(endpoint, to_match)
             except ProtocolError, why:
-                failure_messages.append(why[0])
+                failure_messages.append(str(why))
             else:
                 # It matches, so discover verification has
                 # succeeded. Return this endpoint.
