@@ -113,18 +113,21 @@ class Discovery(object):
 
         return service
 
-    def cleanup(self):
+    def cleanup(self, force=False):
         """Clean up Yadis-related services in the session and return
         the most-recently-attempted service from the manager, if one
         exists.
 
+        @param force: True if the manager should be deleted regardless
+        of whether it's a manager for self.url.
+
         @return: current service endpoint object or None if there is
             no current service
         """
-        manager = self.getManager()
+        manager = self.getManager(force=force)
         if manager is not None:
             service = manager.current()
-            self.destroyManager()
+            self.destroyManager(force=force)
         else:
             service = None
 
@@ -140,15 +143,18 @@ class Discovery(object):
         """
         return self.PREFIX + self.session_key_suffix
 
-    def getManager(self):
+    def getManager(self, force=False):
         """Extract the YadisServiceManager for this object's URL and
         suffix from the session.
+
+        @param force: True if the manager should be returned
+        regardless of whether it's a manager for self.url.
 
         @return: The current YadisServiceManager, if it's for this
             URL, or else None
         """
         manager = self.session.get(self.getSessionKey())
-        if (manager is not None and manager.forURL(self.url)):
+        if (manager is not None and (manager.forURL(self.url) or force)):
             return manager
         else:
             return None
@@ -173,13 +179,16 @@ class Discovery(object):
         manager.store(self.session)
         return manager
 
-    def destroyManager(self):
+    def destroyManager(self, force=False):
         """Delete any YadisServiceManager with this starting URL and
         suffix from the session.
 
         If there is no service manager or the service manager is for a
         different URL, it silently does nothing.
+
+        @param force: True if the manager should be deleted regardless
+        of whether it's a manager for self.url.
         """
-        if self.getManager() is not None:
+        if self.getManager(force=force) is not None:
             key = self.getSessionKey()
             del self.session[key]

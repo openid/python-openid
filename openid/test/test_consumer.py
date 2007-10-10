@@ -1465,7 +1465,9 @@ class ConsumerTest(unittest.TestCase):
 
         # All responses should have the same identity URL, and the
         # session should be cleaned out
-        self.failUnless(resp.identity_url is self.identity_url)
+        if self.endpoint.claimed_id != IDENTIFIER_SELECT:
+            self.failUnless(resp.identity_url is self.identity_url)
+
         self.failIf(self.consumer._token_key in self.session)
 
         # Expected status response
@@ -1533,6 +1535,26 @@ class ConsumerTest(unittest.TestCase):
             False,
             SetupNeededResponse(self.endpoint, setup_url))
         self.failUnless(resp.setup_url is setup_url)
+
+    def test_successDifferentURL(self):
+        """
+        Be sure that the session gets cleaned up when the response is
+        successful and has a different URL than the one in the
+        request.
+        """
+        # Set up a request endpoint describing an IDP URL
+        self.identity_url = 'http://idp.url/'
+        self.endpoint.claimed_id = self.endpoint.local_id = IDENTIFIER_SELECT
+
+        # Use a response endpoint with a different URL (asserted by
+        # the IDP)
+        resp_endpoint = OpenIDServiceEndpoint()
+        resp_endpoint.claimed_id = "http://user.url/"
+
+        resp = self._doRespDisco(
+            True,
+            mkSuccess(resp_endpoint, {}))
+        self.failUnless(self.discovery.getManager(force=True) is None)
 
     def test_begin(self):
         self.discovery.createManager([self.endpoint], self.identity_url)

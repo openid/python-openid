@@ -426,7 +426,7 @@ class Consumer(object):
                               self.session_key_prefix)
             # This is OK to do even if we did not do discovery in
             # the first place.
-            disco.cleanup()
+            disco.cleanup(force=True)
 
         return response
 
