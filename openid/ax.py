@@ -608,8 +608,10 @@ class FetchResponse(AXKeyValueMessage):
         # unique to the fetch_response
         ax_args = self._newArgs()
 
-        if self.update_url:
-            ax_args['update_url'] = self.update_url
+        update_url = (request and request.update_url) or self.update_url
+
+        if update_url:
+            ax_args['update_url'] = update_url
 
         ax_args.update(kv_args)
 

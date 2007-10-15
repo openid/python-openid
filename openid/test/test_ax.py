@@ -348,6 +348,7 @@ class FetchResponseTest(unittest.TestCase):
         self.value_a = 'monkeys'
         self.type_a = 'http://phone.home/'
         self.alias_a = 'robocop'
+        self.request_update_url = 'http://update.bogus/'
 
     def test_construct(self):
         self.failUnless(self.msg.update_url is None)
@@ -371,6 +372,15 @@ class FetchResponseTest(unittest.TestCase):
             'mode':'fetch_response',
             }
         req = ax.FetchRequest()
+        req.add(ax.AttrInfo('http://not.found/'))
+        self.failUnlessEqual(expected_args, self.msg.getExtensionArgs(req))
+
+    def test_updateUrlInResponse(self):
+        expected_args = {
+            'mode':'fetch_response',
+            'update_url': self.request_update_url,
+            }
+        req = ax.FetchRequest(update_url=self.request_update_url)
         req.add(ax.AttrInfo('http://not.found/'))
         self.failUnlessEqual(expected_args, self.msg.getExtensionArgs(req))
 
