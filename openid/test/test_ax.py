@@ -93,6 +93,25 @@ class ParseAXValuesTest(unittest.TestCase):
         self.failUnlessAXKeyError({'type.foo':'urn:foo',
                                    'count.foo':'1'})
 
+    def test_invalidAlias(self):
+        types = [
+            ax.AXKeyValueMessage,
+            ax.FetchRequest
+            ]
+
+        inputs = [
+            {'type.a.b':'urn:foo',
+             'count.a.b':'1'},
+            {'type.a,b':'urn:foo',
+             'count.a,b':'1'},
+            ]
+
+        for typ in types:
+            for input in inputs:
+                msg = typ()
+                self.failUnlessRaises(ax.AXError, msg.parseExtensionArgs,
+                                      input)
+
     def test_countPresentAndIsZero(self):
         self.failUnlessAXValues(
             {'type.foo':'urn:foo',

@@ -14,6 +14,17 @@ from openid import extension
 from openid.message import NamespaceMap
 
 
+def checkAlias(alias):
+    """
+    Check an alias for invalid characters; raise AXError if any are
+    found.  Return None if the alias is valid.
+    """
+    if ',' in alias:
+        raise AXError("Alias %r must not contain comma" % (alias,))
+    if '.' in alias:
+        raise AXError("Alias %r must not contain period" % (alias,))
+
+
 class AXError(ValueError):
     """Results from data that does not meet the attribute exchange 1.0
     specification"""
@@ -97,6 +108,8 @@ class AttrInfo(object):
         self.type_uri = type_uri
         self.alias = alias
 
+        if self.alias is not None:
+            checkAlias(self.alias)
 
 def toTypeURIs(namespace_map, alias_list_s):
     """Given a namespace mapping and a string containing a
@@ -423,6 +436,7 @@ class AXKeyValueMessage(AXMessage):
             if key.startswith('type.'):
                 type_uri = value
                 alias = key[5:]
+                checkAlias(alias)
                 aliases.addAlias(type_uri, alias)
 
         for type_uri, alias in aliases.iteritems():
