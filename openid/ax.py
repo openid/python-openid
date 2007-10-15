@@ -425,15 +425,11 @@ class AXKeyValueMessage(AXMessage):
             alias = aliases.add(type_uri)
 
             ax_args['type.' + alias] = type_uri
+            ax_args['count.' + alias] = str(len(values))
 
-            if len(values) == 1:
-                ax_args['value.' + alias] = values[0]
-            else:
-                ax_args['count.' + alias] = str(len(values))
-
-                for i, value in enumerate(values):
-                    key = 'value.%s.%d' % (alias, i + 1)
-                    ax_args[key] = value
+            for i, value in enumerate(values):
+                key = 'value.%s.%d' % (alias, i + 1)
+                ax_args[key] = value
 
         return ax_args
 
@@ -572,6 +568,8 @@ class FetchResponse(AXKeyValueMessage):
 
         aliases = NamespaceMap()
 
+        zero_value_types = []
+
         if request is not None:
             # Validate the data in the context of the request (the
             # same attributes should be present in each, and the
@@ -596,8 +594,10 @@ class FetchResponse(AXKeyValueMessage):
                     values = self.data[attr_info.type_uri]
                 except KeyError:
                     values = []
+                    zero_value_types.append(attr_info)
 
-                if attr_info.count < len(values):
+                if (attr_info.count != UNLIMITED_VALUES) and \
+                       (attr_info.count < len(values)):
                     raise AXError(
                         'More than the number of requested values were '
                         'specified for %r' % (attr_info.type_uri,))
@@ -607,6 +607,13 @@ class FetchResponse(AXKeyValueMessage):
         # Add the KV args into the response with the args that are
         # unique to the fetch_response
         ax_args = self._newArgs()
+
+        # For each requested attribute, put its type/alias and count
+        # into the response even if no data were returned.
+        for attr_info in zero_value_types:
+            alias = aliases.getAlias(attr_info.type_uri)
+            kv_args['type.' + alias] = attr_info.type_uri
+            kv_args['count.' + alias] = '0'
 
         update_url = (request and request.update_url) or self.update_url
 

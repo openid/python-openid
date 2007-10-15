@@ -368,27 +368,38 @@ class FetchResponseTest(unittest.TestCase):
         self.failUnlessEqual(expected_args, self.msg.getExtensionArgs(req))
 
     def test_getExtensionArgs_empty_request_some(self):
+        uri = 'http://not.found/'
+        alias = 'ext0'
+
         expected_args = {
             'mode':'fetch_response',
+            'type.%s' % (alias,): uri,
+            'count.%s' % (alias,): '0'
             }
         req = ax.FetchRequest()
-        req.add(ax.AttrInfo('http://not.found/'))
+        req.add(ax.AttrInfo(uri))
         self.failUnlessEqual(expected_args, self.msg.getExtensionArgs(req))
 
     def test_updateUrlInResponse(self):
+        uri = 'http://not.found/'
+        alias = 'ext0'
+
         expected_args = {
             'mode':'fetch_response',
             'update_url': self.request_update_url,
+            'type.%s' % (alias,): uri,
+            'count.%s' % (alias,): '0'
             }
         req = ax.FetchRequest(update_url=self.request_update_url)
-        req.add(ax.AttrInfo('http://not.found/'))
+        req.add(ax.AttrInfo(uri))
         self.failUnlessEqual(expected_args, self.msg.getExtensionArgs(req))
 
     def test_getExtensionArgs_some_request(self):
         expected_args = {
             'mode':'fetch_response',
             'type.' + self.alias_a:self.type_a,
-            'value.' + self.alias_a:self.value_a,
+            'value.' + self.alias_a + '.1':self.value_a,
+            'count.' + self.alias_a: '1'
             }
         req = ax.FetchRequest()
         req.add(ax.AttrInfo(self.type_a, alias=self.alias_a))
