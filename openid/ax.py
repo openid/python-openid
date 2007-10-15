@@ -434,7 +434,7 @@ class AXKeyValueMessage(AXMessage):
         return ax_args
 
     def parseExtensionArgs(self, ax_args):
-        """Parse attribiute exchange key/value arguments into this
+        """Parse attribute exchange key/value arguments into this
         object.
 
         @param ax_args: The attribute exchange fetch_response
