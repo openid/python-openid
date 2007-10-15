@@ -17,6 +17,10 @@ from openid.message import NamespaceMap
 # ask for as many values as the OP can provide.
 UNLIMITED_VALUES = "unlimited"
 
+# Minimum supported alias length in characters.  Here for
+# completeness.
+MINIMUM_SUPPORTED_ALIAS_LENGTH = 32
+
 def checkAlias(alias):
     """
     Check an alias for invalid characters; raise AXError if any are

@@ -115,6 +115,18 @@ class ParseAXValuesTest(unittest.TestCase):
         self.failUnless(foo.count == ax.UNLIMITED_VALUES)
         self.failUnless(foo.wantsUnlimitedValues())
 
+    def test_longAlias(self):
+        # Spec minimum length is 32 characters.  This is a silly test
+        # for this library, but it's here for completeness.
+        alias = 'x' * ax.MINIMUM_SUPPORTED_ALIAS_LENGTH
+
+        msg = ax.AXKeyValueMessage()
+        msg.parseExtensionArgs(
+            {'type.%s' % (alias,): 'urn:foo',
+             'count.%s' % (alias,): '1',
+             'value.%s.1' % (alias,): 'first'}
+            )
+
     def test_invalidAlias(self):
         types = [
             ax.AXKeyValueMessage,
