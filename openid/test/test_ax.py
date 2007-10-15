@@ -3,7 +3,7 @@
 
 import unittest
 from openid import ax
-from openid.message import NamespaceMap
+from openid.message import NamespaceMap, Message, OPENID2_NS
 
 class BogusAXMessage(ax.AXMessage):
     mode = 'bogus'
@@ -341,6 +341,56 @@ class FetchRequestTest(unittest.TestCase):
         self.msg.parseExtensionArgs(extension_args)
         self.failUnlessEqual(extension_args_norm, self.msg.getExtensionArgs())
 
+    def test_openidNoRealm(self):
+        openid_req_msg = Message.fromOpenIDArgs({
+            'mode': 'checkid_setup',
+            'ns': OPENID2_NS,
+            'ns.ax': ax.AXMessage.ns_uri,
+            'ax.update_url': 'http://different.site/path',
+            'ax.mode': 'fetch_request',
+            })
+
+        self.failUnlessRaises(ax.AXError,
+                              ax.FetchRequest.fromOpenIDRequest,
+                              openid_req_msg)
+
+    def test_openidUpdateURLVerificationError(self):
+        openid_req_msg = Message.fromOpenIDArgs({
+            'mode': 'checkid_setup',
+            'ns': OPENID2_NS,
+            'realm': 'http://example.com/realm',
+            'ns.ax': ax.AXMessage.ns_uri,
+            'ax.update_url': 'http://different.site/path',
+            'ax.mode': 'fetch_request',
+            })
+
+        self.failUnlessRaises(ax.AXError,
+                              ax.FetchRequest.fromOpenIDRequest,
+                              openid_req_msg)
+
+    def test_openidUpdateURLVerificationSuccess(self):
+        openid_req_msg = Message.fromOpenIDArgs({
+            'mode': 'checkid_setup',
+            'ns': OPENID2_NS,
+            'realm': 'http://example.com/realm',
+            'ns.ax': ax.AXMessage.ns_uri,
+            'ax.update_url': 'http://example.com/realm/update_path',
+            'ax.mode': 'fetch_request',
+            })
+
+        fr = ax.FetchRequest.fromOpenIDRequest(openid_req_msg)
+
+    def test_openidUpdateURLVerificationSuccessReturnTo(self):
+        openid_req_msg = Message.fromOpenIDArgs({
+            'mode': 'checkid_setup',
+            'ns': OPENID2_NS,
+            'return_to': 'http://example.com/realm',
+            'ns.ax': ax.AXMessage.ns_uri,
+            'ax.update_url': 'http://example.com/realm/update_path',
+            'ax.mode': 'fetch_request',
+            })
+
+        fr = ax.FetchRequest.fromOpenIDRequest(openid_req_msg)
 
 class FetchResponseTest(unittest.TestCase):
     def setUp(self):

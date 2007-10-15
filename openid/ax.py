@@ -11,7 +11,8 @@ __all__ = [
     ]
 
 from openid import extension
-from openid.message import NamespaceMap
+from openid.server.trustroot import TrustRoot
+from openid.message import NamespaceMap, OPENID_NS
 
 # Use this as the 'count' value for an attribute in a FetchRequest to
 # ask for as many values as the OP can provide.
@@ -283,6 +284,22 @@ class FetchRequest(AXMessage):
         ax_args = message.getArgs(cls.ns_uri)
         self = cls()
         self.parseExtensionArgs(ax_args)
+
+        if self.update_url:
+            # Update URL must match the openid.realm of the underlying
+            # OpenID 2 message.
+            realm = message.getArg(OPENID_NS, 'realm',
+                                   message.getArg(OPENID_NS, 'return_to'))
+
+            if not realm:
+                raise AXError(("Cannot validate update_url %r " +
+                               "against absent realm") % (self.update_url,))
+
+            tr = TrustRoot.parse(realm)
+            if not tr.validateURL(self.update_url):
+                raise AXError("Update URL %r failed validation against realm %r" %
+                              (self.update_url, realm,))
+
         return self
 
     fromOpenIDRequest = classmethod(fromOpenIDRequest)
