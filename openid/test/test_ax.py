@@ -93,6 +93,28 @@ class ParseAXValuesTest(unittest.TestCase):
         self.failUnlessAXKeyError({'type.foo':'urn:foo',
                                    'count.foo':'1'})
 
+    def test_invalidCountValue(self):
+        msg = ax.FetchRequest()
+        self.failUnlessRaises(ax.AXError,
+                              msg.parseExtensionArgs,
+                              {'type.foo':'urn:foo',
+                               'count.foo':'bogus'})
+
+    def test_requestUnlimitedValues(self):
+        msg = ax.FetchRequest()
+
+        msg.parseExtensionArgs(
+            {'mode':'fetch_request',
+             'required':'foo',
+             'type.foo':'urn:foo',
+             'count.foo':ax.UNLIMITED_VALUES})
+
+        attrs = list(msg.iterAttrs())
+        foo = attrs[0]
+
+        self.failUnless(foo.count == ax.UNLIMITED_VALUES)
+        self.failUnless(foo.wantsUnlimitedValues())
+
     def test_invalidAlias(self):
         types = [
             ax.AXKeyValueMessage,

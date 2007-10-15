@@ -13,6 +13,9 @@ __all__ = [
 from openid import extension
 from openid.message import NamespaceMap
 
+# Use this as the 'count' value for an attribute in a FetchRequest to
+# ask for as many values as the OP can provide.
+UNLIMITED_VALUES = "unlimited"
 
 def checkAlias(alias):
     """
@@ -110,6 +113,16 @@ class AttrInfo(object):
 
         if self.alias is not None:
             checkAlias(self.alias)
+
+    def wantsUnlimitedValues(self):
+        """
+        When processing a request for this attribute, the OP should
+        call this method to determine whether all available attribute
+        values were requested.  If self.count == UNLIMITED_VALUES,
+        this returns True.  Otherwise this returns False, in which
+        case self.count is an integer.
+        """
+        return self.count == UNLIMITED_VALUES
 
 def toTypeURIs(namespace_map, alias_list_s):
     """Given a namespace mapping and a string containing a
@@ -292,9 +305,17 @@ class FetchRequest(AXMessage):
                 type_uri = value
                 aliases.addAlias(type_uri, alias)
 
-                count_s = ax_args.get('count.' + alias)
+                count_key = 'count.' + alias
+                count_s = ax_args.get(count_key)
                 if count_s:
-                    count = int(count_s)
+                    try:
+                        count = int(count_s)
+                        if count <= 0:
+                            raise AXError("Count %r must be greater than zero, got %r" % (count_key, count_s,))
+                    except ValueError:
+                        if count_s != UNLIMITED_VALUES:
+                            raise AXError("Invalid count value for %r: %r" % (count_key, count_s,))
+                        count = count_s
                 else:
                     count = 1
 
