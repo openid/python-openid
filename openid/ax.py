@@ -1,5 +1,5 @@
 """Implements the OpenID attribute exchange specification, version 1.0
-as of svn revision 295 from openid.net svn.
+as of svn revision 370 from openid.net svn.
 """
 
 __all__ = [
