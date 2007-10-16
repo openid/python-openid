@@ -41,6 +41,7 @@ from openid.oidutil import appendArgs
 from openid.cryptutil import randomString
 from openid.fetchers import setDefaultFetcher, Urllib2Fetcher
 from openid import sreg
+from openid.extensions import pape
 
 # Used with an OpenID provider affiliate program.
 OPENID_PROVIDER_NAME = 'MyOpenID'
@@ -162,6 +163,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
 
         immediate = 'immediate' in self.query
         use_sreg = 'use_sreg' in self.query
+        use_pape = 'use_pape' in self.query
 
         oidconsumer = self.getConsumer()
         try:
@@ -185,6 +187,9 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                 if use_sreg:
                     self.requestRegistrationData(request)
 
+                if use_pape:
+                    self.requestPAPEDetails(request)
+
                 trust_root = self.server.base_url
                 return_to = self.buildURL('process')
                 if request.shouldSendRedirect():
@@ -206,6 +211,10 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         sreg_request = sreg.SRegRequest(
             required=['nickname'], optional=['fullname', 'email'])
         request.addExtension(sreg_request)
+
+    def requestPAPEDetails(self, request):
+        pape_request = pape.Request([pape.AUTH_PHISHING_RESISTANT])
+        request.addExtension(pape_request)
 
     def doProcess(self):
         """Handle the redirect from the OpenID server.
@@ -239,6 +248,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             fmt = "You have successfully verified %s as your identity."
             message = fmt % (cgi.escape(info.identity_url),)
             sreg_resp = sreg.SRegResponse.fromSuccessResponse(info)
+            pape_resp = pape.Response.fromSuccessResponse(info)
             if info.endpoint.canonicalID:
                 # You should authorize i-name users by their canonicalID,
                 # rather than their more human-friendly identifiers.  That
@@ -264,7 +274,8 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # information in a log.
             message = 'Verification failed.'
 
-        self.render(message, css_class, info.identity_url, sreg_data=sreg_resp)
+        self.render(message, css_class, info.identity_url, sreg_data=sreg_resp,
+                    pape_data=pape_resp)
 
     def doAffiliate(self):
         """Direct the user sign up with an affiliate OpenID provider."""
@@ -301,6 +312,21 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
 
             self.wfile.write('</tbody></table>')
 
+    def renderPAPE(self, pape_data):
+        if not pape_data:
+            self.wfile.write(
+                '<div class="alert">No PAPE data was returned</div>')
+        else:
+            self.wfile.write('<div class="alert">Effective Auth Policies<ul>')
+
+            for policy_uri in pape_data.auth_policies:
+                self.wfile.write('<li><tt>%s</tt></li>' % (cgi.escape(policy_uri),))
+
+            if not pape_data.auth_policies:
+                self.wfile.write('<li>No policies were applied.</li>')
+
+            self.wfile.write('</ul></div>')
+
     def buildURL(self, action, **query):
         """Build a URL relative to the server base_url, with the given
         query parameters added."""
@@ -326,7 +352,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
 
     def render(self, message=None, css_class='alert', form_contents=None,
                status=200, title="Python OpenID Consumer Example",
-               sreg_data=None):
+               sreg_data=None, pape_data=None):
         """Render a page."""
         self.send_response(status)
         self.pageHeader(title)
@@ -337,6 +363,9 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
 
         if sreg_data is not None:
             self.renderSREG(sreg_data)
+
+        if pape_data is not None:
+            self.renderPAPE(pape_data)
 
         self.pageFooter(form_contents)
 
@@ -415,6 +444,7 @@ Content-type: text/html
         <input type="submit" value="Verify" /><br />
         <input type="checkbox" name="immediate" id="immediate" /><label for="immediate">Use immediate mode</label>
         <input type="checkbox" name="use_sreg" id="use_sreg" /><label for="use_sreg">Request registration data</label>
+        <input type="checkbox" name="use_pape" id="use_pape" /><label for="use_pape">Request phishing-resistent auth policy (PAPE)</label>
       </form>
     </div>
   </body>
