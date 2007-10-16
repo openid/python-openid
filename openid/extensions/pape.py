@@ -254,4 +254,4 @@ class Response(Extension):
 
         return ns_args
 
-Request.ns_uri = ns_uri
+Response.ns_uri = ns_uri
