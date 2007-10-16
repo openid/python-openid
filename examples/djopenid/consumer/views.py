@@ -6,6 +6,7 @@ from django.views.generic.simple import direct_to_template
 from openid.consumer import consumer
 from openid.consumer.discover import DiscoveryFailure
 from openid import sreg
+from openid.extensions import pape
 from openid.yadis.constants import YADIS_HEADER_NAME, YADIS_CONTENT_TYPE
 from openid.server.trustroot import RP_RETURN_TO_URL_TYPE
 
@@ -71,6 +72,12 @@ def startOpenID(request):
                                         required=['dob'])
         auth_request.addExtension(sreg_request)
 
+        # Add PAPE request information.  We'll ask for
+        # phishing-resistant auth and display any policies we get in
+        # the response.
+        pape_request = pape.Request([pape.AUTH_PHISHING_RESISTANT])
+        auth_request.addExtension(pape_request)
+
         # Compute the trust root and return URL values to build the
         # redirect information.
         trust_root = util.getViewURL(request, startOpenID)
@@ -124,6 +131,12 @@ def finishOpenID(request):
         if response.status == consumer.SUCCESS:
             sreg_response = sreg.SRegResponse.fromSuccessResponse(response)
 
+        # Get a PAPE response object if response information was
+        # included in the OpenID response.
+        pape_response = None
+        if response.status == consumer.SUCCESS:
+            pape_response = pape.Response.fromSuccessResponse(response)
+
         # Map different consumer status codes to template contexts.
         results = {
             consumer.CANCEL:
@@ -134,7 +147,8 @@ def finishOpenID(request):
 
             consumer.SUCCESS:
             {'url': response.identity_url,
-             'sreg': sreg_response.items(),},
+             'sreg': sreg_response.items(),
+             'pape': pape_response},
             }
 
         result = results[response.status]

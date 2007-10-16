@@ -57,6 +57,24 @@
       {% else %}
         The server returned no Simple Registration data.
       {% endif %}
+
+      {% if pape %}
+
+        {% if pape.auth_policies %}
+          An authentication policy response contained these policies:
+
+          <ul>
+          {% for uri in pape.auth_policies %}
+            <li><tt>{{ uri }}</tt></li>
+          {% endfor %}
+          </ul>
+        {% else %}
+          An authentication policy response was returned, but no
+          policies were enforced by the server.
+        {% endif %}
+      {% else %}
+        The server returned no authentication policy data (PAPE).
+      {% endif %}
       </p>
     </div>
   {% endif %}
