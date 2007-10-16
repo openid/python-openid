@@ -289,7 +289,10 @@ class SQLiteStore(SQLStore):
     try:
         from pysqlite2 import dbapi2 as dbapi
     except ImportError:
-        pass
+        try:
+            from sqlite3 import dbapi2 as dbapi
+        except ImportError:
+            pass
 
     create_nonce_sql = """
     CREATE TABLE %(nonces)s (
