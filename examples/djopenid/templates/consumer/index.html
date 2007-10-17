@@ -93,6 +93,25 @@
 
   <form method="post" action="{{ consumer_url }}">
     <input type="text" size="40" name="openid_identifier" />
+
+    <p>
+    Request these authentication policies
+      (<a href="http://openid.net/specs/openid-provider-authentication-policy-extension-1_0-01.html">PAPE</a>):
+
+    <table>
+      {% for pair in pape_policies %}
+      <tr>
+        <td><input type="checkbox" name="policy_{{ pair.0 }}" id="id_policy_{{ pair.0 }}" /></td>
+        <td>
+          <label for="id_policy_{{ pair.0 }}"><tt>
+            {{ pair.1 }}
+          </tt></label>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    </p>
+
     <input type="submit" value="Begin" />
   </form>
 

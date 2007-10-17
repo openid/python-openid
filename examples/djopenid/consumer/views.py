@@ -12,6 +12,16 @@ from openid.server.trustroot import RP_RETURN_TO_URL_TYPE
 
 from djopenid import util
 
+PAPE_POLICIES = [
+    'AUTH_PHISHING_RESISTANT',
+    'AUTH_MULTI_FACTOR',
+    'AUTH_MULTI_FACTOR_PHYSICAL',
+    ]
+
+# List of (name, uri) for use in generating the request form.
+POLICY_PAIRS = [(p, getattr(pape, p))
+                for p in PAPE_POLICIES]
+
 def getOpenIDStore():
     """
     Return an OpenID store object fit for the currently-chosen
@@ -27,6 +37,8 @@ def getConsumer(request):
 
 def renderIndexPage(request, **template_args):
     template_args['consumer_url'] = util.getViewURL(request, startOpenID)
+    template_args['pape_policies'] = POLICY_PAIRS
+
     response =  direct_to_template(
         request, 'consumer/index.html', template_args)
     response[YADIS_HEADER_NAME] = util.getViewURL(request, rpXRDS)
@@ -75,8 +87,17 @@ def startOpenID(request):
         # Add PAPE request information.  We'll ask for
         # phishing-resistant auth and display any policies we get in
         # the response.
-        pape_request = pape.Request([pape.AUTH_PHISHING_RESISTANT])
-        auth_request.addExtension(pape_request)
+        requested_policies = []
+        policy_prefix = 'policy_'
+        for k, v in request.POST.iteritems():
+            if k.startswith(policy_prefix):
+                policy_attr = k[len(policy_prefix):]
+                if policy_attr in PAPE_POLICIES:
+                    requested_policies.append(getattr(pape, policy_attr))
+
+        if requested_policies:
+            pape_request = pape.Request(requested_policies)
+            auth_request.addExtension(pape_request)
 
         # Compute the trust root and return URL values to build the
         # redirect information.
