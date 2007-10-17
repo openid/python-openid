@@ -1196,10 +1196,13 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
     def test_signedList(self):
         query = Message.fromOpenIDArgs({
             'mode': 'id_res',
+            'ns': OPENID2_NS,
             'sig': 'rabbits',
             'identity': '=example',
             'assoc_handle': 'munchkins',
-            'signed': 'identity,mode',
+            'ns.sreg': 'urn:sreg',
+            'sreg.email': 'bogus@example.com',
+            'signed': 'identity,mode,ns.sreg,sreg.email',
             'foo': 'bar',
             })
         expected = Message.fromOpenIDArgs({
@@ -1207,7 +1210,9 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
             'sig': 'rabbits',
             'assoc_handle': 'munchkins',
             'identity': '=example',
-            'signed': 'identity,mode'
+            'signed': 'identity,mode,ns.sreg,sreg.email',
+            'ns.sreg': 'urn:sreg',
+            'sreg.email': 'bogus@example.com',
             })
         args = self.consumer._createCheckAuthRequest(query)
         self.failUnlessEqual(args.toPostArgs(), expected.toPostArgs())
