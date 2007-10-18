@@ -453,6 +453,16 @@ class PostgreSQLStore(SQLStore):
     All other methods are implementation details.
     """
 
+    try:
+        import psycopg as exceptions
+    except ImportError:
+        # psycopg2 has the dbapi extension where the exception classes
+        # are available on the connection object. A psycopg2
+        # connection will use the correct exception classes because of
+        # this, and a psycopg connection will fall through to use the
+        # psycopg imported above.
+        exceptions = None
+
     create_nonce_sql = """
     CREATE TABLE %(nonces)s (
         server_url VARCHAR(2047),
