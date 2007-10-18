@@ -487,10 +487,7 @@ class Message(object):
             # need more than x values to unpack
             ns = None
         else:
-            if alias == 'ns':
-                return self.namespaces.getNamespaceURI(key)
-            else:
-                ns = self.namespaces.getNamespaceURI(alias)
+            ns = self.namespaces.getNamespaceURI(alias)
 
         if ns is None:
             key = aliased_key
