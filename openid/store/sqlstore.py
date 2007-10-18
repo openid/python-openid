@@ -114,6 +114,18 @@ class SQLStore(OpenIDStore):
             }
         self.max_nonce_age = 6 * 60 * 60 # Six hours, in seconds
 
+        # DB API extension: search for "Connection Attributes .Error,
+        # .ProgrammingError, etc." in
+        # http://www.python.org/dev/peps/pep-0249/
+        if (hasattr(self.conn, 'IntegrityError') and
+            hasattr(self.conn, 'OperationalError')):
+            self.exceptions = self.conn
+
+        if not (hasattr(self.exceptions, 'IntegrityError') and
+                hasattr(self.exceptions, 'OperationalError')):
+            raise RuntimeError("Error using database connection module "
+                               "(Maybe it can't be imported?)")
+
     def blobDecode(self, blob):
         """Convert a blob as returned by the SQL engine into a str object.
 
@@ -254,7 +266,7 @@ class SQLStore(OpenIDStore):
 
         try:
             self.db_add_nonce(server_url, timestamp, salt)
-        except self.dbapi.IntegrityError:
+        except self.exceptions.IntegrityError:
             # The key uniqueness check failed
             return False
         else:
@@ -285,14 +297,6 @@ class SQLiteStore(SQLStore):
 
     All other methods are implementation details.
     """
-
-    try:
-        from pysqlite2 import dbapi2 as dbapi
-    except ImportError:
-        try:
-            from sqlite3 import dbapi2 as dbapi
-        except ImportError:
-            pass
 
     create_nonce_sql = """
     CREATE TABLE %(nonces)s (
@@ -356,7 +360,7 @@ class SQLiteStore(SQLStore):
         # message from the OperationalError.
         try:
             return super(SQLiteStore, self).useNonce(*args, **kwargs)
-        except self.dbapi.OperationalError, why:
+        except self.exceptions.OperationalError, why:
             if re.match('^columns .* are not unique$', why[0]):
                 return False
             else:
@@ -375,9 +379,9 @@ class MySQLStore(SQLStore):
     """
 
     try:
-        import MySQLdb as dbapi
+        import MySQLdb as exceptions
     except ImportError:
-        pass
+        exceptions = None
 
     create_nonce_sql = """
     CREATE TABLE %(nonces)s (
@@ -448,11 +452,6 @@ class PostgreSQLStore(SQLStore):
 
     All other methods are implementation details.
     """
-
-    try:
-        import psycopg as dbapi
-    except ImportError:
-        pass
 
     create_nonce_sql = """
     CREATE TABLE %(nonces)s (
