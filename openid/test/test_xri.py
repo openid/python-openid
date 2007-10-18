@@ -8,6 +8,7 @@ class XriDiscoveryTestCase(TestCase):
         self.failUnlessEqual(i('@smiths/john'), 'XRI')
         self.failUnlessEqual(i('smoker.myopenid.com'), 'URI')
         self.failUnlessEqual(i('xri://=john'), 'XRI')
+        self.failUnlessEqual(i(''), 'URI')
 
 
 class XriEscapingTestCase(TestCase):

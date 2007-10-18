@@ -59,7 +59,8 @@ def identifierScheme(identifier):
 
     @returns: C{"XRI"} or C{"URI"}
     """
-    if identifier.startswith('xri://') or identifier[0] in XRI_AUTHORITIES:
+    if identifier.startswith('xri://') or (
+        identifier and identifier[0] in XRI_AUTHORITIES):
         return "XRI"
     else:
         return "URI"
