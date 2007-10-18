@@ -432,7 +432,12 @@ class MySQLStore(SQLStore):
     clean_nonce_sql = 'DELETE FROM %(nonces)s WHERE timestamp < %%s;'
 
     def blobDecode(self, blob):
-        return blob.tostring()
+        if type(blob) is str:
+            # Versions of MySQLdb >= 1.2.2
+            return blob
+        else:
+            # Versions of MySQLdb prior to 1.2.2 (as far as we can tell)
+            return blob.tostring()
 
 class PostgreSQLStore(SQLStore):
     """
