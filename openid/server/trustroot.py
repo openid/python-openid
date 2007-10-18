@@ -18,6 +18,7 @@ __all__ = [
     ]
 
 from openid import oidutil
+from openid import urinorm
 from openid.yadis import services
 from urlparse import urlparse, urlunparse
 
@@ -54,6 +55,10 @@ class RealmVerificationRedirected(Exception):
 
 
 def _parseURL(url):
+    try:
+        url = urinorm.urinorm(url)
+    except ValueError:
+        pass
     proto, netloc, path, params, query, frag = urlparse(url)
     if not path:
         # Python <2.4 does not parse URLs with no path properly

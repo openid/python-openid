@@ -68,7 +68,7 @@ return_to matching
 ========================================
 
 ----------------------------------------
-33: matches
+42: matches
 ----------------------------------------
 http://*/                             http://cnn.com/
 http://*/                             http://livejournal.com/
@@ -99,10 +99,19 @@ http://goathack.livejournal.org:8020/ http://goathack.livejournal.org:8020/openi
 https://foo.com                       https://foo.com
 http://Foo.com                        http://foo.com
 http://foo.com                        http://Foo.com
+http://foo.com:80/                    http://foo.com/
 http://foo.com/?x=y                   http://foo.com/?x=y&a=b
 http://foo.com/x                      http://foo.com/x?y
 http://mylid.net/j3h.                 http://mylid.net/j3h.?x=y
 http://j3h.us                         http://j3h.us?ride=unicycle
+https://www.filmclans.com:443/mattmartin/FilmClans https://www.filmclans.com/mattmartin/FilmClans/Logon.aspx?nonce=BVjqSOee
+http://foo.com:80                     http://foo.com
+http://foo.com                        http://foo.com:80
+http://foo.com                        http://foo.com/
+http://foo.com/                       http://foo.com
+http://foo.com/                       http://foo.com:80
+http://foo.com:80/                    http://foo.com:80/stuff
+http://foo.com:80/                    http://foo.com/stuff
 
 ----------------------------------------
 24: does not match
@@ -122,8 +131,6 @@ http://*.foo.com                      http://www.bar.com
 http://*.bar.co.uk                    http://xxx.co.uk
 https://foo.com                       http://foo.com
 http://foo.com                        https://foo.com
-http://foo.com:80                     http://foo.com
-http://foo.com                        http://foo.com:80
 http://foo.com:81                     http://foo.com:80
 http://*:80                           http://foo.com:81
 http://foo.com/?a=b                   http://foo.com/?x=y
@@ -131,3 +138,5 @@ http://foo.com/?a=b                   http://foo.com/?x=y&a=b
 http://foo.com/?a=b                   http://foo.com/
 http://*.oo.com/                      http://foo.com/
 http://foo.com/*                      http://foo.com/anything
+http://foo.com                        http://foo.com:443
+https://foo.com                       https://foo.com:80
