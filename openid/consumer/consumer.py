@@ -613,20 +613,15 @@ class GenericConsumer(object):
         """
         mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
 
-        if return_to is not None:
-            if not self._checkReturnTo(message, return_to):
-                return FailureResponse(endpoint,
-                                       "openid.return_to does not match return URL")
-
         modeMethod = getattr(self, '_complete_' + mode,
                              self._completeInvalid)
 
-        return modeMethod(message, endpoint)
+        return modeMethod(message, endpoint, return_to)
 
-    def _complete_cancel(self, message, endpoint):
+    def _complete_cancel(self, message, endpoint, _):
         return CancelResponse(endpoint)
 
-    def _complete_error(self, message, endpoint):
+    def _complete_error(self, message, endpoint, _):
         error = message.getArg(OPENID_NS, 'error')
         contact = message.getArg(OPENID_NS, 'contact')
         reference = message.getArg(OPENID_NS, 'reference')
@@ -634,24 +629,24 @@ class GenericConsumer(object):
         return FailureResponse(endpoint, error, contact=contact,
                                reference=reference)
 
-    def _complete_setup_needed(self, message, endpoint):
+    def _complete_setup_needed(self, message, endpoint, _):
         if not message.isOpenID2():
-            return self._completeInvalid(message, endpoint)
+            return self._completeInvalid(message, endpoint, _)
 
         return SetupNeededResponse(endpoint)
 
-    def _complete_id_res(self, message, endpoint):
+    def _complete_id_res(self, message, endpoint, return_to):
         try:
             self._checkSetupNeeded(message)
         except SetupNeededError, why:
             return SetupNeededResponse(endpoint, why.user_setup_url)
         else:
             try:
-                return self._doIdRes(message, endpoint)
+                return self._doIdRes(message, endpoint, return_to)
             except (ProtocolError, DiscoveryFailure), why:
                 return FailureResponse(endpoint, why[0])
 
-    def _completeInvalid(self, message, endpoint):
+    def _completeInvalid(self, message, endpoint, _):
         mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
         return FailureResponse(endpoint,
                                'Invalid openid.mode: %r' % (mode,))
@@ -701,7 +696,7 @@ class GenericConsumer(object):
             if user_setup_url is not None:
                 raise SetupNeededError(user_setup_url)
 
-    def _doIdRes(self, message, endpoint):
+    def _doIdRes(self, message, endpoint, return_to):
         """Handle id_res responses that are not cancellations of
         immediate mode requests.
 
@@ -720,15 +715,16 @@ class GenericConsumer(object):
 
         @returntype: L{Response}
         """
-        signed_list_str = message.getArg(OPENID_NS, 'signed')
-        if signed_list_str is None:
-            raise ProtocolError("Response missing signed list")
-
-        signed_list = signed_list_str.split(',')
-
         # Checks for presence of appropriate fields (and checks
         # signed list fields)
-        self._idResCheckForFields(message, signed_list)
+        self._idResCheckForFields(message)
+
+        if (return_to is not None and
+            not self._checkReturnTo(message, return_to)):
+            raise ProtocolError(
+                "return_to does not match return URL. Expected %r, got %r"
+                % (return_to, message.getArg(OPENID_NS, 'return_to')))
+
 
         # Verify discovery information:
         endpoint = self._verifyDiscoveryResults(message, endpoint)
@@ -740,6 +736,8 @@ class GenericConsumer(object):
         # Will raise a ProtocolError if the nonce is bad
         self._idResCheckNonce(message, endpoint)
 
+        signed_list_str = message.getArg(OPENID_NS, 'signed', no_default)
+        signed_list = signed_list_str.split(',')
         signed_fields = ["openid." + s for s in signed_list]
         return SuccessResponse(endpoint, message, signed_fields)
 
@@ -804,14 +802,14 @@ class GenericConsumer(object):
             if not self._checkAuth(message, server_url):
                 raise ProtocolError('Server denied check_authentication')
 
-    def _idResCheckForFields(self, message, signed_list):
+    def _idResCheckForFields(self, message):
         # XXX: this should be handled by the code that processes the
         # response (that is, if a field is missing, we should not have
         # to explicitly check that it's present, just make sure that
         # the fields are actually being used by the rest of the code
         # in tests). Although, which fields are signed does need to be
         # checked somewhere.
-        basic_fields = ['return_to', 'assoc_handle', 'sig']
+        basic_fields = ['return_to', 'assoc_handle', 'sig', 'signed']
         basic_sig_fields = ['return_to', 'identity']
 
         require_fields = {
@@ -829,6 +827,9 @@ class GenericConsumer(object):
         for field in require_fields[message.getOpenIDNamespace()]:
             if not message.hasKey(OPENID_NS, field):
                 raise ProtocolError('Missing required field %r' % (field,))
+
+        signed_list_str = message.getArg(OPENID_NS, 'signed', no_default)
+        signed_list = signed_list_str.split(',')
 
         for field in require_sigs[message.getOpenIDNamespace()]:
             # Field is present and not in signed list
