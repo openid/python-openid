@@ -135,7 +135,7 @@ class SessionNegotiator(object):
     """
 
     def __init__(self, allowed_types):
-        self.allowed_types = allowed_types
+        self.setAllowedTypes(allowed_types)
 
     def copy(self):
         return self.__class__(list(self.allowed_types))

@@ -91,9 +91,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         preferred (assoc_type, session_type) combination that is not
         allowed by the consumer's SessionNegotiator.
         """
-        allowed_types = [
-            ('assoc_bogus', 'session_bogus'),
-            ]
+        allowed_types = []
 
         negotiator = association.SessionNegotiator(allowed_types)
         self.consumer.negotiator = negotiator
@@ -208,9 +206,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
         self.failUnlessLogMatches('Server error when requesting an association')
 
     def testNotAllowed(self):
-        allowed_types = [
-            ('assoc_bogus', 'session_bogus'),
-            ]
+        allowed_types = []
 
         negotiator = association.SessionNegotiator(allowed_types)
         self.consumer.negotiator = negotiator
@@ -252,8 +248,8 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
 class TestNegotiatorBehaviors(unittest.TestCase, CatchLogs):
     def setUp(self):
         self.allowed_types = [
-            ('assoc1', 'session1'),
-            ('assoc2', 'session2'),
+            ('HMAC-SHA1', 'no-encryption'),
+            ('HMAC-SHA256', 'no-encryption'),
             ]
 
         self.n = association.SessionNegotiator(self.allowed_types)
