@@ -734,8 +734,6 @@ class GenericConsumer(object):
 
         self._idResCheckSignature(message, endpoint.server_url)
 
-        response_identity = message.getArg(OPENID_NS, 'identity')
-
         # Will raise a ProtocolError if the nonce is bad
         self._idResCheckNonce(message, endpoint)
 
