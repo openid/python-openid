@@ -728,6 +728,9 @@ class GenericConsumer(object):
 
         # Verify discovery information:
         endpoint = self._verifyDiscoveryResults(message, endpoint)
+        oidutil.log("Received id_res response from %s using association %s" %
+                    (endpoint.server_url,
+                     message.getArg(OPENID_NS, 'assoc_handle')))
 
         self._idResCheckSignature(message, endpoint.server_url)
 
@@ -1603,6 +1606,12 @@ class AuthRequest(object):
 
         if self.assoc:
             message.setArg(OPENID_NS, 'assoc_handle', self.assoc.handle)
+            assoc_log_msg = 'with assocication %s' % (self.assoc.handle,)
+        else:
+            assoc_log_msg = 'using stateless mode.'
+
+        oidutil.log("Generated %s request to %s %s" %
+                    (mode, self.endpoint.server_url, assoc_log_msg))
 
         return message
 
