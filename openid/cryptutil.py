@@ -13,9 +13,18 @@ engine, but is currently found at:
 http://www.amk.ca/python/code/crypto
 """
 
-__all__ = ['randrange', 'hmacSha1', 'sha1', 'randomString',
-           'binaryToLong', 'longToBinary', 'longToBase64', 'base64ToLong',
-           'hmacSha256', 'sha256']
+__all__ = [
+    'base64ToLong',
+    'binaryToLong',
+    'hmacSha1',
+    'hmacSha256',
+    'longToBase64',
+    'longToBinary',
+    'randomString',
+    'randrange',
+    'sha1',
+    'sha256',
+    ]
 
 import hmac
 import os
