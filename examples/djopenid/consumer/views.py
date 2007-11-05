@@ -130,13 +130,14 @@ def finishOpenID(request):
     """
     result = {}
 
+    # Because the object containing the query parameters is a
+    # MultiValueDict and the OpenID library doesn't allow that, we'll
+    # convert it to a normal dict.
+
+    # OpenID 2 can send arguments as either POST body or GET query
+    # parameters.
     request_args = util.normalDict(request.GET)
-
     if request.method == 'POST':
-        # Because the object containing the query parameters is a
-        # MultiValueDict and the OpenID library doesn't allow that,
-        # we'll convert it to a normal dict.
-
         request_args.update(util.normalDict(request.POST))
 
     if request_args:
@@ -144,7 +145,8 @@ def finishOpenID(request):
 
         # Get a response object indicating the result of the OpenID
         # protocol.
-        response = c.complete(request_args)
+        return_to = util.getViewURL(request, finishOpenID)
+        response = c.complete(request_args, return_to)
 
         # Get a Simple Registration response object if response
         # information was included in the OpenID response.
