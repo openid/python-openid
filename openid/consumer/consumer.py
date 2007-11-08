@@ -383,7 +383,7 @@ class Consumer(object):
 
         return auth_req
 
-    def complete(self, query, return_to=None):
+    def complete(self, query, return_to):
         """Called to interpret the server's response to an OpenID
         request. It is called in step 4 of the flow described in the
         consumer overview.
@@ -606,7 +606,7 @@ class GenericConsumer(object):
 
         return request
 
-    def complete(self, message, endpoint, return_to=None):
+    def complete(self, message, endpoint, return_to):
         """Process the OpenID message, using the specified endpoint
         and return_to URL as context. This method will handle any
         OpenID message that is sent to the return_to URL.
@@ -719,8 +719,7 @@ class GenericConsumer(object):
         # signed list fields)
         self._idResCheckForFields(message)
 
-        if (return_to is not None and
-            not self._checkReturnTo(message, return_to)):
+        if not self._checkReturnTo(message, return_to):
             raise ProtocolError(
                 "return_to does not match return URL. Expected %r, got %r"
                 % (return_to, message.getArg(OPENID_NS, 'return_to')))
@@ -845,9 +844,8 @@ class GenericConsumer(object):
         message = Message.fromPostArgs(query)
         return_to = message.getArg(OPENID_NS, 'return_to')
 
-        # XXX: this should be checked by _idResCheckForFields
-        if not return_to:
-            raise ProtocolError("no openid.return_to in query %r" % (query,))
+        if return_to is None:
+            raise ProtocolError('Response has no return_to')
 
         parsed_url = urlparse(return_to)
         rt_query = parsed_url[4]
