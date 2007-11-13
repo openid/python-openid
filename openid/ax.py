@@ -572,7 +572,7 @@ class FetchResponse(AXKeyValueMessage):
     # This takes an argument, when base getExtensionArgs
     # doesn't. That's by design. If you call it with the base
     # arguments, it'll work as expected.
-    #
+    # XXX Document what happens with the request set
     #pylint:disable-msg=W0221
     def getExtensionArgs(self, request=None):
         """Serialize this object into arguments in the attribute

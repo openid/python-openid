@@ -225,9 +225,11 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         # us.  Status is a code indicating the response type. info is
         # either None or a string containing more information about
         # the return type.
-        info = oidconsumer.complete(self.query)
+        url = 'http://'+self.headers.get('Host')+self.path
+        info = oidconsumer.complete(self.query, url)
 
         sreg_resp = None
+        pape_resp = None
         css_class = 'error'
         if info.status == consumer.FAILURE and info.identity_url:
             # In the case of failure, if info is non-None, it is the
