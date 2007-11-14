@@ -169,7 +169,7 @@ class Response(Extension):
         if policy_uri not in self.auth_policies:
             self.auth_policies.append(policy_uri)
 
-    def fromSuccessResponse(cls, success_response, signed_only=True):
+    def fromSuccessResponse(cls, success_response):
         """Create a C{L{Response}} object from a successful OpenID
         library response
         (C{L{openid.consumer.consumer.SuccessResponse}}) response
@@ -178,19 +178,14 @@ class Response(Extension):
         @param success_response: A SuccessResponse from consumer.complete()
         @type success_response: C{L{openid.consumer.consumer.SuccessResponse}}
 
-        @param signed_only: Whether to process only data that was
-            signed in the id_res message from the server.
-        @type signed_only: bool
-
         @rtype: Response
         @returns: A provider authentication policy response from the
             data that was supplied with the C{id_res} response.
         """
         self = cls()
-        if signed_only:
-            args = success_response.getSignedNS(self.ns_uri)
-        else:
-            args = success_response.message.getArgs(self.ns_uri)
+
+        # PAPE requires that the args be signed.
+        args = success_response.getSignedNS(self.ns_uri)
 
         self.parseExtensionArgs(args)
 
