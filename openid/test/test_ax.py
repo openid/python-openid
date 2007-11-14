@@ -415,7 +415,8 @@ class FetchResponseTest(unittest.TestCase):
             'mode':'fetch_response',
             }
         req = ax.FetchRequest()
-        self.failUnlessEqual(expected_args, self.msg.getExtensionArgs(req))
+        msg = ax.FetchResponse(request=req)
+        self.failUnlessEqual(expected_args, msg.getExtensionArgs())
 
     def test_getExtensionArgs_empty_request_some(self):
         uri = 'http://not.found/'
@@ -428,7 +429,8 @@ class FetchResponseTest(unittest.TestCase):
             }
         req = ax.FetchRequest()
         req.add(ax.AttrInfo(uri))
-        self.failUnlessEqual(expected_args, self.msg.getExtensionArgs(req))
+        msg = ax.FetchResponse(request=req)
+        self.failUnlessEqual(expected_args, msg.getExtensionArgs())
 
     def test_updateUrlInResponse(self):
         uri = 'http://not.found/'
@@ -442,7 +444,8 @@ class FetchResponseTest(unittest.TestCase):
             }
         req = ax.FetchRequest(update_url=self.request_update_url)
         req.add(ax.AttrInfo(uri))
-        self.failUnlessEqual(expected_args, self.msg.getExtensionArgs(req))
+        msg = ax.FetchResponse(request=req)
+        self.failUnlessEqual(expected_args, msg.getExtensionArgs())
 
     def test_getExtensionArgs_some_request(self):
         expected_args = {
@@ -453,13 +456,15 @@ class FetchResponseTest(unittest.TestCase):
             }
         req = ax.FetchRequest()
         req.add(ax.AttrInfo(self.type_a, alias=self.alias_a))
-        self.msg.addValue(self.type_a, self.value_a)
-        self.failUnlessEqual(expected_args, self.msg.getExtensionArgs(req))
+        msg = ax.FetchResponse(request=req)
+        msg.addValue(self.type_a, self.value_a)
+        self.failUnlessEqual(expected_args, msg.getExtensionArgs())
 
     def test_getExtensionArgs_some_not_request(self):
         req = ax.FetchRequest()
-        self.msg.addValue(self.type_a, self.value_a)
-        self.failUnlessRaises(KeyError, self.msg.getExtensionArgs, req)
+        msg = ax.FetchResponse(request=req)
+        msg.addValue(self.type_a, self.value_a)
+        self.failUnlessRaises(KeyError, msg.getExtensionArgs)
 
     def test_getSingle_success(self):
         req = ax.FetchRequest()

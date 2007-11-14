@@ -1,3 +1,4 @@
+# -*- test-case-name: openid.test.test_ax -*-
 """Implements the OpenID attribute exchange specification, version 1.0
 as of svn revision 370 from svn.openid.net.
 
@@ -567,16 +568,22 @@ class FetchResponse(AXKeyValueMessage):
     """
     mode = 'fetch_response'
 
-    def __init__(self, update_url=None):
+    def __init__(self, request=None, update_url=None):
+        """
+        @param request: When supplied, I will use namespace aliases
+            that match those in this request.  I will also check to
+            make sure I do not respond with attributes that were not
+            requested.
+
+        @param update_url: By default, C{update_url} is taken from the
+            request.  But if you do not supply the request, you may set
+            the C{update_url} here.
+        """
         AXKeyValueMessage.__init__(self)
         self.update_url = update_url
+        self.request = request
 
-    # This takes an argument, when base getExtensionArgs
-    # doesn't. That's by design. If you call it with the base
-    # arguments, it'll work as expected.
-    # XXX Document what happens with the request set
-    #pylint:disable-msg=W0221
-    def getExtensionArgs(self, request=None):
+    def getExtensionArgs(self):
         """Serialize this object into arguments in the attribute
         exchange namespace
 
@@ -589,19 +596,19 @@ class FetchResponse(AXKeyValueMessage):
 
         zero_value_types = []
 
-        if request is not None:
+        if self.request is not None:
             # Validate the data in the context of the request (the
             # same attributes should be present in each, and the
             # counts in the response must be no more than the counts
             # in the request)
 
             for type_uri in self.data:
-                if type_uri not in request:
+                if type_uri not in self.request:
                     raise KeyError(
                         'Response attribute not present in request: %r'
                         % (type_uri,))
 
-            for attr_info in request.iterAttrs():
+            for attr_info in self.request.iterAttrs():
                 # Copy the aliases from the request so that reading
                 # the response in light of the request is easier
                 if attr_info.alias is None:
@@ -634,7 +641,8 @@ class FetchResponse(AXKeyValueMessage):
             kv_args['type.' + alias] = attr_info.type_uri
             kv_args['count.' + alias] = '0'
 
-        update_url = (request and request.update_url) or self.update_url
+        update_url = ((self.request and self.request.update_url)
+                      or self.update_url)
 
         if update_url:
             ax_args['update_url'] = update_url
