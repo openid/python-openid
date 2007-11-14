@@ -2,6 +2,8 @@
 Extension 1.0
 
 @see: http://openid.net/developers/specs/
+
+@since: 2.0.2
 """
 
 __all__ = [
