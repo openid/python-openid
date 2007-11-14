@@ -94,7 +94,7 @@ Upgrading
 
 @group HTTP Codes: HTTP_OK, HTTP_REDIRECT, HTTP_ERROR
 
-@group Response Encodings: ENCODE_KVFORM, ENCODE_URL
+@group Response Encodings: ENCODE_KVFORM, ENCODE_HTML_FORM, ENCODE_URL
 """
 
 import time, warnings
@@ -956,7 +956,7 @@ class OpenIDResponse(object):
     def whichEncoding(self):
         """How should I be encoded?
 
-        @returns: one of ENCODE_URL or ENCODE_KVFORM.
+        @returns: one of ENCODE_URL, ENCODE_HTML_FORM, or ENCODE_KVFORM.
         """
         if self.request.mode in BROWSER_REQUEST_MODES:
             if self.fields.getOpenIDNamespace() == OPENID2_NS and \
