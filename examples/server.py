@@ -29,7 +29,7 @@ distribution or http://www.openidenabled.com/
 """)
     sys.exit(1)
 
-from openid import sreg
+from openid.extensions import sreg
 from openid.server import server
 from openid.store.filestore import FileOpenIDStore
 from openid.consumer import discover

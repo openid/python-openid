@@ -1,4 +1,4 @@
-from openid import sreg
+from openid.extensions import sreg
 from openid.message import NamespaceMap, Message, registerNamespaceAlias
 from openid.server.server import OpenIDRequest, OpenIDResponse
 

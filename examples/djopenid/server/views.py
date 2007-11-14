@@ -28,7 +28,7 @@ from openid.server.server import Server, ProtocolError, CheckIDRequest, \
 from openid.server.trustroot import verifyReturnTo
 from openid.yadis.discover import DiscoveryFailure
 from openid.consumer.discover import OPENID_IDP_2_0_TYPE
-from openid import sreg
+from openid.extensions import sreg
 
 def getOpenIDStore():
     """
