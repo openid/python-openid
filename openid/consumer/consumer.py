@@ -1056,7 +1056,7 @@ class GenericConsumer(object):
 
 
     def _verifyDiscoveredServices(self, services, to_match):
-        """See @L{_discoverAndVerify)"""
+        """See @L{_discoverAndVerify}"""
 
         # Search the services resulting from discovery to find one
         # that matches the information from the assertion
