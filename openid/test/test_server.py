@@ -869,6 +869,25 @@ class TestCheckID(unittest.TestCase):
                              len(expected_list) + 2,
                              answer.fields.toPostArgs())
 
+    def _expectAnswerv1(self, answer, identity=None):
+        expected_list = [
+            ('mode', 'id_res'),
+            ('return_to', self.request.return_to),
+            ('identity', identity),
+            ]
+
+        for k, expected in expected_list:
+            actual = answer.fields.getArg(OPENID_NS, k)
+            self.failUnlessEqual(actual, expected, "%s: expected %s, got %s" % (k, expected, actual))
+
+        self.failUnless(answer.fields.hasKey(OPENID_NS, 'response_nonce'))
+        self.failUnlessEqual(answer.fields.getOpenIDNamespace(), OPENID1_NS)
+
+        # One for nonce
+        self.failUnlessEqual(len(answer.fields.toPostArgs()),
+                             len(expected_list) + 1,
+                             answer.fields.toPostArgs())
+
 
     def test_answerAllow(self):
         """Check the fields specified by "Positive Assertions"
@@ -987,6 +1006,19 @@ class TestCheckID(unittest.TestCase):
         answer = self.request.answer(True)
         self.failUnlessEqual(answer.request, self.request)
         self._expectAnswer(answer, self.request.identity)
+
+    def test_answerAllowNoEndpointOpenID1(self):
+        """Test .allow() with an OpenID 1.x Message on a CheckIDRequest
+        built without an op_endpoint parameter.
+        """
+        reqmessage = Message.fromOpenIDArgs({
+            'identity': 'http://bambam.unittest/',
+            'trust_root': 'http://bar.unittest/',
+            'return_to': 'http://bar.unittest/999',
+            })
+        self.request = server.CheckIDRequest.fromMessage(reqmessage, None)
+        answer = self.request.answer(True)
+        self._expectAnswerv1(answer, 'http://bambam.unittest/')
 
     def test_answerImmediateDenyOpenID2(self):
         """Look for mode=setup_needed in checkid_immediate negative

@@ -448,6 +448,8 @@ class Message(object):
 
     def setArg(self, namespace, key, value):
         """Set a single argument in this namespace"""
+        assert key is not None
+        assert value is not None
         namespace = self._fixNS(namespace)
         self.args[(namespace, key)] = value
         if not (namespace is BARE_NS):

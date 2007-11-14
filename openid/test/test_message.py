@@ -172,6 +172,10 @@ class EmptyMessageTest(unittest.TestCase):
     def test_setArgNS3(self):
         self._test_setArgNS('urn:nothing-significant')
 
+    def test_setArgToNone(self):
+        self.failUnlessRaises(AssertionError, self.msg.setArg,
+                              message.OPENID1_NS, 'op_endpoint', None)
+
     def test_delArg(self):
         # Could reasonably raise KeyError instead of raising
         # UndefinedOpenIDNamespace. I'm not sure which one is more

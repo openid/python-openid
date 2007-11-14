@@ -57,7 +57,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         msg = Message(self.endpoint.preferredNamespace())
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
         msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
-        msg.setArg(OPENID_NS, 'assoc_type', None)
+        # not set: msg.delArg(OPENID_NS, 'assoc_type')
         msg.setArg(OPENID_NS, 'session_type', 'new-session-type')
 
         self.consumer.return_messages = [msg]
@@ -76,7 +76,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
         msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
         msg.setArg(OPENID_NS, 'assoc_type', 'new-assoc-type')
-        msg.setArg(OPENID_NS, 'session_type', None)
+        # not set: msg.setArg(OPENID_NS, 'session_type', None)
 
         self.consumer.return_messages = [msg]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
@@ -185,7 +185,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
         msg = Message(self.endpoint.preferredNamespace())
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
         msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
-        msg.setArg(OPENID_NS, 'assoc_type', None)
+        # not set: msg.setArg(OPENID_NS, 'assoc_type', None)
         msg.setArg(OPENID_NS, 'session_type', 'new-session-type')
 
         self.consumer.return_messages = [msg]
@@ -198,7 +198,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
         msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
         msg.setArg(OPENID_NS, 'assoc_type', 'new-assoc-type')
-        msg.setArg(OPENID_NS, 'session_type', None)
+        # not set: msg.setArg(OPENID_NS, 'session_type', None)
 
         self.consumer.return_messages = [msg]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)

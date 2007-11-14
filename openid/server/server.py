@@ -793,10 +793,12 @@ class CheckIDRequest(OpenIDRequest):
 
             response.fields.updateArgs(OPENID_NS, {
                 'mode': mode,
-                'op_endpoint': server_url,
                 'return_to': self.return_to,
                 'response_nonce': mkNonce(),
                 })
+
+            if server_url:
+                response.fields.setArg(OPENID_NS, 'op_endpoint', server_url)
 
             if response_identity is not None:
                 response.fields.setArg(
