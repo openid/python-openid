@@ -157,10 +157,10 @@ class Response(Extension):
         self.nist_auth_level = nist_auth_level
 
     def addPolicyURI(self, policy_uri):
-        """Add an acceptable authentication policy URI to this request
+        """Add a authentication policy to this response
 
-        This method is intended to be used by the relying party to add
-        acceptable authentication types to the request.
+        This method is intended to be used by the provider to add a
+        policy that the provider conformed to when authenticating the user.
 
         @param policy_uri: The identifier for the preferred type of
             authentication.
