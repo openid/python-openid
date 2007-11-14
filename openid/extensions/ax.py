@@ -1,5 +1,7 @@
 """Implements the OpenID attribute exchange specification, version 1.0
-as of svn revision 370 from openid.net svn.
+as of svn revision 370 from svn.openid.net.
+
+@since: 2.0.2
 """
 
 __all__ = [
@@ -642,7 +644,7 @@ class FetchResponse(AXKeyValueMessage):
         return ax_args
 
     def parseExtensionArgs(self, ax_args):
-        """@see Extension.parseExtensionArgs"""
+        """@see: {Extension.parseExtensionArgs<openid.extension.Extension.parseExtensionArgs>}"""
         super(FetchResponse, self).parseExtensionArgs(ax_args)
         self.update_url = ax_args.get('update_url')
 
@@ -687,7 +689,8 @@ class StoreRequest(AXKeyValueMessage):
         @param aliases: The namespace aliases to use when making this
             store response. Leave as None to use defaults.
 
-        @see Extension.parseExtensionArgs"""
+        @see: L{Extension.getExtensionArgs<openid.extension.Extension.getExtensionArgs>}
+        """
         ax_args = self._newArgs()
         kv_args = self._getExtensionKVArgs(aliases)
         ax_args.update(kv_args)
@@ -720,7 +723,7 @@ class StoreResponse(AXMessage):
         return self.mode == self.SUCCESS_MODE
 
     def getExtensionArgs(self):
-        """@see Extension.parseExtensionArgs"""
+        """@see: {Extension.getExtensionArgs<openid.extension.Extension.getExtensionArgs>}"""
         ax_args = self._newArgs()
         if not self.succeeded() and self.error_message:
             ax_args['error'] = self.error_message
