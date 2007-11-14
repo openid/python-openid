@@ -670,7 +670,7 @@ class CheckIDRequest(OpenIDRequest):
         This check should only be performed after making sure that the
         return_to URL matches the realm.
 
-        @see: trustRootValid
+        @see: L{trustRootValid}
 
         @raises openid.yadis.discover.DiscoveryFailure: if the realm
             URL does not support Yadis discovery (and so does not
@@ -680,6 +680,8 @@ class CheckIDRequest(OpenIDRequest):
 
         @returns: True if the realm publishes a document with the
             return_to URL listed
+
+        @since: 2.0.2
         """
         return verifyReturnTo(self.trust_root, self.return_to)
 
@@ -929,6 +931,8 @@ class OpenIDResponse(object):
         """Returns the form markup for this response.
 
         @returntype: str
+
+        @since: 2.0.2
         """
         return self.fields.toFormMarkup(
             self.fields.getArg(OPENID_NS, 'return_to'))
@@ -939,6 +943,8 @@ class OpenIDResponse(object):
         ENCODE_HTML_FORM.  Convenience method for server authors.
 
         @returntype: bool
+
+        @since: 2.0.2
         """
         return self.whichEncoding() == ENCODE_HTML_FORM
 
@@ -957,6 +963,8 @@ class OpenIDResponse(object):
         """How should I be encoded?
 
         @returns: one of ENCODE_URL, ENCODE_HTML_FORM, or ENCODE_KVFORM.
+
+        @change: 2.0.2 added the ENCODE_HTML_FORM response.
         """
         if self.request.mode in BROWSER_REQUEST_MODES:
             if self.fields.getOpenIDNamespace() == OPENID2_NS and \
@@ -1598,6 +1606,10 @@ class ProtocolError(Exception):
         return self.toMessage().toKVForm()
 
     def toFormMarkup(self):
+        """Encode to HTML form markup for POST.
+
+        @since: 2.0.2
+        """
         return self.toMessage().toFormMarkup(self.getReturnTo())
 
     def whichEncoding(self):
