@@ -176,7 +176,9 @@ class OpenIDServiceEndpoint(object):
 
         @rtype: [OpenIDServiceEndpoint]
 
-        @raises L{XRDSError}: When the XRDS does not parse.
+        @raises XRDSError: When the XRDS does not parse.
+
+        @since: 2.0.2
         """
         return extractServices(uri, xrds, cls)
 
@@ -190,7 +192,9 @@ class OpenIDServiceEndpoint(object):
 
         @rtype: list of L{OpenIDServiceEndpoint}
 
-        @raises L{XRDSError}: When the XRDS does not parse.
+        @raises XRDSError: When the XRDS does not parse.
+
+        @since: 2.0.2
         """
         if discoveryResult.isXRDS():
             method = cls.fromXRDS
