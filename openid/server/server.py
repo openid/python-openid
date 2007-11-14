@@ -45,7 +45,7 @@ OpenID Extensions
     in addition to authentication?  Version 2.0 of the OpenID
     protocol allows consumers to add extensions to their requests.
     For example, with sites using the U{Simple Registration
-    Extension<http://www.openidenabled.com/openid/simple-registration-extension/>},
+    Extension<http://openid.net/specs/openid-simple-registration-extension-1_0.html>},
     a user can agree to have their nickname and e-mail address sent to a
     site when they sign up.
 
@@ -64,6 +64,11 @@ OpenID Extensions
         # as well as a namespace declaration for the openid.sreg namespace
         response.fields.setArg('http://openid.net/sreg/1.0', 'timezone', 'America/Los_Angeles')
 
+    There are helper modules for a number of extensions, including
+    L{Attribute Exchange<openid.extensions.ax>},
+    L{PAPE<openid.extensions.pape>}, and
+    L{Simple Registration<openid.extensions.sreg>} in the L{openid.extensions}
+    package.
 
 Stores
 ======
