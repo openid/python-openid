@@ -2,7 +2,7 @@
 """
 
 import unittest
-from openid import ax
+from openid.extensions import ax
 from openid.message import NamespaceMap, Message, OPENID2_NS
 
 class BogusAXMessage(ax.AXMessage):
