@@ -499,10 +499,11 @@ class StoreRequestTest(unittest.TestCase):
         self.failUnlessEqual(expected_args, args)
 
     def test_getExtensionArgs_nonempty(self):
-        self.msg.setValues(self.type_a, ['foo', 'bar'])
         aliases = NamespaceMap()
         aliases.addAlias(self.type_a, self.alias_a)
-        args = self.msg.getExtensionArgs(aliases)
+        msg = ax.StoreRequest(aliases=aliases)
+        msg.setValues(self.type_a, ['foo', 'bar'])
+        args = msg.getExtensionArgs()
         expected_args = {
             'mode':'store_request',
             'type.' + self.alias_a: self.type_a,

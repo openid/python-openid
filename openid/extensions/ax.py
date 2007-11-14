@@ -687,20 +687,20 @@ class StoreRequest(AXKeyValueMessage):
     """
     mode = 'store_request'
 
-    # This takes an argument, when base getExtensionArgs
-    # doesn't. That's by design. If you call it with the base
-    # arguments, it'll work as expected.
-    #
-    #pylint:disable-msg=W0221
-    def getExtensionArgs(self, aliases=None):
+    def __init__(self, aliases=None):
         """
         @param aliases: The namespace aliases to use when making this
-            store response. Leave as None to use defaults.
+            store request.  Leave as None to use defaults.
+        """
+        super(StoreRequest, self).__init__()
+        self.aliases = aliases
 
+    def getExtensionArgs(self):
+        """
         @see: L{Extension.getExtensionArgs<openid.extension.Extension.getExtensionArgs>}
         """
         ax_args = self._newArgs()
-        kv_args = self._getExtensionKVArgs(aliases)
+        kv_args = self._getExtensionKVArgs(self.aliases)
         ax_args.update(kv_args)
         return ax_args
 
