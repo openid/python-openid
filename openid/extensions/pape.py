@@ -3,7 +3,7 @@ Extension 1.0
 
 @see: http://openid.net/developers/specs/
 
-@since: 2.0.2
+@since: 2.1.0
 """
 
 __all__ = [

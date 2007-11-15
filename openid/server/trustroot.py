@@ -43,7 +43,7 @@ _top_level_domains = (
 class RealmVerificationRedirected(Exception):
     """Attempting to verify this realm resulted in a redirect.
 
-    @since: 2.0.2
+    @since: 2.1.0
     """
     def __init__(self, relying_party_url, rp_url_after_redirects):
         self.relying_party_url = relying_party_url
@@ -301,7 +301,7 @@ class TrustRoot(object):
         @returns: The URL upon which relying party discovery should be run
             in order to verify the return_to URL
 
-        @since: 2.0.2
+        @since: 2.1.0
         """
         if self.wildcard:
             # Use "www." in place of the star
@@ -351,7 +351,7 @@ def returnToMatches(allowed_return_to_urls, return_to):
     """Is the return_to URL under one of the supplied allowed
     return_to URLs?
 
-    @since: 2.0.2
+    @since: 2.1.0
     """
 
     for allowed_return_to in allowed_return_to_urls:
@@ -378,7 +378,7 @@ def returnToMatches(allowed_return_to_urls, return_to):
 def getAllowedReturnURLs(relying_party_url):
     """Given a relying party discovery URL return a list of return_to URLs.
 
-    @since: 2.0.2
+    @since: 2.1.0
     """
     (rp_url_after_redirects, return_to_urls) = services.getServiceEndpoints(
         relying_party_url, _extractReturnURL)
@@ -402,7 +402,7 @@ def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):
     @raises DiscoveryFailure: When Yadis discovery fails
     @returns: True if the return_to URL is valid for the realm
 
-    @since: 2.0.2
+    @since: 2.1.0
     """
     realm = TrustRoot.parse(realm_str)
     if realm is None:

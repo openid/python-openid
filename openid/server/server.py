@@ -700,7 +700,7 @@ class CheckIDRequest(OpenIDRequest):
         @returns: True if the realm publishes a document with the
             return_to URL listed
 
-        @since: 2.0.2
+        @since: 2.1.0
         """
         return verifyReturnTo(self.trust_root, self.return_to)
 
@@ -951,7 +951,7 @@ class OpenIDResponse(object):
 
         @returntype: str
 
-        @since: 2.0.2
+        @since: 2.1.0
         """
         return self.fields.toFormMarkup(
             self.fields.getArg(OPENID_NS, 'return_to'))
@@ -963,7 +963,7 @@ class OpenIDResponse(object):
 
         @returntype: bool
 
-        @since: 2.0.2
+        @since: 2.1.0
         """
         return self.whichEncoding() == ENCODE_HTML_FORM
 
@@ -983,7 +983,7 @@ class OpenIDResponse(object):
 
         @returns: one of ENCODE_URL, ENCODE_HTML_FORM, or ENCODE_KVFORM.
 
-        @change: 2.0.2 added the ENCODE_HTML_FORM response.
+        @change: 2.1.0 added the ENCODE_HTML_FORM response.
         """
         if self.request.mode in BROWSER_REQUEST_MODES:
             if self.fields.getOpenIDNamespace() == OPENID2_NS and \
@@ -1627,7 +1627,7 @@ class ProtocolError(Exception):
     def toFormMarkup(self):
         """Encode to HTML form markup for POST.
 
-        @since: 2.0.2
+        @since: 2.1.0
         """
         return self.toMessage().toFormMarkup(self.getReturnTo())
 

@@ -2,7 +2,7 @@
 """Implements the OpenID attribute exchange specification, version 1.0
 as of svn revision 370 from svn.openid.net.
 
-@since: 2.0.2
+@since: 2.1.0
 """
 
 __all__ = [
