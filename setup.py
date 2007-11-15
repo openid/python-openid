@@ -39,7 +39,7 @@ the OpenID decentralized identity system in your application.  Want to enable
 single sign-on for your web site?  Use the openid.consumer package.  Want to
 run your own OpenID server? Check out openid.server.  Includes example code
 and support for a variety of storage back-ends.''',
-    url='http://www.openidenabled.com/openid/libraries/python/',
+    url='http://openidenabled.com/python-openid/',
     packages=['openid',
               'openid.consumer',
               'openid.server',
@@ -49,7 +49,7 @@ and support for a variety of storage back-ends.''',
     license=getLicense(),
     author='JanRain',
     author_email='openid@janrain.com',
-    download_url="http://www.openidenabled.com/resources/downloads/python-openid/python-openid-%s.tar.bz2" % (version,),
+    download_url='http://openidenabled.com/files/python-openid/packages/python-openid-%s.tar.bz2' % (version,),
     classifiers=[
     "Development Status :: 5 - Production/Stable",
     "Environment :: Web Environment",
