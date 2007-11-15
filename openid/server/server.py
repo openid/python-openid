@@ -86,11 +86,25 @@ Stores
 Upgrading
 =========
 
+From 1.0 to 1.1
+---------------
+
     The keys by which a server looks up associations in its store have changed
     in version 1.2 of this library.  If your store has entries created from
     version 1.0 code, you should empty it.
 
-    FIXME: add notes on 1.2 -> 2.0 upgrade here.
+From 1.1 to 2.0
+---------------
+
+    One of the additions to the OpenID protocol was a specified nonce
+    format for one-way nonces.  As a result, the nonce table in the store
+    has changed.  You'll need to run contrib/upgrade-store-1.1-to-2.0 to
+    upgrade your store, or you'll encounter errors about the wrong number
+    of columns in the oid_nonces table.
+
+    If you've written your own custom store or code that interacts
+    directly with it, you'll need to review the change notes in
+    L{openid.store.interface}.
 
 @group Requests: OpenIDRequest, AssociateRequest, CheckIDRequest,
     CheckAuthRequest
