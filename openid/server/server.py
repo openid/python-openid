@@ -28,9 +28,9 @@ Overview
     she does consent to releasing that information to the party making the
     request.
 
-    Examine the properties of the L{CheckIDRequest} object, and if
-    and when you've come to a decision, form a response by calling
-    L{CheckIDRequest.answer}.
+    Examine the properties of the L{CheckIDRequest} object, optionally
+    check L{CheckIDRequest.returnToVerified}, and and when you've come
+    to a decision, form a response by calling L{CheckIDRequest.answer}.
 
     Other types of requests relate to establishing associations between client
     and server and verifying the authenticity of previous communications.
