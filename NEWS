@@ -1,3 +1,36 @@
+What's New in Python OpenID 2.0.2
+=================================
+
+This implementation of OpenID has been upgraded to revision 365 of the
+OpenID 2.0 draft specification.
+
+New in this version is:
+
+ * Verification of relying party return_to addresses, to screen out RPs 
+   hiding behind open redirect relays.  Server code can invoke this with
+   the returnToVerified method on CheckIDRequest.
+
+ * Helper module for the Provider Authentication Policy Extension (PAPE) in
+   openid.extensions.pape.
+
+ * Helper module for Attribute Exchange in openid.extensions.ax.
+
+Bugfixes:
+
+ * Allow the use of lxml as an ElementTree implemenation.
+
+ * Provide compatability with a wider range of versions for SQL stores.
+
+
+Upgrading from 2.0.1
+--------------------
+
+The third argument to Consumer.complete() is required.
+
+The sreg module should be imported from openid.extensions.sreg instead of
+openid.sreg.
+
+
 What's New in Python OpenID 2.0
 ===============================
 
