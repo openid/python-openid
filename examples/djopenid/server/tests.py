@@ -59,6 +59,32 @@ class TestProcessTrustResult(TestCase):
         self.failIf('openid.identity=' in finalURL, finalURL)
         self.failIf('openid.sreg.postcode=12345' in finalURL, finalURL)
 
+
+
+class TestShowDecidePage(TestCase):
+    def test_unreachableRealm(self):
+        self.request = dummyRequest()
+
+        id_url = util.getViewURL(self.request, views.idPage)
+
+        # Set up the OpenID request we're responding to.
+        op_endpoint = 'http://127.0.0.1:8080/endpoint'
+        message = Message.fromPostArgs({
+            'openid.mode': 'checkid_setup',
+            'openid.identity': id_url,
+            'openid.return_to': 'http://unreachable.invalid/%s' % (self.id(),),
+            'openid.sreg.required': 'postcode',
+            })
+        self.openid_request = CheckIDRequest.fromMessage(message, op_endpoint)
+
+        views.setRequest(self.request, self.openid_request)
+
+        response = views.showDecidePage(self.request, self.openid_request)
+        self.failUnless('trust_root_valid is Unreachable' in response.content,
+                        response)
+
+
+
 class TestGenericXRDS(TestCase):
     def test_genericRender(self):
         """Render an XRDS document with a single type URI and a single endpoint URL

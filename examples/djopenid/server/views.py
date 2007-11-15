@@ -29,6 +29,7 @@ from openid.server.trustroot import verifyReturnTo
 from openid.yadis.discover import DiscoveryFailure
 from openid.consumer.discover import OPENID_IDP_2_0_TYPE
 from openid.extensions import sreg
+from openid.fetchers import HTTPFetchingError
 
 def getOpenIDStore():
     """
@@ -189,6 +190,8 @@ def showDecidePage(request, openid_request):
                            and "Valid" or "Invalid"
     except DiscoveryFailure, err:
         trust_root_valid = "DISCOVERY_FAILED"
+    except HTTPFetchingError, err:
+        trust_root_valid = "Unreachable"
 
     return direct_to_template(
         request,

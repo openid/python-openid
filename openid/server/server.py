@@ -683,7 +683,7 @@ class CheckIDRequest(OpenIDRequest):
         response under the realm? It is up to the provider to set a
         policy for what kinds of realms should be allowed. This
         return_to URL verification reduces vulnerability to data-theft
-        attacks based on open proxies, corss-site-scripting, or open
+        attacks based on open proxies, cross-site-scripting, or open
         redirectors.
 
         This check should only be performed after making sure that the
@@ -694,6 +694,10 @@ class CheckIDRequest(OpenIDRequest):
         @raises openid.yadis.discover.DiscoveryFailure: if the realm
             URL does not support Yadis discovery (and so does not
             support the verification process).
+
+        @raises openid.fetchers.HTTPFetchingError: if the realm URL
+            is not reachable.  When this is the case, the RP may be hosted
+            on the user's intranet.
 
         @returntype: bool
 
