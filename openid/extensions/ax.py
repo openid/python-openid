@@ -267,23 +267,24 @@ class FetchRequest(AXMessage):
 
         return required
 
-    def fromOpenIDRequest(cls, message):
+    def fromOpenIDRequest(cls, openid_request):
         """Extract a FetchRequest from an OpenID message
 
-        @param message: The OpenID message containing the attribute
-            fetch request
-        @type message: C{L{openid.message.Message}}
+        @param openid_request: The OpenID authentication request
+            containing the attribute fetch request
+        @type message: C{L{openid.server.server.CheckIDRequest}}
 
         @rtype: C{L{FetchRequest}}
         @returns: The FetchRequest extracted from the message
 
-        @raises KeyError: if the message is not consistent in its use
+        @raises KeyError: if the AuthRequest is not consistent in its use
             of namespace aliases.
 
         @raises AXError: When parseExtensionArgs would raise same.
 
         @see: parseExtensionArgs
         """
+        message = openid_request.message
         ax_args = message.getArgs(cls.ns_uri)
         self = cls()
         self.parseExtensionArgs(ax_args)

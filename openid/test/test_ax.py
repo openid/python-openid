@@ -10,6 +10,9 @@ class BogusAXMessage(ax.AXMessage):
 
     getExtensionArgs = ax.AXMessage._newArgs
 
+class DummyRequest(object):
+    def __init__(self, message):
+        self.message = message
 
 class AXMessageTest(unittest.TestCase):
     def setUp(self):
@@ -349,10 +352,9 @@ class FetchRequestTest(unittest.TestCase):
             'ax.update_url': 'http://different.site/path',
             'ax.mode': 'fetch_request',
             })
-
         self.failUnlessRaises(ax.AXError,
                               ax.FetchRequest.fromOpenIDRequest,
-                              openid_req_msg)
+                              DummyRequest(openid_req_msg))
 
     def test_openidUpdateURLVerificationError(self):
         openid_req_msg = Message.fromOpenIDArgs({
@@ -366,7 +368,7 @@ class FetchRequestTest(unittest.TestCase):
 
         self.failUnlessRaises(ax.AXError,
                               ax.FetchRequest.fromOpenIDRequest,
-                              openid_req_msg)
+                              DummyRequest(openid_req_msg))
 
     def test_openidUpdateURLVerificationSuccess(self):
         openid_req_msg = Message.fromOpenIDArgs({
@@ -378,7 +380,7 @@ class FetchRequestTest(unittest.TestCase):
             'ax.mode': 'fetch_request',
             })
 
-        fr = ax.FetchRequest.fromOpenIDRequest(openid_req_msg)
+        fr = ax.FetchRequest.fromOpenIDRequest(DummyRequest(openid_req_msg))
 
     def test_openidUpdateURLVerificationSuccessReturnTo(self):
         openid_req_msg = Message.fromOpenIDArgs({
@@ -390,7 +392,7 @@ class FetchRequestTest(unittest.TestCase):
             'ax.mode': 'fetch_request',
             })
 
-        fr = ax.FetchRequest.fromOpenIDRequest(openid_req_msg)
+        fr = ax.FetchRequest.fromOpenIDRequest(DummyRequest(openid_req_msg))
 
 class FetchResponseTest(unittest.TestCase):
     def setUp(self):
