@@ -30,6 +30,12 @@ The third argument to Consumer.complete() is required.
 The sreg module should be imported from openid.extensions.sreg instead of
 openid.sreg.
 
+The ax module should likewise be imported from openid.extensions.ax
+instead of openid.ax
+
+The openid.extensions.ax.FetchRequest.fromOpenIDRequest method now
+takes a CheckIDRequest object instead of a Message object
+
 
 What's New in Python OpenID 2.0
 ===============================
