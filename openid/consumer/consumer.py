@@ -1721,6 +1721,11 @@ class SuccessResponse(Response):
             signed_fields = []
         self.signed_fields = signed_fields
 
+    def getDisplayIdentifier(self):
+        """Return the display identifier for this success response.
+        """
+        return self.endpoint.getDisplayIdentifier()
+
     def isOpenID1(self):
         """Was this authentication response an OpenID 1 authentication
         response?
