@@ -230,12 +230,17 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         sreg_resp = None
         pape_resp = None
         css_class = 'error'
-        if info.status == consumer.FAILURE and info.identity_url:
+
+        display_identifier = None
+        if info.endpoint is not None:
+            display_identifier = info.endpoint.getDisplayIdentifier()
+
+        if info.status == consumer.FAILURE and display_identifier:
             # In the case of failure, if info is non-None, it is the
             # URL that we were verifying. We include it in the error
             # message to help the user figure out what happened.
             fmt = "Verification of %s failed: %s"
-            message = fmt % (cgi.escape(info.identity_url),
+            message = fmt % (cgi.escape(display_identifier),
                              info.message)
         elif info.status == consumer.SUCCESS:
             # Success means that the transaction completed without
@@ -247,7 +252,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # was a real application, we would do our login,
             # comment posting, etc. here.
             fmt = "You have successfully verified %s as your identity."
-            message = fmt % (cgi.escape(info.identity_url),)
+            message = fmt % (cgi.escape(display_identifier),)
             sreg_resp = sreg.SRegResponse.fromSuccessResponse(info)
             pape_resp = pape.Response.fromSuccessResponse(info)
             if info.endpoint.canonicalID:
@@ -275,8 +280,8 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             # information in a log.
             message = 'Verification failed.'
 
-        self.render(message, css_class, info.identity_url, sreg_data=sreg_resp,
-                    pape_data=pape_resp)
+        self.render(message, css_class, display_identifier,
+                    sreg_data=sreg_resp, pape_data=pape_resp)
 
     def doAffiliate(self):
         """Direct the user sign up with an affiliate OpenID provider."""
