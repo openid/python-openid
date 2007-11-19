@@ -168,7 +168,7 @@ def finishOpenID(request):
             {'error': 'OpenID authentication failed.'},
 
             consumer.SUCCESS:
-            {'url': response.identity_url,
+            {'url': response.getDisplayIdentifier(),
              'sreg': sreg_response.items(),
              'pape': pape_response},
             }
