@@ -172,7 +172,8 @@ class BaseTestDiscovery(unittest.TestCase):
                       local_id=None,
                       canonical_id=None,
                       types=None,
-                      used_yadis=False
+                      used_yadis=False,
+                      display_identifier=None
                       ):
         self.failUnlessEqual(server_url, s.server_url)
         if types == ['2.0 OP']:
@@ -205,6 +206,14 @@ class BaseTestDiscovery(unittest.TestCase):
         type_uris = [openid_types[t] for t in types]
         self.failUnlessEqual(type_uris, s.type_uris)
         self.failUnlessEqual(canonical_id, s.canonicalID)
+
+        if s.canonicalID:
+            self.failUnless(s.getDisplayIdentifier() != claimed_id)
+            self.failUnless(s.getDisplayIdentifier() is not None)
+
+            self.failUnlessEqual(s.claimed_id, s.canonicalID)
+
+        self.failUnlessEqual(s.display_identifier or s.claimed_id, s.getDisplayIdentifier())
 
     def setUp(self):
         self.documents = self.documents.copy()
@@ -270,6 +279,7 @@ class TestDiscovery(BaseTestDiscovery):
             server_url="http://www.myopenid.com/server",
             claimed_id=self.id_url,
             local_id='http://smoker.myopenid.com/',
+            display_identifier=self.id_url,
             )
 
     def test_html1Fragment(self):
@@ -293,6 +303,7 @@ class TestDiscovery(BaseTestDiscovery):
             server_url="http://www.myopenid.com/server",
             claimed_id=expected_id,
             local_id='http://smoker.myopenid.com/',
+            display_identifier=expected_id,
             )
 
     def test_html2(self):
@@ -309,6 +320,7 @@ class TestDiscovery(BaseTestDiscovery):
             server_url="http://www.myopenid.com/server",
             claimed_id=self.id_url,
             local_id='http://smoker.myopenid.com/',
+            display_identifier=self.id_url,
             )
 
     def test_html1And2(self):
@@ -326,6 +338,7 @@ class TestDiscovery(BaseTestDiscovery):
                 server_url="http://www.myopenid.com/server",
                 claimed_id=self.id_url,
                 local_id='http://smoker.myopenid.com/',
+                display_identifier=self.id_url,
                 )
 
     def test_yadisEmpty(self):
@@ -351,6 +364,7 @@ class TestDiscovery(BaseTestDiscovery):
             server_url="http://www.myopenid.com/server",
             claimed_id=self.id_url,
             local_id='http://smoker.myopenid.com/',
+            display_identifier=self.id_url,
             )
 
     def test_yadis1NoDelegate(self):
@@ -365,6 +379,7 @@ class TestDiscovery(BaseTestDiscovery):
             server_url="http://www.myopenid.com/server",
             claimed_id=self.id_url,
             local_id=self.id_url,
+            display_identifier=self.id_url,
             )
 
     def test_yadis2NoLocalID(self):
@@ -381,6 +396,7 @@ class TestDiscovery(BaseTestDiscovery):
             server_url="http://www.myopenid.com/server",
             claimed_id=self.id_url,
             local_id=self.id_url,
+            display_identifier=self.id_url,
             )
 
     def test_yadis2(self):
@@ -397,6 +413,7 @@ class TestDiscovery(BaseTestDiscovery):
             server_url="http://www.myopenid.com/server",
             claimed_id=self.id_url,
             local_id='http://smoker.myopenid.com/',
+            display_identifier=self.id_url,
             )
 
     def test_yadis2OP(self):
@@ -411,6 +428,7 @@ class TestDiscovery(BaseTestDiscovery):
             used_yadis=True,
             types=['2.0 OP'],
             server_url="http://www.myopenid.com/server",
+            display_identifier=self.id_url,
             )
 
     def test_yadis2OPDelegate(self):
@@ -426,6 +444,7 @@ class TestDiscovery(BaseTestDiscovery):
             used_yadis=True,
             types=['2.0 OP'],
             server_url="http://www.myopenid.com/server",
+            display_identifier=self.id_url,
             )
 
     def test_yadis2BadLocalID(self):
@@ -449,6 +468,7 @@ class TestDiscovery(BaseTestDiscovery):
             server_url="http://www.myopenid.com/server",
             claimed_id=self.id_url,
             local_id='http://smoker.myopenid.com/',
+            display_identifier=self.id_url,
             )
 
     def test_yadis1And2BadLocalID(self):
@@ -512,6 +532,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
             claimed_id=XRI("=!1000"),
             canonical_id=XRI("=!1000"),
             local_id='http://smoker.myopenid.com/',
+            display_identifier='=smoker'
             )
 
         self._checkService(
@@ -522,6 +543,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
             claimed_id=XRI("=!1000"),
             canonical_id=XRI("=!1000"),
             local_id='http://frank.livejournal.com/',
+            display_identifier='=smoker'
             )
 
     def test_xriNoCanonicalID(self):

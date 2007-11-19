@@ -422,6 +422,7 @@ def discoverXRI(iname):
         # constructor instead of tacking it on after?
         endpoint.canonicalID = canonicalID
         endpoint.claimed_id = canonicalID
+        endpoint.display_identifier = iname
 
     # FIXME: returned xri should probably be in some normal form
     return iname, getOPOrUserServices(endpoints)
