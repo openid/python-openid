@@ -210,7 +210,7 @@ class BaseTestDiscovery(unittest.TestCase):
         if s.canonicalID:
             self.failUnless(s.getDisplayIdentifier() != claimed_id)
             self.failUnless(s.getDisplayIdentifier() is not None)
-
+            self.failUnlessEqual(display_identifier, s.getDisplayIdentifier())
             self.failUnlessEqual(s.claimed_id, s.canonicalID)
 
         self.failUnlessEqual(s.display_identifier or s.claimed_id, s.getDisplayIdentifier())
