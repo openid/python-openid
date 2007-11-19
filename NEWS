@@ -36,6 +36,12 @@ instead of openid.ax
 The openid.extensions.ax.FetchRequest.fromOpenIDRequest method now
 takes a CheckIDRequest object instead of a Message object
 
+The OpenID response (the result of Consumer.complete()) now has a
+getDisplayIdentifier() method which should be called instead of
+accessing response.identity_url.  The value of getDisplayIdentifier()
+will be the XRI i-name if XRI is used.  The value of
+response.identity_url SHOULD, however, be used as the application's
+database key for storing account information.
 
 What's New in Python OpenID 2.0
 ===============================
