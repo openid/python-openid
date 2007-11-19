@@ -24,7 +24,8 @@ generateSecret = randomString
 
 def getTmpDbName():
     hostname = socket.gethostname()
-    hostname.replace('.', '_')
+    hostname = hostname.replace('.', '_')
+    hostname = hostname.replace('-', '_')
     return "%s_%d_%s_openid_test" % \
            (hostname, os.getpid(), \
             random.randrange(1, int(time.time())))
