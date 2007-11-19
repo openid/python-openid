@@ -1689,6 +1689,13 @@ class Response(object):
         else:
             self.identity_url = endpoint.claimed_id
 
+    def getDisplayIdentifier(self):
+        """Return the display identifier for this response.
+        """
+        if self.endpoint is not None:
+            return self.endpoint.getDisplayIdentifier()
+        return None
+
 class SuccessResponse(Response):
     """A response with a status of SUCCESS. Indicates that this request is a
     successful acknowledgement from the OpenID server that the
@@ -1720,11 +1727,6 @@ class SuccessResponse(Response):
         if signed_fields is None:
             signed_fields = []
         self.signed_fields = signed_fields
-
-    def getDisplayIdentifier(self):
-        """Return the display identifier for this success response.
-        """
-        return self.endpoint.getDisplayIdentifier()
 
     def isOpenID1(self):
         """Was this authentication response an OpenID 1 authentication
