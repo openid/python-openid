@@ -60,6 +60,7 @@ class OpenIDServiceEndpoint(object):
         self.local_id = None
         self.canonicalID = None
         self.used_yadis = False # whether this came from an XRDS
+        self.display_identifier = None
 
     def usesExtension(self, extension_uri):
         return extension_uri in self.type_uris
@@ -80,6 +81,13 @@ class OpenIDServiceEndpoint(object):
             (type_uri in self.type_uris) or 
             (type_uri == OPENID_2_0_TYPE and self.isOPIdentifier())
             )
+
+    def getDisplayIdentifier(self):
+        """Return the display_identifier if set, else return the claimed_id.
+        """
+        if self.display_identifier is None:
+            return self.claimed_id
+        return self.display_identifier
 
     def compatibilityMode(self):
         return self.preferredNamespace() != OPENID_2_0_MESSAGE_NS
