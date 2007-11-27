@@ -49,7 +49,7 @@ and support for a variety of storage back-ends.''',
     license=getLicense(),
     author='JanRain',
     author_email='openid@janrain.com',
-    download_url='http://openidenabled.com/files/python-openid/packages/python-openid-%s.tar.bz2' % (version,),
+    download_url='http://openidenabled.com/files/python-openid/packages/python-openid-%s.tgz' % (version,),
     classifiers=[
     "Development Status :: 5 - Production/Stable",
     "Environment :: Web Environment",
