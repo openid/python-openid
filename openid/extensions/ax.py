@@ -311,6 +311,10 @@ class FetchRequest(AXMessage):
     def parseExtensionArgs(self, ax_args):
         """Given attribute exchange arguments, populate this FetchRequest.
 
+        @param ax_args: Attribute Exchange arguments from the request.
+            As returned from L{Message.getArgs<openid.message.Message.getArgs>}.
+        @type ax_args: dict
+
         @raises KeyError: if the message is not consistent in its use
             of namespace aliases.
 
@@ -576,9 +580,13 @@ class FetchResponse(AXKeyValueMessage):
             make sure I do not respond with attributes that were not
             requested.
 
+        @type request: L{FetchRequest}
+
         @param update_url: By default, C{update_url} is taken from the
             request.  But if you do not supply the request, you may set
             the C{update_url} here.
+
+        @type update_url: str
         """
         AXKeyValueMessage.__init__(self)
         self.update_url = update_url
