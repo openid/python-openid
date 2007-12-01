@@ -272,7 +272,7 @@ class FetchRequest(AXMessage):
 
         @param openid_request: The OpenID authentication request
             containing the attribute fetch request
-        @type message: C{L{openid.server.server.CheckIDRequest}}
+        @type openid_request: C{L{openid.server.server.CheckIDRequest}}
 
         @rtype: C{L{FetchRequest}}
         @returns: The FetchRequest extracted from the message
@@ -282,7 +282,7 @@ class FetchRequest(AXMessage):
 
         @raises AXError: When parseExtensionArgs would raise same.
 
-        @see: parseExtensionArgs
+        @see: L{parseExtensionArgs}
         """
         message = openid_request.message
         ax_args = message.getArgs(cls.ns_uri)
