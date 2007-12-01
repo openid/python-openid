@@ -140,7 +140,7 @@ class SRegRequestTest(unittest.TestCase):
             ValueError,
             sreg.SRegRequest, ['elvis'])
 
-    def test_fromOpenIDResponse(self):
+    def test_fromOpenIDRequest(self):
         args = {}
         ns_sentinel = object()
         args_sentinel = object()
