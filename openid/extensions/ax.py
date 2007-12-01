@@ -41,6 +41,16 @@ class AXError(ValueError):
     specification"""
 
 
+class NotAXMessage(AXError):
+    """Raised when there is no Attribute Exchange mode in the message."""
+
+    def __repr__(self):
+        return self.__class__.__name__
+
+    def __str__(self):
+        return self.__class__.__name__
+
+
 class AXMessage(extension.Extension):
     """Abstract class containing common code for attribute exchange messages
 
@@ -64,12 +74,17 @@ class AXMessage(extension.Extension):
         """Raise an exception if the mode in the attribute exchange
         arguments does not match what is expected for this class.
 
-        @raises ValueError: When the mode does not match
+        @raises NotAXMessage: When there is no mode value in ax_args at all.
+
+        @raises AXError: When mode does not match.
         """
         mode = ax_args.get('mode')
         if mode != self.mode:
-            raise AXError(
-                'Expected mode %r; got %r' % (self.mode, mode))
+            if not mode:
+                raise NotAXMessage()
+            else:
+                raise AXError(
+                    'Expected mode %r; got %r' % (self.mode, mode))
 
     def _newArgs(self):
         """Return a set of attribute exchange arguments containing the
@@ -274,8 +289,9 @@ class FetchRequest(AXMessage):
             containing the attribute fetch request
         @type openid_request: C{L{openid.server.server.CheckIDRequest}}
 
-        @rtype: C{L{FetchRequest}}
-        @returns: The FetchRequest extracted from the message
+        @rtype: C{L{FetchRequest}} or C{None}
+        @returns: The FetchRequest extracted from the message or None, if
+            the message contained no AX extension.
 
         @raises KeyError: if the AuthRequest is not consistent in its use
             of namespace aliases.
@@ -287,7 +303,10 @@ class FetchRequest(AXMessage):
         message = openid_request.message
         ax_args = message.getArgs(cls.ns_uri)
         self = cls()
-        self.parseExtensionArgs(ax_args)
+        try:
+            self.parseExtensionArgs(ax_args)
+        except NotAXMessage, err:
+            return None
 
         if self.update_url:
             # Update URL must match the openid.realm of the underlying
@@ -317,6 +336,9 @@ class FetchRequest(AXMessage):
 
         @raises KeyError: if the message is not consistent in its use
             of namespace aliases.
+
+        @raises NotAXMessage: If ax_args does not include an Attribute Exchange
+            mode.
 
         @raises AXError: If the data to be parsed does not follow the
             attribute exchange specification. At least when
@@ -678,13 +700,20 @@ class FetchResponse(AXKeyValueMessage):
         @type signed: bool
 
         @returns: A FetchResponse containing the data from the OpenID
-            message
+            message, or None if the SuccessResponse did not contain AX
+            extension data.
+
+        @raises AXError: when the AX data cannot be parsed.
         """
         self = cls()
         ax_args = success_response.extensionResponse(self.ns_uri, signed)
 
-        self.parseExtensionArgs(ax_args)
-        return self
+        try:
+            self.parseExtensionArgs(ax_args)
+        except NotAXMessage, err:
+            return None
+        else:
+            return self
 
     fromSuccessResponse = classmethod(fromSuccessResponse)
 

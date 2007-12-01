@@ -4,6 +4,7 @@
 import unittest
 from openid.extensions import ax
 from openid.message import NamespaceMap, Message, OPENID2_NS
+from openid.consumer.consumer import SuccessResponse
 
 class BogusAXMessage(ax.AXMessage):
     mode = 'bogus'
@@ -20,7 +21,7 @@ class AXMessageTest(unittest.TestCase):
 
     def test_checkMode(self):
         check = self.bax._checkMode
-        self.failUnlessRaises(ax.AXError, check, {})
+        self.failUnlessRaises(ax.NotAXMessage, check, {})
         self.failUnlessRaises(ax.AXError, check, {'mode':'fetch_request'})
 
         # does not raise an exception when the mode is right
@@ -398,6 +399,31 @@ class FetchRequestTest(unittest.TestCase):
 
         fr = ax.FetchRequest.fromOpenIDRequest(DummyRequest(openid_req_msg))
 
+    def test_fromOpenIDRequestWithoutExtension(self):
+        """return None for an OpenIDRequest without AX paramaters."""
+        openid_req_msg = Message.fromOpenIDArgs({
+            'mode': 'checkid_setup',
+            'ns': OPENID2_NS,
+            })
+        oreq = DummyRequest(openid_req_msg)
+        r = ax.FetchRequest.fromOpenIDRequest(oreq)
+        self.failUnless(r is None, "%s is not None" % (r,))
+
+    def test_fromOpenIDRequestWithoutData(self):
+        """return something for SuccessResponse with AX paramaters,
+        even if it is the empty set."""
+        openid_req_msg = Message.fromOpenIDArgs({
+            'mode': 'checkid_setup',
+            'realm': 'http://example.com/realm',
+            'ns': OPENID2_NS,
+            'ns.ax': ax.AXMessage.ns_uri,
+            'ax.mode': 'fetch_request',
+            })
+        oreq = DummyRequest(openid_req_msg)
+        r = ax.FetchRequest.fromOpenIDRequest(oreq)
+        self.failUnless(r is not None)
+
+
 class FetchResponseTest(unittest.TestCase):
     def setUp(self):
         self.msg = ax.FetchResponse()
@@ -486,6 +512,39 @@ class FetchResponseTest(unittest.TestCase):
 
     def test_get(self):
         self.failUnlessRaises(KeyError, self.msg.get, self.type_a)
+
+    def test_fromSuccessResponseWithoutExtension(self):
+        """return None for SuccessResponse with no AX paramaters."""
+        args = {
+            'mode': 'id_res',
+            'ns': OPENID2_NS,
+            }
+        sf = ['openid.' + i for i in args.keys()]
+        msg = Message.fromOpenIDArgs(args)
+        class Endpoint:
+            claimed_id = 'http://invalid.'
+
+        oreq = SuccessResponse(Endpoint(), msg, signed_fields=sf)
+        r = ax.FetchResponse.fromSuccessResponse(oreq)
+        self.failUnless(r is None, "%s is not None" % (r,))
+
+    def test_fromSuccessResponseWithoutData(self):
+        """return something for SuccessResponse with AX paramaters,
+        even if it is the empty set."""
+        args = {
+            'mode': 'id_res',
+            'ns': OPENID2_NS,
+            'ns.ax': ax.AXMessage.ns_uri,
+            'ax.mode': 'fetch_response',
+            }
+        sf = ['openid.' + i for i in args.keys()]
+        msg = Message.fromOpenIDArgs(args)
+        class Endpoint:
+            claimed_id = 'http://invalid.'
+
+        oreq = SuccessResponse(Endpoint(), msg, signed_fields=sf)
+        r = ax.FetchResponse.fromSuccessResponse(oreq)
+        self.failUnless(r is not None)
 
 
 class StoreRequestTest(unittest.TestCase):
