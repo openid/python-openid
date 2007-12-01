@@ -681,12 +681,10 @@ class FetchResponse(AXKeyValueMessage):
             message
         """
         self = cls()
-        if signed:
-            ax_args = success_response.getSignedNS(self.ns_uri)
-        else:
-            ax_args = success_response.message.getArgs(self.ns_uri)
+        ax_args = success_response.extensionResponse(self.ns_uri, signed)
 
         self.parseExtensionArgs(ax_args)
+        return self
 
     fromSuccessResponse = classmethod(fromSuccessResponse)
 
