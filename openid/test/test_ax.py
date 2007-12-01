@@ -28,6 +28,7 @@ class AXMessageTest(unittest.TestCase):
 
     def test_checkMode_newArgs(self):
         """_newArgs generates something that has the correct mode"""
+        # This would raise AXError if it didn't like the mode newArgs made.
         self.bax._checkMode(self.bax._newArgs())
 
 
@@ -77,11 +78,14 @@ class ToTypeURIsTest(unittest.TestCase):
         self.failUnlessEqual([uri1, uri2], uris)
 
 class ParseAXValuesTest(unittest.TestCase):
+    """Testing AXKeyValueMessage.parseExtensionArgs."""
+
     def failUnlessAXKeyError(self, ax_args):
         msg = ax.AXKeyValueMessage()
         self.failUnlessRaises(KeyError, msg.parseExtensionArgs, ax_args)
 
     def failUnlessAXValues(self, ax_args, expected_args):
+        """Fail unless parseExtensionArgs(ax_args) == expected_args."""
         msg = ax.AXKeyValueMessage()
         msg.parseExtensionArgs(ax_args)
         self.failUnlessEqual(expected_args, msg.data)
