@@ -177,7 +177,8 @@ class SRegRequestTest(unittest.TestCase):
 
     def test_parseExtensionArgs_empty(self):
         req = sreg.SRegRequest()
-        req.parseExtensionArgs({})
+        results = req.parseExtensionArgs({})
+        self.failUnlessEqual(None, results)
 
     def test_parseExtensionArgs_extraIgnored(self):
         req = sreg.SRegRequest()
