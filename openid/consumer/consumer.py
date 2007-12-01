@@ -1758,6 +1758,8 @@ class SuccessResponse(Response):
 
         for key in msg_args.iterkeys():
             if not self.isSigned(ns_uri, key):
+                oidutil.log("SuccessResponse.getSignedNS: (%s, %s) not signed."
+                            % (ns_uri, key))
                 return None
 
         return msg_args
