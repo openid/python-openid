@@ -234,6 +234,7 @@ def test_filestore():
     store = filestore.FileOpenIDStore(temp_dir)
     try:
         testStore(store)
+        store.cleanup()
     except:
         raise
     else:

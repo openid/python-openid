@@ -399,8 +399,8 @@ class FileOpenIDStore(OpenIDStore):
 
         () -> NoneType
         """
-        cleanupAssociations()
-        cleanupNonces()
+        self.cleanupAssociations()
+        self.cleanupNonces()
 
     def cleanupAssociations(self):
         removed = 0
