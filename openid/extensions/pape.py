@@ -85,6 +85,10 @@ class Request(Extension):
         """
         self = cls()
         args = request.message.getArgs(self.ns_uri)
+
+        if args == {}:
+            return None
+
         self.parseExtensionArgs(args)
         return self
 
@@ -113,10 +117,13 @@ class Request(Extension):
 
         # max_auth_age is base-10 integer number of seconds
         max_auth_age_str = args.get('max_auth_age')
+        self.max_auth_age = None
+
         if max_auth_age_str:
-            self.max_auth_age = int(max_auth_age_str)
-        else:
-            self.max_auth_age = None
+            try:
+                self.max_auth_age = int(max_auth_age_str)
+            except ValueError:
+                pass
 
     def preferredTypes(self, supported_types):
         """Given a list of authentication policy URIs that a provider
@@ -212,12 +219,17 @@ class Response(Extension):
 
         nist_level_str = args.get('nist_auth_level')
         if nist_level_str:
-            nist_level = int(nist_level_str)
-            if 0 <= nist_level < 5:
-                self.nist_auth_level = nist_level
-            elif strict:
-                raise ValueError('nist_auth_level must be an integer between '
-                                 'zero and four, inclusive')
+            try:
+                nist_level = int(nist_level_str)
+            except ValueError:
+                if strict:
+                    raise ValueError('nist_auth_level must be an integer between '
+                                     'zero and four, inclusive')
+                else:
+                    self.nist_auth_level = None
+            else:
+                if 0 <= nist_level < 5:
+                    self.nist_auth_level = nist_level
 
         auth_age_str = args.get('auth_age')
         if auth_age_str:
