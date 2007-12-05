@@ -1,6 +1,6 @@
 # -*- test-case-name: openid.test.test_ax -*-
-"""Implements the OpenID attribute exchange specification, version 1.0
-as of svn revision 370 from svn.openid.net.
+"""Implements the OpenID attribute exchange specification, version
+1.0.
 
 @since: 2.1.0
 """

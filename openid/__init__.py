@@ -23,7 +23,7 @@ module.
     and limitations under the License.
 """
 
-__version__ = '[library version:2.1.0-rc2]'[17:-1]
+__version__ = '[library version:2.1.0]'[17:-1]
 
 # Parse the version info
 try:
