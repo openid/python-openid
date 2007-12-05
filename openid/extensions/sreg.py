@@ -51,6 +51,8 @@ __all__ = [
     'SRegResponse',
     'data_fields',
     'ns_uri',
+    'ns_uri_1_0',
+    'ns_uri_1_1',
     'supportsSReg',
     ]
 
