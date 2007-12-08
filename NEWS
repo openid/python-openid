@@ -1,8 +1,8 @@
 What's New in Python OpenID 2.1.0
 =================================
 
-This implementation of OpenID has been upgraded to revision 365 of the
-OpenID 2.0 draft specification.
+This implementation of OpenID has been upgraded to support version 2.0
+of the OpenID Authentication specification.
 
 New in this version is:
 
