@@ -1,6 +1,6 @@
 """Extension argument processing code
 """
-__all__ = ['Message', 'NamespaceMap', 'no_default',
+__all__ = ['Message', 'NamespaceMap', 'no_default', 'registerNamespaceAlias',
            'OPENID_NS', 'BARE_NS', 'OPENID1_NS', 'OPENID2_NS', 'SREG_URI',
            'IDENTIFIER_SELECT']
 
