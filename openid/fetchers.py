@@ -182,6 +182,11 @@ class ExceptionWrappingFetcher(HTTPFetcher):
 class Urllib2Fetcher(HTTPFetcher):
     """An C{L{HTTPFetcher}} that uses urllib2.
     """
+
+    # Parameterized for the benefit of testing frameworks, see
+    # http://trac.openidenabled.com/trac/ticket/85
+    urlopen = staticmethod(urllib2.urlopen)
+
     def fetch(self, url, body=None, headers=None):
         if not _allowedURL(url):
             raise ValueError('Bad URL scheme: %r' % (url,))
@@ -195,7 +200,7 @@ class Urllib2Fetcher(HTTPFetcher):
 
         req = urllib2.Request(url, data=body, headers=headers)
         try:
-            f = urllib2.urlopen(req)
+            f = self.urlopen(req)
             try:
                 return self._makeResponse(f)
             finally:
