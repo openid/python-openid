@@ -6,28 +6,6 @@ from distutils.core import setup
 if 'sdist' in sys.argv:
     os.system('./admin/makedoc')
 
-def getLicense():
-    return """\
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions
-and limitations under the License.
-"""
-
-# patch distutils if it can't cope with the "classifiers" or
-# "download_url" keywords
-if sys.version < '2.2.3':
-    from distutils.dist import DistributionMetadata
-    DistributionMetadata.classifiers = None
-    DistributionMetadata.download_url = None
-
 version = '[library version:2.1.0]'[17:-1]
 
 setup(
@@ -47,7 +25,8 @@ and support for a variety of storage back-ends.''',
               'openid.yadis',
               'openid.extensions',
               ],
-    license=getLicense(),
+    # license specified by classifier.
+    # license=getLicense(),
     author='JanRain',
     author_email='openid@janrain.com',
     download_url='http://openidenabled.com/files/python-openid/packages/python-openid-%s.tgz' % (version,),
