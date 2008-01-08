@@ -738,6 +738,14 @@ class TestEndpointSupportsType(unittest.TestCase):
                                     discover.OPENID_IDP_2_0_TYPE,
                                     )
 
+
+class TestEndpointDisplayIdentifier(unittest.TestCase):
+    def test_strip_fragment(self):
+        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint.claimed_id = 'http://recycled.invalid/#123'
+        self.failUnlessEqual('http://recycled.invalid/', endpoint.getDisplayIdentifier())
+
+
 def pyUnitTests():
     return datadriven.loadTests(__name__)
 

@@ -85,9 +85,12 @@ class OpenIDServiceEndpoint(object):
     def getDisplayIdentifier(self):
         """Return the display_identifier if set, else return the claimed_id.
         """
-        if self.display_identifier is None:
-            return self.claimed_id
-        return self.display_identifier
+        if self.display_identifier is not None:
+            return self.display_identifier
+        if self.claimed_id is None:
+            return None
+        else:
+            return urlparse.urldefrag(self.claimed_id)[0]
 
     def compatibilityMode(self):
         return self.preferredNamespace() != OPENID_2_0_MESSAGE_NS
