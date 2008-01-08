@@ -266,7 +266,15 @@ def test_mysql():
         from MySQLdb.constants import ER
 
         # Change this connect line to use the right user and password
-        conn = MySQLdb.connect(user=db_user, passwd=db_passwd, host = db_host)
+        try:
+            conn = MySQLdb.connect(user=db_user, passwd=db_passwd, host = db_host)
+        except MySQLdb.OperationalError, why:
+            if why[0] == 2005:
+                print ('Skipping MySQL store test (cannot connect '
+                       'to test server on host %r)' % (db_host,))
+                return
+            else:
+                raise
 
         conn.query('CREATE DATABASE %s;' % db_name)
         try:
