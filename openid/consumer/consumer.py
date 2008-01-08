@@ -1691,6 +1691,19 @@ class Response(object):
 
     def getDisplayIdentifier(self):
         """Return the display identifier for this response.
+
+        The display identifier is related to the Claimed Identifier, but the
+        two are not always identical.  The display identifier is something the
+        user should recognize as what they entered, whereas the response's
+        claimed identifier (in the L{identity_url} attribute) may have extra
+        information for better persistence.
+
+        URLs will be stripped of their fragments for display.  XRIs will
+        display the human-readable identifier (i-name) instead of the
+        persistent identifier (i-number).
+
+        Use the display identifier in your user interface.  Use
+        L{identity_url} for querying your database or authorization server.
         """
         if self.endpoint is not None:
             return self.endpoint.getDisplayIdentifier()
@@ -1701,7 +1714,8 @@ class SuccessResponse(Response):
     successful acknowledgement from the OpenID server that the
     supplied URL is, indeed controlled by the requesting agent.
 
-    @ivar identity_url: The identity URL that has been authenticated
+    @ivar identity_url: The identity URL that has been authenticated; the Claimed Identifier.
+        See also L{getDisplayIdentifier}.
 
     @ivar endpoint: The endpoint that authenticated the identifier.  You
         may access other discovered information related to this endpoint,
