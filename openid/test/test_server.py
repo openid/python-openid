@@ -795,6 +795,19 @@ class TestCheckID(unittest.TestCase):
         self.request.return_to = "http://foo.unittest/39"
         self.failUnless(self.request.trustRootValid())
 
+    def test_malformedTrustRoot(self):
+        self.request.trust_root = "invalid://trust*root/"
+        self.request.return_to = "http://foo.unittest/39"
+        sentinel = object()
+        self.request.message = sentinel
+        try:
+            result = self.request.trustRootValid()
+        except server.MalformedTrustRoot, why:
+            self.failUnless(sentinel is why.openid_message)
+        else:
+            self.fail('Expected MalformedTrustRoot exception. Got %r'
+                      % (result,))
+
     def test_trustRootValidNoReturnTo(self):
         request = server.CheckIDRequest(
             identity = 'http://bambam.unittest/',

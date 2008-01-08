@@ -671,7 +671,7 @@ class CheckIDRequest(OpenIDRequest):
             return True
         tr = TrustRoot.parse(self.trust_root)
         if tr is None:
-            raise MalformedTrustRoot(None, self.trust_root)
+            raise MalformedTrustRoot(self.message, self.trust_root)
 
         if self.return_to is not None:
             return tr.validateURL(self.return_to)
