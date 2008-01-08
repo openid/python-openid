@@ -6,7 +6,7 @@ of the OpenID Authentication specification.
 
 New in this version is:
 
- * Verification of relying party return_to addresses, to screen out RPs 
+ * Verification of relying party return_to addresses, to screen out RPs
    hiding behind open redirect relays.  Server code can invoke this with
    the returnToVerified method on CheckIDRequest.
 
