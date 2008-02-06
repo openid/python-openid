@@ -125,7 +125,8 @@ from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot, verifyReturnTo
 from openid.association import Association, default_negotiator, getSecretSize
-from openid.message import Message, OPENID_NS, OPENID1_NS, \
+from openid.message import Message, InvalidOpenIDNamespace, \
+     OPENID_NS, OPENID1_NS, \
      OPENID2_NS, IDENTIFIER_SELECT, OPENID1_URL_LIMIT
 
 HTTP_OK = 200
@@ -1368,7 +1369,10 @@ class Decoder(object):
         if not query:
             return None
 
-        message = Message.fromPostArgs(query)
+        try:
+            message = Message.fromPostArgs(query)
+        except InvalidOpenIDNamespace, err:
+            raise ProtocolError(None, str(err))
 
         mode = message.getArg(OPENID_NS, 'mode')
         if not mode:

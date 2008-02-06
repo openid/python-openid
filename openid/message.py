@@ -59,6 +59,12 @@ class UndefinedOpenIDNamespace(ValueError):
     """Raised if the generic OpenID namespace is accessed when there
     is no OpenID namespace set for this message."""
 
+class InvalidOpenIDNamespace(ValueError):
+    """Raised if openid.ns is not a recognized value.
+
+    For recognized values, see L{Message.allowed_openid_namespaces}
+    """
+
 # Sentinel used for Message implementation to indicate that getArg
 # should raise an exception instead of returning a default.
 no_default = object()
@@ -113,7 +119,11 @@ class Message(object):
     allowed_openid_namespaces = [OPENID1_NS, OPENID2_NS]
 
     def __init__(self, openid_namespace=None):
-        """Create an empty Message"""
+        """Create an empty Message.
+
+        @raises InvalidOpenIDNamespace: if openid_namespace is not in
+            L{Message.allowed_openid_namespaces}
+        """
         self.args = {}
         self.namespaces = NamespaceMap()
         if openid_namespace is None:
@@ -122,7 +132,9 @@ class Message(object):
             self.setOpenIDNamespace(openid_namespace)
 
     def fromPostArgs(cls, args):
-        """Construct a Message containing a set of POST arguments"""
+        """Construct a Message containing a set of POST arguments.
+
+        """
         self = cls()
 
         # Partition into "openid." args and bare args
@@ -150,7 +162,11 @@ class Message(object):
     fromPostArgs = classmethod(fromPostArgs)
 
     def fromOpenIDArgs(cls, openid_args):
-        """Construct a Message from a parsed KVForm message"""
+        """Construct a Message from a parsed KVForm message.
+
+        @raises InvalidOpenIDNamespace: if openid.ns is not in
+            L{Message.allowed_openid_namespaces}
+        """
         self = cls()
         self._fromOpenIDArgs(openid_args)
         return self
@@ -203,11 +219,16 @@ class Message(object):
             self.setArg(ns_uri, ns_key, value)
 
     def setOpenIDNamespace(self, openid_ns_uri):
+        """Set the OpenID namespace URI used in this message.
+
+        @raises InvalidOpenIDNamespace: if the namespace is not in
+            L{Message.allowed_openid_namespaces}
+        """
         if openid_ns_uri == THE_OTHER_OPENID1_NS:
             # It's better this way, really.
             openid_ns_uri = OPENID1_NS
         if openid_ns_uri not in self.allowed_openid_namespaces:
-            raise ValueError('Invalid null namespace: %r' % (openid_ns_uri,))
+            raise InvalidOpenIDNamespace(openid_ns_uri)
 
         self.namespaces.addAlias(openid_ns_uri, NULL_NAMESPACE)
         self._openid_ns_uri = openid_ns_uri
