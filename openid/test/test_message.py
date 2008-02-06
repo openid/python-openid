@@ -759,6 +759,26 @@ class MessageTest(unittest.TestCase):
                         tag_attrs, self.submit_text)
 
 
+    def test_setOpenIDNamespace_invalid(self):
+        m = message.Message()
+        invalid_things = [
+            # Empty string is not okay here.
+            '',
+            # Good guess!  But wrong.
+            'http://openid.net/signon/2.0',
+            # What?
+            u'http://specs%\\\r2Eopenid.net/auth/2.0',
+            # Too much escapings!
+            'http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0',
+            # This is a Type URI, not a openid.ns value.
+            'http://specs.openid.net/auth/2.0/signon',
+            ]
+
+        for x in invalid_things:
+            self.failUnlessRaises(message.InvalidOpenIDNamespace,
+                                  m.setOpenIDNamespace, x)
+
+
     def test_setOpenIDNamespace_1x(self):
         m = message.Message()
         v1_namespaces = [

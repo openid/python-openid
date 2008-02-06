@@ -497,6 +497,10 @@ class TestDecode(unittest.TestCase):
             }
         self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
+    def test_invalidns(self):
+	args = {'openid.ns': 'Tuesday',
+		'openid.mode': 'associate'}
+	self.failUnlessRaises(server.ProtocolError, self.decode, args)
 
 
 class TestEncode(unittest.TestCase):
