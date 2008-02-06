@@ -4,7 +4,6 @@ from openid import oidutil
 import urllib
 import cgi
 import unittest
-import datadriven
 
 def mkGetArgTest(ns, key, expected=None):
     def test(self):
