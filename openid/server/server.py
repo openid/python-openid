@@ -597,7 +597,7 @@ class CheckIDRequest(OpenIDRequest):
             self.mode = "checkid_setup"
 
         self.return_to = message.getArg(OPENID_NS, 'return_to')
-        if self.namespace == OPENID1_NS and not self.return_to:
+        if message.isOpenID1() and not self.return_to:
             fmt = "Missing required field 'return_to' from %r"
             raise ProtocolError(message, text=fmt % (message,))
 
@@ -612,14 +612,14 @@ class CheckIDRequest(OpenIDRequest):
         else:
             self.claimed_id = None
 
-        if self.identity is None and self.namespace == OPENID1_NS:
+        if self.identity is None and message.isOpenID1():
             s = "OpenID 1 message did not contain openid.identity"
             raise ProtocolError(message, text=s)
 
         # There's a case for making self.trust_root be a TrustRoot
         # here.  But if TrustRoot isn't currently part of the "public" API,
         # I'm not sure it's worth doing.
-        if self.namespace == OPENID1_NS:
+        if message.isOpenID1():
             self.trust_root = message.getArg(
                 OPENID_NS, 'trust_root', self.return_to)
         else:

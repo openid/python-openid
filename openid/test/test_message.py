@@ -758,6 +758,27 @@ class MessageTest(unittest.TestCase):
         self._checkForm(html, m, self.action_url,
                         tag_attrs, self.submit_text)
 
+
+    def test_setOpenIDNamespace_1x(self):
+        m = message.Message()
+        v1_namespaces = [
+            # Yes, there are two of them.
+            'http://openid.net/signon/1.1',
+            'http://openid.net/signon/1.0',
+            ]
+
+        for ns in v1_namespaces:
+            m.setOpenIDNamespace(ns)
+            self.failUnless(m.isOpenID1(), "%r not recognized as OpenID 1" %
+                            (ns,))
+
+
+    def test_setOpenIDNamespace_20(self):
+        m = message.Message()
+        m.setOpenIDNamespace('http://specs.openid.net/auth/2.0')
+        self.failUnless(m.isOpenID2())
+
+
 class NamespaceMapTest(unittest.TestCase):
     def test_onealias(self):
         nsm = message.NamespaceMap()

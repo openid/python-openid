@@ -26,6 +26,7 @@ SREG_URI = 'http://openid.net/sreg/1.0'
 
 # The OpenID 1.X namespace URI
 OPENID1_NS = 'http://openid.net/signon/1.0'
+THE_OTHER_OPENID1_NS = 'http://openid.net/signon/1.1'
 
 # The OpenID 2.0 namespace URI
 OPENID2_NS = 'http://specs.openid.net/auth/2.0'
@@ -178,11 +179,8 @@ class Message(object):
                 ns_args.append((ns_alias, ns_key, value))
 
         # Ensure that there is an OpenID namespace definition
-        openid_ns_uri = self.namespaces.getNamespaceURI(NULL_NAMESPACE)
-        if openid_ns_uri is None:
-            openid_ns_uri = OPENID1_NS
-
-        self.setOpenIDNamespace(openid_ns_uri)
+        self.setOpenIDNamespace(
+            self.namespaces.getNamespaceURI(NULL_NAMESPACE) or OPENID1_NS)
 
         # Actually put the pairs into the appropriate namespaces
         for (ns_alias, ns_key, value) in ns_args:
@@ -190,14 +188,14 @@ class Message(object):
             if ns_uri is None:
                 # Only try to map an alias to a default if it's an
                 # OpenID 1.x message.
-                if openid_ns_uri == OPENID1_NS:
+                if self.isOpenID1():
                     for _alias, _uri in registered_aliases.iteritems():
                         if _alias == ns_alias:
                             ns_uri = _uri
                             break
 
                 if ns_uri is None:
-                    ns_uri = openid_ns_uri
+                    ns_uri = self.getOpenIDNamespace()
                     ns_key = '%s.%s' % (ns_alias, ns_key)
                 else:
                     self.namespaces.addAlias(ns_uri, ns_alias)
@@ -205,6 +203,9 @@ class Message(object):
             self.setArg(ns_uri, ns_key, value)
 
     def setOpenIDNamespace(self, openid_ns_uri):
+        if openid_ns_uri == THE_OTHER_OPENID1_NS:
+            # It's better this way, really.
+            openid_ns_uri = OPENID1_NS
         if openid_ns_uri not in self.allowed_openid_namespaces:
             raise ValueError('Invalid null namespace: %r' % (openid_ns_uri,))
 
@@ -215,7 +216,7 @@ class Message(object):
         return self._openid_ns_uri
 
     def isOpenID1(self):
-        return self.getOpenIDNamespace() == OPENID1_NS
+        return self.getOpenIDNamespace() in [OPENID1_NS, THE_OTHER_OPENID1_NS]
 
     def isOpenID2(self):
         return self.getOpenIDNamespace() == OPENID2_NS
