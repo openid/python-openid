@@ -1128,7 +1128,7 @@ class TestCheckIDExtension(unittest.TestCase):
                              {'blue': 'star',
                               'mode': 'id_res',
                               })
-        
+
         self.failUnlessEqual(self.response.fields.getArgs(namespace),
                              {'bright':'potato'})
 
@@ -1200,7 +1200,7 @@ class TestCheckAuth(unittest.TestCase):
         """Don't validate the same response twice.
 
         From "Checking the Nonce"::
-        
+
             When using "check_authentication", the OP MUST ensure that an
             assertion has not yet been accepted with the same value for
             "openid.response_nonce".
@@ -1318,7 +1318,7 @@ class TestAssociate(unittest.TestCase):
 
     def test_protoError(self):
         from openid.consumer.consumer import DiffieHellmanSHA1ConsumerSession
-            
+
         s1_session = DiffieHellmanSHA1ConsumerSession()
 
         invalid_s1 = {'openid.assoc_type':'HMAC-SHA256',
@@ -1334,7 +1334,7 @@ class TestAssociate(unittest.TestCase):
             invalid_s1,
             invalid_s1_2,
             ]
-            
+
         for request_args in bad_request_argss:
             message = Message.fromPostArgs(request_args)
             self.failUnlessRaises(server.ProtocolError,
