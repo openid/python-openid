@@ -1596,7 +1596,7 @@ class ProtocolError(Exception):
         @returntype: str
         """
         if self.openid_message is None:
-            return False
+            return None
         else:
             return self.openid_message.getArg(OPENID_NS, 'return_to')
 

@@ -132,6 +132,11 @@ mode:error
         self.failUnlessEqual(e.encodeToKVForm(), expected)
 
 
+    def test_noMessage(self):
+        e = server.ProtocolError(None, "no moar pancakes")
+        self.failIf(e.hasReturnTo())
+        self.failUnlessEqual(e.whichEncoding(), None)
+
 
 class TestDecode(unittest.TestCase):
     def setUp(self):
