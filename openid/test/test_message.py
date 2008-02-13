@@ -799,6 +799,25 @@ class MessageTest(unittest.TestCase):
         self.failUnless(m.isOpenID2())
 
 
+    def test_fromPostArgs_ns11(self):
+        # An example of the stuff that some Drupal installations send us,
+        # which includes openid.ns but is 1.1.
+        query = {
+            u'openid.assoc_handle': u'',
+            u'openid.claimed_id': u'http://foobar.invalid/',
+            u'openid.identity': u'http://foobar.myopenid.com',
+            u'openid.mode': u'checkid_setup',
+            u'openid.ns': u'http://openid.net/signon/1.1',
+            u'openid.ns.sreg': u'http://openid.net/extensions/sreg/1.1',
+            u'openid.return_to': u'http://drupal.invalid/return_to',
+            u'openid.sreg.required': u'nickname,email',
+            u'openid.trust_root': u'http://drupal.invalid',
+            }
+        m = message.Message.fromPostArgs(query)
+        self.failUnless(m.isOpenID1())
+
+
+
 class NamespaceMapTest(unittest.TestCase):
     def test_onealias(self):
         nsm = message.NamespaceMap()

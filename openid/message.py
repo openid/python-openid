@@ -190,13 +190,13 @@ class Message(object):
                 self.namespaces.addAlias(value, ns_key)
             elif ns_alias == NULL_NAMESPACE and ns_key == 'ns':
                 # null namespace
-                self.namespaces.addAlias(value, NULL_NAMESPACE)
+                self.setOpenIDNamespace(value)
             else:
                 ns_args.append((ns_alias, ns_key, value))
 
         # Ensure that there is an OpenID namespace definition
-        self.setOpenIDNamespace(
-            self.namespaces.getNamespaceURI(NULL_NAMESPACE) or OPENID1_NS)
+        if not self.getOpenIDNamespace():
+            self.setOpenIDNamespace(OPENID1_NS)
 
         # Actually put the pairs into the appropriate namespaces
         for (ns_alias, ns_key, value) in ns_args:
