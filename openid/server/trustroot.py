@@ -233,9 +233,6 @@ class TrustRoot(object):
 
         @rtype: C{NoneType} or C{L{TrustRoot}}
         """
-        if not isinstance(trust_root, (str, unicode)):
-            return None
-
         url_parts = _parseURL(trust_root)
         if url_parts is None:
             return None
