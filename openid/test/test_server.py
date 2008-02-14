@@ -1029,6 +1029,29 @@ class TestCheckID(unittest.TestCase):
         self.failUnlessEqual(answer.request, self.request)
         self._expectAnswer(answer, self.request.identity)
 
+    def test_fromMessageWithoutTrustRoot(self):
+        msg = Message(OPENID2_NS)
+        msg.setArg(OPENID_NS, 'mode', 'checkid_setup')
+        msg.setArg(OPENID_NS, 'return_to', 'http://real_trust_root/foo')
+        msg.setArg(OPENID_NS, 'assoc_handle', 'bogus')
+        msg.setArg(OPENID_NS, 'identity', 'george')
+        msg.setArg(OPENID_NS, 'claimed_id', 'george')
+
+        result = server.CheckIDRequest.fromMessage(msg, self.server.op_endpoint)
+
+        self.failUnlessEqual(result.trust_root, 'http://real_trust_root/foo')
+
+    def test_fromMessageWithoutTrustRootOrReturnTo(self):
+        msg = Message(OPENID2_NS)
+        msg.setArg(OPENID_NS, 'mode', 'checkid_setup')
+        msg.setArg(OPENID_NS, 'assoc_handle', 'bogus')
+        msg.setArg(OPENID_NS, 'identity', 'george')
+        msg.setArg(OPENID_NS, 'claimed_id', 'george')
+
+        self.failUnlessRaises(server.ProtocolError,
+                              server.CheckIDRequest.fromMessage,
+                              msg, self.server.op_endpoint)
+
     def test_answerAllowNoEndpointOpenID1(self):
         """Test .allow() with an OpenID 1.x Message on a CheckIDRequest
         built without an op_endpoint parameter.
