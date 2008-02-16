@@ -620,13 +620,19 @@ class CheckIDRequest(OpenIDRequest):
         # There's a case for making self.trust_root be a TrustRoot
         # here.  But if TrustRoot isn't currently part of the "public" API,
         # I'm not sure it's worth doing.
-        if message.isOpenID1():
-            self.trust_root = message.getArg(
-                OPENID_NS, 'trust_root', self.return_to)
-        else:
-            self.trust_root = message.getArg(
-                OPENID_NS, 'realm', self.return_to)
 
+        if message.isOpenID1():
+            trust_root_param = 'trust_root'
+        else:
+            trust_root_param = 'realm'
+
+        # Using 'or' here is slightly different than sending a default
+        # argument to getArg, as it will treat no value and an empty
+        # string as equivalent.
+        self.trust_root = (message.getArg(OPENID_NS, trust_root_param)
+                           or self.return_to)
+
+        if not message.isOpenID1():
             if self.return_to is self.trust_root is None:
                 raise ProtocolError(message, "openid.realm required when " +
                                     "openid.return_to absent")

@@ -1041,6 +1041,21 @@ class TestCheckID(unittest.TestCase):
 
         self.failUnlessEqual(result.trust_root, 'http://real_trust_root/foo')
 
+    def test_fromMessageWithEmptyTrustRoot(self):
+        return_to = u'http://someplace.invalid/?go=thing'
+        msg = Message.fromPostArgs({
+                u'openid.assoc_handle': u'{blah}{blah}{OZivdQ==}',
+                u'openid.claimed_id': u'http://delegated.invalid/',
+                u'openid.identity': u'http://op-local.example.com/',
+                u'openid.mode': u'checkid_setup',
+                u'openid.ns': u'http://openid.net/signon/1.0',
+                u'openid.return_to': return_to,
+                u'openid.trust_root': u''})
+
+        result = server.CheckIDRequest.fromMessage(msg, self.server.op_endpoint)
+
+        self.failUnlessEqual(result.trust_root, return_to)
+
     def test_fromMessageWithoutTrustRootOrReturnTo(self):
         msg = Message(OPENID2_NS)
         msg.setArg(OPENID_NS, 'mode', 'checkid_setup')
