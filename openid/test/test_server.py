@@ -1451,6 +1451,38 @@ class TestAssociate(unittest.TestCase):
         self.failIf(rfg("enc_mac_key"))
         self.failIf(rfg("dh_server_public"))
 
+    def test_plaintext_v2(self):
+        # The main difference between this and the v1 test is that
+        # session_type is always returned in v2.
+        args = {
+            'openid.ns': OPENID2_NS,
+            'openid.mode': 'associate',
+            'openid.assoc_type': 'HMAC-SHA1',
+            'openid.session_type': 'no-encryption',
+            }
+        self.request = server.AssociateRequest.fromMessage(
+            Message.fromPostArgs(args))
+
+        self.failIf(self.request.message.isOpenID1())
+
+        self.assoc = self.signatory.createAssociation(
+            dumb=False, assoc_type='HMAC-SHA1')
+        response = self.request.answer(self.assoc)
+        rfg = lambda f: response.fields.getArg(OPENID_NS, f)
+
+        self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA1")
+        self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
+
+        self.failUnlessExpiresInMatches(
+            response.fields, self.signatory.SECRET_LIFETIME)
+
+        self.failUnlessEqual(
+            rfg("mac_key"), oidutil.toBase64(self.assoc.secret))
+
+        self.failUnlessEqual(rfg("session_type"), "no-encryption")
+        self.failIf(rfg("enc_mac_key"))
+        self.failIf(rfg("dh_server_public"))
+
     def test_plaintext256(self):
         self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA256')
         response = self.request.answer(self.assoc)
