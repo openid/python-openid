@@ -968,8 +968,7 @@ class OpenIDResponse(object):
 
         @since: 2.1.0
         """
-        return self.fields.toFormMarkup(
-            self.fields.getArg(OPENID_NS, 'return_to'))
+        return self.fields.toFormMarkup(self.request.return_to)
 
 
     def renderAsForm(self):

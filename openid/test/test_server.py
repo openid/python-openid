@@ -641,6 +641,21 @@ class TestEncode(unittest.TestCase):
         self.failUnlessEqual(webresponse.code, server.HTTP_REDIRECT)
         self.failUnless(webresponse.headers.has_key('location'))
 
+    def test_cancelToForm(self):
+        request = server.CheckIDRequest(
+            identity = 'http://bombom.unittest/',
+            trust_root = 'http://burr.unittest/',
+            return_to = 'http://burr.unittest/999',
+            immediate = False,
+            op_endpoint = self.server.op_endpoint,
+            )
+        response = server.OpenIDResponse(request)
+        response.fields = Message.fromOpenIDArgs({
+            'mode': 'cancel',
+            })
+        form = response.toFormMarkup()
+        self.failUnless(form)
+
     def test_assocReply(self):
         msg = Message(OPENID2_NS)
         msg.setArg(OPENID2_NS, 'session_type', 'no-encryption')

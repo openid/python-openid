@@ -322,6 +322,8 @@ class Message(object):
         if ElementTree is None:
             raise RuntimeError('This function requires ElementTree.')
 
+        assert action_url is not None
+
         form = ElementTree.Element('form')
 
         if form_tag_attrs:
