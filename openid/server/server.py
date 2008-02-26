@@ -1406,7 +1406,7 @@ class Decoder(object):
             L{ProtocolError}.
         """
         mode = message.getArg(OPENID_NS, 'mode')
-        fmt = "No decoder for mode %r"
+        fmt = "Unrecognized OpenID mode %r"
         raise ProtocolError(message, text=fmt % (mode,))
 
 
