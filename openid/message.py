@@ -64,6 +64,12 @@ class InvalidOpenIDNamespace(ValueError):
 
     For recognized values, see L{Message.allowed_openid_namespaces}
     """
+    def __str__(self):
+        s = "Invalid OpenID Namespace"
+        if self.args:
+            s += " %r" % (self.args[0],)
+        return s
+
 
 # Sentinel used for Message implementation to indicate that getArg
 # should raise an exception instead of returning a default.
