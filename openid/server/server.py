@@ -1381,7 +1381,14 @@ class Decoder(object):
         try:
             message = Message.fromPostArgs(query)
         except InvalidOpenIDNamespace, err:
-            raise ProtocolError(None, str(err))
+            # It's useful to have a Message attached to a ProtocolError, so we
+            # override the bad ns value to build a Message out of it.  Kinda
+            # kludgy, since it's made of lies, but the parts that aren't lies
+            # are more useful than a 'None'.
+            query = query.copy()
+            query['openid.ns'] = OPENID2_NS
+            message = Message.fromPostArgs(query)
+            raise ProtocolError(message, str(err))
 
         mode = message.getArg(OPENID_NS, 'mode')
         if not mode:

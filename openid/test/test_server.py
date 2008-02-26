@@ -505,7 +505,17 @@ class TestDecode(unittest.TestCase):
     def test_invalidns(self):
 	args = {'openid.ns': 'Tuesday',
 		'openid.mode': 'associate'}
-	self.failUnlessRaises(server.ProtocolError, self.decode, args)
+
+        try:
+            r = self.decode(args)
+        except server.ProtocolError, err:
+            # Assert that the ProtocolError does have a Message attached
+            # to it, even though the request wasn't a well-formed Message.
+            self.failUnless(err.openid_message)
+            # The error message contains the bad openid.ns.
+            self.failUnless('Tuesday' in str(err), str(err))
+        else:
+            self.fail("Expected ProtocolError but returned with %r" % (r,))
 
 
 class TestEncode(unittest.TestCase):
