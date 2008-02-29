@@ -38,12 +38,12 @@ def seqToKV(seq, strict=False):
                 'Invalid input for seqToKV: key contains colon: %r' % (k,))
 
         if k.strip() != k:
-            err('Key has whitespace at beginning or end: %r' % k)
+            err('Key has whitespace at beginning or end: %r' % (k,))
 
         if isinstance(v, types.StringType):
             v = v.decode('UTF8')
         elif not isinstance(v, types.UnicodeType):
-            err('Converting value to string: %r' % v)
+            err('Converting value to string: %r' % (v,))
             v = str(v)
 
         if '\n' in v:
@@ -51,7 +51,7 @@ def seqToKV(seq, strict=False):
                 'Invalid input for seqToKV: value contains newline: %r' % (v,))
 
         if v.strip() != v:
-            err('Value has whitespace at beginning or end: %r' % v)
+            err('Value has whitespace at beginning or end: %r' % (v,))
 
         lines.append(k + ':' + v + '\n')
 
