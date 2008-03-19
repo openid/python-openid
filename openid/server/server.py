@@ -607,19 +607,20 @@ class CheckIDRequest(OpenIDRequest):
             raise ProtocolError(message, text=fmt % (message,))
 
         self.identity = message.getArg(OPENID_NS, 'identity')
-        if self.identity and message.isOpenID2():
-            self.claimed_id = message.getArg(OPENID_NS, 'claimed_id')
-            if not self.claimed_id:
+        self.claimed_id = message.getArg(OPENID_NS, 'claimed_id')
+        if message.isOpenID1():
+            if self.identity is None:
+                s = "OpenID 1 message did not contain openid.identity"
+                raise ProtocolError(message, text=s)
+        else:
+            if self.identity and not self.claimed_id:
                 s = ("OpenID 2.0 message contained openid.identity but not "
                      "claimed_id")
                 raise ProtocolError(message, text=s)
-
-        else:
-            self.claimed_id = None
-
-        if self.identity is None and message.isOpenID1():
-            s = "OpenID 1 message did not contain openid.identity"
-            raise ProtocolError(message, text=s)
+            elif self.claimed_id and not self.identity:
+                s = ("OpenID 2.0 message contained openid.claimed_id but not "
+                     "identity")
+                raise ProtocolError(message, text=s)
 
         # There's a case for making self.trust_root be a TrustRoot
         # here.  But if TrustRoot isn't currently part of the "public" API,

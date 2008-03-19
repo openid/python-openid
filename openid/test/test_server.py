@@ -1019,6 +1019,30 @@ class TestCheckID(unittest.TestCase):
                               server.CheckIDRequest.fromMessage,
                               msg, self.server)
 
+    def test_fromMessageClaimedIDWithoutIdentityOpenID2(self):
+        name = 'https://example.myopenid.com'
+        
+        msg = Message(OPENID2_NS)
+        msg.setArg(OPENID_NS, 'mode', 'checkid_setup')
+        msg.setArg(OPENID_NS, 'return_to', 'http://invalid:8000/rt')
+        msg.setArg(OPENID_NS, 'claimed_id', name)
+
+        self.failUnlessRaises(server.ProtocolError,
+                              server.CheckIDRequest.fromMessage,
+                              msg, self.server)
+
+    def test_fromMessageIdentityWithoutClaimedIDOpenID2(self):
+        name = 'https://example.myopenid.com'
+        
+        msg = Message(OPENID2_NS)
+        msg.setArg(OPENID_NS, 'mode', 'checkid_setup')
+        msg.setArg(OPENID_NS, 'return_to', 'http://invalid:8000/rt')
+        msg.setArg(OPENID_NS, 'identity', name)
+
+        self.failUnlessRaises(server.ProtocolError,
+                              server.CheckIDRequest.fromMessage,
+                              msg, self.server)
+
     def test_trustRootOpenID1(self):
         """Ignore openid.realm in OpenID 1"""
         msg = Message(OPENID1_NS)
