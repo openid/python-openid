@@ -20,7 +20,9 @@ __all__ = [
 from openid import oidutil
 from openid import urinorm
 from openid.yadis import services
+
 from urlparse import urlparse, urlunparse
+import re
 
 ############################################
 _protocols = ['http', 'https']
@@ -39,6 +41,10 @@ _top_level_domains = (
     'vn|vu|wf|ws|ye|yt|yu|za|zm|zw'
     ).split('|')
 
+# Build from RFC3986, section 3.2.2. Used to reject hosts with invalid
+# characters.
+host_segment_re = re.compile(
+    r"(?:[-a-zA-Z0-9!$&'\(\)\*+,;=._~]|%[a-zA-Z0-9]{2})*$")
 
 class RealmVerificationRedirected(Exception):
     """Attempting to verify this realm resulted in a redirect.
@@ -76,11 +82,17 @@ def _parseURL(url):
             host, port = netloc.split(':')
         except ValueError:
             return None
+
+        if not re.match(r'\d+$', port):
+            return None
     else:
         host = netloc
         port = ''
 
     host = host.lower()
+    if not host_segment_re.match(host):
+        return None
+
     return proto, host, port, path
 
 class TrustRoot(object):

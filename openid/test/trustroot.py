@@ -19,7 +19,7 @@ class _ParseTest(unittest.TestCase):
         elif self.sanity == 'insane':
             assert not tr.isSane(), self.case
         else:
-            assert tr is None
+            assert tr is None, tr
 
 class _MatchTest(unittest.TestCase):
     def __init__(self, match, desc, line):
@@ -35,6 +35,8 @@ class _MatchTest(unittest.TestCase):
 
     def runTest(self):
         tr = TrustRoot.parse(self.tr)
+        self.failIf(tr is None, self.tr)
+
         match = tr.validateURL(self.rt)
         if self.match:
             assert match
