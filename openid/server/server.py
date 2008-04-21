@@ -121,6 +121,7 @@ from copy import deepcopy
 
 from openid import cryptutil
 from openid import oidutil
+from openid import kvform
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot, verifyReturnTo
@@ -221,7 +222,6 @@ class CheckAuthRequest(OpenIDRequest):
         return self
 
     fromMessage = classmethod(fromMessage)
-
 
     def answer(self, signatory):
         """Respond to this request.
@@ -1187,7 +1187,10 @@ class Signatory(object):
             # dumb mode.
             assoc = self.createAssociation(dumb=True)
 
-        signed_response.fields = assoc.signMessage(signed_response.fields)
+        try:
+            signed_response.fields = assoc.signMessage(signed_response.fields)
+        except kvform.KVFormError, err:
+            raise EncodingError(*err.args)
         return signed_response
 
 

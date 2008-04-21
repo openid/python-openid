@@ -4,6 +4,9 @@ from openid import oidutil
 
 import types
 
+class KVFormError(ValueError):
+    pass
+
 def seqToKV(seq, strict=False):
     """Represent a sequence of pairs of strings as newline-terminated
     key:value pairs. The pairs are generated in the order given.
@@ -17,7 +20,7 @@ def seqToKV(seq, strict=False):
     def err(msg):
         formatted = 'seqToKV warning: %s: %r' % (msg, seq)
         if strict:
-            raise ValueError(formatted)
+            raise KVFormError(formatted)
         else:
             oidutil.log(formatted)
 
@@ -30,11 +33,11 @@ def seqToKV(seq, strict=False):
             k = str(k)
 
         if '\n' in k:
-            raise ValueError(
+            raise KVFormError(
                 'Invalid input for seqToKV: key contains newline: %r' % (k,))
 
         if ':' in k:
-            raise ValueError(
+            raise KVFormError(
                 'Invalid input for seqToKV: key contains colon: %r' % (k,))
 
         if k.strip() != k:
@@ -47,7 +50,7 @@ def seqToKV(seq, strict=False):
             v = str(v)
 
         if '\n' in v:
-            raise ValueError(
+            raise KVFormError(
                 'Invalid input for seqToKV: value contains newline: %r' % (v,))
 
         if v.strip() != v:
@@ -68,7 +71,7 @@ def kvToSeq(data, strict=False):
     def err(msg):
         formatted = 'kvToSeq warning: %s: %r' % (msg, data)
         if strict:
-            raise ValueError(formatted)
+            raise KVFormError(formatted)
         else:
             oidutil.log(formatted)
 
