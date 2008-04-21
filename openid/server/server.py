@@ -1220,7 +1220,7 @@ class Signatory(object):
         try:
             signed_response.fields = assoc.signMessage(signed_response.fields)
         except kvform.KVFormError, err:
-            raise EncodingError(*err.args)
+            raise EncodingError(response, explanation=str(err))
         return signed_response
 
 
@@ -1762,10 +1762,19 @@ class EncodingError(Exception):
     @type response: L{OpenIDResponse}
     """
 
-    def __init__(self, response):
+    def __init__(self, response, explanation=None):
         Exception.__init__(self, response)
         self.response = response
+        self.explanation = explanation
 
+    def __str__(self):
+        if self.explanation:
+            s = '%s: %s' % (self.__class__.__name__,
+                            self.explanation)
+        else:
+            s = '%s for Response %s' % (
+                self.__class__.__name__, response)
+        return s
 
 
 class AlreadySigned(EncodingError):
