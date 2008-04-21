@@ -762,8 +762,9 @@ class CheckIDRequest(OpenIDRequest):
         @returntype: L{OpenIDResponse}
 
         @change: Version 2.0 deprecates C{server_url} and adds C{claimed_id}.
+
+        @raises NoReturnError: when I do not have a return_to.
         """
-        # FIXME: undocumented exceptions
         if not self.return_to:
             raise NoReturnToError
 
@@ -867,6 +868,8 @@ class CheckIDRequest(OpenIDRequest):
         @type server_url: str
 
         @returntype: str
+
+        @raises NoReturnError: when I do not have a return_to.
         """
         if not self.return_to:
             raise NoReturnToError
@@ -904,6 +907,8 @@ class CheckIDRequest(OpenIDRequest):
 
         @returntype: str
         @returns: The return_to URL with openid.mode = cancel.
+
+        @raises NoReturnError: when I do not have a return_to.
         """
         if not self.return_to:
             raise NoReturnToError
