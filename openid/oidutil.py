@@ -147,18 +147,6 @@ def fromBase64(s):
         # Convert to a common exception type
         raise ValueError(why[0])
 
-def isAbsoluteHTTPURL(url):
-    """Does this URL look like a http or https URL that has a host?
-
-    @param url: The url to check
-    @type url: str
-
-    @return: Whether the URL looks OK
-    @rtype: bool
-    """
-    parts = urlparse.urlparse(url)
-    return parts[0] in ['http', 'https'] and parts[1]
-
 class Symbol(object):
     """This class implements an object that compares equal to others
     of the same type that have the same name. These are distict from
