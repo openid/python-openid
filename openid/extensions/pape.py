@@ -187,18 +187,23 @@ class Response(Extension):
         @param success_response: A SuccessResponse from consumer.complete()
         @type success_response: C{L{openid.consumer.consumer.SuccessResponse}}
 
-        @rtype: Response
+        @rtype: Response or None
         @returns: A provider authentication policy response from the
-            data that was supplied with the C{id_res} response.
+            data that was supplied with the C{id_res} response or None
+            if the provider sent no signed PAPE response arguments.
         """
         self = cls()
 
         # PAPE requires that the args be signed.
         args = success_response.getSignedNS(self.ns_uri)
 
-        self.parseExtensionArgs(args)
-
-        return self
+        # Only try to construct a PAPE response if the arguments were
+        # signed in the OpenID response.  If not, return None.
+        if args is not None:
+            self.parseExtensionArgs(args)
+            return self
+        else:
+            return None
 
     def parseExtensionArgs(self, args, strict=False):
         """Parse the provider authentication policy arguments into the

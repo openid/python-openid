@@ -198,3 +198,22 @@ class PapeResponseTestCase(unittest.TestCase):
         req = pape.Response.fromSuccessResponse(oid_req)
         self.failUnlessEqual([pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT], req.auth_policies)
         self.failUnlessEqual(5476, req.auth_age)
+
+    def test_fromSuccessResponseNoSignedArgs(self):
+        openid_req_msg = Message.fromOpenIDArgs({
+          'mode': 'id_res',
+          'ns': OPENID2_NS,
+          'ns.pape': pape.ns_uri,
+          'pape.auth_policies': ' '.join([pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]),
+          'pape.auth_age': '5476'
+          })
+
+        signed_stuff = {}
+
+        class NoSigningDummyResponse(DummySuccessResponse):
+            def getSignedNS(self, ns_uri):
+                return None
+
+        oid_req = NoSigningDummyResponse(openid_req_msg, signed_stuff)
+        resp = pape.Response.fromSuccessResponse(oid_req)
+        self.failUnless(resp is None)
