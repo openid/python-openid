@@ -219,7 +219,7 @@ class Response(Extension):
             this object.
         """
         policies_str = args.get('auth_policies')
-        if policies_str:
+        if policies_str and policies_str != 'none':
             self.auth_policies = policies_str.split(' ')
 
         nist_level_str = args.get('nist_auth_level')
