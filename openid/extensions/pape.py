@@ -254,9 +254,14 @@ class Response(Extension):
     def getExtensionArgs(self):
         """@see: C{L{Extension.getExtensionArgs}}
         """
-        ns_args = {
-            'auth_policies':' '.join(self.auth_policies),
+        if len(self.auth_policies) == 0:
+            ns_args = {
+                'auth_policies':'none',
             }
+        else:
+            ns_args = {
+                'auth_policies':' '.join(self.auth_policies),
+                }
 
         if self.nist_auth_level is not None:
             if self.nist_auth_level not in range(0, 5):

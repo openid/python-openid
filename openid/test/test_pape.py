@@ -115,7 +115,7 @@ class PapeResponseTestCase(unittest.TestCase):
         self.failUnlessEqual([pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT], self.req.auth_policies)
 
     def test_getExtensionArgs(self):
-        self.failUnlessEqual({'auth_policies': ''}, self.req.getExtensionArgs())
+        self.failUnlessEqual({'auth_policies': 'none'}, self.req.getExtensionArgs())
         self.req.addPolicyURI('http://uri')
         self.failUnlessEqual({'auth_policies': 'http://uri'}, self.req.getExtensionArgs())
         self.req.addPolicyURI('http://zig')
