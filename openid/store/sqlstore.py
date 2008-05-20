@@ -390,7 +390,7 @@ class MySQLStore(SQLStore):
         salt CHAR(40),
         PRIMARY KEY (server_url(255), timestamp, salt)
     )
-    TYPE=InnoDB;
+    ENGINE=InnoDB;
     """
 
     create_assoc_sql = """
@@ -404,7 +404,7 @@ class MySQLStore(SQLStore):
         assoc_type VARCHAR(64),
         PRIMARY KEY (server_url(255), handle)
     )
-    TYPE=InnoDB;
+    ENGINE=InnoDB;
     """
 
     create_settings_sql = """
@@ -413,7 +413,7 @@ class MySQLStore(SQLStore):
         setting VARCHAR(128) UNIQUE PRIMARY KEY,
         value BLOB
     )
-    TYPE=InnoDB;
+    ENGINE=InnoDB;
     """
 
     set_assoc_sql = ('REPLACE INTO %(associations)s '
