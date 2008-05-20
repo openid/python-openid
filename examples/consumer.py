@@ -68,8 +68,12 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
 
     session = None
 
-    def getConsumer(self):
-        return consumer.Consumer(self.getSession(), self.server.store)
+    def getConsumer(self, stateless=False):
+        if stateless:
+            store = None
+        else:
+            store = self.server.store
+        return consumer.Consumer(self.getSession(), store)
 
     def getSession(self):
         """Return the existing session or a new session"""
@@ -163,8 +167,9 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         immediate = 'immediate' in self.query
         use_sreg = 'use_sreg' in self.query
         use_pape = 'use_pape' in self.query
+        use_stateless = 'use_stateless' in self.query
 
-        oidconsumer = self.getConsumer()
+        oidconsumer = self.getConsumer(stateless = use_stateless)
         try:
             request = oidconsumer.begin(openid_url)
         except consumer.DiscoveryFailure, exc:
@@ -448,6 +453,7 @@ Content-type: text/html; charset=UTF-8
         <input type="checkbox" name="immediate" id="immediate" /><label for="immediate">Use immediate mode</label>
         <input type="checkbox" name="use_sreg" id="use_sreg" /><label for="use_sreg">Request registration data</label>
         <input type="checkbox" name="use_pape" id="use_pape" /><label for="use_pape">Request phishing-resistent auth policy (PAPE)</label>
+        <input type="checkbox" name="use_stateless" id="use_stateless" /><label for="use_stateless">Use stateless mode</label>
       </form>
     </div>
   </body>
