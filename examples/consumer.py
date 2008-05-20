@@ -305,7 +305,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             odd = ' class="odd"'
             for k, v in sreg_list:
                 field_name = sreg.data_fields.get(k, k)
-                value = cgi.escape(v)
+                value = cgi.escape(v.encode('UTF-8'))
                 self.wfile.write(
                     '<tr%s><td>%s</td><td>%s</td></tr>' % (odd, field_name, value))
                 if odd:
@@ -376,7 +376,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         """Render the page header"""
         self.setSessionCookie()
         self.wfile.write('''\
-Content-type: text/html
+Content-type: text/html; charset=UTF-8
 
 <html>
   <head><title>%s</title></head>
