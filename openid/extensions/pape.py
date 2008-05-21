@@ -16,6 +16,7 @@ __all__ = [
     ]
 
 from openid.extension import Extension
+import re
 
 ns_uri = "http://specs.openid.net/extensions/pape/1.0"
 
@@ -25,6 +26,8 @@ AUTH_MULTI_FACTOR = \
     'http://schemas.openid.net/pape/policies/2007/06/multi-factor'
 AUTH_PHISHING_RESISTANT = \
     'http://schemas.openid.net/pape/policies/2007/06/phishing-resistant'
+
+TIME_VALIDATOR = re.compile('\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ')
 
 class Request(Extension):
     """A Provider Authentication Policy request, sent from a relying
@@ -154,7 +157,7 @@ class Response(Extension):
 
     ns_alias = 'pape'
 
-    def __init__(self, auth_policies=None, auth_age=None,
+    def __init__(self, auth_policies=None, auth_time=None,
                  nist_auth_level=None):
         super(Response, self).__init__(self)
         if auth_policies:
@@ -162,7 +165,7 @@ class Response(Extension):
         else:
             self.auth_policies = []
 
-        self.auth_age = auth_age
+        self.auth_time = auth_time
         self.nist_auth_level = nist_auth_level
 
     def addPolicyURI(self, policy_uri):
@@ -236,18 +239,12 @@ class Response(Extension):
                 if 0 <= nist_level < 5:
                     self.nist_auth_level = nist_level
 
-        auth_age_str = args.get('auth_age')
-        if auth_age_str:
-            try:
-                auth_age = int(auth_age_str)
-            except ValueError:
-                if strict:
-                    raise
-            else:
-                if auth_age >= 0:
-                    self.auth_age = auth_age
-                elif strict:
-                    raise ValueError('Auth age must be above zero')
+        auth_time = args.get('auth_time')
+        if auth_time:
+            if TIME_VALIDATOR.match(auth_time):
+                self.auth_time = auth_time
+            elif strict:
+                raise ValueError("auth_time must be in RFC3339 format")
 
     fromSuccessResponse = classmethod(fromSuccessResponse)
 
@@ -269,11 +266,11 @@ class Response(Extension):
                                  'zero and four, inclusive')
             ns_args['nist_auth_level'] = str(self.nist_auth_level)
 
-        if self.auth_age is not None:
-            if self.auth_age < 0:
-                raise ValueError('Auth age must be above zero')
+        if self.auth_time is not None:
+            if not TIME_VALIDATOR.match(self.auth_time):
+                raise ValueError('auth_time must be in RFC3339 format')
 
-            ns_args['auth_age'] = str(int(self.auth_age))
+            ns_args['auth_time'] = self.auth_time
 
         return ns_args
 
