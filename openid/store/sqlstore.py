@@ -148,7 +148,17 @@ class SQLStore(OpenIDStore):
 
     def _execSQL(self, sql_name, *args):
         sql = self._getSQL(sql_name)
-        self.cur.execute(sql, args)
+        # Kludge because we have reports of postgresql not quoting
+        # arguments if they are passed in as unicode instead of str.
+        # Currently the strings in our tables just have ascii in them,
+        # so this ought to be safe.
+        def unicode_to_str(arg):
+            if isinstance(arg, unicode):
+                return str(arg)
+            else:
+                return arg
+        str_args = map(unicode_to_str, args)
+        self.cur.execute(sql, str_args)
 
     def __getattr__(self, attr):
         # if the attribute starts with db_, use a default
