@@ -87,6 +87,17 @@ class EmptyMessageTest(unittest.TestCase):
         self.failUnlessEqual(self.msg.hasKey('urn:nothing-significant', 'foo'),
                              False)
 
+    def test_getAliasedArgSuccess(self):
+        msg = message.Message.fromPostArgs({'openid.ns.test': 'urn://foo',
+                                            'openid.test.flub': 'bogus'})
+        actual_uri = msg.getAliasedArg('ns.test', message.no_default)
+        self.assertEquals("urn://foo", actual_uri)
+    
+    def test_getAliasedArgFailure(self):
+        msg = message.Message.fromPostArgs({'openid.test.flub': 'bogus'})
+        self.assertRaises(KeyError,
+                          msg.getAliasedArg, 'ns.test', message.no_default)
+
     def test_getArg(self):
         # Could reasonably return None instead of raising an
         # exception. I'm not sure which one is more right, since this

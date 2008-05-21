@@ -509,7 +509,10 @@ class Message(object):
         if aliased_key.startswith('ns.'):
             uri = self.namespaces.getNamespaceURI(aliased_key[3:])
             if uri is None:
-                return default
+                if default == no_default:
+                    raise KeyError
+                else:
+                    return default
             else:
                 return uri
 
