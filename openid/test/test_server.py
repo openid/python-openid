@@ -47,6 +47,7 @@ class TestProtocolError(unittest.TestCase):
         expected_args = {
             'openid.mode': ['error'],
             'openid.error': ['plucky'],
+            'openid.ns': [OPENID1_NS],
             }
 
         rt_base, result_args = e.encodeToURL().split('?', 1)
@@ -110,6 +111,7 @@ class TestProtocolError(unittest.TestCase):
         expected_args = {
             'openid.mode': ['error'],
             'openid.error': ['plucky'],
+            'openid.ns': [OPENID1_NS],
             }
 
         self.failUnless(e.whichEncoding() == server.ENCODE_URL)
@@ -128,7 +130,8 @@ class TestProtocolError(unittest.TestCase):
         self.failIf(e.hasReturnTo())
         expected = """error:waffles
 mode:error
-"""
+ns:%s
+"""%OPENID1_NS
         self.failUnlessEqual(e.encodeToKVForm(), expected)
 
 
@@ -709,7 +712,7 @@ is_valid:true
             'openid.mode': 'associate',
             'openid.identity': 'http://limu.unittest/',
             })
-        body="error:snoot\nmode:error\n"
+        body="error:snoot\nmode:error\nns:%s\n"%OPENID1_NS
         webresponse = self.encode(server.ProtocolError(args, "snoot"))
         self.failUnlessEqual(webresponse.code, server.HTTP_ERROR)
         self.failUnlessEqual(webresponse.headers, {})
@@ -929,10 +932,11 @@ class TestCheckID(unittest.TestCase):
 
         self.failUnless(answer.fields.hasKey(OPENID_NS, 'response_nonce'))
         self.failUnlessEqual(answer.fields.getOpenIDNamespace(), OPENID1_NS)
+        self.failIf(answer.fields.namespaces.isImplicit(OPENID1_NS))
 
-        # One for nonce
+        # One for nonce, one for namespace
         self.failUnlessEqual(len(answer.fields.toPostArgs()),
-                             len(expected_list) + 1,
+                             len(expected_list) + 2,
                              answer.fields.toPostArgs())
 
 
@@ -1158,8 +1162,9 @@ class TestCheckID(unittest.TestCase):
         # crappiting setup_url, you dirty my interface with your presence!
         answer = self.request.answer(False, server_url=server_url)
         self.failUnlessEqual(answer.request, self.request)
-        self.failUnlessEqual(len(answer.fields.toPostArgs()), 2, answer.fields)
+        self.failUnlessEqual(len(answer.fields.toPostArgs()), 3, answer.fields)
         self.failUnlessEqual(answer.fields.getOpenIDNamespace(), OPENID1_NS)
+        self.failIf(answer.fields.namespaces.isImplicit(OPENID1_NS))
         self.failUnlessEqual(answer.fields.getArg(OPENID_NS, 'mode'), 'id_res')
         self.failUnless(answer.fields.getArg(
             OPENID_NS, 'user_setup_url', '').startswith(server_url))

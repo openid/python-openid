@@ -168,6 +168,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
             'openid.identity':delegate_url,
             'openid.trust_root':trust_root,
             'openid.assoc_handle':fetcher.assoc_handle,
+            'openid.ns':OPENID1_NS,
             }, (q, user_url, delegate_url, mode)
 
         assert new_return_to.startswith(return_to)
@@ -1171,6 +1172,7 @@ class BadArgCheckingConsumer(GenericConsumer):
         assert args == {
             'openid.mode':'check_authentication',
             'openid.signed':'foo',
+            'openid.ns':OPENID1_NS
             }, args
         return None
 

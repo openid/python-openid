@@ -1,5 +1,6 @@
 from openid import message
 from openid import oidutil
+from openid.extensions import sreg
 
 import urllib
 import cgi
@@ -400,12 +401,49 @@ class OpenID1MessageTest(unittest.TestCase):
     def test_isOpenID2(self):
         self.failIf(self.msg.isOpenID2())
 
-class OpenID1ExplicitMessageTest(OpenID1MessageTest):
+class OpenID1ExplicitMessageTest(unittest.TestCase):
     def setUp(self):
         self.msg = message.Message.fromPostArgs({'openid.mode':'error',
                                                  'openid.error':'unit test',
                                                  'openid.ns':message.OPENID1_NS
                                                  })
+
+    def test_toPostArgs(self):
+        self.failUnlessEqual(self.msg.toPostArgs(),
+                             {'openid.mode':'error',
+                              'openid.error':'unit test',
+                              'openid.ns':message.OPENID1_NS
+                              })
+
+    def test_toArgs(self):
+        self.failUnlessEqual(self.msg.toArgs(), {'mode':'error',
+                                                 'error':'unit test',
+                                                 'ns':message.OPENID1_NS})
+
+    def test_toKVForm(self):
+        self.failUnlessEqual(self.msg.toKVForm(),
+                             'error:unit test\nmode:error\nns:%s\n'
+                              %message.OPENID1_NS)
+
+    def test_toURLEncoded(self):
+        self.failUnlessEqual(self.msg.toURLEncoded(),
+                             'openid.error=unit+test&openid.mode=error&openid.ns=http%3A%2F%2Fopenid.net%2Fsignon%2F1.0')
+
+    def test_toURL(self):
+        base_url = 'http://base.url/'
+        actual = self.msg.toURL(base_url)
+        actual_base = actual[:len(base_url)]
+        self.failUnlessEqual(actual_base, base_url)
+        self.failUnlessEqual(actual[len(base_url)], '?')
+        query = actual[len(base_url) + 1:]
+        parsed = cgi.parse_qs(query)
+        self.failUnlessEqual(parsed, {'openid.mode':['error'],
+                                      'openid.error':['unit test'],
+                                      'openid.ns':[message.OPENID1_NS]
+                                      })
+
+    def test_isOpenID1(self):
+        self.failUnless(self.msg.isOpenID1())
 
 
 class OpenID2MessageTest(unittest.TestCase):
@@ -593,6 +631,46 @@ class OpenID2MessageTest(unittest.TestCase):
             # .fromPostArgs).
             self.failUnlessRaises(AssertionError, self.msg.fromPostArgs,
                                   args)
+
+    def test_mysterious_missing_namespace_bug(self):
+        """A failing test for bug #112"""
+        openid_args = {
+          'assoc_handle': '{{HMAC-SHA256}{1211477242.29743}{v5cadg==}',
+          'claimed_id': 'http://nerdbank.org/OPAffirmative/AffirmativeIdentityWithSregNoAssoc.aspx', 
+          'ns.sreg': 'http://openid.net/extensions/sreg/1.1', 
+          'response_nonce': '2008-05-22T17:27:22ZUoW5.\\NV', 
+          'signed': 'return_to,identity,claimed_id,op_endpoint,response_nonce,ns.sreg,sreg.email,sreg.nickname,assoc_handle',
+          'sig': 'e3eGZ10+TNRZitgq5kQlk5KmTKzFaCRI8OrRoXyoFa4=', 
+          'mode': 'check_authentication', 
+          'op_endpoint': 'http://nerdbank.org/OPAffirmative/ProviderNoAssoc.aspx',
+          'sreg.nickname': 'Andy',
+          'return_to': 'http://localhost.localdomain:8001/process?janrain_nonce=2008-05-22T17%3A27%3A21ZnxHULd', 
+          'invalidate_handle': '{{HMAC-SHA1}{1211477241.92242}{H0akXw==}', 
+          'identity': 'http://nerdbank.org/OPAffirmative/AffirmativeIdentityWithSregNoAssoc.aspx', 
+          'sreg.email': 'a@b.com'
+          }
+        m = message.Message.fromOpenIDArgs(openid_args)
+
+        self.assertTrue(('http://openid.net/extensions/sreg/1.1', 'sreg') in
+                        list(m.namespaces.iteritems()))
+        missing = []
+        for k in openid_args['signed'].split(','):
+            if not ("openid."+k) in m.toPostArgs().keys():
+                missing.append(k)
+        self.assertEqual([], missing, missing)
+        self.assertEqual(openid_args, m.toArgs())
+        self.assertTrue(m.isOpenID1())
+
+    def test_implicit_sreg_ns(self):
+        openid_args = {
+          'sreg.email': 'a@b.com'
+          }
+        m = message.Message.fromOpenIDArgs(openid_args)
+        self.assertTrue((sreg.ns_uri, 'sreg') in
+                        list(m.namespaces.iteritems()))
+        self.assertEqual('a@b.com', m.getArg(sreg.ns_uri, 'email'))
+        self.assertEqual(openid_args, m.toArgs())
+        self.assertTrue(m.isOpenID1())
 
     def _test_delArgNS(self, ns):
         key = 'Camper van Beethoven'
