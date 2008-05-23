@@ -967,14 +967,20 @@ class OpenIDResponse(object):
             self.fields)
 
 
-    def toFormMarkup(self):
+    def toFormMarkup(self, form_tag_attrs=None):
         """Returns the form markup for this response.
+
+        @param form_tag_attrs: Dictionary of attributes to be added to
+            the form tag. 'accept-charset' and 'enctype' have defaults
+            that can be overridden. If a value is supplied for
+            'action' or 'method', it will be replaced.
 
         @returntype: str
 
         @since: 2.1.0
         """
-        return self.fields.toFormMarkup(self.request.return_to)
+        return self.fields.toFormMarkup(self.request.return_to, 
+                                        form_tag_attrs=form_tag_attrs)
 
 
     def renderAsForm(self):

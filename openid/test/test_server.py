@@ -584,6 +584,27 @@ class TestEncode(unittest.TestCase):
         webresponse = self.encode(response)
         self.failUnlessEqual(webresponse.body, response.toFormMarkup())
 
+    def test_toFormMarkup(self):
+        request = server.CheckIDRequest(
+            identity = 'http://bombom.unittest/',
+            trust_root = 'http://burr.unittest/',
+            return_to = 'http://burr.unittest/999',
+            immediate = False,
+            op_endpoint = self.server.op_endpoint,
+            )
+        response = server.OpenIDResponse(request)
+        response.fields = Message.fromOpenIDArgs({
+            'ns': OPENID2_NS,
+            'mode': 'id_res',
+            'identity': request.identity,
+            'claimed_id': request.identity,
+            'return_to': 'x' * OPENID1_URL_LIMIT,
+            })
+
+        form_markup = response.toFormMarkup({'foo':'bar'})
+        self.failUnless(' foo="bar"' in form_markup)
+ 
+
     def test_id_res_OpenID1_exceeds_limit(self):
         """
         Check that when an OpenID 1 response exceeds the OpenID 1
