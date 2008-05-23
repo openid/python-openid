@@ -982,6 +982,17 @@ class OpenIDResponse(object):
         return self.fields.toFormMarkup(self.request.return_to, 
                                         form_tag_attrs=form_tag_attrs)
 
+    def toHTML(self, form_tag_attrs=None):
+        """Returns an HTML document that auto-submits the form markup
+        for this response.
+
+        @returntype: str
+
+        @see: toFormMarkup
+
+        @since: 2.1.?
+        """
+        return oidutil.autoSubmitHTML(self.toFormMarkup(form_tag_attrs))
 
     def renderAsForm(self):
         """Returns True if this response's encoding is
@@ -1669,6 +1680,14 @@ class ProtocolError(Exception):
         @since: 2.1.0
         """
         return self.toMessage().toFormMarkup(self.getReturnTo())
+
+    def toHTML(self):
+        """Encode to a full HTML page, wrapping the form markup in a page
+        that will autosubmit the form.
+        
+        @since: 2.1.?
+        """
+        return oidutil.autoSubmitHTML(self.toFormMarkup())
 
     def whichEncoding(self):
         """How should I be encoded?

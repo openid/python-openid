@@ -1666,6 +1666,20 @@ class AuthRequest(object):
         return message.toFormMarkup(self.endpoint.server_url,
                     form_tag_attrs)
 
+    def htmlMarkup(self, realm, return_to=None, immediate=False,
+            form_tag_attrs=None):
+        """Get an autosubmitting HTML page that submits this request to the
+        IDP.  This is just a wrapper for formMarkup.
+
+        @see: formMarkup
+
+        @returns: str
+        """
+        return oidutil.autoSubmitHTML(self.formMarkup(realm, 
+                                                      return_to,
+                                                      immediate, 
+                                                      form_tag_attrs))
+
     def shouldSendRedirect(self):
         """Should this OpenID authentication request be sent as a HTTP
         redirect or as a POST (form submission)?

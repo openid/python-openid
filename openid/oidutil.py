@@ -5,7 +5,7 @@ For users of this library, the C{L{log}} function is probably the most
 interesting.
 """
 
-__all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64']
+__all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'autoSubmitHTML']
 
 import binascii
 import sys
@@ -20,6 +20,15 @@ elementtree_modules = [
     'cElementTree',
     'elementtree.ElementTree',
     ]
+
+def autoSubmitHTML(form):
+    return """
+<html>
+<body onload="document.forms[0].submit();">
+%s
+</body>
+</html>
+"""%form
 
 def importElementTree(module_names=None):
     """Find a working ElementTree implementation, trying the standard
