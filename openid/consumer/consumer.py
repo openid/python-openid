@@ -921,7 +921,7 @@ class GenericConsumer(object):
         # request.
         if not endpoint:
             oidutil.log('No pre-discovered information supplied.')
-            endpoint = self._discoverAndVerify(to_match)
+            endpoint = self._discoverAndVerify(to_match.claimed_id, [to_match])
         else:
             # The claimed ID matches, so we use the endpoint that we
             # discovered in initiation. This should be the most common
@@ -929,10 +929,12 @@ class GenericConsumer(object):
             try:
                 self._verifyDiscoverySingle(endpoint, to_match)
             except ProtocolError, e:
-                oidutil.log("Error attempting to use stored discovery information: " +
-                            str(e))
+                oidutil.log(
+                    "Error attempting to use stored discovery information: " +
+                    str(e))
                 oidutil.log("Attempting discovery to verify endpoint")
-                endpoint = self._discoverAndVerify(to_match)
+                endpoint = self._discoverAndVerify(
+                    to_match.claimed_id, [to_match])
 
         # The endpoint we return should have the claimed ID from the
         # message we just verified, fragment and all.
@@ -979,10 +981,7 @@ class GenericConsumer(object):
                 return endpoint
 
         # Endpoint is either bad (failed verification) or None
-        try:
-            return self._discoverAndVerify(to_match)
-        except TypeURIMismatch:
-            return self._discoverAndVerify(to_match_1_0)
+        return self._discoverAndVerify(claimed_id, [to_match, to_match_1_0])
 
     def _verifyDiscoverySingle(self, endpoint, to_match):
         """Verify that the given endpoint matches the information
@@ -1032,7 +1031,7 @@ class GenericConsumer(object):
             raise ProtocolError('OP Endpoint mismatch. Expected %s, got %s' %
                                 (to_match.server_url, endpoint.server_url))
 
-    def _discoverAndVerify(self, to_match):
+    def _discoverAndVerify(self, claimed_id, to_match_endpoints):
         """Given an endpoint object created from the information in an
         OpenID response, perform discovery and verify the discovery
         results, returning the matching endpoint that is the result of
@@ -1047,38 +1046,41 @@ class GenericConsumer(object):
 
         @raises DiscoveryFailure: when discovery fails.
         """
-        oidutil.log('Performing discovery on %s' % (to_match.claimed_id,))
-        _, services = self._discover(to_match.claimed_id)
+        oidutil.log('Performing discovery on %s' % (claimed_id,))
+        _, services = self._discover(claimed_id)
         if not services:
             raise DiscoveryFailure('No OpenID information found at %s' %
-                                   (to_match.claimed_id,), None)
-        return self._verifyDiscoveredServices(services, to_match)
+                                   (claimed_id,), None)
+        return self._verifyDiscoveredServices(claimed_id, services,
+                                              to_match_endpoints)
 
 
-    def _verifyDiscoveredServices(self, services, to_match):
+    def _verifyDiscoveredServices(self, claimed_id, services, to_match_endpoints):
         """See @L{_discoverAndVerify}"""
 
         # Search the services resulting from discovery to find one
         # that matches the information from the assertion
         failure_messages = []
         for endpoint in services:
-            try:
-                self._verifyDiscoverySingle(endpoint, to_match)
-            except ProtocolError, why:
-                failure_messages.append(str(why))
-            else:
-                # It matches, so discover verification has
-                # succeeded. Return this endpoint.
-                return endpoint
+            for to_match_endpoint in to_match_endpoints:
+                try:
+                    self._verifyDiscoverySingle(
+                        endpoint, to_match_endpoint)
+                except ProtocolError, why:
+                    failure_messages.append(str(why))
+                else:
+                    # It matches, so discover verification has
+                    # succeeded. Return this endpoint.
+                    return endpoint
         else:
             oidutil.log('Discovery verification failure for %s' %
-                        (to_match.claimed_id,))
+                        (claimed_id,))
             for failure_message in failure_messages:
                 oidutil.log(' * Endpoint mismatch: ' + failure_message)
 
             raise DiscoveryFailure(
                 'No matching endpoint found after discovering %s'
-                % (to_match.claimed_id,), None)
+                % (claimed_id,), None)
 
     def _checkAuth(self, message, server_url):
         """Make a check_authentication request to verify this message.

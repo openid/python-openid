@@ -467,7 +467,7 @@ class TestComplete(TestIdRes):
     def test_idResURLMismatch(self):
         class VerifiedError(Exception): pass
 
-        def discoverAndVerify(_to_match):
+        def discoverAndVerify(claimed_id, _to_match_endpoints):
             raise VerifiedError
 
         self.consumer._discoverAndVerify = discoverAndVerify
@@ -1707,8 +1707,10 @@ class TestDiscoveryVerification(unittest.TestCase):
     def test_otherServer(self):
         text = "verify failed"
 
-        def discoverAndVerify(to_match):
-            self.failUnlessEqual(self.identifier, to_match.claimed_id)
+        def discoverAndVerify(claimed_id, to_match_endpoints):
+            self.failUnlessEqual(claimed_id, self.identifier)
+            for to_match in to_match_endpoints:
+                self.failUnlessEqual(claimed_id, to_match.claimed_id)
             raise ProtocolError(text)
 
         self.consumer._discoverAndVerify = discoverAndVerify
@@ -1732,8 +1734,10 @@ class TestDiscoveryVerification(unittest.TestCase):
     def test_foreignDelegate(self):
         text = "verify failed"
 
-        def discoverAndVerify(to_match):
-            self.failUnlessEqual(self.identifier, to_match.claimed_id)
+        def discoverAndVerify(claimed_id, to_match_endpoints):
+            self.failUnlessEqual(claimed_id, self.identifier)
+            for to_match in to_match_endpoints:
+                self.failUnlessEqual(claimed_id, to_match.claimed_id)
             raise ProtocolError(text)
 
         self.consumer._discoverAndVerify = discoverAndVerify
@@ -1951,7 +1955,9 @@ class TestDiscoverAndVerify(unittest.TestCase):
     def failUnlessDiscoveryFailure(self):
         self.failUnlessRaises(
             DiscoveryFailure,
-            self.consumer._discoverAndVerify, self.to_match)
+            self.consumer._discoverAndVerify,
+            'http://claimed-id.com/',
+            [self.to_match])
 
     def test_noServices(self):
         """Discovery returning no results results in a
@@ -1983,7 +1989,8 @@ class TestDiscoverAndVerify(unittest.TestCase):
 
         # Since _verifyDiscoverySingle returns True, we should get the
         # first endpoint that we passed in as a result.
-        result = self.consumer._discoverAndVerify(self.to_match)
+        result = self.consumer._discoverAndVerify(
+            'http://claimed.id/', [self.to_match])
         self.failUnlessEqual(matching_endpoint, result)
 
 from openid.extension import Extension
