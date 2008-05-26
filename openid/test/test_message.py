@@ -651,7 +651,7 @@ class OpenID2MessageTest(unittest.TestCase):
           }
         m = message.Message.fromOpenIDArgs(openid_args)
 
-        self.assertTrue(('http://openid.net/extensions/sreg/1.1', 'sreg') in
+        self.failUnless(('http://openid.net/extensions/sreg/1.1', 'sreg') in
                         list(m.namespaces.iteritems()))
         missing = []
         for k in openid_args['signed'].split(','):
@@ -659,7 +659,7 @@ class OpenID2MessageTest(unittest.TestCase):
                 missing.append(k)
         self.assertEqual([], missing, missing)
         self.assertEqual(openid_args, m.toArgs())
-        self.assertTrue(m.isOpenID1())
+        self.failUnless(m.isOpenID1())
 
     def test_112B(self):
         args = {'openid.assoc_handle': 'fa1f5ff0-cde4-11dc-a183-3714bfd55ca8',
@@ -684,18 +684,18 @@ class OpenID2MessageTest(unittest.TestCase):
                 missing.append(k)
         self.assertEqual([], missing, missing)
         self.assertEqual(args, m.toPostArgs())
-        self.assertTrue(m.isOpenID2())
+        self.failUnless(m.isOpenID2())
 
     def test_implicit_sreg_ns(self):
         openid_args = {
           'sreg.email': 'a@b.com'
           }
         m = message.Message.fromOpenIDArgs(openid_args)
-        self.assertTrue((sreg.ns_uri, 'sreg') in
+        self.failUnless((sreg.ns_uri, 'sreg') in
                         list(m.namespaces.iteritems()))
         self.assertEqual('a@b.com', m.getArg(sreg.ns_uri, 'email'))
         self.assertEqual(openid_args, m.toArgs())
-        self.assertTrue(m.isOpenID1())
+        self.failUnless(m.isOpenID1())
 
     def _test_delArgNS(self, ns):
         key = 'Camper van Beethoven'
