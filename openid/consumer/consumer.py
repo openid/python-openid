@@ -1104,19 +1104,10 @@ class GenericConsumer(object):
         """Generate a check_authentication request message given an
         id_res message.
         """
-        # Arguments that are always passed to the server and not
-        # included in the signature.
-        whitelist = ['assoc_handle', 'sig', 'signed', 'invalidate_handle']
-
-        check_args = {}
-        for k in whitelist:
-            val = message.getArg(OPENID_NS, k)
-            if val is not None:
-                check_args[k] = val
-
         signed = message.getArg(OPENID_NS, 'signed')
         if signed:
             for k in signed.split(','):
+                oidutil.log(k)
                 val = message.getAliasedArg(k)
 
                 # Signed value is missing
@@ -1124,10 +1115,9 @@ class GenericConsumer(object):
                     oidutil.log('Missing signed field %r' % (k,))
                     return None
 
-                check_args[k] = val
-
-        check_args['mode'] = 'check_authentication'
-        return Message.fromOpenIDArgs(check_args)
+        check_auth_message = message.copy()
+        check_auth_message.setArg(OPENID_NS, 'mode', 'check_authentication')
+        return check_auth_message
 
     def _processCheckAuthResponse(self, response, server_url):
         """Process the response message from a check_authentication

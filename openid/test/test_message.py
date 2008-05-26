@@ -661,6 +661,31 @@ class OpenID2MessageTest(unittest.TestCase):
         self.assertEqual(openid_args, m.toArgs())
         self.assertTrue(m.isOpenID1())
 
+    def test_112B(self):
+        args = {'openid.assoc_handle': 'fa1f5ff0-cde4-11dc-a183-3714bfd55ca8',
+                'openid.claimed_id': 'http://binkley.lan/user/test01',
+                'openid.identity': 'http://test01.binkley.lan/',
+                'openid.mode': 'id_res',
+                'openid.ns': 'http://specs.openid.net/auth/2.0',
+                'openid.ns.pape': 'http://specs.openid.net/extensions/pape/1.0',
+                'openid.op_endpoint': 'http://binkley.lan/server',
+                'openid.pape.auth_policies': 'none',
+                'openid.pape.auth_time': '2008-01-28T20:42:36Z',
+                'openid.pape.nist_auth_level': '0',
+                'openid.response_nonce': '2008-01-28T21:07:04Z99Q=',
+                'openid.return_to': 'http://binkley.lan:8001/process?janrain_nonce=2008-01-28T21%3A07%3A02Z0tMIKx',
+                'openid.sig': 'YJlWH4U6SroB1HoPkmEKx9AyGGg=',
+                'openid.signed': 'assoc_handle,identity,response_nonce,return_to,claimed_id,op_endpoint,pape.auth_time,ns.pape,pape.nist_auth_level,pape.auth_policies'
+                }
+        m = message.Message.fromPostArgs(args)
+        missing = []
+        for k in args['openid.signed'].split(','):
+            if not ("openid."+k) in m.toPostArgs().keys():
+                missing.append(k)
+        self.assertEqual([], missing, missing)
+        self.assertEqual(args, m.toPostArgs())
+        self.assertTrue(m.isOpenID2())
+
     def test_implicit_sreg_ns(self):
         openid_args = {
           'sreg.email': 'a@b.com'

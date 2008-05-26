@@ -1215,7 +1215,6 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
     def test_signedList(self):
         query = Message.fromOpenIDArgs({
             'mode': 'id_res',
-            'ns': OPENID2_NS,
             'sig': 'rabbits',
             'identity': '=example',
             'assoc_handle': 'munchkins',
@@ -1224,17 +1223,37 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
             'signed': 'identity,mode,ns.sreg,sreg.email',
             'foo': 'bar',
             })
-        expected = Message.fromOpenIDArgs({
-            'mode': 'check_authentication',
-            'sig': 'rabbits',
-            'assoc_handle': 'munchkins',
-            'identity': '=example',
-            'signed': 'identity,mode,ns.sreg,sreg.email',
-            'ns.sreg': 'urn:sreg',
-            'sreg.email': 'bogus@example.com',
-            })
         args = self.consumer._createCheckAuthRequest(query)
-        self.failUnlessEqual(args.toPostArgs(), expected.toPostArgs())
+        self.failUnless(args.isOpenID1())
+        for signed_arg in query.getArg(OPENID_NS, 'signed').split(','):
+           self.failUnless(args.getAliasedArg(signed_arg), signed_arg)
+
+    def test_112(self):
+        args = {'openid.assoc_handle': 'fa1f5ff0-cde4-11dc-a183-3714bfd55ca8',
+                'openid.claimed_id': 'http://binkley.lan/user/test01',
+                'openid.identity': 'http://test01.binkley.lan/',
+                'openid.mode': 'id_res',
+                'openid.ns': 'http://specs.openid.net/auth/2.0',
+                'openid.ns.pape': 'http://specs.openid.net/extensions/pape/1.0',
+                'openid.op_endpoint': 'http://binkley.lan/server',
+                'openid.pape.auth_policies': 'none',
+                'openid.pape.auth_time': '2008-01-28T20:42:36Z',
+                'openid.pape.nist_auth_level': '0',
+                'openid.response_nonce': '2008-01-28T21:07:04Z99Q=',
+                'openid.return_to': 'http://binkley.lan:8001/process?janrain_nonce=2008-01-28T21%3A07%3A02Z0tMIKx',
+                'openid.sig': 'YJlWH4U6SroB1HoPkmEKx9AyGGg=',
+                'openid.signed': 'assoc_handle,identity,response_nonce,return_to,claimed_id,op_endpoint,pape.auth_time,ns.pape,pape.nist_auth_level,pape.auth_policies'
+                }
+        self.failUnlessEqual(OPENID2_NS, args['openid.ns'])
+        incoming = Message.fromPostArgs(args)
+        self.failUnless(incoming.isOpenID2())
+        car = self.consumer._createCheckAuthRequest(incoming)
+        expected_args = args.copy()
+        expected_args['openid.mode'] = 'check_authentication'
+        expected =Message.fromPostArgs(expected_args)
+        self.failUnless(expected.isOpenID2())
+        self.failUnlessEqual(expected, car)
+        self.failUnlessEqual(expected_args, car.toPostArgs())
 
 
 
