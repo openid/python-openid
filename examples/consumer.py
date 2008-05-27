@@ -204,12 +204,12 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                     self.writeUserHeader()
                     self.end_headers()
                 else:
-                    form_html = request.formMarkup(
+                    form_html = request.htmlMarkup(
                         trust_root, return_to,
                         form_tag_attrs={'id':'openid_message'},
                         immediate=immediate)
 
-                    self.autoSubmit(form_html, 'openid_message')
+                    self.wfile.write(form_html)
 
     def requestRegistrationData(self, request):
         sreg_request = sreg.SRegRequest(
@@ -340,16 +340,6 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         query parameters added."""
         base = urlparse.urljoin(self.server.base_url, action)
         return appendArgs(base, query)
-
-    def autoSubmit(self, form, id):
-        """Send a page containing an auto-submitting form."""
-        response = """\
-<html><head><title>OpenID transaction in progress</title></head>
-<body onload='document.getElementById("%s").submit()'>
-%s
-</body></html>
-"""%(id, form)
-        self.wfile.write(response)
 
     def notFound(self):
         """Render a page with a 404 return code and a message."""
