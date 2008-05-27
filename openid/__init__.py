@@ -9,7 +9,7 @@ module.
 @contact: U{dev@lists.openidenabled.com
     <http://lists.openidenabled.com/mailman/listinfo/dev>}
 
-@copyright: (C) 2005-2007 JanRain, Inc.
+@copyright: (C) 2005-2008 JanRain, Inc.
 
 @license: Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__copyright__ = 'Copyright 2005, Janrain, Inc.'
+__copyright__ = 'Copyright 2005-2008, Janrain, Inc.'
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from urlparse import urlparse

@@ -6,7 +6,7 @@ Once you understand this example you'll know the basics of OpenID
 and using the Python OpenID library. You can then move on to more
 robust examples, and integrating OpenID into your application.
 """
-__copyright__ = 'Copyright 2005-2007, Janrain, Inc.'
+__copyright__ = 'Copyright 2005-2008, Janrain, Inc.'
 
 from Cookie import SimpleCookie
 import cgi
