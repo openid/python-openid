@@ -21,14 +21,23 @@ elementtree_modules = [
     'elementtree.ElementTree',
     ]
 
-def autoSubmitHTML(form):
+def autoSubmitHTML(form, title='OpenID transaction in progress'):
     return """
 <html>
+<head>
+  <title>%s</title>
+</head>
 <body onload="document.forms[0].submit();">
 %s
+<script>
+var elements = document.forms[0].elements;
+for (var i = 0; i < elements.length; i++) {
+  elements[i].style.display = "none";
+}
+</script>
 </body>
 </html>
-"""%form
+""" % (title, form)
 
 def importElementTree(module_names=None):
     """Find a working ElementTree implementation, trying the standard
