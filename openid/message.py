@@ -145,7 +145,7 @@ class Message(object):
 
         # Partition into "openid." args and bare args
         openid_args = {}
-        for key, value in args.iteritems():
+        for key, value in args.items():
             if isinstance(value, list):
                 raise TypeError("query dict must have one value for each key, "
                                 "not lists of values.  Query is %r" % (args,))
