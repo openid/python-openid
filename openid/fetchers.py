@@ -313,8 +313,14 @@ class CurlHTTPFetcher(HTTPFetcher):
                     raise HTTPError("Fetching URL not allowed: %r" % (url,))
 
                 data = cStringIO.StringIO()
+                def write_data(chunk):
+                    if data.tell() > 1024*MAX_RESPONSE_KB:
+                        return 0
+                    else:
+                        return data.write(chunk)
+                    
                 response_header_data = cStringIO.StringIO()
-                c.setopt(pycurl.WRITEFUNCTION, data.write)
+                c.setopt(pycurl.WRITEFUNCTION, write_data)
                 c.setopt(pycurl.HEADERFUNCTION, response_header_data.write)
                 c.setopt(pycurl.TIMEOUT, off)
                 c.setopt(pycurl.URL, openid.urinorm.urinorm(url))
