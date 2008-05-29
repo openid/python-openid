@@ -25,6 +25,24 @@ module.
 
 __version__ = '[library version:2.1.1]'[17:-1]
 
+__all__ = [
+    'association',
+    'consumer',
+    'cryptutil',
+    'dh',
+    'extension',
+    'extensions',
+    'fetchers',
+    'kvform',
+    'message',
+    'oidutil',
+    'server',
+    'sreg',
+    'store',
+    'urinorm',
+    'yadis',
+    ]
+
 # Parse the version info
 try:
     version_info = map(int, __version__.split('.'))

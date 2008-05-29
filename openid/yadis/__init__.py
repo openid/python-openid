@@ -3,6 +3,18 @@
 @see: U{http://www.openidenabled.com/yadis}
 """
 
+__all__ = [
+    'constants',
+    'discover',
+    'etxrd',
+    'filters',
+    'manager',
+    'parsehtml',
+    'services',
+    'xri',
+    'xrires',
+    ]
+
 __version__ = '[library version:1.1.0-rc1]'[17:-1]
 
 # Parse the version info
