@@ -1135,6 +1135,11 @@ class TestReturnToArgs(unittest.TestCase):
             (return_to, {}),
             (return_to + "?another=arg", {(BARE_NS, 'another'): 'arg'}),
             (return_to + "?another=arg#fragment", {(BARE_NS, 'another'): 'arg'}),
+            ("HTTP"+return_to[4:], {}),
+            (return_to.replace('url','URL'), {}),
+            ("http://some.url:80/path", {}),
+            ("http://some.url/p%61th", {}),
+            ("http://some.url/./path", {}),
             ]
 
         endpoint = None

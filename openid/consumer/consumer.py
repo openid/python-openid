@@ -205,6 +205,7 @@ from openid.association import Association, default_negotiator, \
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.yadis.manager import Discovery
+from openid import urinorm
 
 
 __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
@@ -669,8 +670,8 @@ class GenericConsumer(object):
 
         # The URL scheme, authority, and path MUST be the same between
         # the two URLs.
-        app_parts = urlparse(return_to)
-        msg_parts = urlparse(msg_return_to)
+        app_parts = urlparse(urinorm.urinorm(return_to))
+        msg_parts = urlparse(urinorm.urinorm(msg_return_to))
 
         # (addressing scheme, network location, path) must be equal in
         # both URLs.
