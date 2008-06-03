@@ -70,7 +70,7 @@ return_to matching
 ========================================
 
 ----------------------------------------
-44: matches
+45: matches
 ----------------------------------------
 http://*/                             http://cnn.com/
 http://*/                             http://livejournal.com/
@@ -116,6 +116,7 @@ http://foo.com/                       http://foo.com
 http://foo.com/                       http://foo.com:80
 http://foo.com:80/                    http://foo.com:80/stuff
 http://foo.com:80/                    http://foo.com/stuff
+http://foo.com/                       HTTP://foo.com/
 
 ----------------------------------------
 24: does not match
