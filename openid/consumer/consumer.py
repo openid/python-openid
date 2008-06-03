@@ -384,7 +384,7 @@ class Consumer(object):
 
         return auth_req
 
-    def complete(self, query, return_to):
+    def complete(self, query, current_url):
         """Called to interpret the server's response to an OpenID
         request. It is called in step 4 of the flow described in the
         consumer overview.
@@ -392,8 +392,8 @@ class Consumer(object):
         @param query: A dictionary of the query parameters for this
             HTTP request.
 
-        @param return_to: The return URL used to invoke the
-            application.  Extract the URL from your application's web
+        @param current_url: The URL used to invoke the application.
+            Extract the URL from your application's web
             request framework and specify it here to have it checked
             against the openid.return_to value in the response.  If
             the return_to URL check fails, the status of the
@@ -412,7 +412,7 @@ class Consumer(object):
         endpoint = self.session.get(self._token_key)
 
         message = Message.fromPostArgs(query)
-        response = self.consumer.complete(message, endpoint, return_to)
+        response = self.consumer.complete(message, endpoint, current_url)
 
         try:
             del self.session[self._token_key]
