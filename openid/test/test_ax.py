@@ -546,6 +546,30 @@ class FetchResponseTest(unittest.TestCase):
         r = ax.FetchResponse.fromSuccessResponse(oreq)
         self.failUnless(r is not None)
 
+    def test_fromSuccessResponseWithData(self):
+        name = 'ext0'
+        value = 'snozzberry'
+        uri = "http://willy.wonka.name/"
+        args = {
+            'mode': 'id_res',
+            'ns': OPENID2_NS,
+            'ns.ax': ax.AXMessage.ns_uri,
+            'ax.update_url': 'http://example.com/realm/update_path',
+            'ax.mode': 'fetch_response',
+            'ax.type.'+name: uri,
+            'ax.count.'+name: '1',
+            'ax.value.%s.1'%name: value,
+            }
+        sf = ['openid.' + i for i in args.keys()]
+        msg = Message.fromOpenIDArgs(args)
+        class Endpoint:
+            claimed_id = 'http://invalid.'
+
+        resp = SuccessResponse(Endpoint(), msg, signed_fields=sf)
+        ax_resp = ax.FetchResponse.fromSuccessResponse(resp)
+        values = ax_resp.get(uri)
+        self.failUnlessEqual([value], values)
+
 
 class StoreRequestTest(unittest.TestCase):
     def setUp(self):
