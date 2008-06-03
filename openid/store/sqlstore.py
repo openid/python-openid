@@ -395,9 +395,9 @@ class MySQLStore(SQLStore):
 
     create_nonce_sql = """
     CREATE TABLE %(nonces)s (
-        server_url BLOB,
-        timestamp INTEGER,
-        salt CHAR(40),
+        server_url BLOB NOT NULL,
+        timestamp INTEGER NOT NULL,
+        salt CHAR(40) NOT NULL,
         PRIMARY KEY (server_url(255), timestamp, salt)
     )
     ENGINE=InnoDB;
@@ -406,12 +406,12 @@ class MySQLStore(SQLStore):
     create_assoc_sql = """
     CREATE TABLE %(associations)s
     (
-        server_url BLOB,
-        handle VARCHAR(255),
-        secret BLOB,
-        issued INTEGER,
-        lifetime INTEGER,
-        assoc_type VARCHAR(64),
+        server_url BLOB NOT NULL,
+        handle VARCHAR(255) NOT NULL,
+        secret BLOB NOT NULL,
+        issued INTEGER NOT NULL,
+        lifetime INTEGER NOT NULL,
+        assoc_type VARCHAR(64) NOT NULL,
         PRIMARY KEY (server_url(255), handle)
     )
     ENGINE=InnoDB;
@@ -475,9 +475,9 @@ class PostgreSQLStore(SQLStore):
 
     create_nonce_sql = """
     CREATE TABLE %(nonces)s (
-        server_url VARCHAR(2047),
-        timestamp INTEGER,
-        salt CHAR(40),
+        server_url VARCHAR(2047) NOT NULL,
+        timestamp INTEGER NOT NULL,
+        salt CHAR(40) NOT NULL,
         PRIMARY KEY (server_url, timestamp, salt)
     );
     """
@@ -485,12 +485,12 @@ class PostgreSQLStore(SQLStore):
     create_assoc_sql = """
     CREATE TABLE %(associations)s
     (
-        server_url VARCHAR(2047),
-        handle VARCHAR(255),
-        secret BYTEA,
-        issued INTEGER,
-        lifetime INTEGER,
-        assoc_type VARCHAR(64),
+        server_url VARCHAR(2047) NOT NULL,
+        handle VARCHAR(255) NOT NULL,
+        secret BYTEA NOT NULL,
+        issued INTEGER NOT NULL,
+        lifetime INTEGER NOT NULL,
+        assoc_type VARCHAR(64) NOT NULL,
         PRIMARY KEY (server_url, handle),
         CONSTRAINT secret_length_constraint CHECK (LENGTH(secret) <= 128)
     );
