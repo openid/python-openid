@@ -459,6 +459,9 @@ class SRegResponse(Extension):
             args = success_response.getSignedNS(self.ns_uri)
         else:
             args = success_response.message.getArgs(self.ns_uri)
+        
+        if not args:
+            return None
 
         for field_name in data_fields:
             if field_name in args:
