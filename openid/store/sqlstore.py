@@ -339,6 +339,8 @@ class SQLiteStore(SQLStore):
     """
 
     set_assoc_sql = ('INSERT OR REPLACE INTO %(associations)s '
+                     '(server_url, handle, secret, issued, '
+                     'lifetime, assoc_type) '
                      'VALUES (?, ?, ?, ?, ?, ?);')
     get_assocs_sql = ('SELECT handle, secret, issued, lifetime, assoc_type '
                       'FROM %(associations)s WHERE server_url = ?;')
