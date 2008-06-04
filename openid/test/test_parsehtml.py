@@ -31,7 +31,7 @@ class _TestCase(unittest.TestCase):
             msg = "%r != %r for case %s" % (found, self.expected, self.case)
             self.failUnlessEqual(found, self.expected, msg)
         except HTMLParseError:
-            assert self.expected == 'None'
+            self.failUnless(self.expected == 'None', (self.case, self.expected))
         else:
             self.failUnless(self.expected == 'EOF', (self.case, self.expected))
 

@@ -3,6 +3,14 @@ found
 <html><head><meta http-equiv="X-XRDS-Location" content="found"></head></html>
 
 found
+<!-- minimal well-formed success case, xhtml closing, whitespace -->
+<html><head><meta http-equiv="X-XRDS-Location" content="found" /></head></html>
+
+found
+<!-- minimal well-formed success case, xhtml closing, no whitespace -->
+<html><head><meta http-equiv="X-XRDS-Location" content="found"/></head></html>
+
+found
 <!-- minimal success case -->
 <html><head><meta http-equiv="X-XRDS-Location" content="found">
 
@@ -17,6 +25,10 @@ found
 found
 <!-- missing <html> tag -->
 <head><meta http-equiv="X-XRDS-Location" content="found">
+
+found
+<!-- javascript in head -->
+<html><head><script type="text/javascript">document.write("<body>");</script><META http-equiv="X-XRDS-Location" content="found">
 
 found
 <!-- case folding for tag names -->
@@ -94,6 +106,14 @@ None
 None
 <!-- <meta> is inside of <body> -->
 <html><head><body><meta http-equiv="X-XRDS-Location" content="found">
+
+None
+<!-- <meta> is inside comment -->
+<html>
+  <head>
+    <!--<meta http-equiv="X-XRDS-Location" content="found">-->
+  </head>
+</html>
 
 None
 <!-- <meta> is inside of <body> -->
