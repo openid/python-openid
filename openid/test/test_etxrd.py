@@ -162,6 +162,10 @@ class TestCanonicalID(unittest.TestCase):
 
     test_status222 = mkTest("=x", "status222.xrds", None)
 
+    test_multisegment_xri = mkTest('xri://=nishitani*masaki',
+                                   'subsegments.xrds',
+                                   '=!E117.EF2F.454B.C707!0000.0000.3B9A.CA01')
+
     test_iri_auth_not_allowed = mkTest(
         "phreak.example.com", "delegated-20060809-r2.xrds", etxrd.XRDSFraud)
     test_iri_auth_not_allowed.__doc__ = \
