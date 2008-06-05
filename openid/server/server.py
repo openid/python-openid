@@ -127,8 +127,7 @@ from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot, verifyReturnTo
 from openid.association import Association, default_negotiator, getSecretSize
 from openid.message import Message, InvalidOpenIDNamespace, \
-     OPENID_NS, OPENID1_NS, \
-     OPENID2_NS, IDENTIFIER_SELECT, OPENID1_URL_LIMIT
+     OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, OPENID1_URL_LIMIT
 
 HTTP_OK = 200
 HTTP_REDIRECT = 302
@@ -418,7 +417,7 @@ class AssociateRequest(OpenIDRequest):
         @returntype: L{AssociateRequest}
         """
         if message.isOpenID1():
-            session_type = message.getArg(OPENID1_NS, 'session_type')
+            session_type = message.getArg(OPENID_NS, 'session_type')
             if session_type == 'no-encryption':
                 oidutil.log('Received OpenID 1 request with a no-encryption '
                             'assocaition session type. Continuing anyway.')
@@ -474,7 +473,7 @@ class AssociateRequest(OpenIDRequest):
                                    self.session.answer(assoc.secret))
 
         if not (self.session.session_type == 'no-encryption' and
-                self.namespace == OPENID1_NS):
+                self.message.isOpenID1()):
             # The session type "no-encryption" did not have a name
             # in OpenID v1, it was just omitted.
             response.fields.setArg(
@@ -547,7 +546,6 @@ class CheckIDRequest(OpenIDRequest):
 
         @raises MalformedReturnURL: When the C{return_to} URL is not a URL.
         """
-        self.namespace = OPENID2_NS
         self.assoc_handle = assoc_handle
         self.identity = identity
         self.claimed_id = identity
@@ -567,8 +565,16 @@ class CheckIDRequest(OpenIDRequest):
             raise MalformedReturnURL(None, self.return_to)
         if not self.trustRootValid():
             raise UntrustedReturnURL(None, self.return_to, self.trust_root)
+        self.message = None
 
+    def _getNamespace(self):
+        warnings.warn('The "namespace" attribute of CheckIDRequest objects '
+                      'is deprecated. Use "message.getOpenIDNamespace()" '
+                      'instead', DeprecationWarning, stacklevel=2)
+        return self.message.getOpenIDNamespace()
 
+    namespace = property(_getNamespace)
+        
     def fromMessage(klass, message, op_endpoint):
         """Construct me from an OpenID message.
 
@@ -591,7 +597,6 @@ class CheckIDRequest(OpenIDRequest):
         """
         self = klass.__new__(klass)
         self.message = message
-        self.namespace = message.getOpenIDNamespace()
         self.op_endpoint = op_endpoint
         mode = message.getArg(OPENID_NS, 'mode')
         if mode == "checkid_immediate":
@@ -769,7 +774,7 @@ class CheckIDRequest(OpenIDRequest):
             raise NoReturnToError
 
         if not server_url:
-            if self.namespace != OPENID1_NS and not self.op_endpoint:
+            if not self.message.isOpenID1() and not self.op_endpoint:
                 # In other words, that warning I raised in Server.__init__?
                 # You should pay attention to it now.
                 raise RuntimeError("%s should be constructed with op_endpoint "
@@ -779,7 +784,7 @@ class CheckIDRequest(OpenIDRequest):
 
         if allow:
             mode = 'id_res'
-        elif self.namespace == OPENID1_NS:
+        elif self.message.isOpenID1():
              if self.immediate:
                  mode = 'id_res'
              else:
@@ -792,9 +797,10 @@ class CheckIDRequest(OpenIDRequest):
 
         response = OpenIDResponse(self)
 
-        if claimed_id and self.namespace == OPENID1_NS:
+        if claimed_id and self.message.isOpenID1():
+            namespace = self.message.getOpenIDNamespace()
             raise VersionError("claimed_id is new in OpenID 2.0 and not "
-                               "available for %s" % (self.namespace,))
+                               "available for %s" % (namespace,))
 
         if identity and not claimed_id:
             claimed_id = identity
@@ -823,7 +829,7 @@ class CheckIDRequest(OpenIDRequest):
                         "supplied %r" % (identity,))
                 response_identity = None
 
-            if self.namespace == OPENID1_NS and response_identity is None:
+            if self.message.isOpenID1() and response_identity is None:
                 raise ValueError(
                     "Request was an OpenID 1 request, so response must "
                     "include an identifier."
@@ -841,13 +847,13 @@ class CheckIDRequest(OpenIDRequest):
             if response_identity is not None:
                 response.fields.setArg(
                     OPENID_NS, 'identity', response_identity)
-                if self.namespace == OPENID2_NS:
+                if self.message.isOpenID2():
                     response.fields.setArg(
                         OPENID_NS, 'claimed_id', response_claimed_id)
         else:
             response.fields.setArg(OPENID_NS, 'mode', mode)
             if self.immediate:
-                if self.namespace == OPENID1_NS and not server_url:
+                if self.message.isOpenID1() and not server_url:
                     raise ValueError("setup_url is required for allow=False "
                                      "in OpenID 1.x immediate mode.")
                 # Make a new request just like me, but with immediate=False.
@@ -855,6 +861,10 @@ class CheckIDRequest(OpenIDRequest):
                     self.identity, self.return_to, self.trust_root,
                     immediate=False, assoc_handle=self.assoc_handle,
                     op_endpoint=self.op_endpoint)
+
+                # XXX: This API is weird.
+                setup_request.message = self.message
+
                 setup_url = setup_request.encodeToURL(server_url)
                 response.fields.setArg(OPENID_NS, 'user_setup_url', setup_url)
 
@@ -883,15 +893,15 @@ class CheckIDRequest(OpenIDRequest):
              'claimed_id': self.claimed_id,
              'return_to': self.return_to}
         if self.trust_root:
-            if self.namespace == OPENID1_NS:
+            if self.message.isOpenID1():
                 q['trust_root'] = self.trust_root
             else:
                 q['realm'] = self.trust_root
         if self.assoc_handle:
             q['assoc_handle'] = self.assoc_handle
 
-        response = Message(self.namespace)
-        response.updateArgs(self.namespace, q)
+        response = Message(self.message.getOpenIDNamespace())
+        response.updateArgs(OPENID_NS, q)
         return response.toURL(server_url)
 
 
@@ -916,7 +926,8 @@ class CheckIDRequest(OpenIDRequest):
         if self.immediate:
             raise ValueError("Cancel is not an appropriate response to "
                              "immediate mode requests.")
-        response = Message(self.namespace)
+
+        response = Message(self.message.getOpenIDNamespace())
         response.setArg(OPENID_NS, 'mode', 'cancel')
         return response.toURL(self.return_to)
 

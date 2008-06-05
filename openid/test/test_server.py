@@ -542,6 +542,7 @@ class TestEncode(unittest.TestCase):
             immediate = False,
             op_endpoint = self.server.op_endpoint,
             )
+        request.message = Message(OPENID2_NS)
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'ns': OPENID2_NS,
@@ -569,6 +570,7 @@ class TestEncode(unittest.TestCase):
             immediate = False,
             op_endpoint = self.server.op_endpoint,
             )
+        request.message = Message(OPENID2_NS)
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'ns': OPENID2_NS,
@@ -592,6 +594,7 @@ class TestEncode(unittest.TestCase):
             immediate = False,
             op_endpoint = self.server.op_endpoint,
             )
+        request.message = Message(OPENID2_NS)
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'ns': OPENID2_NS,
@@ -612,6 +615,7 @@ class TestEncode(unittest.TestCase):
             immediate = False,
             op_endpoint = self.server.op_endpoint,
             )
+        request.message = Message(OPENID2_NS)
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'ns': OPENID2_NS,
@@ -641,6 +645,7 @@ class TestEncode(unittest.TestCase):
             immediate = False,
             op_endpoint = self.server.op_endpoint,
             )
+        request.message = Message(OPENID2_NS)
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'mode': 'id_res',
@@ -662,6 +667,7 @@ class TestEncode(unittest.TestCase):
             immediate = False,
             op_endpoint = self.server.op_endpoint,
             )
+        request.message = Message(OPENID2_NS)
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'mode': 'id_res',
@@ -689,6 +695,7 @@ class TestEncode(unittest.TestCase):
             immediate = False,
             op_endpoint = self.server.op_endpoint,
             )
+        request.message = Message(OPENID2_NS)
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'mode': 'cancel',
@@ -705,6 +712,7 @@ class TestEncode(unittest.TestCase):
             immediate = False,
             op_endpoint = self.server.op_endpoint,
             )
+        request.message = Message(OPENID2_NS)
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'mode': 'cancel',
@@ -776,6 +784,7 @@ class TestSigningEncode(unittest.TestCase):
             immediate = False,
             op_endpoint = self.server.op_endpoint,
             )
+        self.request.message = Message(OPENID2_NS)
         self.response = server.OpenIDResponse(self.request)
         self.response.fields = Message.fromOpenIDArgs({
             'mode': 'id_res',
@@ -826,6 +835,7 @@ class TestSigningEncode(unittest.TestCase):
             immediate = False,
             op_endpoint = self.server.op_endpoint,
             )
+        request.message = Message(OPENID2_NS)
         response = server.OpenIDResponse(request)
         response.fields.setArg(OPENID_NS, 'mode', 'cancel')
         webresponse = self.encode(response)
@@ -864,6 +874,7 @@ class TestCheckID(unittest.TestCase):
             immediate = False,
             op_endpoint = self.server.op_endpoint,
             )
+        self.request.message = Message(OPENID2_NS)
 
     def test_trustRootInvalid(self):
         self.request.trust_root = "http://foo.unittest/17"
@@ -1030,7 +1041,7 @@ class TestCheckID(unittest.TestCase):
     def test_answerAllowWithDelegatedIdentityOpenID1(self):
         """claimed_id parameter doesn't exist in OpenID 1.
         """
-        self.request.namespace = OPENID1_NS
+        self.request.message = Message(OPENID1_NS)
         # claimed_id delegates to selected_id here.
         self.request.identity = IDENTIFIER_SELECT
         selected_id = 'http://anon.unittest/9861'
@@ -1046,7 +1057,7 @@ class TestCheckID(unittest.TestCase):
                               identity="http://pebbles.unittest/")
 
     def test_answerAllowNoIdentityOpenID1(self):
-        self.request.namespace = OPENID1_NS
+        self.request.message = Message(OPENID1_NS)
         self.request.identity = None
         self.failUnlessRaises(ValueError, self.request.answer, True,
                               identity=None)
@@ -1198,7 +1209,7 @@ class TestCheckID(unittest.TestCase):
     def test_answerImmediateDenyOpenID1(self):
         """Look for user_setup_url in checkid_immediate negative
         response in OpenID 1 case."""
-        self.request.namespace = OPENID1_NS
+        self.request.message = Message(OPENID1_NS)
         self.request.mode = 'checkid_immediate'
         self.request.immediate = True
         server_url = "http://setup-url.unittest/"
@@ -1260,6 +1271,7 @@ class TestCheckIDExtension(unittest.TestCase):
             immediate = False,
             op_endpoint = self.server.op_endpoint,
             )
+        self.request.message = Message(OPENID2_NS)
         self.response = server.OpenIDResponse(self.request)
         self.response.fields.setArg(OPENID_NS, 'mode', 'id_res')
         self.response.fields.setArg(OPENID_NS, 'blue', 'star')
