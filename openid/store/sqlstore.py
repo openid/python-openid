@@ -34,7 +34,7 @@ class SQLStore(OpenIDStore):
     logic common to all of the SQL stores.
 
     The table names used are determined by the class variables
-    C{L{settings_table}}, C{L{associations_table}}, and
+    C{L{associations_table}} and
     C{L{nonces_table}}.  To change the name of the tables used, pass
     new table names into the constructor.
 
@@ -49,9 +49,6 @@ class SQLStore(OpenIDStore):
     should be considered implementation details.
 
 
-    @cvar settings_table: This is the default name of the table to
-        keep this store's settings in.
-
     @cvar associations_table: This is the default name of the table to
         keep associations in
 
@@ -62,12 +59,10 @@ class SQLStore(OpenIDStore):
     @sort: __init__, createTables
     """
 
-    settings_table = 'oid_settings'
     associations_table = 'oid_associations'
     nonces_table = 'oid_nonces'
 
-    def __init__(self, conn, settings_table=None, associations_table=None,
-                 nonces_table=None):
+    def __init__(self, conn, associations_table=None, nonces_table=None):
         """
         This creates a new SQLStore instance.  It requires an
         established database connection be given to it, and it allows
@@ -80,14 +75,6 @@ class SQLStore(OpenIDStore):
 
         @type conn: A python database API compatible connection
             object.
-
-
-        @param settings_table: This is an optional parameter to
-            specify the name of the table used for this store's
-            settings.  The default value is specified in
-            C{L{SQLStore.settings_table}}.
-
-        @type settings_table: C{str}
 
 
         @param associations_table: This is an optional parameter to
@@ -108,7 +95,6 @@ class SQLStore(OpenIDStore):
         self.cur = None
         self._statement_cache = {}
         self._table_names = {
-            'settings': settings_table or self.settings_table,
             'associations': associations_table or self.associations_table,
             'nonces': nonces_table or self.nonces_table,
             }
@@ -203,7 +189,6 @@ class SQLStore(OpenIDStore):
         """
         self.db_create_nonce()
         self.db_create_assoc()
-        self.db_create_settings()
 
     createTables = _inTxn(txn_createTables)
 
@@ -330,14 +315,6 @@ class SQLiteStore(SQLStore):
     );
     """
 
-    create_settings_sql = """
-    CREATE TABLE %(settings)s
-    (
-        setting VARCHAR(128) UNIQUE PRIMARY KEY,
-        value BLOB(20)
-    );
-    """
-
     set_assoc_sql = ('INSERT OR REPLACE INTO %(associations)s '
                      '(server_url, handle, secret, issued, '
                      'lifetime, assoc_type) '
@@ -419,15 +396,6 @@ class MySQLStore(SQLStore):
     ENGINE=InnoDB;
     """
 
-    create_settings_sql = """
-    CREATE TABLE %(settings)s
-    (
-        setting VARCHAR(128) UNIQUE PRIMARY KEY,
-        value BLOB
-    )
-    ENGINE=InnoDB;
-    """
-
     set_assoc_sql = ('REPLACE INTO %(associations)s '
                      'VALUES (%%s, %%s, %%s, %%s, %%s, %%s);')
     get_assocs_sql = ('SELECT handle, secret, issued, lifetime, assoc_type'
@@ -495,15 +463,6 @@ class PostgreSQLStore(SQLStore):
         assoc_type VARCHAR(64) NOT NULL,
         PRIMARY KEY (server_url, handle),
         CONSTRAINT secret_length_constraint CHECK (LENGTH(secret) <= 128)
-    );
-    """
-
-    create_settings_sql = """
-    CREATE TABLE %(settings)s
-    (
-        setting VARCHAR(128) UNIQUE PRIMARY KEY,
-        value BYTEA,
-        CONSTRAINT value_length_constraint CHECK (LENGTH(value) <= 20)
     );
     """
 

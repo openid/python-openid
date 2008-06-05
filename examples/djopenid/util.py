@@ -50,7 +50,6 @@ def getOpenIDStore(filestore_path, table_prefix):
 
     # Create table names to specify for SQL-backed stores.
     tablenames = {
-        'settings_table': table_prefix + 'openid_settings',
         'associations_table': table_prefix + 'openid_associations',
         'nonces_table': table_prefix + 'openid_nonces',
         }
