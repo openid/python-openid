@@ -1461,8 +1461,7 @@ class AuthRequest(object):
         self.assoc = assoc
         self.endpoint = endpoint
         self.return_to_args = {}
-        self.message = Message()
-        self.message.setOpenIDNamespace(endpoint.preferredNamespace())
+        self.message = Message(endpoint.preferredNamespace())
         self._anonymous = False
 
     def setAnonymous(self, is_anonymous):

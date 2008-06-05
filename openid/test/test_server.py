@@ -47,7 +47,6 @@ class TestProtocolError(unittest.TestCase):
         expected_args = {
             'openid.mode': ['error'],
             'openid.error': ['plucky'],
-            'openid.ns': [OPENID1_NS],
             }
 
         rt_base, result_args = e.encodeToURL().split('?', 1)
@@ -111,7 +110,6 @@ class TestProtocolError(unittest.TestCase):
         expected_args = {
             'openid.mode': ['error'],
             'openid.error': ['plucky'],
-            'openid.ns': [OPENID1_NS],
             }
 
         self.failUnless(e.whichEncoding() == server.ENCODE_URL)
@@ -130,8 +128,7 @@ class TestProtocolError(unittest.TestCase):
         self.failIf(e.hasReturnTo())
         expected = """error:waffles
 mode:error
-ns:%s
-"""%OPENID1_NS
+"""
         self.failUnlessEqual(e.encodeToKVForm(), expected)
 
 
@@ -763,7 +760,7 @@ is_valid:true
             'openid.mode': 'associate',
             'openid.identity': 'http://limu.unittest/',
             })
-        body="error:snoot\nmode:error\nns:%s\n"%OPENID1_NS
+        body="error:snoot\nmode:error\n"
         webresponse = self.encode(server.ProtocolError(args, "snoot"))
         self.failUnlessEqual(webresponse.code, server.HTTP_ERROR)
         self.failUnlessEqual(webresponse.headers, {})
@@ -973,27 +970,6 @@ class TestCheckID(unittest.TestCase):
                              len(expected_list) + 2,
                              answer.fields.toPostArgs())
 
-    def _expectAnswerv1(self, answer, identity=None):
-        expected_list = [
-            ('mode', 'id_res'),
-            ('return_to', self.request.return_to),
-            ('identity', identity),
-            ]
-
-        for k, expected in expected_list:
-            actual = answer.fields.getArg(OPENID_NS, k)
-            self.failUnlessEqual(actual, expected, "%s: expected %s, got %s" % (k, expected, actual))
-
-        self.failUnless(answer.fields.hasKey(OPENID_NS, 'response_nonce'))
-        self.failUnlessEqual(answer.fields.getOpenIDNamespace(), OPENID1_NS)
-        self.failIf(answer.fields.namespaces.isImplicit(OPENID1_NS))
-
-        # One for nonce, one for namespace
-        self.failUnlessEqual(len(answer.fields.toPostArgs()),
-                             len(expected_list) + 2,
-                             answer.fields.toPostArgs())
-
-
     def test_answerAllow(self):
         """Check the fields specified by "Positive Assertions"
 
@@ -1178,14 +1154,35 @@ class TestCheckID(unittest.TestCase):
         """Test .allow() with an OpenID 1.x Message on a CheckIDRequest
         built without an op_endpoint parameter.
         """
+        identity = 'http://bambam.unittest/'
         reqmessage = Message.fromOpenIDArgs({
-            'identity': 'http://bambam.unittest/',
+            'identity': identity,
             'trust_root': 'http://bar.unittest/',
             'return_to': 'http://bar.unittest/999',
             })
         self.request = server.CheckIDRequest.fromMessage(reqmessage, None)
         answer = self.request.answer(True)
-        self._expectAnswerv1(answer, 'http://bambam.unittest/')
+
+        expected_list = [
+            ('mode', 'id_res'),
+            ('return_to', self.request.return_to),
+            ('identity', identity),
+            ]
+
+        for k, expected in expected_list:
+            actual = answer.fields.getArg(OPENID_NS, k)
+            self.failUnlessEqual(
+                expected, actual,
+                "%s: expected %s, got %s" % (k, expected, actual))
+
+        self.failUnless(answer.fields.hasKey(OPENID_NS, 'response_nonce'))
+        self.failUnlessEqual(answer.fields.getOpenIDNamespace(), OPENID1_NS)
+        self.failUnless(answer.fields.namespaces.isImplicit(OPENID1_NS))
+
+        # One for nonce (OpenID v1 namespace is implicit)
+        self.failUnlessEqual(len(answer.fields.toPostArgs()),
+                             len(expected_list) + 1,
+                             answer.fields.toPostArgs())
 
     def test_answerImmediateDenyOpenID2(self):
         """Look for mode=setup_needed in checkid_immediate negative
@@ -1216,9 +1213,9 @@ class TestCheckID(unittest.TestCase):
         # crappiting setup_url, you dirty my interface with your presence!
         answer = self.request.answer(False, server_url=server_url)
         self.failUnlessEqual(answer.request, self.request)
-        self.failUnlessEqual(len(answer.fields.toPostArgs()), 3, answer.fields)
+        self.failUnlessEqual(len(answer.fields.toPostArgs()), 2, answer.fields)
         self.failUnlessEqual(answer.fields.getOpenIDNamespace(), OPENID1_NS)
-        self.failIf(answer.fields.namespaces.isImplicit(OPENID1_NS))
+        self.failUnless(answer.fields.namespaces.isImplicit(OPENID1_NS))
         self.failUnlessEqual(answer.fields.getArg(OPENID_NS, 'mode'), 'id_res')
         self.failUnless(answer.fields.getArg(
             OPENID_NS, 'user_setup_url', '').startswith(server_url))

@@ -890,10 +890,10 @@ class MessageTest(unittest.TestCase):
 
         for x in invalid_things:
             self.failUnlessRaises(message.InvalidOpenIDNamespace,
-                                  m.setOpenIDNamespace, x)
+                                  m.setOpenIDNamespace, x, False)
 
 
-    def test_setOpenIDNamespace_1x(self):
+    def test_isOpenID1(self):
         v1_namespaces = [
             # Yes, there are two of them.
             'http://openid.net/signon/1.1',
@@ -905,17 +905,30 @@ class MessageTest(unittest.TestCase):
             self.failUnless(m.isOpenID1(), "%r not recognized as OpenID 1" %
                             (ns,))
             self.failUnlessEqual(ns, m.getOpenIDNamespace())
+            self.failUnless(m.namespaces.isImplicit(ns),
+                            m.namespaces.getNamespaceURI(message.NULL_NAMESPACE))
 
-    def test_setOpenIDNamespace_20(self):
-        m = message.Message()
-        m.setOpenIDNamespace('http://specs.openid.net/auth/2.0')
+    def test_isOpenID2(self):
+        ns = 'http://specs.openid.net/auth/2.0'
+        m = message.Message(ns)
         self.failUnless(m.isOpenID2())
+        self.failIf(m.namespaces.isImplicit(message.NULL_NAMESPACE))
+        self.failUnlessEqual(ns, m.getOpenIDNamespace())
+
+    def test_setOpenIDNamespace_explicit(self):
+        m = message.Message()
+        m.setOpenIDNamespace(message.THE_OTHER_OPENID1_NS, False)
+        self.failIf(m.namespaces.isImplicit(message.THE_OTHER_OPENID1_NS))
+
+    def test_setOpenIDNamespace_implicit(self):
+        m = message.Message()
+        m.setOpenIDNamespace(message.THE_OTHER_OPENID1_NS, True)
+        self.failUnless(m.namespaces.isImplicit(message.THE_OTHER_OPENID1_NS))
 
 
     def test_explicitOpenID11NSSerialzation(self):
         m = message.Message()
-        m.setOpenIDNamespace(message.THE_OTHER_OPENID1_NS)
-        self.failIf(m.namespaces.isImplicit(message.THE_OTHER_OPENID1_NS))
+        m.setOpenIDNamespace(message.THE_OTHER_OPENID1_NS, implicit=False)
 
         post_args = m.toPostArgs()
         self.failUnlessEqual(post_args,
