@@ -912,6 +912,15 @@ class MessageTest(unittest.TestCase):
         self.failUnless(m.isOpenID2())
 
 
+    def test_explicitOpenID11NSSerialzation(self):
+        m = message.Message()
+        m.setOpenIDNamespace(message.THE_OTHER_OPENID1_NS)
+        self.failIf(m.namespaces.isImplicit(message.THE_OTHER_OPENID1_NS))
+
+        post_args = m.toPostArgs()
+        self.failUnlessEqual(post_args,
+                             {'openid.ns':message.THE_OTHER_OPENID1_NS})
+
     def test_fromPostArgs_ns11(self):
         # An example of the stuff that some Drupal installations send us,
         # which includes openid.ns but is 1.1.
