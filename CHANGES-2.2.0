@@ -2,8 +2,6 @@
 * API changes
   * SQLStore implementations no longer create or use a 'settings'
     table
-  * NOT NULL constraints were added to SQLStore tables where
-    appropriate
   * SRegResponse.fromSuccessResponse returns None when no signed
     arguments were found
   * Added functions to generate request/response HTML forms with
@@ -21,6 +19,8 @@
   * Fetchers now only read/request first megabyte of response
 
 * Bug fixes
+  * NOT NULL constraints were added to SQLStore tables where
+    appropriate
   * message.fromPostArgs: use query.items() instead of iteritems(),
     fixes #161 (Affects Django users)
   * check_authentication requests: copy entire response, not just
