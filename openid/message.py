@@ -122,7 +122,7 @@ class Message(object):
         URI.
     """
 
-    allowed_openid_namespaces = [OPENID1_NS, OPENID2_NS]
+    allowed_openid_namespaces = [OPENID1_NS, THE_OTHER_OPENID1_NS, OPENID2_NS]
 
     def __init__(self, openid_namespace=None):
         """Create an empty Message.
@@ -239,9 +239,7 @@ class Message(object):
             implicit = True
         else:
             implicit = False
-        if openid_ns_uri == THE_OTHER_OPENID1_NS:
-            # It's better this way, really.
-            openid_ns_uri = OPENID1_NS
+
         if openid_ns_uri not in self.allowed_openid_namespaces:
             raise InvalidOpenIDNamespace(openid_ns_uri)
 

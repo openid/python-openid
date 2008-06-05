@@ -894,7 +894,6 @@ class MessageTest(unittest.TestCase):
 
 
     def test_setOpenIDNamespace_1x(self):
-        m = message.Message()
         v1_namespaces = [
             # Yes, there are two of them.
             'http://openid.net/signon/1.1',
@@ -902,10 +901,10 @@ class MessageTest(unittest.TestCase):
             ]
 
         for ns in v1_namespaces:
-            m.setOpenIDNamespace(ns)
+            m = message.Message(ns)
             self.failUnless(m.isOpenID1(), "%r not recognized as OpenID 1" %
                             (ns,))
-
+            self.failUnlessEqual(ns, m.getOpenIDNamespace())
 
     def test_setOpenIDNamespace_20(self):
         m = message.Message()
