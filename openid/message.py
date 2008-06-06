@@ -220,16 +220,15 @@ class Message(object):
             self.setArg(ns_uri, ns_key, value)
 
     def _getDefaultNamespace(self, mystery_alias):
-        """OpenID 1 compatibility: look for a default namespace URI to use for
-        this alias."""
+        """OpenID 1 compatibility: look for a default namespace URI to
+        use for this alias."""
         global registered_aliases
         # Only try to map an alias to a default if it's an
         # OpenID 1.x message.
         if self.isOpenID1():
-            for alias, uri in registered_aliases.iteritems():
-                if alias == mystery_alias:
-                    return uri
-        return None
+            return registered_aliases.get(mystery_alias)
+        else:
+            return None
 
     def setOpenIDNamespace(self, openid_ns_uri, implicit):
         """Set the OpenID namespace URI used in this message.
