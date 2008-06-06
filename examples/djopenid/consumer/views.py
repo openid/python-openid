@@ -169,7 +169,7 @@ def finishOpenID(request):
 
             consumer.SUCCESS:
             {'url': response.getDisplayIdentifier(),
-             'sreg': sreg_response.items(),
+             'sreg': sreg_response and sreg_response.items(),
              'pape': pape_response},
             }
 
