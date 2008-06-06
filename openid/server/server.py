@@ -574,7 +574,7 @@ class CheckIDRequest(OpenIDRequest):
         return self.message.getOpenIDNamespace()
 
     namespace = property(_getNamespace)
-        
+
     def fromMessage(klass, message, op_endpoint):
         """Construct me from an OpenID message.
 
@@ -770,6 +770,8 @@ class CheckIDRequest(OpenIDRequest):
 
         @raises NoReturnError: when I do not have a return_to.
         """
+        assert self.message is not None
+
         if not self.return_to:
             raise NoReturnToError
 
@@ -990,7 +992,7 @@ class OpenIDResponse(object):
 
         @since: 2.1.0
         """
-        return self.fields.toFormMarkup(self.request.return_to, 
+        return self.fields.toFormMarkup(self.request.return_to,
                                         form_tag_attrs=form_tag_attrs)
 
     def toHTML(self, form_tag_attrs=None):
@@ -1695,7 +1697,7 @@ class ProtocolError(Exception):
     def toHTML(self):
         """Encode to a full HTML page, wrapping the form markup in a page
         that will autosubmit the form.
-        
+
         @since: 2.1.?
         """
         return oidutil.autoSubmitHTML(self.toFormMarkup())
