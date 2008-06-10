@@ -132,7 +132,7 @@ def remove_dot_segments(path):
                 i = len(path)
             result_segments.append(path[:i])
             path = path[i:]
-            
+
     return ''.join(result_segments)
 
 
