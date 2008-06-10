@@ -103,7 +103,7 @@ def _pct_encoded_replace(mo):
 
 def remove_dot_segments(path):
     result_segments = []
-    
+
     while path:
         if path.startswith('../'):
             path = path[3:]
