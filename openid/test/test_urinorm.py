@@ -23,7 +23,7 @@ class UrinormTest(unittest.TestCase):
     def parse(cls, full_case):
         desc, case, expected = full_case.split('\n')
         case = unicode(case, 'utf-8')
-        
+
         return cls(desc, case, expected)
 
     parse = classmethod(parse)
