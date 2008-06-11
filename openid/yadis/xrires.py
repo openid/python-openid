@@ -82,7 +82,7 @@ class ProxyResolver(object):
         for service_type in service_types:
             url = self.queryURL(xri, service_type)
             response = fetchers.fetch(url)
-            if response.status != 200:
+            if response.status not in (200, 206):
                 # XXX: sucks to fail silently.
                 # print "response not OK:", response
                 continue

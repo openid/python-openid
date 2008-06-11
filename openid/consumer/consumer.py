@@ -248,7 +248,7 @@ def _httpResponseToMessage(response, server_url):
     if response.status == 400:
         raise ServerError.fromMessage(response_message)
 
-    elif response.status != 200:
+    elif response.status not in (200, 206):
         fmt = 'bad status code from server %s: %s'
         error_message = fmt % (server_url, response.status)
         raise fetchers.HTTPFetchingError(error_message)
