@@ -12,6 +12,11 @@ class Extension(object):
     def getExtensionArgs(self):
         """Get the string arguments that should be added to an OpenID
         message for this extension.
+
+        @returns: A dictionary of completely non-namespaced arguments
+            to be added. For example, if the extension's alias is
+            'uncle', and this method returns {'meat':'Hot Rats'}, the
+            final message will contain {'openid.uncle.meat':'Hot Rats'}
         """
         raise NotImplementedError
 
