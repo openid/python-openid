@@ -66,7 +66,7 @@ def _parseURL(url):
     try:
         url = urinorm.urinorm(url)
     except ValueError:
-        pass
+        return None
     proto, netloc, path, params, query, frag = urlparse(url)
     if not path:
         # Python <2.4 does not parse URLs with no path properly
