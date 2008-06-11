@@ -71,7 +71,7 @@ def parseTests(data):
 
 def pyUnitTests():
     here = os.path.dirname(os.path.abspath(__file__))
-    test_data_file_name = os.path.join(here, 'trustroot.txt')
+    test_data_file_name = os.path.join(here, 'data', 'trustroot.txt')
     test_data_file = file(test_data_file_name)
     test_data = test_data_file.read()
     test_data_file.close()
