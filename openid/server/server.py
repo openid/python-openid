@@ -934,7 +934,7 @@ class CheckIDRequest(OpenIDRequest):
         return response.toURL(self.return_to)
 
 
-    def __str__(self):
+    def __repr__(self):
         return '<%s id:%r im:%s tr:%r ah:%r>' % (self.__class__.__name__,
                                                  self.identity,
                                                  self.immediate,
