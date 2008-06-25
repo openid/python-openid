@@ -433,7 +433,7 @@ def discoverXRI(iname):
 
 def discoverNoYadis(uri):
     http_resp = fetchers.fetch(uri)
-    if http_resp.status != 200:
+    if http_resp.status not in (200, 206):
         raise DiscoveryFailure(
             'HTTP Response status from identity URL host is not 200. '
             'Got status %r' % (http_resp.status,), http_resp)
