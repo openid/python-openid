@@ -71,7 +71,10 @@ def importElementTree(module_names=None):
             else:
                 return ElementTree
     else:
-        raise
+        raise ImportError('No ElementTree library found. '
+                          'You may need to install one. '
+                          'Tried importing %r' % (module_names,)
+                          )
 
 def log(message, level=0):
     """Handle a log message from the OpenID library.
