@@ -305,7 +305,11 @@ class TrustRoot(object):
 
         is this a sane trust root?
         """
-        return cls.parse(trust_root_string).isSane()
+        trust_root = cls.parse(trust_root_string)
+        if trust_root is None:
+            return False
+        else:
+            return trust_root.isSane()
 
     checkSanity = classmethod(checkSanity)
 
