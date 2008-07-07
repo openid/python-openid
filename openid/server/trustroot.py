@@ -343,7 +343,7 @@ class TrustRoot(object):
             return self.unparsed
 
     def __repr__(self):
-        return "TrustRoot('%s', '%s', '%s', '%s', '%s', '%s')" % (
+        return "TrustRoot(%r, %r, %r, %r, %r, %r)" % (
             self.unparsed, self.proto, self.wildcard, self.host, self.port,
             self.path)
 
