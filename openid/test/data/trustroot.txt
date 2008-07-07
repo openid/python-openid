@@ -3,7 +3,7 @@ Trust root parsing checking
 ========================================
 
 ----------------------------------------
-19: Does not parse
+21: Does not parse
 ----------------------------------------
 baz.org
 *.foo.com
@@ -11,6 +11,8 @@ http://*.schtuff.*/
 ftp://foo.com
 ftp://*.foo.com
 http://*.foo.com:80:90/
+http:///
+http://
 foo.*.com
 http://foo.*.com
 http://www.*
@@ -26,9 +28,8 @@ http://lambda.com/Λ
 5
 
 ----------------------------------------
-16: Insane
+15: Insane
 ----------------------------------------
-http:///
 http://*/
 https://*/
 http://*.com

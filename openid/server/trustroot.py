@@ -62,7 +62,7 @@ _top_level_domains = [
 # Build from RFC3986, section 3.2.2. Used to reject hosts with invalid
 # characters.
 host_segment_re = re.compile(
-    r"(?:[-a-zA-Z0-9!$&'\(\)\*+,;=._~]|%[a-zA-Z0-9]{2})*$")
+    r"(?:[-a-zA-Z0-9!$&'\(\)\*+,;=._~]|%[a-zA-Z0-9]{2})+$")
 
 class RealmVerificationRedirected(Exception):
     """Attempting to verify this realm resulted in a redirect.
