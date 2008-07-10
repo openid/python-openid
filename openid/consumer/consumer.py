@@ -634,7 +634,8 @@ class GenericConsumer(object):
         if not message.isOpenID2():
             return self._completeInvalid(message, endpoint, _)
 
-        return SetupNeededResponse(endpoint)
+        user_setup_url = message.getArg(OPENID2_NS, 'user_setup_url')
+        return SetupNeededResponse(endpoint, user_setup_url)
 
     def _complete_id_res(self, message, endpoint, return_to):
         try:
