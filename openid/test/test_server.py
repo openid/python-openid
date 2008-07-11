@@ -1193,6 +1193,7 @@ class TestCheckID(unittest.TestCase):
         """
         self.request.mode = 'checkid_immediate'
         self.request.immediate = True
+        self.request.claimed_id = 'http://claimed-id.test/'
         server_url = "http://setup-url.unittest/"
         # crappiting setup_url, you dirty my interface with your presence!
         answer = self.request.answer(False, server_url=server_url)
@@ -1201,7 +1202,10 @@ class TestCheckID(unittest.TestCase):
         self.failUnlessEqual(answer.fields.getOpenIDNamespace(), OPENID2_NS)
         self.failUnlessEqual(answer.fields.getArg(OPENID_NS, 'mode'),
                              'setup_needed')
-        # user_setup_url no longer required.
+
+        usu = answer.fields.getArg(OPENID_NS, 'user_setup_url')
+        expected_substr = 'openid.claimed_id=http%3A%2F%2Fclaimed-id.test%2F'
+        self.failUnless(expected_substr in usu, usu)
 
     def test_answerImmediateDenyOpenID1(self):
         """Look for user_setup_url in checkid_immediate negative

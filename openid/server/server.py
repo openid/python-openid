@@ -538,7 +538,7 @@ class CheckIDRequest(OpenIDRequest):
     """
 
     def __init__(self, identity, return_to, trust_root=None, immediate=False,
-                 assoc_handle=None, op_endpoint=None):
+                 assoc_handle=None, op_endpoint=None, claimed_id=None):
         """Construct me.
 
         These parameters are assigned directly as class attributes, see
@@ -548,7 +548,7 @@ class CheckIDRequest(OpenIDRequest):
         """
         self.assoc_handle = assoc_handle
         self.identity = identity
-        self.claimed_id = identity
+        self.claimed_id = claimed_id or identity
         self.return_to = return_to
         self.trust_root = trust_root or return_to
         self.op_endpoint = op_endpoint
@@ -862,7 +862,7 @@ class CheckIDRequest(OpenIDRequest):
                 setup_request = self.__class__(
                     self.identity, self.return_to, self.trust_root,
                     immediate=False, assoc_handle=self.assoc_handle,
-                    op_endpoint=self.op_endpoint)
+                    op_endpoint=self.op_endpoint, claimed_id=self.claimed_id)
 
                 # XXX: This API is weird.
                 setup_request.message = self.message
