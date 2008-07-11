@@ -159,6 +159,9 @@ def finishOpenID(request):
         if response.status == consumer.SUCCESS:
             pape_response = pape.Response.fromSuccessResponse(response)
 
+            if not pape_response.auth_policies:
+                pape_response = None
+
         # Map different consumer status codes to template contexts.
         results = {
             consumer.CANCEL:
