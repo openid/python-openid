@@ -1032,6 +1032,21 @@ class TestCheckID(unittest.TestCase):
         self.failUnlessRaises(ValueError, self.request.answer, True,
                               identity="http://pebbles.unittest/")
 
+    def test_answerAllowWithIdentityNormalization(self):
+        # The RP has sent us a non-normalized value for openid.identity,
+        # and the library user is passing an explicit value for identity
+        # to CheckIDRequest.answer.
+        non_normalized = 'http://bambam.unittest'
+        normalized = non_normalized + '/'
+
+        self.request.identity = non_normalized
+        self.request.claimed_id = non_normalized
+
+        answer = self.request.answer(True, identity=normalized)
+
+        self._expectAnswer(answer, identity=non_normalized,
+                           claimed_id=normalized)
+
     def test_answerAllowNoIdentityOpenID1(self):
         self.request.message = Message(OPENID1_NS)
         self.request.identity = None

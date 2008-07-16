@@ -128,6 +128,7 @@ from openid.server.trustroot import TrustRoot, verifyReturnTo
 from openid.association import Association, default_negotiator, getSecretSize
 from openid.message import Message, InvalidOpenIDNamespace, \
      OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, OPENID1_URL_LIMIT
+from openid.urinorm import urinorm
 
 HTTP_OK = 200
 HTTP_REDIRECT = 302
@@ -818,11 +819,22 @@ class CheckIDRequest(OpenIDRequest):
 
             elif self.identity:
                 if identity and (self.identity != identity):
-                    raise ValueError(
-                        "Request was for identity %r, cannot reply "
-                        "with identity %r" % (self.identity, identity))
+                    normalized_request_identity = urinorm(self.identity)
+                    normalized_answer_identity = urinorm(identity)
+
+                    if (normalized_request_identity !=
+                        normalized_answer_identity):
+                        raise ValueError(
+                            "Request was for identity %r, cannot reply "
+                            "with identity %r" % (self.identity, identity))
+
+                # The "identity" value in the response shall always be
+                # the same as that in the request, otherwise the RP is
+                # likely to not validate the response.  But we will
+                # prefer to use the claimed_id given over the one in
+                # the request.
                 response_identity = self.identity
-                response_claimed_id = self.claimed_id
+                response_claimed_id = claimed_id or self.claimed_id
 
             else:
                 if identity:
