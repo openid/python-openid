@@ -603,7 +603,7 @@ class TestEncode(unittest.TestCase):
 
         form_markup = response.toFormMarkup({'foo':'bar'})
         self.failUnless(' foo="bar"' in form_markup)
- 
+
     def test_toHTML(self):
         request = server.CheckIDRequest(
             identity = 'http://bombom.unittest/',
@@ -1055,7 +1055,7 @@ class TestCheckID(unittest.TestCase):
 
     def test_fromMessageClaimedIDWithoutIdentityOpenID2(self):
         name = 'https://example.myopenid.com'
-        
+
         msg = Message(OPENID2_NS)
         msg.setArg(OPENID_NS, 'mode', 'checkid_setup')
         msg.setArg(OPENID_NS, 'return_to', 'http://invalid:8000/rt')
@@ -1067,7 +1067,7 @@ class TestCheckID(unittest.TestCase):
 
     def test_fromMessageIdentityWithoutClaimedIDOpenID2(self):
         name = 'https://example.myopenid.com'
-        
+
         msg = Message(OPENID2_NS)
         msg.setArg(OPENID_NS, 'mode', 'checkid_setup')
         msg.setArg(OPENID_NS, 'return_to', 'http://invalid:8000/rt')
