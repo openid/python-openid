@@ -985,6 +985,14 @@ class TestCheckID(unittest.TestCase):
         self._expectAnswer(answer, self.request.identity,
                            self.request.claimed_id)
 
+    def test_answerAllowDelegatedIdentity2(self):
+        # This time with the identity argument explicitly passed in to
+        # answer()
+        self.request.claimed_id = 'http://delegating.unittest/'
+        answer = self.request.answer(True, identity='http://bambam.unittest/')
+        self._expectAnswer(answer, self.request.identity,
+                           self.request.claimed_id)
+
     def test_answerAllowWithoutIdentityReally(self):
         self.request.identity = None
         answer = self.request.answer(True)
@@ -1044,8 +1052,10 @@ class TestCheckID(unittest.TestCase):
 
         answer = self.request.answer(True, identity=normalized)
 
+        # Expect the values that were sent in the request, even though
+        # they're not normalized.
         self._expectAnswer(answer, identity=non_normalized,
-                           claimed_id=normalized)
+                           claimed_id=non_normalized)
 
     def test_answerAllowNoIdentityOpenID1(self):
         self.request.message = Message(OPENID1_NS)

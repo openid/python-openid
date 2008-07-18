@@ -805,9 +805,6 @@ class CheckIDRequest(OpenIDRequest):
             raise VersionError("claimed_id is new in OpenID 2.0 and not "
                                "available for %s" % (namespace,))
 
-        if identity and not claimed_id:
-            claimed_id = identity
-
         if allow:
             if self.identity == IDENTIFIER_SELECT:
                 if not identity:
@@ -815,7 +812,7 @@ class CheckIDRequest(OpenIDRequest):
                         "This request uses IdP-driven identifier selection."
                         "You must supply an identifier in the response.")
                 response_identity = identity
-                response_claimed_id = claimed_id
+                response_claimed_id = claimed_id or identity
 
             elif self.identity:
                 if identity and (self.identity != identity):
@@ -830,12 +827,9 @@ class CheckIDRequest(OpenIDRequest):
 
                 # The "identity" value in the response shall always be
                 # the same as that in the request, otherwise the RP is
-                # likely to not validate the response.  But we will
-                # prefer to use the claimed_id given over the one in
-                # the request.
+                # likely to not validate the response.
                 response_identity = self.identity
-                response_claimed_id = claimed_id or self.claimed_id
-
+                response_claimed_id = self.claimed_id
             else:
                 if identity:
                     raise ValueError(
