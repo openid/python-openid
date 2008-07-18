@@ -1779,7 +1779,7 @@ class EncodingError(Exception):
                             self.explanation)
         else:
             s = '%s for Response %s' % (
-                self.__class__.__name__, response)
+                self.__class__.__name__, self.response)
         return s
 
 
