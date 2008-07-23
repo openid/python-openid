@@ -5,7 +5,7 @@ from django.views.generic.simple import direct_to_template
 
 from openid.consumer import consumer
 from openid.consumer.discover import DiscoveryFailure
-from openid.extensions import pape, sreg
+from openid.extensions import ax, pape, sreg
 from openid.yadis.constants import YADIS_HEADER_NAME, YADIS_CONTENT_TYPE
 from openid.server.trustroot import RP_RETURN_TO_URL_TYPE
 
@@ -167,12 +167,13 @@ def finishOpenID(request):
             sreg_response = sreg.SRegResponse.fromSuccessResponse(response)
 
             ax_response = ax.FetchResponse.fromSuccessResponse(response)
-            ax_items = {
-                'fullname': ax_response.get(
-                    'http://schema.openid.net/namePerson'),
-                'web': ax_response.get(
-                    'http://schema.openid.net/contact/web/default'),
-                }
+            if ax_response:
+                ax_items = {
+                    'fullname': ax_response.get(
+                        'http://schema.openid.net/namePerson'),
+                    'web': ax_response.get(
+                        'http://schema.openid.net/contact/web/default'),
+                    }
 
         # Get a PAPE response object if response information was
         # included in the OpenID response.
