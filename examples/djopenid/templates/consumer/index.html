@@ -58,6 +58,18 @@
         The server returned no Simple Registration data.
       {% endif %}
 
+      {% if ax %}
+        Attribute Exchange data returned:
+
+        <ul>
+        {% for pair in ax %}
+        <li>{{ pair.0 }}: {{ pair.1|join:", " }}</li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        The server returned no Attribute Exchange data.
+      {% endif %}
+
       {% if pape %}
         An authentication policy response contained these policies:
 

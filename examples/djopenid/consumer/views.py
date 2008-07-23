@@ -83,6 +83,18 @@ def startOpenID(request):
                                         required=['dob'])
         auth_request.addExtension(sreg_request)
 
+        # Add Attribute Exchange request information.
+        ax_request = ax.FetchRequest()
+        # XXX - uses myOpenID-compatible schema values, which are
+        # not those listed at axschema.org.
+        ax_request.add(
+            ax.AttrInfo('http://schema.openid.net/namePerson',
+                        required=True))
+        ax_request.add(
+            ax.AttrInfo('http://schema.openid.net/contact/web/default',
+                        required=False, count=ax.UNLIMITED_VALUES))
+        auth_request.addExtension(ax_request)
+
         # Add PAPE request information.  We'll ask for
         # phishing-resistant auth and display any policies we get in
         # the response.
@@ -150,8 +162,17 @@ def finishOpenID(request):
         # Get a Simple Registration response object if response
         # information was included in the OpenID response.
         sreg_response = {}
+        ax_items = {}
         if response.status == consumer.SUCCESS:
             sreg_response = sreg.SRegResponse.fromSuccessResponse(response)
+
+            ax_response = ax.FetchResponse.fromSuccessResponse(response)
+            ax_items = {
+                'fullname': ax_response.get(
+                    'http://schema.openid.net/namePerson'),
+                'web': ax_response.get(
+                    'http://schema.openid.net/contact/web/default'),
+                }
 
         # Get a PAPE response object if response information was
         # included in the OpenID response.
@@ -173,7 +194,8 @@ def finishOpenID(request):
             consumer.SUCCESS:
             {'url': response.getDisplayIdentifier(),
              'sreg': sreg_response and sreg_response.items(),
-             'pape': pape_response},
+             'ax': ax_items.items(),
+             'pape': pape_response}
             }
 
         result = results[response.status]
