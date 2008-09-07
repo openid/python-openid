@@ -46,7 +46,7 @@ class Request(Extension):
     ns_alias = 'pape'
 
     def __init__(self, preferred_auth_policies=None, max_auth_age=None):
-        super(Request, self).__init__(self)
+        super(Request, self).__init__()
         if not preferred_auth_policies:
             preferred_auth_policies = []
 
@@ -159,7 +159,7 @@ class Response(Extension):
 
     def __init__(self, auth_policies=None, auth_time=None,
                  nist_auth_level=None):
-        super(Response, self).__init__(self)
+        super(Response, self).__init__()
         if auth_policies:
             self.auth_policies = auth_policies
         else:
