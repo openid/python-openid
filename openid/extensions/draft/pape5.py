@@ -37,12 +37,54 @@ TIME_VALIDATOR = re.compile('^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ$')
 LEVELS_NIST = 'http://csrc.nist.gov/publications/nistpubs/800-63/SP800-63V1_0_2.pdf'
 LEVELS_JISA = 'http://www.jisa.or.jp/spec/auth_level.html'
 
-_default_auth_level_aliases = {
-    'nist': LEVELS_NIST,
-    'jisa': LEVELS_JISA,
-    }
+class PAPEExtension(Extension):
+    _default_auth_level_aliases = {
+        'nist': LEVELS_NIST,
+        'jisa': LEVELS_JISA,
+        }
 
-class Request(Extension):
+    def __init__(self):
+        self.auth_level_aliases = self._default_auth_level_aliases.copy()
+
+    def _addAuthLevelAlias(self, auth_level_uri, alias=None):
+        """Add an auth level URI alias to this request.
+
+        @param auth_level_uri: The auth level URI to send in the
+            request.
+
+        @param alias: The namespace alias to use for this auth level
+            in this message. May be None if the alias is not
+            important.
+        """
+        if alias is None:
+            try:
+                alias = self._getAlias(auth_level_uri)
+            except KeyError:
+                alias = self._generateAlias()
+        else:
+            existing_uri = self.auth_level_aliases.get(alias)
+            if existing_uri is not None and existing_uri != auth_level_uri:
+                raise KeyError('Attempting to redefine alias %r from %r to %r',
+                               alias, existing_uri, auth_level_uri)
+
+        self.auth_level_aliases[alias] = auth_level_uri
+
+    def _generateAlias(self):
+        for i in xrange(1000):
+            alias = 'cust%d' % (i,)
+            if alias not in self.auth_level_aliases:
+                return alias
+
+        raise RuntimeError('Could not find an unused alias (tried 1000!)')
+
+    def _getAlias(self, auth_level_uri):
+        for (alias, existing_uri) in self.auth_level_aliases.iteritems():
+            if auth_level_uri == existing_uri:
+                return alias
+
+        raise KeyError(auth_level_uri)
+
+class Request(PAPEExtension):
     """A Provider Authentication Policy request, sent from a relying
     party to a provider
 
@@ -65,14 +107,13 @@ class Request(Extension):
 
     def __init__(self, preferred_auth_policies=None, max_auth_age=None,
                  preferred_auth_level_types=None):
-        super(Request, self).__init__(self)
+        super(Request, self).__init__()
         if preferred_auth_policies is None:
             preferred_auth_policies = []
 
         self.preferred_auth_policies = preferred_auth_policies
         self.max_auth_age = max_auth_age
         self.preferred_auth_level_types = []
-        self.auth_level_aliases = _default_auth_level_aliases.copy()
 
         if preferred_auth_level_types is not None:
             for auth_level in preferred_auth_level_types:
@@ -97,43 +138,9 @@ class Request(Extension):
             self.preferred_auth_policies.append(policy_uri)
 
     def addAuthLevel(self, auth_level_uri, alias=None):
-        """Add an auth level URI and alias to this request.
-
-        @param auth_level_uri: The auth level URI to send in the
-            request.
-
-        @param alias: The namespace alias to use for this auth level
-            in the request. May be None if the alias is not important.
-        """
-        if alias is None:
-            try:
-                alias = self._getAlias(auth_level_uri)
-            except KeyError:
-                alias = self._generateAlias()
-        else:
-            existing_uri = self.auth_level_aliases.get(alias)
-            if existing_uri is not None and existing_uri != auth_level_uri:
-                raise KeyError('Attempting to redefine alias %r from %r to %r',
-                               alias, existing_uri, auth_level_uri)
-
-        self.auth_level_aliases[alias] = auth_level_uri
+        self._addAuthLevelAlias(auth_level_uri, alias)
         if auth_level_uri not in self.preferred_auth_level_types:
             self.preferred_auth_level_types.append(auth_level_uri)
-
-    def _generateAlias(self):
-        for i in xrange(1000):
-            alias = 'cust%d' % (i,)
-            if alias not in self.auth_level_aliases:
-                return alias
-
-        raise RuntimeError('Could not find an unused alias (tried 1000!)')
-
-    def _getAlias(self, auth_level_uri):
-        for (alias, existing_uri) in self.auth_level_aliases.iteritems():
-            if auth_level_uri == existing_uri:
-                return alias
-
-        raise KeyError(auth_level_uri)
 
     def getExtensionArgs(self):
         """@see: C{L{Extension.getExtensionArgs}}
@@ -223,7 +230,7 @@ class Request(Extension):
                     uri = args[key]
                 except KeyError:
                     if is_openid1:
-                        uri = _default_auth_level_aliases.get(alias)
+                        uri = self._default_auth_level_aliases.get(alias)
                     else:
                         uri = None
 
