@@ -58,6 +58,7 @@ def pyunitTests():
         'verifydisco',
         'sreg',
         'ax',
+        'pape',
         'pape_draft2',
         'pape_draft5',
         'rpverify',
