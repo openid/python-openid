@@ -125,7 +125,7 @@ class PapeRequestTestCase(unittest.TestCase):
             }
 
         # Check request object state
-        self.req.parseExtensionArgs(request_args)
+        self.req.parseExtensionArgs(request_args, False)
 
         expected_auth_levels = [uri, uri2]
 
@@ -134,29 +134,49 @@ class PapeRequestTestCase(unittest.TestCase):
         self.assertEqual(uri, self.req.auth_level_aliases[alias])
         self.assertEqual(uri2, self.req.auth_level_aliases[alias2])
 
+    def test_parseExtensionArgsWithAuthLevels_openID1(self):
+        request_args = {
+            'preferred_auth_level_types':'nist jisa',
+            }
+        expected_auth_levels = [pape.LEVELS_NIST, pape.LEVELS_JISA]
+        self.req.parseExtensionArgs(request_args, is_openid1=True)
+        self.assertEqual(expected_auth_levels,
+                         self.req.preferred_auth_level_types)
+
+        self.req = pape.Request()
+        self.req.parseExtensionArgs(request_args, is_openid1=False)
+        self.assertEqual([],
+                         self.req.preferred_auth_level_types)
+
+        self.req = pape.Request()
+        self.failUnlessRaises(ValueError,
+                              self.req.parseExtensionArgs,
+                              request_args, is_openid1=False, strict=True)
+
     def test_parseExtensionArgs_ignoreBadAuthLevels(self):
         request_args = {'preferred_auth_level_types':'monkeys'}
-        self.req.parseExtensionArgs(request_args)
+        self.req.parseExtensionArgs(request_args, False)
         self.assertEqual([], self.req.preferred_auth_level_types)
 
     def test_parseExtensionArgs_strictBadAuthLevels(self):
         request_args = {'preferred_auth_level_types':'monkeys'}
         self.failUnlessRaises(ValueError, self.req.parseExtensionArgs,
-                              request_args, strict=True)
+                              request_args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs(self):
         args = {'preferred_auth_policies': 'http://foo http://bar',
                 'max_auth_age': '9'}
-        self.req.parseExtensionArgs(args)
+        self.req.parseExtensionArgs(args, False)
         self.failUnlessEqual(9, self.req.max_auth_age)
         self.failUnlessEqual(['http://foo','http://bar'],
                              self.req.preferred_auth_policies)
         self.failUnlessEqual([], self.req.preferred_auth_level_types)
 
     def test_parseExtensionArgs_empty(self):
-        self.req.parseExtensionArgs({})
+        self.req.parseExtensionArgs({}, False)
         self.failUnlessEqual(None, self.req.max_auth_age)
         self.failUnlessEqual([], self.req.preferred_auth_policies)
+        self.failUnlessEqual([], self.req.preferred_auth_level_types)
 
     def test_fromOpenIDRequest(self):
         policy_uris = [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]

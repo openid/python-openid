@@ -163,16 +163,17 @@ class Request(Extension):
         """
         self = cls()
         args = request.message.getArgs(self.ns_uri)
+        is_openid1 = request.message.isOpenID1()
 
         if args == {}:
             return None
 
-        self.parseExtensionArgs(args)
+        self.parseExtensionArgs(args, is_openid1)
         return self
 
     fromOpenIDRequest = classmethod(fromOpenIDRequest)
 
-    def parseExtensionArgs(self, args, strict=False):
+    def parseExtensionArgs(self, args, is_openid1, strict=False):
         """Set the state of this request to be that expressed in these
         PAPE arguments
 
@@ -181,6 +182,9 @@ class Request(Extension):
         @param strict: Whether to raise an exception if the input is
             out of spec or otherwise malformed. If strict is false,
             malformed input will be ignored.
+
+        @param is_openid1: Whether the input should be treated as part
+            of an OpenID1 request
 
         @rtype: None
 
@@ -215,7 +219,14 @@ class Request(Extension):
 
             for alias in aliases:
                 key = 'auth_level.ns.%s' % (alias,)
-                uri = args.get(key)
+                try:
+                    uri = args[key]
+                except KeyError:
+                    if is_openid1:
+                        uri = _default_auth_level_aliases.get(alias)
+                    else:
+                        uri = None
+
                 if uri is None:
                     if strict:
                         raise ValueError('preferred auth level %r is not '
