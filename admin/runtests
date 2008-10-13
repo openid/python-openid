@@ -44,60 +44,29 @@ def otherTests():
 
 def pyunitTests():
     import unittest
-    from openid.test import test_htmldiscover
-    from openid.test import test_openidyadis
-    from openid.test import test_discover
-    from openid.test import test_consumer
-    from openid.test import test_message
-    from openid.test import test_server
-    from openid.test import test_symbol
-    from openid.test import kvform
-    from openid.test import oidutil
-    from openid.test import linkparse
-    from openid.test import trustroot
-    from openid.test import test_association
-    from openid.test import test_negotiation
-    from openid.test import test_auth_request
-    from openid.test import test_fetchers
-    from openid.test import test_urinorm
-    from openid.test import test_nonce
-    from openid.test import test_association_response
-    from openid.test import test_verifydisco
-    from openid.test import test_sreg
-    from openid.test import storetest
-    from openid.test import test_ax
-    from openid.test import test_rpverify
-    from openid.test import test_pape_draft2
-    from openid.test import test_pape_draft5
-    from openid.test import test_extension
-
-    # yadis tests
-    from openid.test import test_parsehtml
-    from openid.test import test_yadis_discover
-    from openid.test import test_accept
-    from openid.test import test_etxrd
-    from openid.test import test_xri
-    from openid.test import test_xrires
-    from openid.test import test_services
+    pyunit_module_names = [
+        'server',
+        'consumer',
+        'message',
+        'symbol',
+        'etxrd',
+        'xri',
+        'xrires',
+        'association_response',
+        'auth_request',
+        'negotiation',
+        'verifydisco',
+        'sreg',
+        'ax',
+        'pape_draft2',
+        'pape_draft5',
+        'rpverify',
+        'extension',
+        ]
 
     pyunit_modules = [
-        test_server,
-        test_consumer,
-        test_message,
-        test_symbol,
-        test_etxrd,
-        test_xri,
-        test_xrires,
-        test_association_response,
-        test_auth_request,
-        test_negotiation,
-        test_verifydisco,
-        test_sreg,
-        test_ax,
-        test_pape_draft2,
-        test_pape_draft5,
-        test_rpverify,
-        test_extension,
+        __import__('openid.test.test_%s' % (name,), {}, {}, ['unused'])
+        for name in pyunit_module_names
         ]
 
     try:
@@ -112,22 +81,22 @@ def pyunitTests():
 
     # Some modules have data-driven tests, and they use custom methods
     # to build the test suite:
-    custom_modules = [
-        storetest,
-        oidutil,
-        linkparse,
-        trustroot,
-        test_openidyadis,
-        test_htmldiscover,
-        test_association,
-        kvform,
-        test_parsehtml,
-        test_discover,
-        test_accept,
-        test_fetchers,
-        test_urinorm,
-        test_yadis_discover,
-        test_nonce,
+    custom_module_names = [
+        'kvform',
+        'linkparse',
+        'oidutil',
+        'storetest',
+        'test_accept',
+        'test_association',
+        'test_discover',
+        'test_fetchers',
+        'test_htmldiscover',
+        'test_nonce',
+        'test_openidyadis',
+        'test_parsehtml',
+        'test_urinorm',
+        'test_yadis_discover',
+        'trustroot',
         ]
 
     loader = unittest.TestLoader()
@@ -136,13 +105,14 @@ def pyunitTests():
     for m in pyunit_modules:
         s.addTest(loader.loadTestsFromModule(m))
 
-    for m in custom_modules:
+    for name in custom_module_names:
+        m = __import__('openid.test.%s' % (name,), {}, {}, ['unused'])
         try:
             s.addTest(m.pyUnitTests())
         except AttributeError, ex:
             # because the AttributeError doesn't actually say which
             # object it was.
-            print "Error loading tests from %s:" % (m,)
+            print "Error loading tests from %s:" % (name,)
             raise
 
     runner = unittest.TextTestRunner() # verbosity=2)
