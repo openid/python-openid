@@ -55,31 +55,33 @@ class Request(Extension):
         re-authenticate
     @type max_auth_age: int or NoneType
 
-    @ivar auth_levels: Ordered list of authentication level namespace
-        URIs
-    @type auth_levels: [str]
+    @ivar preferred_auth_level_types: Ordered list of authentication
+        level namespace URIs
+
+    @type preferred_auth_level_types: [str]
     """
 
     ns_alias = 'pape'
 
-    def __init__(self, preferred_auth_policies=None, max_auth_age=None, auth_levels=None):
+    def __init__(self, preferred_auth_policies=None, max_auth_age=None,
+                 preferred_auth_level_types=None):
         super(Request, self).__init__(self)
         if preferred_auth_policies is None:
             preferred_auth_policies = []
 
         self.preferred_auth_policies = preferred_auth_policies
         self.max_auth_age = max_auth_age
-        self.auth_levels = []
+        self.preferred_auth_level_types = []
         self.auth_level_aliases = _default_auth_level_aliases.copy()
 
-        if auth_levels is not None:
-            for auth_level in auth_levels:
+        if preferred_auth_level_types is not None:
+            for auth_level in preferred_auth_level_types:
                 self.addAuthLevel(auth_level)
 
     def __nonzero__(self):
         return bool(self.preferred_auth_policies or
                     self.max_auth_age is not None or
-                    self.auth_levels)
+                    self.preferred_auth_level_types)
 
     def addPolicyURI(self, policy_uri):
         """Add an acceptable authentication policy URI to this request
@@ -115,8 +117,8 @@ class Request(Extension):
                                alias, existing_uri, auth_level_uri)
 
         self.auth_level_aliases[alias] = auth_level_uri
-        if auth_level_uri not in self.auth_levels:
-            self.auth_levels.append(auth_level_uri)
+        if auth_level_uri not in self.preferred_auth_level_types:
+            self.preferred_auth_level_types.append(auth_level_uri)
 
     def _generateAlias(self):
         for i in xrange(1000):
@@ -143,10 +145,10 @@ class Request(Extension):
         if self.max_auth_age is not None:
             ns_args['max_auth_age'] = str(self.max_auth_age)
 
-        if self.auth_levels:
+        if self.preferred_auth_level_types:
             preferred_types = []
 
-            for auth_level_uri in self.auth_levels:
+            for auth_level_uri in self.preferred_auth_level_types:
                 alias = self._getAlias(auth_level_uri)
                 ns_args['auth_level.ns.%s' % (alias,)] = auth_level_uri
                 preferred_types.append(alias)
@@ -170,11 +172,15 @@ class Request(Extension):
 
     fromOpenIDRequest = classmethod(fromOpenIDRequest)
 
-    def parseExtensionArgs(self, args):
+    def parseExtensionArgs(self, args, strict=False):
         """Set the state of this request to be that expressed in these
         PAPE arguments
 
         @param args: The PAPE arguments without a namespace
+
+        @param strict: Whether to raise an exception if the input is
+            out of spec or otherwise malformed. If strict is false,
+            malformed input will be ignored.
 
         @rtype: None
 
@@ -199,7 +205,23 @@ class Request(Extension):
             try:
                 self.max_auth_age = int(max_auth_age_str)
             except ValueError:
-                pass
+                if strict:
+                    raise
+
+        # Parse auth level information
+        preferred_auth_level_types = args.get('preferred_auth_level_types')
+        if preferred_auth_level_types:
+            aliases = preferred_auth_level_types.strip().split()
+
+            for alias in aliases:
+                key = 'auth_level.ns.%s' % (alias,)
+                uri = args.get(key)
+                if uri is None:
+                    if strict:
+                        raise ValueError('preferred auth level %r is not '
+                                         'defined in this message' % (alias,))
+                else:
+                    self.addAuthLevel(uri, alias)
 
     def preferredTypes(self, supported_types):
         """Given a list of authentication policy URIs that a provider

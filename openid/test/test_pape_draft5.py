@@ -13,7 +13,7 @@ class PapeRequestTestCase(unittest.TestCase):
         self.failUnlessEqual([], self.req.preferred_auth_policies)
         self.failUnlessEqual(None, self.req.max_auth_age)
         self.failUnlessEqual('pape', self.req.ns_alias)
-        self.failIf(self.req.auth_levels)
+        self.failIf(self.req.preferred_auth_level_types)
 
         bogus_levels = ['http://janrain.com/our_levels']
         req2 = pape.Request(
@@ -21,25 +21,26 @@ class PapeRequestTestCase(unittest.TestCase):
         self.failUnlessEqual([pape.AUTH_MULTI_FACTOR],
                              req2.preferred_auth_policies)
         self.failUnlessEqual(1000, req2.max_auth_age)
-        self.failUnlessEqual(bogus_levels, req2.auth_levels)
+        self.failUnlessEqual(bogus_levels, req2.preferred_auth_level_types)
 
     def test_addAuthLevel(self):
         self.req.addAuthLevel('http://example.com/', 'example')
-        self.failUnlessEqual(['http://example.com/'], self.req.auth_levels)
+        self.failUnlessEqual(['http://example.com/'],
+                             self.req.preferred_auth_level_types)
         self.failUnlessEqual('http://example.com/',
                              self.req.auth_level_aliases['example'])
 
         self.req.addAuthLevel('http://example.com/1', 'example1')
         self.failUnlessEqual(['http://example.com/', 'http://example.com/1'],
-                             self.req.auth_levels)
+                             self.req.preferred_auth_level_types)
 
         self.req.addAuthLevel('http://example.com/', 'exmpl')
         self.failUnlessEqual(['http://example.com/', 'http://example.com/1'],
-                             self.req.auth_levels)
+                             self.req.preferred_auth_level_types)
 
         self.req.addAuthLevel('http://example.com/', 'example')
         self.failUnlessEqual(['http://example.com/', 'http://example.com/1'],
-                             self.req.auth_levels)
+                             self.req.preferred_auth_level_types)
 
         self.failUnlessRaises(KeyError,
                               self.req.addAuthLevel,
@@ -109,12 +110,48 @@ class PapeRequestTestCase(unittest.TestCase):
 
         self.failUnlessEqual(expected_args, self.req.getExtensionArgs())
 
+    def test_parseExtensionArgsWithAuthLevels(self):
+        uri = 'http://example.com/auth_level'
+        alias = 'my_level'
+
+        uri2 = 'http://example.com/auth_level_2'
+        alias2 = 'my_level_2'
+
+        request_args = {
+            ('auth_level.ns.%s' % alias): uri,
+            ('auth_level.ns.%s' % alias2): uri2,
+            'preferred_auth_level_types': ' '.join([alias, alias2]),
+            'preferred_auth_policies': '',
+            }
+
+        # Check request object state
+        self.req.parseExtensionArgs(request_args)
+
+        expected_auth_levels = [uri, uri2]
+
+        self.assertEqual(expected_auth_levels,
+                         self.req.preferred_auth_level_types)
+        self.assertEqual(uri, self.req.auth_level_aliases[alias])
+        self.assertEqual(uri2, self.req.auth_level_aliases[alias2])
+
+    def test_parseExtensionArgs_ignoreBadAuthLevels(self):
+        request_args = {'preferred_auth_level_types':'monkeys'}
+        self.req.parseExtensionArgs(request_args)
+        self.assertEqual([], self.req.preferred_auth_level_types)
+
+    def test_parseExtensionArgs_strictBadAuthLevels(self):
+        request_args = {'preferred_auth_level_types':'monkeys'}
+        self.failUnlessRaises(ValueError, self.req.parseExtensionArgs,
+                              request_args, strict=True)
+
     def test_parseExtensionArgs(self):
         args = {'preferred_auth_policies': 'http://foo http://bar',
                 'max_auth_age': '9'}
         self.req.parseExtensionArgs(args)
         self.failUnlessEqual(9, self.req.max_auth_age)
-        self.failUnlessEqual(['http://foo','http://bar'], self.req.preferred_auth_policies)
+        self.failUnlessEqual(['http://foo','http://bar'],
+                             self.req.preferred_auth_policies)
+        self.failUnlessEqual([], self.req.preferred_auth_level_types)
 
     def test_parseExtensionArgs_empty(self):
         self.req.parseExtensionArgs({})
