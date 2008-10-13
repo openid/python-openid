@@ -18,7 +18,8 @@ class PapeRequestTestCase(unittest.TestCase):
         bogus_levels = ['http://janrain.com/our_levels']
         req2 = pape.Request(
             [pape.AUTH_MULTI_FACTOR], 1000, bogus_levels)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR], req2.preferred_auth_policies)
+        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR],
+                             req2.preferred_auth_policies)
         self.failUnlessEqual(1000, req2.max_auth_age)
         self.failUnlessEqual(bogus_levels, req2.auth_levels)
 
@@ -41,7 +42,8 @@ class PapeRequestTestCase(unittest.TestCase):
                              self.req.auth_levels)
 
         self.failUnlessRaises(KeyError,
-                              self.req.addAuthLevel, 'http://example.com/2', 'example')
+                              self.req.addAuthLevel,
+                              'http://example.com/2', 'example')
 
         # alias is None; we expect a new one to be generated.
         uri = 'http://another.example.com/'
@@ -58,24 +60,36 @@ class PapeRequestTestCase(unittest.TestCase):
     def test_add_policy_uri(self):
         self.failUnlessEqual([], self.req.preferred_auth_policies)
         self.req.addPolicyURI(pape.AUTH_MULTI_FACTOR)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR], self.req.preferred_auth_policies)
-        self.req.addPolicyURI(pape.AUTH_MULTI_FACTOR)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR], self.req.preferred_auth_policies)
-        self.req.addPolicyURI(pape.AUTH_PHISHING_RESISTANT)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT],
+        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR],
                              self.req.preferred_auth_policies)
         self.req.addPolicyURI(pape.AUTH_MULTI_FACTOR)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT],
+        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR],
+                             self.req.preferred_auth_policies)
+        self.req.addPolicyURI(pape.AUTH_PHISHING_RESISTANT)
+        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR,
+                              pape.AUTH_PHISHING_RESISTANT],
+                             self.req.preferred_auth_policies)
+        self.req.addPolicyURI(pape.AUTH_MULTI_FACTOR)
+        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR,
+                              pape.AUTH_PHISHING_RESISTANT],
                              self.req.preferred_auth_policies)
 
     def test_getExtensionArgs(self):
-        self.failUnlessEqual({'preferred_auth_policies': ''}, self.req.getExtensionArgs())
+        self.failUnlessEqual({'preferred_auth_policies': ''},
+                             self.req.getExtensionArgs())
         self.req.addPolicyURI('http://uri')
-        self.failUnlessEqual({'preferred_auth_policies': 'http://uri'}, self.req.getExtensionArgs())
+        self.failUnlessEqual(
+            {'preferred_auth_policies': 'http://uri'},
+            self.req.getExtensionArgs())
         self.req.addPolicyURI('http://zig')
-        self.failUnlessEqual({'preferred_auth_policies': 'http://uri http://zig'}, self.req.getExtensionArgs())
+        self.failUnlessEqual(
+            {'preferred_auth_policies': 'http://uri http://zig'},
+            self.req.getExtensionArgs())
         self.req.max_auth_age = 789
-        self.failUnlessEqual({'preferred_auth_policies': 'http://uri http://zig', 'max_auth_age': '789'}, self.req.getExtensionArgs())
+        self.failUnlessEqual(
+            {'preferred_auth_policies': 'http://uri http://zig',
+             'max_auth_age': '789'},
+            self.req.getExtensionArgs())
 
     def test_getExtensionArgsWithAuthLevels(self):
         uri = 'http://example.com/auth_level'
@@ -108,17 +122,18 @@ class PapeRequestTestCase(unittest.TestCase):
         self.failUnlessEqual([], self.req.preferred_auth_policies)
 
     def test_fromOpenIDRequest(self):
+        policy_uris = [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]
         openid_req_msg = Message.fromOpenIDArgs({
           'mode': 'checkid_setup',
           'ns': OPENID2_NS,
           'ns.pape': pape.ns_uri,
-          'pape.preferred_auth_policies': ' '.join([pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]),
+          'pape.preferred_auth_policies': ' '.join(policy_uris),
           'pape.max_auth_age': '5476'
           })
         oid_req = server.OpenIDRequest()
         oid_req.message = openid_req_msg
         req = pape.Request.fromOpenIDRequest(oid_req)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT], req.preferred_auth_policies)
+        self.failUnlessEqual(policy_uris, req.preferred_auth_policies)
         self.failUnlessEqual(5476, req.max_auth_age)
 
     def test_fromOpenIDRequest_no_pape(self):
@@ -153,7 +168,8 @@ class PapeResponseTestCase(unittest.TestCase):
         self.failUnlessEqual('pape', self.req.ns_alias)
         self.failUnlessEqual(None, self.req.nist_auth_level)
 
-        req2 = pape.Response([pape.AUTH_MULTI_FACTOR], "2004-12-11T10:30:44Z", 3)
+        req2 = pape.Response([pape.AUTH_MULTI_FACTOR],
+                             "2004-12-11T10:30:44Z", 3)
         self.failUnlessEqual([pape.AUTH_MULTI_FACTOR], req2.auth_policies)
         self.failUnlessEqual("2004-12-11T10:30:44Z", req2.auth_time)
         self.failUnlessEqual(3, req2.nist_auth_level)
@@ -165,20 +181,34 @@ class PapeResponseTestCase(unittest.TestCase):
         self.req.addPolicyURI(pape.AUTH_MULTI_FACTOR)
         self.failUnlessEqual([pape.AUTH_MULTI_FACTOR], self.req.auth_policies)
         self.req.addPolicyURI(pape.AUTH_PHISHING_RESISTANT)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT], self.req.auth_policies)
+        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR,
+                              pape.AUTH_PHISHING_RESISTANT],
+                             self.req.auth_policies)
         self.req.addPolicyURI(pape.AUTH_MULTI_FACTOR)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT], self.req.auth_policies)
+        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR,
+                              pape.AUTH_PHISHING_RESISTANT],
+                             self.req.auth_policies)
 
     def test_getExtensionArgs(self):
-        self.failUnlessEqual({'auth_policies': 'none'}, self.req.getExtensionArgs())
+        self.failUnlessEqual({'auth_policies': 'none'},
+                             self.req.getExtensionArgs())
         self.req.addPolicyURI('http://uri')
-        self.failUnlessEqual({'auth_policies': 'http://uri'}, self.req.getExtensionArgs())
+        self.failUnlessEqual({'auth_policies': 'http://uri'},
+                             self.req.getExtensionArgs())
         self.req.addPolicyURI('http://zig')
-        self.failUnlessEqual({'auth_policies': 'http://uri http://zig'}, self.req.getExtensionArgs())
+        self.failUnlessEqual({'auth_policies': 'http://uri http://zig'},
+                             self.req.getExtensionArgs())
         self.req.auth_time = "1776-07-04T14:43:12Z"
-        self.failUnlessEqual({'auth_policies': 'http://uri http://zig', 'auth_time': "1776-07-04T14:43:12Z"}, self.req.getExtensionArgs())
+        self.failUnlessEqual(
+            {'auth_policies': 'http://uri http://zig',
+             'auth_time': "1776-07-04T14:43:12Z"},
+            self.req.getExtensionArgs())
         self.req.nist_auth_level = 3
-        self.failUnlessEqual({'auth_policies': 'http://uri http://zig', 'auth_time': "1776-07-04T14:43:12Z", 'nist_auth_level': '3'}, self.req.getExtensionArgs())
+        self.failUnlessEqual(
+            {'auth_policies': 'http://uri http://zig',
+             'auth_time': "1776-07-04T14:43:12Z",
+             'nist_auth_level': '3'},
+            self.req.getExtensionArgs())
 
     def test_getExtensionArgs_error_auth_age(self):
         self.req.auth_time = "long ago"
@@ -197,7 +227,8 @@ class PapeResponseTestCase(unittest.TestCase):
                 'auth_time': '1970-01-01T00:00:00Z'}
         self.req.parseExtensionArgs(args)
         self.failUnlessEqual('1970-01-01T00:00:00Z', self.req.auth_time)
-        self.failUnlessEqual(['http://foo','http://bar'], self.req.auth_policies)
+        self.failUnlessEqual(['http://foo','http://bar'],
+                             self.req.auth_policies)
 
     def test_parseExtensionArgs_empty(self):
         self.req.parseExtensionArgs({})
@@ -222,7 +253,8 @@ class PapeResponseTestCase(unittest.TestCase):
                 'auth_time': '1970-01-01T00:00:00Z',
                 'nist_auth_level': '0'}
         self.req.parseExtensionArgs(args, True)
-        self.failUnlessEqual(['http://foo','http://bar'], self.req.auth_policies)
+        self.failUnlessEqual(['http://foo','http://bar'],
+                             self.req.auth_policies)
         self.failUnlessEqual('1970-01-01T00:00:00Z', self.req.auth_time)
         self.failUnlessEqual(0, self.req.nist_auth_level)
 
@@ -231,33 +263,36 @@ class PapeResponseTestCase(unittest.TestCase):
                 'auth_time': 'when the cows come home',
                 'nist_auth_level': 'some'}
         self.req.parseExtensionArgs(args)
-        self.failUnlessEqual(['http://foo','http://bar'], self.req.auth_policies)
+        self.failUnlessEqual(['http://foo','http://bar'],
+                             self.req.auth_policies)
         self.failUnlessEqual(None, self.req.auth_time)
         self.failUnlessEqual(None, self.req.nist_auth_level)
 
     def test_fromSuccessResponse(self):
+        policy_uris = [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]
         openid_req_msg = Message.fromOpenIDArgs({
           'mode': 'id_res',
           'ns': OPENID2_NS,
           'ns.pape': pape.ns_uri,
-          'pape.auth_policies': ' '.join([pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]),
+          'pape.auth_policies': ' '.join(policy_uris),
           'pape.auth_time': '1970-01-01T00:00:00Z'
           })
         signed_stuff = {
-          'auth_policies': ' '.join([pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]),
+          'auth_policies': ' '.join(policy_uris),
           'auth_time': '1970-01-01T00:00:00Z'
         }
         oid_req = DummySuccessResponse(openid_req_msg, signed_stuff)
         req = pape.Response.fromSuccessResponse(oid_req)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT], req.auth_policies)
+        self.failUnlessEqual(policy_uris, req.auth_policies)
         self.failUnlessEqual('1970-01-01T00:00:00Z', req.auth_time)
 
     def test_fromSuccessResponseNoSignedArgs(self):
+        policy_uris = [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]
         openid_req_msg = Message.fromOpenIDArgs({
           'mode': 'id_res',
           'ns': OPENID2_NS,
           'ns.pape': pape.ns_uri,
-          'pape.auth_policies': ' '.join([pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]),
+          'pape.auth_policies': ' '.join(policy_uris),
           'pape.auth_time': '1970-01-01T00:00:00Z'
           })
 
