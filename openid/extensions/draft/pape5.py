@@ -268,7 +268,7 @@ class Request(PAPEExtension):
 Request.ns_uri = ns_uri
 
 
-class Response(Extension):
+class Response(PAPEExtension):
     """A Provider Authentication Policy response, sent from a provider
     to a relying party
     """
@@ -276,15 +276,57 @@ class Response(Extension):
     ns_alias = 'pape'
 
     def __init__(self, auth_policies=None, auth_time=None,
-                 nist_auth_level=None):
-        super(Response, self).__init__(self)
+                 auth_levels=None):
+        super(Response, self).__init__()
         if auth_policies:
             self.auth_policies = auth_policies
         else:
             self.auth_policies = []
 
         self.auth_time = auth_time
-        self.nist_auth_level = nist_auth_level
+        self.auth_levels = {}
+
+        if auth_levels is None:
+            auth_levels = {}
+
+        for uri, level in auth_levels.iteritems():
+            self.setAuthLevel(uri, level)
+
+    def setAuthLevel(self, level_uri, level, alias=None):
+        """Set the value for the given auth level type.
+
+        @param level: string representation of an authentication level
+            valid for level_uri
+
+        @param alias: An optional namespace alias for the given auth
+            level URI. May be omitted if the alias is not
+            significant. The library will use a reasonable default for
+            widely-used auth level types.
+        """
+        self._addAuthLevelAlias(level_uri, alias)
+        self.auth_levels[level_uri] = level
+
+    def getAuthLevel(self, level_uri):
+        """Return the auth level for the specified auth level
+        identifier
+
+        @returns: A string that should map to the auth levels defined
+            for the auth level type
+
+        @raises KeyError: If the auth level type is not present in
+            this message
+        """
+        return self.auth_levels[level_uri]
+
+    def _getNISTAuthLevel(self):
+        try:
+            return int(self.getAuthLevel(LEVELS_NIST))
+        except KeyError:
+            return None
+
+    nist_auth_level = property(
+        _getNISTAuthLevel,
+        doc="Backward-compatibility accessor for the NIST auth level")
 
     def addPolicyURI(self, policy_uri):
         """Add a authentication policy to this response
@@ -343,19 +385,24 @@ class Response(Extension):
         if policies_str and policies_str != 'none':
             self.auth_policies = policies_str.split(' ')
 
-        nist_level_str = args.get('nist_auth_level')
-        if nist_level_str:
-            try:
-                nist_level = int(nist_level_str)
-            except ValueError:
-                if strict:
-                    raise ValueError('nist_auth_level must be an integer '
-                                     'between zero and four, inclusive')
-                else:
-                    self.nist_auth_level = None
-            else:
-                if 0 <= nist_level < 5:
-                    self.nist_auth_level = nist_level
+        for (key, val) in args.iteritems():
+            if key.startswith('auth_level.'):
+                alias = key[11:]
+
+                # skip the already-processed namespace declarations
+                if alias.startswith('ns.'):
+                    continue
+
+                try:
+                    uri = args['auth_level.ns.%s' % (alias,)]
+                except KeyError:
+                    if strict:
+                        raise ValueError(
+                            'Undefined auth level alias: %r' % (alias,))
+                    else:
+                        continue # Skip this auth level declaration
+
+                self.setAuthLevel(uri, val, alias)
 
         auth_time = args.get('auth_time')
         if auth_time:
@@ -378,11 +425,10 @@ class Response(Extension):
                 'auth_policies':' '.join(self.auth_policies),
                 }
 
-        if self.nist_auth_level is not None:
-            if self.nist_auth_level not in range(0, 5):
-                raise ValueError('nist_auth_level must be an integer between '
-                                 'zero and four, inclusive')
-            ns_args['nist_auth_level'] = str(self.nist_auth_level)
+        for level_type, level in self.auth_levels.iteritems():
+            alias = self._getAlias(level_type)
+            ns_args['auth_level.ns.%s' % (alias,)] = level_type
+            ns_args['auth_level.%s' % (alias,)] = str(level)
 
         if self.auth_time is not None:
             if not TIME_VALIDATOR.match(self.auth_time):

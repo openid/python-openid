@@ -226,7 +226,7 @@ class PapeResponseTestCase(unittest.TestCase):
         self.failUnlessEqual(None, self.req.nist_auth_level)
 
         req2 = pape.Response([pape.AUTH_MULTI_FACTOR],
-                             "2004-12-11T10:30:44Z", 3)
+                             "2004-12-11T10:30:44Z", {pape.LEVELS_NIST: 3})
         self.failUnlessEqual([pape.AUTH_MULTI_FACTOR], req2.auth_policies)
         self.failUnlessEqual("2004-12-11T10:30:44Z", req2.auth_time)
         self.failUnlessEqual(3, req2.nist_auth_level)
@@ -260,23 +260,16 @@ class PapeResponseTestCase(unittest.TestCase):
             {'auth_policies': 'http://uri http://zig',
              'auth_time': "1776-07-04T14:43:12Z"},
             self.req.getExtensionArgs())
-        self.req.nist_auth_level = 3
+        self.req.setAuthLevel(pape.LEVELS_NIST, '3')
         self.failUnlessEqual(
             {'auth_policies': 'http://uri http://zig',
              'auth_time': "1776-07-04T14:43:12Z",
-             'nist_auth_level': '3'},
+             'auth_level.nist': '3',
+             'auth_level.ns.nist': pape.LEVELS_NIST},
             self.req.getExtensionArgs())
 
     def test_getExtensionArgs_error_auth_age(self):
         self.req.auth_time = "long ago"
-        self.failUnlessRaises(ValueError, self.req.getExtensionArgs)
-
-    def test_getExtensionArgs_error_nist_auth_level(self):
-        self.req.nist_auth_level = "high as a kite"
-        self.failUnlessRaises(ValueError, self.req.getExtensionArgs)
-        self.req.nist_auth_level = 5
-        self.failUnlessRaises(ValueError, self.req.getExtensionArgs)
-        self.req.nist_auth_level = -1
         self.failUnlessRaises(ValueError, self.req.getExtensionArgs)
 
     def test_parseExtensionArgs(self):
@@ -298,17 +291,21 @@ class PapeResponseTestCase(unittest.TestCase):
         self.failUnlessRaises(ValueError, self.req.parseExtensionArgs,
                               args, True)
 
-    def test_parseExtensionArgs_strict_bogus2(self):
+    def test_parseExtensionArgs_strict_no_namespace_decl_openid2(self):
+        # Test the case where the namespace is not declared for an
+        # auth level.
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': '1970-01-01T00:00:00Z',
-                'nist_auth_level': 'some'}
+                'auth_level.nist': 'some',
+                }
         self.failUnlessRaises(ValueError, self.req.parseExtensionArgs,
                               args, True)
       
     def test_parseExtensionArgs_strict_good(self):
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': '1970-01-01T00:00:00Z',
-                'nist_auth_level': '0'}
+                'auth_level.nist': '0',
+                'auth_level.ns.nist': pape.LEVELS_NIST}
         self.req.parseExtensionArgs(args, True)
         self.failUnlessEqual(['http://foo','http://bar'],
                              self.req.auth_policies)
