@@ -424,13 +424,17 @@ class Response(PAPEExtension):
                 try:
                     uri = args['auth_level.ns.%s' % (alias,)]
                 except KeyError:
+                    if is_openid1:
+                        uri = self._default_auth_level_aliases.get(alias)
+                    else:
+                        uri = None
+
+                if uri is None:
                     if strict:
                         raise ValueError(
                             'Undefined auth level alias: %r' % (alias,))
-                    else:
-                        continue # Skip this auth level declaration
-
-                self.setAuthLevel(uri, val, alias)
+                else:
+                    self.setAuthLevel(uri, val, alias)
 
         auth_time = args.get('auth_time')
         if auth_time:

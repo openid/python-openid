@@ -349,15 +349,34 @@ class PapeResponseTestCase(unittest.TestCase):
         self.failUnlessRaises(ValueError, self.resp.parseExtensionArgs,
                               args, is_openid1=False, strict=True)
 
+    def test_parseExtensionArgs_openid1_strict(self):
+        args = {'auth_level.nist': '0',
+                'auth_policies': pape.AUTH_NONE,
+                }
+        self.resp.parseExtensionArgs(args, strict=True, is_openid1=True)
+        self.failUnlessEqual('0', self.resp.getAuthLevel(pape.LEVELS_NIST))
+        self.failUnlessEqual([], self.resp.auth_policies)
+
     def test_parseExtensionArgs_strict_no_namespace_decl_openid2(self):
         # Test the case where the namespace is not declared for an
         # auth level.
-        args = {'auth_policies': 'http://foo http://bar',
-                'auth_time': '1970-01-01T00:00:00Z',
-                'auth_level.nist': 'some',
+        args = {'auth_policies': pape.AUTH_NONE,
+                'auth_level.nist': '0',
                 }
         self.failUnlessRaises(ValueError, self.resp.parseExtensionArgs,
                               args, is_openid1=False, strict=True)
+
+    def test_parseExtensionArgs_nostrict_no_namespace_decl_openid2(self):
+        # Test the case where the namespace is not declared for an
+        # auth level.
+        args = {'auth_policies': pape.AUTH_NONE,
+                'auth_level.nist': '0',
+                }
+        self.resp.parseExtensionArgs(args, is_openid1=False, strict=False)
+
+        # There is no namespace declaration for this auth level.
+        self.failUnlessRaises(KeyError, self.resp.getAuthLevel,
+                              pape.LEVELS_NIST)
 
     def test_parseExtensionArgs_strict_good(self):
         args = {'auth_policies': 'http://foo http://bar',
