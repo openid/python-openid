@@ -68,6 +68,7 @@ def pyunitTests():
     from openid.test import test_ax
     from openid.test import test_rpverify
     from openid.test import test_pape_draft2
+    from openid.test import test_pape_draft5
     from openid.test import test_extension
 
     # yadis tests
@@ -94,6 +95,7 @@ def pyunitTests():
         test_sreg,
         test_ax,
         test_pape_draft2,
+        test_pape_draft5,
         test_rpverify,
         test_extension,
         ]
