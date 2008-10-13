@@ -70,6 +70,7 @@ class PAPEExtension(Extension):
         self.auth_level_aliases[alias] = auth_level_uri
 
     def _generateAlias(self):
+        """Return an unused auth level alias"""
         for i in xrange(1000):
             alias = 'cust%d' % (i,)
             if alias not in self.auth_level_aliases:
@@ -78,6 +79,10 @@ class PAPEExtension(Extension):
         raise RuntimeError('Could not find an unused alias (tried 1000!)')
 
     def _getAlias(self, auth_level_uri):
+        """Return the alias for the specified auth level URI.
+
+        @raises KeyError: if no alias is defined
+        """
         for (alias, existing_uri) in self.auth_level_aliases.iteritems():
             if auth_level_uri == existing_uri:
                 return alias
