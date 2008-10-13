@@ -1,5 +1,5 @@
 
-from openid.extensions import pape
+from openid.extensions.draft import pape2 as pape
 from openid.message import *
 from openid.server import server
 
