@@ -284,7 +284,7 @@ class PapeResponseTestCase(unittest.TestCase):
         self.req.parseExtensionArgs({})
         self.failUnlessEqual(None, self.req.auth_time)
         self.failUnlessEqual([], self.req.auth_policies)
-      
+
     def test_parseExtensionArgs_strict_bogus1(self):
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': 'yesterday'}
@@ -300,7 +300,7 @@ class PapeResponseTestCase(unittest.TestCase):
                 }
         self.failUnlessRaises(ValueError, self.req.parseExtensionArgs,
                               args, True)
-      
+
     def test_parseExtensionArgs_strict_good(self):
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': '1970-01-01T00:00:00Z',
