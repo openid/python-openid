@@ -194,12 +194,15 @@ def showDecidePage(request, openid_request):
     except HTTPFetchingError, err:
         trust_root_valid = "Unreachable"
 
+    pape_request = pape.Request.fromOpenIDRequest(openid_request)
+
     return direct_to_template(
         request,
         'server/trust.html',
         {'trust_root': trust_root,
          'trust_handler_url':getViewURL(request, processTrustResult),
          'trust_root_valid': trust_root_valid,
+         'pape_request': pape_request,
          })
 
 def processTrustResult(request):
