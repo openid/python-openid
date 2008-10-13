@@ -366,16 +366,17 @@ class Response(PAPEExtension):
 
         # PAPE requires that the args be signed.
         args = success_response.getSignedNS(self.ns_uri)
+        is_openid1 = success_response.isOpenID1()
 
         # Only try to construct a PAPE response if the arguments were
         # signed in the OpenID response.  If not, return None.
         if args is not None:
-            self.parseExtensionArgs(args)
+            self.parseExtensionArgs(args, is_openid1)
             return self
         else:
             return None
 
-    def parseExtensionArgs(self, args, strict=False):
+    def parseExtensionArgs(self, args, is_openid1, strict=False):
         """Parse the provider authentication policy arguments into the
         internal state of this object
 

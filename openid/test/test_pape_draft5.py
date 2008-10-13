@@ -129,7 +129,7 @@ class PapeRequestTestCase(unittest.TestCase):
             }
 
         # Check request object state
-        self.req.parseExtensionArgs(request_args, False)
+        self.req.parseExtensionArgs(request_args, is_openid1=False, strict=False)
 
         expected_auth_levels = [uri, uri2]
 
@@ -216,6 +216,9 @@ class DummySuccessResponse:
         self.message = message
         self.signed_stuff = signed_stuff
 
+    def isOpenID1(self):
+        return False
+
     def getSignedNS(self, ns_uri):
         return self.signed_stuff
 
@@ -282,34 +285,36 @@ class PapeResponseTestCase(unittest.TestCase):
     def test_parseExtensionArgs(self):
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': '1970-01-01T00:00:00Z'}
-        self.resp.parseExtensionArgs(args)
+        self.resp.parseExtensionArgs(args, is_openid1=False)
         self.failUnlessEqual('1970-01-01T00:00:00Z', self.resp.auth_time)
         self.failUnlessEqual(['http://foo','http://bar'],
                              self.resp.auth_policies)
 
     def test_parseExtensionArgs_valid_none(self):
         args = {'auth_policies': pape.AUTH_NONE}
-        self.resp.parseExtensionArgs(args)
+        self.resp.parseExtensionArgs(args, is_openid1=False)
         self.failUnlessEqual([], self.resp.auth_policies)
 
     def test_parseExtensionArgs_old_none(self):
         args = {'auth_policies': 'none'}
-        self.resp.parseExtensionArgs(args)
+        self.resp.parseExtensionArgs(args, is_openid1=False)
         self.failUnlessEqual([], self.resp.auth_policies)
 
     def test_parseExtensionArgs_old_none_strict(self):
         args = {'auth_policies': 'none'}
-        self.failUnlessRaises(ValueError,
-                              self.resp.parseExtensionArgs, args, strict=True)
+        self.failUnlessRaises(
+            ValueError,
+            self.resp.parseExtensionArgs, args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_empty(self):
-        self.resp.parseExtensionArgs({})
+        self.resp.parseExtensionArgs({}, is_openid1=False)
         self.failUnlessEqual(None, self.resp.auth_time)
         self.failUnlessEqual([], self.resp.auth_policies)
 
     def test_parseExtensionArgs_empty_strict(self):
-        self.failUnlessRaises(ValueError,
-                              self.resp.parseExtensionArgs, {}, strict=True)
+        self.failUnlessRaises(
+            ValueError,
+            self.resp.parseExtensionArgs, {}, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_ignore_superfluous_none(self):
         policies = [pape.AUTH_NONE, pape.AUTH_MULTI_FACTOR_PHYSICAL]
@@ -318,7 +323,7 @@ class PapeResponseTestCase(unittest.TestCase):
             'auth_policies': ' '.join(policies),
             }
 
-        self.resp.parseExtensionArgs(args, strict=False)
+        self.resp.parseExtensionArgs(args, is_openid1=False, strict=False)
 
         self.assertEqual([pape.AUTH_MULTI_FACTOR_PHYSICAL],
                          self.resp.auth_policies)
@@ -331,13 +336,13 @@ class PapeResponseTestCase(unittest.TestCase):
             }
 
         self.failUnlessRaises(ValueError, self.resp.parseExtensionArgs,
-                              args, strict=True)
+                              args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_strict_bogus1(self):
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': 'yesterday'}
         self.failUnlessRaises(ValueError, self.resp.parseExtensionArgs,
-                              args, True)
+                              args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_strict_no_namespace_decl_openid2(self):
         # Test the case where the namespace is not declared for an
@@ -347,14 +352,14 @@ class PapeResponseTestCase(unittest.TestCase):
                 'auth_level.nist': 'some',
                 }
         self.failUnlessRaises(ValueError, self.resp.parseExtensionArgs,
-                              args, True)
+                              args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_strict_good(self):
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': '1970-01-01T00:00:00Z',
                 'auth_level.nist': '0',
                 'auth_level.ns.nist': pape.LEVELS_NIST}
-        self.resp.parseExtensionArgs(args, True)
+        self.resp.parseExtensionArgs(args, is_openid1=False, strict=True)
         self.failUnlessEqual(['http://foo','http://bar'],
                              self.resp.auth_policies)
         self.failUnlessEqual('1970-01-01T00:00:00Z', self.resp.auth_time)
@@ -364,7 +369,7 @@ class PapeResponseTestCase(unittest.TestCase):
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': 'when the cows come home',
                 'nist_auth_level': 'some'}
-        self.resp.parseExtensionArgs(args)
+        self.resp.parseExtensionArgs(args, is_openid1=False)
         self.failUnlessEqual(['http://foo','http://bar'],
                              self.resp.auth_policies)
         self.failUnlessEqual(None, self.resp.auth_time)
