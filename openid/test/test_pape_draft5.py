@@ -3,6 +3,10 @@ from openid.extensions.draft import pape5 as pape
 from openid.message import *
 from openid.server import server
 
+import warnings
+warnings.filterwarnings('ignore', module=__name__,
+                        message='"none" used as a policy URI')
+
 import unittest
 
 class PapeRequestTestCase(unittest.TestCase):
@@ -246,8 +250,11 @@ class PapeResponseTestCase(unittest.TestCase):
                               pape.AUTH_PHISHING_RESISTANT],
                              self.resp.auth_policies)
 
+        self.failUnlessRaises(RuntimeError, self.resp.addPolicyURI,
+                              pape.AUTH_NONE)
+
     def test_getExtensionArgs(self):
-        self.failUnlessEqual({'auth_policies': 'none'},
+        self.failUnlessEqual({'auth_policies': pape.AUTH_NONE},
                              self.resp.getExtensionArgs())
         self.resp.addPolicyURI('http://uri')
         self.failUnlessEqual({'auth_policies': 'http://uri'},
@@ -280,10 +287,51 @@ class PapeResponseTestCase(unittest.TestCase):
         self.failUnlessEqual(['http://foo','http://bar'],
                              self.resp.auth_policies)
 
+    def test_parseExtensionArgs_valid_none(self):
+        args = {'auth_policies': pape.AUTH_NONE}
+        self.resp.parseExtensionArgs(args)
+        self.failUnlessEqual([], self.resp.auth_policies)
+
+    def test_parseExtensionArgs_old_none(self):
+        args = {'auth_policies': 'none'}
+        self.resp.parseExtensionArgs(args)
+        self.failUnlessEqual([], self.resp.auth_policies)
+
+    def test_parseExtensionArgs_old_none_strict(self):
+        args = {'auth_policies': 'none'}
+        self.failUnlessRaises(ValueError,
+                              self.resp.parseExtensionArgs, args, strict=True)
+
     def test_parseExtensionArgs_empty(self):
         self.resp.parseExtensionArgs({})
         self.failUnlessEqual(None, self.resp.auth_time)
         self.failUnlessEqual([], self.resp.auth_policies)
+
+    def test_parseExtensionArgs_empty_strict(self):
+        self.failUnlessRaises(ValueError,
+                              self.resp.parseExtensionArgs, {}, strict=True)
+
+    def test_parseExtensionArgs_ignore_superfluous_none(self):
+        policies = [pape.AUTH_NONE, pape.AUTH_MULTI_FACTOR_PHYSICAL]
+
+        args = {
+            'auth_policies': ' '.join(policies),
+            }
+
+        self.resp.parseExtensionArgs(args, strict=False)
+
+        self.assertEqual([pape.AUTH_MULTI_FACTOR_PHYSICAL],
+                         self.resp.auth_policies)
+
+    def test_parseExtensionArgs_none_strict(self):
+        policies = [pape.AUTH_NONE, pape.AUTH_MULTI_FACTOR_PHYSICAL]
+
+        args = {
+            'auth_policies': ' '.join(policies),
+            }
+
+        self.failUnlessRaises(ValueError, self.resp.parseExtensionArgs,
+                              args, strict=True)
 
     def test_parseExtensionArgs_strict_bogus1(self):
         args = {'auth_policies': 'http://foo http://bar',

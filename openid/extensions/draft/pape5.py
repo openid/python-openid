@@ -13,12 +13,12 @@ __all__ = [
     'AUTH_PHISHING_RESISTANT',
     'AUTH_MULTI_FACTOR',
     'AUTH_MULTI_FACTOR_PHYSICAL',
-    'AUTH_NONE',
     'LEVELS_NIST',
     'LEVELS_JISA',
     ]
 
 from openid.extension import Extension
+import warnings
 import re
 
 ns_uri = "http://specs.openid.net/extensions/pape/1.0"
@@ -271,6 +271,9 @@ Request.ns_uri = ns_uri
 class Response(PAPEExtension):
     """A Provider Authentication Policy response, sent from a provider
     to a relying party
+
+    @ivar auth_policies: List of authentication policies conformed to
+        by this OpenID assertion, represented as policy URIs
     """
 
     ns_alias = 'pape'
@@ -338,6 +341,10 @@ class Response(PAPEExtension):
             authentication.
         @see: http://openid.net/specs/openid-provider-authentication-policy-extension-1_0-01.html#auth_policies
         """
+        if policy_uri == AUTH_NONE:
+            raise RuntimeError(
+                'To send no policies, do not set any on the response.')
+
         if policy_uri not in self.auth_policies:
             self.auth_policies.append(policy_uri)
 
@@ -382,8 +389,28 @@ class Response(PAPEExtension):
             this object.
         """
         policies_str = args.get('auth_policies')
-        if policies_str and policies_str != 'none':
-            self.auth_policies = policies_str.split(' ')
+        if policies_str:
+            auth_policies = policies_str.split(' ')
+        elif strict:
+            raise ValueError('Missing auth_policies')
+        else:
+            auth_policies = []
+
+        if (len(auth_policies) > 1 and strict and AUTH_NONE in auth_policies):
+            raise ValueError('Got some auth policies, as well as the special '
+                             '"none" URI: %r' % (auth_policies,))
+
+        if 'none' in auth_policies:
+            msg = '"none" used as a policy URI (see PAPE draft < 5)'
+            if strict:
+                raise ValueError(msg)
+            else:
+                warnings.warn(msg, stacklevel=2)
+
+        auth_policies = [u for u in auth_policies
+                         if u not in ['none', AUTH_NONE]]
+
+        self.auth_policies = auth_policies
 
         for (key, val) in args.iteritems():
             if key.startswith('auth_level.'):
@@ -418,7 +445,7 @@ class Response(PAPEExtension):
         """
         if len(self.auth_policies) == 0:
             ns_args = {
-                'auth_policies':'none',
+                'auth_policies': AUTH_NONE,
             }
         else:
             ns_args = {
