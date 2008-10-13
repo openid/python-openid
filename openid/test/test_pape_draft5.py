@@ -176,6 +176,11 @@ class PapeRequestTestCase(unittest.TestCase):
                              self.req.preferred_auth_policies)
         self.failUnlessEqual([], self.req.preferred_auth_level_types)
 
+    def test_parseExtensionArgs_strict_bad_auth_age(self):
+        args = {'max_auth_age': 'not an int'}
+        self.assertRaises(ValueError, self.req.parseExtensionArgs, args,
+                          is_openid1=False, strict=True)
+
     def test_parseExtensionArgs_empty(self):
         self.req.parseExtensionArgs({}, False)
         self.failUnlessEqual(None, self.req.max_auth_age)
