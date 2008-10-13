@@ -29,6 +29,7 @@ from openid.server.trustroot import verifyReturnTo
 from openid.yadis.discover import DiscoveryFailure
 from openid.consumer.discover import OPENID_IDP_2_0_TYPE
 from openid.extensions import sreg
+from openid.extensions import pape
 from openid.fetchers import HTTPFetchingError
 
 def getOpenIDStore():
@@ -238,6 +239,10 @@ def processTrustResult(request):
         sreg_req = sreg.SRegRequest.fromOpenIDRequest(openid_request)
         sreg_resp = sreg.SRegResponse.extractResponse(sreg_req, sreg_data)
         openid_response.addExtension(sreg_resp)
+
+        pape_response = pape.Response()
+        pape_response.setAuthLevel(pape.LEVELS_NIST, 0)
+        openid_response.addExtension(pape_response)
 
     return displayResponse(request, openid_response)
 
