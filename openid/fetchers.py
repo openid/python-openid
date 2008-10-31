@@ -198,9 +198,6 @@ class Urllib2Fetcher(HTTPFetcher):
         headers.setdefault(
             'User-Agent',
             "%s Python-urllib/%s" % (USER_AGENT, urllib2.__version__,))
-        headers.setdefault(
-            'Range',
-            '0-%s' % (1024*MAX_RESPONSE_KB,))
 
         req = urllib2.Request(url, data=body, headers=headers)
         try:
@@ -324,7 +321,6 @@ class CurlHTTPFetcher(HTTPFetcher):
                 c.setopt(pycurl.HEADERFUNCTION, response_header_data.write)
                 c.setopt(pycurl.TIMEOUT, off)
                 c.setopt(pycurl.URL, openid.urinorm.urinorm(url))
-                c.setopt(pycurl.RANGE, '0-%s'%(MAX_RESPONSE_KB*1024))
 
                 c.perform()
 
@@ -394,9 +390,6 @@ class HTTPLib2Fetcher(HTTPFetcher):
 
         if headers is None:
             headers = {}
-        headers.setdefault(
-            'Range',
-            '0-%s' % (1024*MAX_RESPONSE_KB,))
 
         # httplib2 doesn't check to make sure that the URL's scheme is
         # 'http' so we do it here.
