@@ -46,6 +46,7 @@ else:
     class HashContainer(object):
         def __init__(self, hash_constructor):
             self.new = hash_constructor
+            self.digest_size = hash_constructor().digest_size
 
     sha1_module = HashContainer(hashlib.sha1)
     sha256_module = HashContainer(hashlib.sha256)
