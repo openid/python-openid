@@ -309,6 +309,12 @@ def normalizeURL(url):
     else:
         return urlparse.urldefrag(normalized)[0]
 
+def normalizeXRI(xri):
+    """Normalize an XRI, stripping its scheme if present"""
+    if xri.startswith("xri://"):
+        xri = xri[6:]
+    return xri
+
 def arrangeByType(service_list, preferred_types):
     """Rearrange service_list in a new list so services are ordered by
     types listed in preferred_types.  Return the new list."""
@@ -407,6 +413,7 @@ def discoverYadis(uri):
 
 def discoverXRI(iname):
     endpoints = []
+    iname = normalizeXRI(iname)
     try:
         canonicalID, services = xrires.ProxyResolver().query(
             iname, OpenIDServiceEndpoint.openid_type_uris)

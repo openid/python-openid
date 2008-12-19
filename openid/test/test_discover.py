@@ -549,6 +549,31 @@ class TestXRIDiscovery(BaseTestDiscovery):
             display_identifier='=smoker'
             )
 
+    def test_xri_normalize(self):
+        user_xri, services = discover.discoverXRI('xri://=smoker')
+
+        self._checkService(
+            services[0],
+            used_yadis=True,
+            types=['1.0'],
+            server_url="http://www.myopenid.com/server",
+            claimed_id=XRI("=!1000"),
+            canonical_id=XRI("=!1000"),
+            local_id='http://smoker.myopenid.com/',
+            display_identifier='=smoker'
+            )
+
+        self._checkService(
+            services[1],
+            used_yadis=True,
+            types=['1.0'],
+            server_url="http://www.livejournal.com/openid/server.bml",
+            claimed_id=XRI("=!1000"),
+            canonical_id=XRI("=!1000"),
+            local_id='http://frank.livejournal.com/',
+            display_identifier='=smoker'
+            )
+
     def test_xriNoCanonicalID(self):
         user_xri, services = discover.discoverXRI('=smoker*bad')
         self.failIf(services)
