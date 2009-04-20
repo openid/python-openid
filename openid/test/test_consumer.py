@@ -506,7 +506,7 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
              'assoc_handle': 'does not matter',
              'sig': GOODSIG,
              'response_nonce': mkNonce(),
-             'signed': 'identity,return_to,response_nonce,assoc_handle,claimed_id',
+             'signed': 'identity,return_to,response_nonce,assoc_handle,claimed_id,op_endpoint',
              'claimed_id': claimed_id,
              'op_endpoint': self.server_url,
              'ns':OPENID2_NS,
@@ -534,7 +534,7 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
         self.message.delArg(OPENID_NS, 'identity')
         self.message.delArg(OPENID_NS, 'claimed_id')
         self.endpoint.claimed_id = None
-        self.message.setArg(OPENID_NS, 'signed', 'return_to,response_nonce,assoc_handle')
+        self.message.setArg(OPENID_NS, 'signed', 'return_to,response_nonce,assoc_handle,op_endpoint')
         r = self.consumer.complete(self.message, self.endpoint, None)
         self.failUnlessSuccess(r)
 
@@ -767,7 +767,7 @@ class IdResCheckForFieldsTest(TestIdRes):
          'op_endpoint':'my favourite server',
          'response_nonce':'use only once',
          },
-        ['return_to', 'response_nonce', 'assoc_handle'])
+        ['return_to', 'response_nonce', 'assoc_handle', 'op_endpoint'])
 
     test_openid2Success_identifiers = mkSuccessTest(
         {'ns':OPENID2_NS,
@@ -780,9 +780,9 @@ class IdResCheckForFieldsTest(TestIdRes):
          'response_nonce':'use only once',
          },
         ['return_to', 'response_nonce', 'identity',
-         'claimed_id', 'assoc_handle'])
+         'claimed_id', 'assoc_handle', 'op_endpoint'])
 
-    def mkFailureTest(openid_args, signed_list):
+    def mkMissingFieldTest(openid_args):
         def test(self):
             message = Message.fromOpenIDArgs(openid_args)
             try:
@@ -793,35 +793,54 @@ class IdResCheckForFieldsTest(TestIdRes):
                 self.fail('Expected an error, but none occurred')
         return test
 
-    test_openid1Missing_returnToSig = mkFailureTest(
+    def mkMissingSignedTest(openid_args):
+        def test(self):
+            message = Message.fromOpenIDArgs(openid_args)
+            try:
+                self.consumer._idResCheckForFields(message)
+            except ProtocolError, why:
+                self.failUnless(why[0].endswith('not signed'))
+            else:
+                self.fail('Expected an error, but none occurred')
+        return test
+
+    test_openid1Missing_returnToSig = mkMissingSignedTest(
         {'return_to':'return',
          'assoc_handle':'assoc handle',
          'sig':'a signature',
          'identity':'someone',
-         },
-        ['identity'])
+         'signed':'identity',
+         })
 
-    test_openid1Missing_identitySig = mkFailureTest(
+    test_openid1Missing_identitySig = mkMissingSignedTest(
         {'return_to':'return',
          'assoc_handle':'assoc handle',
          'sig':'a signature',
          'identity':'someone',
-         },
-        ['return_to'])
+         'signed':'return_to'
+         })
 
-    test_openid1MissingReturnTo = mkFailureTest(
+    test_openid2Missing_opEndpointSig = mkMissingSignedTest(
+        {'ns':OPENID2_NS,
+         'return_to':'return',
+         'assoc_handle':'assoc handle',
+         'sig':'a signature',
+         'identity':'someone',
+         'op_endpoint':'the endpoint',
+         'signed':'return_to,identity,assoc_handle'
+         })
+
+    test_openid1MissingReturnTo = mkMissingFieldTest(
         {'assoc_handle':'assoc handle',
          'sig':'a signature',
          'identity':'someone',
-         },
-        ['return_to', 'identity'])
+         })
 
-    test_openid1MissingAssocHandle = mkFailureTest(
+    test_openid1MissingAssocHandle = mkMissingFieldTest(
         {'return_to':'return',
          'sig':'a signature',
          'identity':'someone',
-         },
-        ['return_to', 'identity'])
+         })
 
     # XXX: I could go on...
 

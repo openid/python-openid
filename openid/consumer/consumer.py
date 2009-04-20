@@ -822,7 +822,8 @@ class GenericConsumer(object):
         require_sigs = {
             OPENID2_NS: basic_sig_fields + ['response_nonce',
                                             'claimed_id',
-                                            'assoc_handle',],
+                                            'assoc_handle',
+                                            'op_endpoint',],
             OPENID1_NS: basic_sig_fields,
             }
 
