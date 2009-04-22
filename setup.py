@@ -6,7 +6,7 @@ from distutils.core import setup
 if 'sdist' in sys.argv:
     os.system('./admin/makedoc')
 
-version = '[library version:2.2.2]'[17:-1]
+version = '[library version:2.2.3]'[17:-1]
 
 setup(
     name='python-openid',
