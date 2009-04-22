@@ -24,6 +24,7 @@ and support for a variety of storage back-ends.''',
               'openid.store',
               'openid.yadis',
               'openid.extensions',
+              'openid.extensions.draft',
               ],
     # license specified by classifier.
     # license=getLicense(),
