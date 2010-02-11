@@ -133,7 +133,7 @@ USING THIS LIBRARY
 
     Add an OpenID login field somewhere on your site.  When an OpenID
     is entered in that field and the form is submitted, it should make
-    a request to the your site which includes that OpenID URL.
+    a request to your site which includes that OpenID URL.
 
     First, the application should L{instantiate a Consumer<Consumer.__init__>}
     with a session for per-user state and store for shared state.
@@ -165,14 +165,13 @@ USING THIS LIBRARY
     the URL by the OpenID provider as the information necessary to
     finish the request.
 
-    Get an C{L{Consumer}} instance with the same session and store as
+    Get a C{L{Consumer}} instance with the same session and store as
     before and call its C{L{complete<Consumer.complete>}} method,
     passing in all the received query arguments.
 
     There are multiple possible return types possible from that
-    method. These indicate the whether or not the login was
-    successful, and include any additional information appropriate for
-    their type.
+    method. These indicate whether or not the login was successful,
+    and include any additional information appropriate for their type.
 
 @var SUCCESS: constant used as the status for
     L{SuccessResponse<openid.consumer.consumer.SuccessResponse>} objects.
