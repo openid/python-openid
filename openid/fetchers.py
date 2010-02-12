@@ -249,7 +249,11 @@ class CurlHTTPFetcher(HTTPFetcher):
         header_file.seek(0)
 
         # Remove the status line from the beginning of the input
-        unused_http_status_line = header_file.readline()
+        unused_http_status_line = header_file.readline().lower ()
+        if unused_http_status_line.startswith('http/1.1 100 '):
+            unused_http_status_line = header_file.readline()
+            unused_http_status_line = header_file.readline()
+
         lines = [line.strip() for line in header_file]
 
         # and the blank line from the end
