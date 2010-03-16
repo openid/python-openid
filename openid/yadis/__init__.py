@@ -1,7 +1,4 @@
-"""Yadis.
 
-@see: U{http://www.openidenabled.com/yadis}
-"""
 
 __all__ = [
     'constants',

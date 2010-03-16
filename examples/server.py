@@ -25,8 +25,7 @@ distribution) or else add the library to python's import path (the
 PYTHONPATH environment variable).
 
 For more information, see the README in the root of the library
-distribution or http://www.openidenabled.com/
-""")
+distribution.""")
     sys.exit(1)
 
 from openid.extensions import sreg

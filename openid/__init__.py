@@ -6,8 +6,8 @@ see the C{L{openid.consumer.consumer}} module.  For information on
 implementing an OpenID server, see the C{L{openid.server.server}}
 module.
 
-@contact: U{dev@lists.openidenabled.com
-    <http://lists.openidenabled.com/mailman/listinfo/dev>}
+@contact: U{http://openid.net/developers/dev-mailing-lists/
+    <http://openid.net/developers/dev-mailing-lists/}
 
 @copyright: (C) 2005-2008 JanRain, Inc.
 

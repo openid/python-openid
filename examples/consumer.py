@@ -30,8 +30,7 @@ distribution) or else add the library to python's import path (the
 PYTHONPATH environment variable).
 
 For more information, see the README in the root of the library
-distribution or http://www.openidenabled.com/
-""")
+distribution.""")
     sys.exit(1)
 
 from openid.store import memstore
@@ -423,7 +422,7 @@ Content-type: text/html; charset=UTF-8
     <h1>%s</h1>
     <p>
       This example consumer uses the <a href=
-      "http://www.openidenabled.com/openid/libraries/python" >Python
+      "http://github.com/openid/python-openid" >Python
       OpenID</a> library. It just verifies that the identifier that you enter
       is your identifier.
     </p>
