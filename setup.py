@@ -30,7 +30,7 @@ and support for a variety of storage back-ends.''',
     # license=getLicense(),
     author='JanRain',
     author_email='openid@janrain.com',
-    download_url='http://github.com/openid/python-openid/tarball/master',
+    download_url='http://github.com/openid/python-openid/tarball/%s' % (version,),
     classifiers=[
     "Development Status :: 5 - Production/Stable",
     "Environment :: Web Environment",
