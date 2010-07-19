@@ -218,3 +218,13 @@ def randomString(length, chrs=None):
     else:
         n = len(chrs)
         return ''.join([chrs[randrange(n)] for _ in xrange(length)])
+
+def const_eq(s1, s2):
+    if len(s1) != len(s2):
+        return False
+
+    result = True
+    for i in range(len(s1)):
+        result = result and (s1[i] == s2[i])
+
+    return result

@@ -532,7 +532,7 @@ class Association(object):
         if not message_sig:
             raise ValueError("%s has no sig." % (message,))
         calculated_sig = self.getMessageSignature(message)
-        return calculated_sig == message_sig
+        return cryptutil.const_eq(calculated_sig, message_sig)
 
 
     def _makePairs(self, message):
