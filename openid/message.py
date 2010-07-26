@@ -338,7 +338,7 @@ class Message(object):
         for name, value in self.toPostArgs().iteritems():
             attrs = {'type': 'hidden',
                      'name': name,
-                     'value': value}
+                     'value': value.decode('UTF-8')}
             form.append(ElementTree.Element('input', attrs))
 
         submit = ElementTree.Element(
