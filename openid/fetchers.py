@@ -322,7 +322,7 @@ class CurlHTTPFetcher(HTTPFetcher):
                         return 0
                     else:
                         return data.write(chunk)
-                    
+
                 response_header_data = cStringIO.StringIO()
                 c.setopt(pycurl.WRITEFUNCTION, write_data)
                 c.setopt(pycurl.HEADERFUNCTION, response_header_data.write)
