@@ -298,7 +298,7 @@ class Message(object):
         return kvargs
 
     def toFormMarkup(self, action_url, form_tag_attrs=None,
-                     submit_text="Continue"):
+                     submit_text=u"Continue"):
         """Generate HTML form markup that contains the values in this
         message, to be HTTP POSTed as x-www-form-urlencoded UTF-8.
 
@@ -324,28 +324,28 @@ class Message(object):
 
         assert action_url is not None
 
-        form = ElementTree.Element('form')
+        form = ElementTree.Element(u'form')
 
         if form_tag_attrs:
             for name, attr in form_tag_attrs.iteritems():
                 form.attrib[name] = attr
 
-        form.attrib['action'] = action_url
-        form.attrib['method'] = 'post'
-        form.attrib['accept-charset'] = 'UTF-8'
-        form.attrib['enctype'] = 'application/x-www-form-urlencoded'
+        form.attrib[u'action'] = oidutil.toUnicode(action_url)
+        form.attrib[u'method'] = u'post'
+        form.attrib[u'accept-charset'] = u'UTF-8'
+        form.attrib[u'enctype'] = u'application/x-www-form-urlencoded'
 
         for name, value in self.toPostArgs().iteritems():
-            attrs = {'type': 'hidden',
-                     'name': name,
-                     'value': value}
-            form.append(ElementTree.Element('input', attrs))
+            attrs = {u'type': u'hidden',
+                     u'name': oidutil.toUnicode(name),
+                     u'value': oidutil.toUnicode(value)}
+            form.append(ElementTree.Element(u'input', attrs))
 
-        submit = ElementTree.Element(
-                'input', {'type':'submit', 'value':submit_text})
+        submit = ElementTree.Element(u'input',
+            {u'type':'submit', u'value':oidutil.toUnicode(submit_text)})
         form.append(submit)
 
-        return ElementTree.tostring(form)
+        return ElementTree.tostring(form, encoding='utf-8')
 
     def toURL(self, base_url):
         """Generate a GET URL with the parameters in this message
