@@ -462,6 +462,20 @@ class OpenID2MessageTest(unittest.TestCase):
                               'xey': 'value',
                               })
 
+    def test_toPostArgs_bug_with_utf8_encoded_values(self):
+        msg = message.Message.fromPostArgs({'openid.mode':'error',
+                                            'openid.error':'unit test',
+                                            'openid.ns':message.OPENID2_NS
+                                             })
+        msg.setArg(message.BARE_NS, 'ünicöde_key', 'ünicöde_välüe')
+        self.failUnlessEqual(msg.toPostArgs(),
+                             {'openid.mode':'error',
+                              'openid.error':'unit test',
+                              'openid.ns':message.OPENID2_NS,
+                              'ünicöde_key': 'ünicöde_välüe',
+                              })
+
+
     def test_toArgs(self):
         # This method can't tolerate BARE_NS.
         self.msg.delArg(message.BARE_NS, "xey")

@@ -277,7 +277,8 @@ class Message(object):
 
         for (ns_uri, ns_key), value in self.args.iteritems():
             key = self.getKey(ns_uri, ns_key)
-            args[key] = value.encode('UTF-8')
+            # Ensure the resulting value is an UTF-8 encoded bytestring.
+            args[key] = oidutil.toUnicode(value).encode('UTF-8')
 
         return args
 
