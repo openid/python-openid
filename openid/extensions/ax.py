@@ -739,6 +739,36 @@ class StoreRequest(AXKeyValueMessage):
         ax_args.update(kv_args)
         return ax_args
 
+    def fromOpenIDRequest(cls, openid_request):
+        """Extract a StoreRequest from an OpenID message
+
+        @param openid_request: The OpenID authentication request
+            containing the attribute fetch request
+        @type openid_request: C{L{openid.server.server.CheckIDRequest}}
+
+        @rtype: C{L{StoreRequest}} or C{None}
+        @returns: The StoreRequest extracted from the message or None, if
+            the message contained no AX extension.
+
+        @raises KeyError: if the AuthRequest is not consistent in its use
+            of namespace aliases.
+
+        @raises AXError: When parseExtensionArgs would raise same.
+
+        @see: L{parseExtensionArgs}
+        """
+        message = openid_request.message
+        ax_args = message.getArgs(cls.ns_uri)
+        self = cls()
+        try:
+            self.parseExtensionArgs(ax_args)
+        except NotAXMessage, err:
+            return None
+
+        return self
+
+    fromOpenIDRequest = classmethod(fromOpenIDRequest)
+
 
 class StoreResponse(AXMessage):
     """An indication that the store request was processed along with
@@ -772,3 +802,33 @@ class StoreResponse(AXMessage):
             ax_args['error'] = self.error_message
 
         return ax_args
+
+    def fromSuccessResponse(cls, success_response, signed=True):
+        """Construct a StoreResponse object from an OpenID library
+        SuccessResponse object.
+
+        @param success_response: A successful id_res response object
+        @type success_response: openid.consumer.consumer.SuccessResponse
+
+        @param signed: Whether non-signed args should be
+            processsed. If True (the default), only signed arguments
+            will be processsed.
+        @type signed: bool
+
+        @returns: A StoreResponse containing the data from the OpenID
+            message, or None if the SuccessResponse did not contain AX
+            extension data.
+
+        @raises AXError: when the AX data cannot be parsed.
+        """
+        self = cls()
+        ax_args = success_response.extensionResponse(self.ns_uri, signed)
+
+        try:
+            self.parseExtensionArgs(ax_args)
+        except NotAXMessage, err:
+            return None
+        else:
+            return self
+
+    fromSuccessResponse = classmethod(fromSuccessResponse)
