@@ -425,11 +425,20 @@ class AssociateRequest(OpenIDRequest):
                             'assocaition session type. Continuing anyway.')
             elif not session_type:
                 session_type = 'no-encryption'
+
+            # in 1.0 assoc_type has default
+            assoc_type = message.getArg(OPENID_NS, 'assoc_type', 'HMAC-SHA1')
         else:
             session_type = message.getArg(OPENID2_NS, 'session_type')
             if session_type is None:
                 raise ProtocolError(message,
                                     text="session_type missing from request")
+
+            # in 2.0 assoc_type is required
+            assoc_type = message.getArg(OPENID2_NS, 'assoc_type')
+            if assoc_type is None:
+                raise ProtocolError(message,
+                                    text="assoc_type missing from request")
 
         try:
             session_class = klass.session_classes[session_type]
@@ -443,7 +452,6 @@ class AssociateRequest(OpenIDRequest):
             raise ProtocolError(message, 'Error parsing %s session: %s' %
                                 (session_class.session_type, why[0]))
 
-        assoc_type = message.getArg(OPENID_NS, 'assoc_type', 'HMAC-SHA1')
         if assoc_type not in session.allowed_assoc_types:
             fmt = 'Session type %s does not support association type %s'
             raise ProtocolError(message, fmt % (session_type, assoc_type))
