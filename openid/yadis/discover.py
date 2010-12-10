@@ -1,7 +1,7 @@
 # -*- test-case-name: openid.test.test_yadis_discover -*-
 __all__ = ['discover', 'DiscoveryResult', 'DiscoveryFailure']
 
-from cStringIO import StringIO
+from StringIO import StringIO
 
 from openid import fetchers
 
@@ -126,8 +126,20 @@ def whereIsYadis(resp):
             # XXX: do we want to do something with content-type, like
             # have a whitelist or a blacklist (for detecting that it's
             # HTML)?
+
+            # decode body by encoding of file
+            encoding = content_type.rsplit(';', 1)
+            if len(encoding) == 2 and encoding[1].strip().startswith('charset='):
+                encoding = encoding[1].split('=', 1)[1]
+            else:
+                encoding = 'UTF-8'
             try:
-                yadis_loc = findHTMLMeta(StringIO(resp.body))
+                content = resp.body.decode(encoding)
+            except UnicodeError:
+                content = resp.body
+
+            try:
+                yadis_loc = findHTMLMeta(StringIO(content))
             except MetaNotFound:
                 pass
 
