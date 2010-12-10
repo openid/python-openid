@@ -155,6 +155,10 @@ class YadisHTMLParser(HTMLParser):
 
         return HTMLParser.feed(self, chars)
 
+    def unescape(self, value):
+        # HTMLParser in >=Python-2.6 chokes here on UTF-8 input
+        return value
+
 def findHTMLMeta(stream):
     """Look for a meta http-equiv tag with the YADIS header name.
 
