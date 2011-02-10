@@ -127,7 +127,7 @@ from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot, verifyReturnTo
 from openid.association import Association, default_negotiator, getSecretSize
-from openid.message import Message, InvalidOpenIDNamespace, \
+from openid.message import Message, InvalidOpenIDNamespace, InvalidNamespace, \
      OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, OPENID1_URL_LIMIT
 from openid.urinorm import urinorm
 
@@ -1443,6 +1443,12 @@ class Decoder(object):
             query = query.copy()
             query['openid.ns'] = OPENID2_NS
             message = Message.fromPostArgs(query)
+            raise ProtocolError(message, str(err))
+        except InvalidNamespace, err:
+            # If openid.ns is OK, but there is problem with other namespaces
+            # We keep only bare parts of query and we try to make a ProtocolError from it
+            query = [(key, value) for key, value in query.items() if key.count('.') < 2]
+            message = Message.fromPostArgs(dict(query))
             raise ProtocolError(message, str(err))
 
         mode = message.getArg(OPENID_NS, 'mode')

@@ -72,6 +72,11 @@ class InvalidOpenIDNamespace(ValueError):
             s += " %r" % (self.args[0],)
         return s
 
+class InvalidNamespace(KeyError):
+    """
+    Raised if there is problem with other namespaces than OpenID namespace
+    """
+
 
 # Sentinel used for Message implementation to indicate that getArg
 # should raise an exception instead of returning a default.
@@ -582,7 +587,7 @@ class NamespaceMap(object):
                 desired_alias,
                 current_namespace_uri,
                 desired_alias)
-            raise KeyError(msg)
+            raise InvalidNamespace(msg)
 
         # Check that there is not already a (different) alias for
         # this namespace URI
@@ -590,7 +595,7 @@ class NamespaceMap(object):
         if alias is not None and alias != desired_alias:
             fmt = ('Cannot map %r to alias %r. '
                    'It is already mapped to alias %r')
-            raise KeyError(fmt % (namespace_uri, desired_alias, alias))
+            raise InvalidNamespace(fmt % (namespace_uri, desired_alias, alias))
 
         assert (desired_alias == NULL_NAMESPACE or
                 type(desired_alias) in [str, unicode]), repr(desired_alias)
