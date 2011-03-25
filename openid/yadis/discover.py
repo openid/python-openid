@@ -127,12 +127,14 @@ def whereIsYadis(resp):
             # have a whitelist or a blacklist (for detecting that it's
             # HTML)?
 
-            # decode body by encoding of file
+            # Decode body by encoding of file
+            content_type = content_type or ''
             encoding = content_type.rsplit(';', 1)
             if len(encoding) == 2 and encoding[1].strip().startswith('charset='):
                 encoding = encoding[1].split('=', 1)[1]
             else:
                 encoding = 'UTF-8'
+
             try:
                 content = resp.body.decode(encoding)
             except UnicodeError:
