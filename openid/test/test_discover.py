@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 import unittest
 import datadriven
@@ -247,6 +248,12 @@ class TestDiscovery(BaseTestDiscovery):
     def test_404(self):
         self.failUnlessRaises(DiscoveryFailure,
                               discover.discover, self.id_url + '/404')
+
+    def test_unicode(self):
+        self._discover(
+            content_type='text/html;charset=utf-8',
+            data=readDataFile('unicode.html'),
+            expected_services=0)
 
     def test_noOpenID(self):
         services = self._discover(content_type='text/plain',
