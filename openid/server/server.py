@@ -126,7 +126,7 @@ from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot, verifyReturnTo
 from openid.association import Association, default_negotiator, getSecretSize
-from openid.message import Message, InvalidOpenIDNamespace, \
+from openid.message import Message, InvalidOpenIDNamespace, InvalidNamespace, \
      OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, OPENID1_URL_LIMIT
 from openid.urinorm import urinorm
 
@@ -424,11 +424,20 @@ class AssociateRequest(OpenIDRequest):
                             'assocaition session type. Continuing anyway.')
             elif not session_type:
                 session_type = 'no-encryption'
+
+            # in 1.0 assoc_type has default
+            assoc_type = message.getArg(OPENID_NS, 'assoc_type', 'HMAC-SHA1')
         else:
             session_type = message.getArg(OPENID2_NS, 'session_type')
             if session_type is None:
                 raise ProtocolError(message,
                                     text="session_type missing from request")
+
+            # in 2.0 assoc_type is required
+            assoc_type = message.getArg(OPENID2_NS, 'assoc_type')
+            if assoc_type is None:
+                raise ProtocolError(message,
+                                    text="assoc_type missing from request")
 
         try:
             session_class = klass.session_classes[session_type]
@@ -442,7 +451,6 @@ class AssociateRequest(OpenIDRequest):
             raise ProtocolError(message, 'Error parsing %s session: %s' %
                                 (session_class.session_type, why[0]))
 
-        assoc_type = message.getArg(OPENID_NS, 'assoc_type', 'HMAC-SHA1')
         if assoc_type not in session.allowed_assoc_types:
             fmt = 'Session type %s does not support association type %s'
             raise ProtocolError(message, fmt % (session_type, assoc_type))
@@ -1433,6 +1441,12 @@ class Decoder(object):
             query = query.copy()
             query['openid.ns'] = OPENID2_NS
             message = Message.fromPostArgs(query)
+            raise ProtocolError(message, str(err))
+        except InvalidNamespace, err:
+            # If openid.ns is OK, but there is problem with other namespaces
+            # We keep only bare parts of query and we try to make a ProtocolError from it
+            query = [(key, value) for key, value in query.items() if key.count('.') < 2]
+            message = Message.fromPostArgs(dict(query))
             raise ProtocolError(message, str(err))
 
         mode = message.getArg(OPENID_NS, 'mode')

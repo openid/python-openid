@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from openid import message
 from openid import oidutil
 from openid.extensions import sreg
@@ -445,7 +446,6 @@ class OpenID1ExplicitMessageTest(unittest.TestCase):
     def test_isOpenID1(self):
         self.failUnless(self.msg.isOpenID1())
 
-
 class OpenID2MessageTest(unittest.TestCase):
     def setUp(self):
         self.msg = message.Message.fromPostArgs({'openid.mode':'error',
@@ -461,6 +461,20 @@ class OpenID2MessageTest(unittest.TestCase):
                               'openid.ns':message.OPENID2_NS,
                               'xey': 'value',
                               })
+
+    def test_toPostArgs_bug_with_utf8_encoded_values(self):
+        msg = message.Message.fromPostArgs({'openid.mode':'error',
+                                            'openid.error':'unit test',
+                                            'openid.ns':message.OPENID2_NS
+                                             })
+        msg.setArg(message.BARE_NS, 'ünicöde_key', 'ünicöde_välüe')
+        self.failUnlessEqual(msg.toPostArgs(),
+                             {'openid.mode':'error',
+                              'openid.error':'unit test',
+                              'openid.ns':message.OPENID2_NS,
+                              'ünicöde_key': 'ünicöde_välüe',
+                              })
+
 
     def test_toArgs(self):
         # This method can't tolerate BARE_NS.
@@ -686,6 +700,27 @@ class OpenID2MessageTest(unittest.TestCase):
         self.assertEqual(args, m.toPostArgs())
         self.failUnless(m.isOpenID2())
 
+    def test_repetitive_namespaces(self):
+        """
+        Message that raises KeyError during encoding, because openid namespace is used in attributes
+        """
+        args = {'openid.assoc_handle': 'fa1f5ff0-cde4-11dc-a183-3714bfd55ca8',
+                'openid.claimed_id': 'http://binkley.lan/user/test01',
+                'openid.identity': 'http://test01.binkley.lan/',
+                'openid.mode': 'id_res',
+                'openid.ns': 'http://specs.openid.net/auth/2.0',
+                'openid.op_endpoint': 'http://binkley.lan/server',
+                'openid.response_nonce': '2008-01-28T21:07:04Z99Q=',
+                'openid.return_to': 'http://binkley.lan:8001/process?janrain_nonce=2008-01-28T21%3A07%3A02Z0tMIKx',
+                'openid.sig': 'YJlWH4U6SroB1HoPkmEKx9AyGGg=',
+                'openid.signed': 'assoc_handle,identity,response_nonce,return_to,claimed_id,op_endpoint,pape.auth_time,ns.pape,pape.nist_auth_level,pape.auth_policies',
+                'openid.ns.pape': 'http://specs.openid.net/auth/2.0',
+                'openid.pape.auth_policies': 'none',
+                'openid.pape.auth_time': '2008-01-28T20:42:36Z',
+                'openid.pape.nist_auth_level': '0',
+                }
+        self.failUnlessRaises(message.InvalidNamespace, message.Message.fromPostArgs, args)
+
     def test_implicit_sreg_ns(self):
         openid_args = {
           'sreg.email': 'a@b.com'
@@ -845,6 +880,29 @@ class MessageTest(unittest.TestCase):
                               self.submit_text)
         self._checkForm(html, m, self.action_url,
                         self.form_tag_attrs, self.submit_text)
+
+    def test_toFormMarkup_bug_with_utf8_values(self):
+        postargs = {
+            'openid.ns': message.OPENID2_NS,
+            'openid.mode': 'checkid_setup',
+            'openid.identity': 'http://bogus.example.invalid:port/',
+            'openid.assoc_handle': 'FLUB',
+            'openid.return_to': 'Neverland',
+            'ünicöde_key' : 'ünicöde_välüe',
+            }
+        m = message.Message.fromPostArgs(postargs)
+        # Calling m.toFormMarkup with lxml used for ElementTree will throw
+        # a ValueError.
+        html = m.toFormMarkup(self.action_url, self.form_tag_attrs,
+                              self.submit_text)
+        # Using the (c)ElementTree from stdlib will result in the UTF-8
+        # encoded strings to be converted to XML character references,
+        # "ünicöde_key" becomes "&#195;&#188;nic&#195;&#182;de_key" and
+        # "ünicöde_välüe" becomes "&#195;&#188;nic&#195;&#182;de_v&#195;&#164;l&#195;&#188;e"
+        self.failIf('&#195;&#188;nic&#195;&#182;de_key' in html,
+                    'UTF-8 bytes should not convert to XML character references')
+        self.failIf('&#195;&#188;nic&#195;&#182;de_v&#195;&#164;l&#195;&#188;e' in html,
+                    'UTF-8 bytes should not convert to XML character references')
 
     def test_overrideMethod(self):
         """Be sure that caller cannot change form method to GET."""

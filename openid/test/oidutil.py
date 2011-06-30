@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import unittest
 import codecs
 import string
@@ -53,7 +54,17 @@ class AppendArgsTest(unittest.TestCase):
     def shortDescription(self):
         return self.desc
 
+class TestUnicodeConversion(unittest.TestCase):
 
+    def test_toUnicode(self):
+        # Unicode objects pass through
+        self.failUnless(isinstance(oidutil.toUnicode(u'fööbär'), unicode))
+        self.assertEquals(oidutil.toUnicode(u'fööbär'), u'fööbär')
+        # UTF-8 encoded string are decoded
+        self.failUnless(isinstance(oidutil.toUnicode('fööbär'), unicode))
+        self.assertEquals(oidutil.toUnicode('fööbär'), u'fööbär')
+        # Other encodings raise exceptions
+        self.assertRaises(UnicodeDecodeError, lambda: oidutil.toUnicode(u'fööbär'.encode('latin-1')))
 
 class TestSymbol(unittest.TestCase):
     def testCopyHash(self):
@@ -154,6 +165,7 @@ def buildAppendTests():
 def pyUnitTests():
     some = buildAppendTests()
     some.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(TestSymbol))
+    some.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(TestUnicodeConversion))
     return some
 
 def test_appendArgs():

@@ -720,6 +720,7 @@ class TestEncode(unittest.TestCase):
     def test_assocReply(self):
         msg = Message(OPENID2_NS)
         msg.setArg(OPENID2_NS, 'session_type', 'no-encryption')
+        msg.setArg(OPENID2_NS, 'assoc_type', 'HMAC-SHA1')
         request = server.AssociateRequest.fromMessage(msg)
         response = server.OpenIDResponse(request)
         response.fields = Message.fromPostArgs(
@@ -845,6 +846,7 @@ class TestSigningEncode(unittest.TestCase):
     def test_assocReply(self):
         msg = Message(OPENID2_NS)
         msg.setArg(OPENID2_NS, 'session_type', 'no-encryption')
+        msg.setArg(OPENID2_NS, 'assoc_type', 'HMAC-SHA1')
         request = server.AssociateRequest.fromMessage(msg)
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({'assoc_handle': "every-zig"})
@@ -1713,6 +1715,7 @@ class TestServer(unittest.TestCase, CatchLogs):
         msg = Message.fromPostArgs({
             'openid.ns': OPENID2_NS,
             'openid.session_type': 'no-encryption',
+            'openid.assoc_type': 'HMAC-SHA1',
             })
 
         request = server.AssociateRequest.fromMessage(msg)
@@ -1735,6 +1738,7 @@ class TestServer(unittest.TestCase, CatchLogs):
         msg = Message.fromPostArgs({
             'openid.ns': OPENID2_NS,
             'openid.session_type': 'no-encryption',
+            'openid.assoc_type': 'HMAC-SHA1',
             })
 
         request = server.AssociateRequest.fromMessage(msg)
@@ -1772,6 +1776,16 @@ class TestServer(unittest.TestCase, CatchLogs):
         """Make sure session_type is required in OpenID 2"""
         msg = Message.fromPostArgs({
             'openid.ns': OPENID2_NS,
+            })
+
+        self.assertRaises(server.ProtocolError,
+                          server.AssociateRequest.fromMessage, msg)
+
+    def test_missingAssocTypeOpenID2(self):
+        """Make sure assoc_type is required in OpenID 2"""
+        msg = Message.fromPostArgs({
+            'openid.ns': OPENID2_NS,
+            'openid.session_type': 'no-encryption',
             })
 
         self.assertRaises(server.ProtocolError,
