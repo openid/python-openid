@@ -45,6 +45,8 @@ class DiscoveryResult(object):
 
     def usedYadisLocation(self):
         """Was the Yadis protocol's indirection used?"""
+        if self.xrds_uri is None:
+            return False
         return self.normalized_uri != self.xrds_uri
 
     def isXRDS(self):
@@ -131,18 +133,22 @@ def whereIsYadis(resp):
             content_type = content_type or ''
             encoding = content_type.rsplit(';', 1)
             if len(encoding) == 2 and encoding[1].strip().startswith('charset='):
-                encoding = encoding[1].split('=', 1)[1]
+                encoding = encoding[1].split('=', 1)[1].strip()
             else:
                 encoding = 'UTF-8'
 
             try:
                 content = resp.body.decode(encoding)
             except UnicodeError:
+                # Keep encoded version in case yadis location can be found before encoding shut this up.
+                # Possible errors will be caught lower.
                 content = resp.body
 
             try:
                 yadis_loc = findHTMLMeta(StringIO(content))
-            except MetaNotFound:
+            except (MetaNotFound, UnicodeError):
+                # UnicodeError: Response body could not be encoded and xrds location
+                # could not be found before troubles occurs.
                 pass
 
         return yadis_loc

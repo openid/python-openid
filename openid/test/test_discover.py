@@ -250,10 +250,35 @@ class TestDiscovery(BaseTestDiscovery):
                               discover.discover, self.id_url + '/404')
 
     def test_unicode(self):
+        """
+        Check page with unicode and HTML entities
+        """
         self._discover(
             content_type='text/html;charset=utf-8',
             data=readDataFile('unicode.html'),
             expected_services=0)
+
+    def test_unicode_undecodable_html(self):
+        """
+        Check page with unicode and HTML entities that can not be decoded
+        """
+        data = readDataFile('unicode2.html')
+        self.failUnlessRaises(UnicodeDecodeError, data.decode, 'utf-8')
+        self._discover(content_type='text/html;charset=utf-8',
+            data=data, expected_services=0)
+
+    def test_unicode_undecodable_html2(self):
+        """
+        Check page with unicode and HTML entities that can not be decoded
+        but xrds document is found before it matters
+        """
+        self.documents[self.id_url + 'xrds'] = (
+            'application/xrds+xml', readDataFile('yadis_idp.xml'))
+
+        data = readDataFile('unicode3.html')
+        self.failUnlessRaises(UnicodeDecodeError, data.decode, 'utf-8')
+        self._discover(content_type='text/html;charset=utf-8',
+            data=data, expected_services=1)
 
     def test_noOpenID(self):
         services = self._discover(content_type='text/plain',
