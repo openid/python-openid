@@ -124,17 +124,6 @@ def getBaseURL(req):
     url = "%s://%s%s/" % (proto, name, port)
     return url
 
-def normalDict(request_data):
-    """
-    Converts a django request MutliValueDict (e.g., request.GET,
-    request.POST) into a standard python dict whose values are the
-    first value from each of the MultiValueDict's value lists.  This
-    avoids the OpenID library's refusal to deal with dicts whose
-    values are lists, because in OpenID, each key in the query arg set
-    can have at most one value.
-    """
-    return dict((k, v[0]) for k, v in request_data.iteritems())
-
 def renderXRDS(request, type_uris, endpoint_urls):
     """Render an XRDS page with the specified type URIs and endpoint
     URLs in one service block, and return a response with the

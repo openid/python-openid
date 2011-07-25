@@ -104,7 +104,7 @@ def endpoint(request):
     """
     s = getServer(request)
 
-    query = util.normalDict(request.GET or request.POST)
+    query = dict(request.GET.items() or request.POST.items())
 
     # First, decode the incoming request into something the OpenID
     # library can use.

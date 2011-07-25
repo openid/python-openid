@@ -4,7 +4,7 @@ from djopenid.server import views
 from djopenid import util
 
 from django.http import HttpRequest
-from django.contrib.sessions.middleware import SessionWrapper
+from django.contrib.sessions.middleware import SessionMiddleware
 
 from openid.server.server import CheckIDRequest
 from openid.message import Message
@@ -13,9 +13,9 @@ from openid.yadis.services import applyFilter
 
 def dummyRequest():
     request = HttpRequest()
-    request.session = SessionWrapper("test")
     request.META['HTTP_HOST'] = 'example.invalid'
     request.META['SERVER_PROTOCOL'] = 'HTTP'
+    SessionMiddleware().process_request(request)
     return request
 
 class TestProcessTrustResult(TestCase):

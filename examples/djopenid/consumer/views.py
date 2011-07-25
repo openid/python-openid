@@ -2,6 +2,7 @@
 from django import http
 from django.http import HttpResponseRedirect
 from django.views.generic.simple import direct_to_template
+from django.utils.safestring import mark_safe
 
 from openid.consumer import consumer
 from openid.consumer.discover import DiscoveryFailure
@@ -126,8 +127,8 @@ def startOpenID(request):
             # users will have to click the form submit button to
             # initiate OpenID authentication.
             form_id = 'openid_message'
-            form_html = auth_request.formMarkup(trust_root, return_to,
-                                                False, {'id': form_id})
+            form_html = mark_safe(auth_request.formMarkup(trust_root, return_to,
+                                                False, {'id': form_id}))
             return direct_to_template(
                 request, 'consumer/request_form.html', {'html': form_html})
 
@@ -147,9 +148,9 @@ def finishOpenID(request):
 
     # OpenID 2 can send arguments as either POST body or GET query
     # parameters.
-    request_args = util.normalDict(request.GET)
+    request_args = dict(request.GET.items())
     if request.method == 'POST':
-        request_args.update(util.normalDict(request.POST))
+        request_args.update(dict(request.POST.items()))
 
     if request_args:
         c = getConsumer(request)
