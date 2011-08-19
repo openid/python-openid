@@ -338,7 +338,11 @@ class TrustRoot(object):
             # Use "www." in place of the star
             assert self.host.startswith('.'), self.host
             www_domain = 'www' + self.host
-            return '%s://%s%s' % (self.proto, www_domain, self.path)
+            if self.port:
+                port = ':%s' % self.port
+            else:
+                port = ''
+            return '%s://%s%s%s' % (self.proto, www_domain, port, self.path)
         else:
             return self.unparsed
 

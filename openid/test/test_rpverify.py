@@ -36,6 +36,12 @@ class TestBuildDiscoveryURL(unittest.TestCase):
         self.failUnlessDiscoURL('http://*.example.com/foo',
                                 'http://www.example.com/foo')
 
+    def test_wildcard_port(self):
+        """There is a wildcard
+        """
+        self.failUnlessDiscoURL('http://*.example.com:8001/foo',
+                                'http://www.example.com:8001/foo')
+
 class TestExtractReturnToURLs(unittest.TestCase):
     disco_url = 'http://example.com/'
 
