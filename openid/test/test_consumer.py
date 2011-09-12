@@ -1083,6 +1083,15 @@ class TestReturnToArgs(unittest.TestCase):
         # no return value, success is assumed if there are no exceptions.
         self.consumer._verifyReturnToArgs(query)
 
+    def test_returnToEmptyArg(self):
+        query = {
+            'openid.mode': 'id_res',
+            'openid.return_to': 'http://example.com/?foo=',
+            'foo': '',
+            }
+        # no return value, success is assumed if there are no exceptions.
+        self.consumer._verifyReturnToArgs(query)
+
     def test_returnToArgsUnexpectedArg(self):
         query = {
             'openid.mode': 'id_res',

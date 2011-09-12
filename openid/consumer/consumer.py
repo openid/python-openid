@@ -852,7 +852,7 @@ class GenericConsumer(object):
 
         parsed_url = urlparse(return_to)
         rt_query = parsed_url[4]
-        parsed_args = cgi.parse_qsl(rt_query)
+        parsed_args = cgi.parse_qsl(rt_query, keep_blank_values=True)
 
         for rt_key, rt_value in parsed_args:
             try:
