@@ -1504,12 +1504,14 @@ class Server(object):
         associations I can make and how.
     @type negotiator: L{openid.association.SessionNegotiator}
     """
-
-    signatoryClass = Signatory
-    encoderClass = SigningEncoder
-    decoderClass = Decoder
-
-    def __init__(self, store, op_endpoint=None):
+    
+    def __init__(
+        self,
+        store,
+        op_endpoint=None,
+        signatoryClass=Signatory, 
+        encoderClass=SigningEncoder, 
+        decoderClass=Decoder):
         """A new L{Server}.
 
         @param store: The back-end where my associations are stored.
@@ -1525,9 +1527,9 @@ class Server(object):
             if you want to respond to any version 2 OpenID requests.
         """
         self.store = store
-        self.signatory = self.signatoryClass(self.store)
-        self.encoder = self.encoderClass(self.signatory)
-        self.decoder = self.decoderClass(self)
+        self.signatory = signatoryClass(self.store)
+        self.encoder = encoderClass(self.signatory)
+        self.decoder = decoderClass(self)
         self.negotiator = default_negotiator.copy()
 
         if not op_endpoint:
