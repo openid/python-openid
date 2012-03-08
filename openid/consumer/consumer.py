@@ -1595,7 +1595,7 @@ class AuthRequest(object):
 
         if self.assoc:
             message.setArg(OPENID_NS, 'assoc_handle', self.assoc.handle)
-            assoc_log_msg = 'with assocication %s' % (self.assoc.handle,)
+            assoc_log_msg = 'with association %s' % (self.assoc.handle,)
         else:
             assoc_log_msg = 'using stateless mode.'
 
