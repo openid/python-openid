@@ -23,8 +23,7 @@ from djopenid.util import getViewURL
 from django import http
 from django.views.generic.simple import direct_to_template
 
-from openid.server.server import Server, ProtocolError, CheckIDRequest, \
-     EncodingError
+from openid.server.server import Server, ProtocolError, EncodingError
 from openid.server.trustroot import verifyReturnTo
 from openid.yadis.discover import DiscoveryFailure
 from openid.consumer.discover import OPENID_IDP_2_0_TYPE
@@ -64,12 +63,10 @@ def server(request):
     """
     Respond to requests for the server's primary web page.
     """
-    return direct_to_template(
-        request,
-        'server/index.html',
-        {'user_url': getViewURL(request, idPage),
-         'server_xrds_url': getViewURL(request, idpXrds),
-         })
+    return direct_to_template(request, 'server/index.html',
+                              user_url=getViewURL(request, idPage),
+                              server_xrds_url=getViewURL(request, idpXrds),
+                             )
 
 def idpXrds(request):
     """
@@ -83,20 +80,19 @@ def idPage(request):
     """
     Serve the identity page for OpenID URLs.
     """
-    return direct_to_template(
-        request,
-        'server/idPage.html',
-        {'server_url': getViewURL(request, endpoint)})
+    return direct_to_template(request, 'server/idPage.html',
+                              server_url=getViewURL(request, endpoint),
+                             )
 
 def trustPage(request):
     """
     Display the trust page template, which allows the user to decide
     whether to approve the OpenID verification.
     """
-    return direct_to_template(
-        request,
-        'server/trust.html',
-        {'trust_handler_url':getViewURL(request, processTrustResult)})
+    return direct_to_template(request, 'server/trust.html',
+                              trust_handler_url=getViewURL(request,
+                                                           processTrustResult),
+                             )
 
 def endpoint(request):
     """
@@ -112,18 +108,13 @@ def endpoint(request):
         openid_request = s.decodeRequest(query)
     except ProtocolError, why:
         # This means the incoming request was invalid.
-        return direct_to_template(
-            request,
-            'server/endpoint.html',
-            {'error': str(why)})
+        return direct_to_template(request, 'server/endpoint.html',
+                                  error=str(why))
 
     # If we did not get a request, display text indicating that this
     # is an endpoint.
     if openid_request is None:
-        return direct_to_template(
-            request,
-            'server/endpoint.html',
-            {})
+        return direct_to_template(request, 'server/endpoint.html')
 
     # We got a request; if the mode is checkid_*, we will handle it by
     # getting feedback from the user or by checking the session.
@@ -196,14 +187,13 @@ def showDecidePage(request, openid_request):
 
     pape_request = pape.Request.fromOpenIDRequest(openid_request)
 
-    return direct_to_template(
-        request,
-        'server/trust.html',
-        {'trust_root': trust_root,
-         'trust_handler_url':getViewURL(request, processTrustResult),
-         'trust_root_valid': trust_root_valid,
-         'pape_request': pape_request,
-         })
+    return direct_to_template(request, 'server/trust.html',
+                              trust_root=trust_root,
+                              trust_handler_url=getViewURL(request,
+                                                            processTrustResult),
+                              trust_root_valid=trust_root_valid,
+                              pape_request=pape_request,
+                             )
 
 def processTrustResult(request):
     """
@@ -264,10 +254,8 @@ def displayResponse(request, openid_response):
     except EncodingError, why:
         # If it couldn't be encoded, display an error.
         text = why.response.encodeToKVForm()
-        return direct_to_template(
-            request,
-            'server/endpoint.html',
-            {'error': cgi.escape(text)})
+        return direct_to_template(request, 'server/endpoint.html',
+                                  error=cgi.escape(text))
 
     # Construct the appropriate django framework response.
     r = http.HttpResponse(webresponse.body)

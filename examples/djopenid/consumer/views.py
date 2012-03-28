@@ -38,8 +38,8 @@ def renderIndexPage(request, **template_args):
     template_args['consumer_url'] = util.getViewURL(request, startOpenID)
     template_args['pape_policies'] = POLICY_PAIRS
 
-    response =  direct_to_template(
-        request, 'consumer/index.html', template_args)
+    response =  direct_to_template(request, 'consumer/index.html',
+                                   **template_args)
     response[YADIS_HEADER_NAME] = util.getViewURL(request, rpXRDS)
     return response
 
@@ -128,8 +128,8 @@ def startOpenID(request):
             form_id = 'openid_message'
             form_html = auth_request.formMarkup(trust_root, return_to,
                                                 False, {'id': form_id})
-            return direct_to_template(
-                request, 'consumer/request_form.html', {'html': form_html})
+            return direct_to_template(request, 'consumer/request_form.html',
+                                      html=form_html)
 
     return renderIndexPage(request)
 
