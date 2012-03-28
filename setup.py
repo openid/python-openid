@@ -1,7 +1,10 @@
 import sys
 import os
 
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 
 if 'sdist' in sys.argv:
     os.system('./admin/makedoc')
