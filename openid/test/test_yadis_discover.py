@@ -173,7 +173,7 @@ def pyUnitTests():
 
 def test():
     runner = unittest.TextTestRunner()
-    return runner.run(loadTests())
+    return runner.run(pyUnitTests())
 
 if __name__ == '__main__':
     test()

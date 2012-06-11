@@ -124,4 +124,4 @@ def pyUnitTests():
 
 if __name__ == '__main__':
     runner = unittest.TextTestRunner()
-    runner.run(loadTests())
+    runner.run(pyUnitTests())
