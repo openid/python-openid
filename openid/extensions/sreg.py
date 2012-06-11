@@ -38,7 +38,7 @@ OpenID providers.
 from openid.message import registerNamespaceAlias, \
      NamespaceAliasRegistrationError
 from openid.extension import Extension
-from openid import oidutil
+import logging
 
 try:
     basestring #pylint:disable-msg=W0104
@@ -95,7 +95,7 @@ ns_uri = ns_uri_1_1
 try:
     registerNamespaceAlias(ns_uri_1_1, 'sreg')
 except NamespaceAliasRegistrationError, e:
-    oidutil.log('registerNamespaceAlias(%r, %r) failed: %s' % (ns_uri_1_1,
+    logging.exception('registerNamespaceAlias(%r, %r) failed: %s' % (ns_uri_1_1,
                                                                'sreg', str(e),))
 
 def supportsSReg(endpoint):

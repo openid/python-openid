@@ -17,12 +17,12 @@ __all__ = [
     'verifyReturnTo',
     ]
 
-from openid import oidutil
 from openid import urinorm
 from openid.yadis import services
 
 from urlparse import urlparse, urlunparse
 import re
+import logging
 
 ############################################
 _protocols = ['http', 'https']
@@ -443,12 +443,12 @@ def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):
     try:
         allowable_urls = _vrfy(realm.buildDiscoveryURL())
     except RealmVerificationRedirected, err:
-        oidutil.log(str(err))
+        logging.exception(str(err))
         return False
 
     if returnToMatches(allowable_urls, return_to):
         return True
     else:
-        oidutil.log("Failed to validate return_to %r for realm %r, was not "
+        logging.error("Failed to validate return_to %r for realm %r, was not "
                     "in %s" % (return_to, realm_str, allowable_urls))
         return False

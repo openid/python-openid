@@ -189,6 +189,7 @@ USING THIS LIBRARY
 
 import cgi
 import copy
+import logging
 from urlparse import urlparse, urldefrag
 
 from openid import fetchers
@@ -662,7 +663,7 @@ class GenericConsumer(object):
         try:
             self._verifyReturnToArgs(message.toPostArgs())
         except ProtocolError, why:
-            oidutil.log("Verifying return_to arguments: %s" % (why[0],))
+            logging.exception("Verifying return_to arguments: %s" % (why[0],))
             return False
 
         # Check the return_to base URL against the one in the message.
@@ -728,7 +729,7 @@ class GenericConsumer(object):
 
         # Verify discovery information:
         endpoint = self._verifyDiscoveryResults(message, endpoint)
-        oidutil.log("Received id_res response from %s using association %s" %
+        logging.info("Received id_res response from %s using association %s" %
                     (endpoint.server_url,
                      message.getArg(OPENID_NS, 'assoc_handle')))
 
@@ -922,7 +923,7 @@ class GenericConsumer(object):
         # endpoints and responses that didn't match the original
         # request.
         if not endpoint:
-            oidutil.log('No pre-discovered information supplied.')
+            logging.info('No pre-discovered information supplied.')
             endpoint = self._discoverAndVerify(to_match.claimed_id, [to_match])
         else:
             # The claimed ID matches, so we use the endpoint that we
@@ -931,10 +932,10 @@ class GenericConsumer(object):
             try:
                 self._verifyDiscoverySingle(endpoint, to_match)
             except ProtocolError, e:
-                oidutil.log(
+                logging.exception(
                     "Error attempting to use stored discovery information: " +
                     str(e))
-                oidutil.log("Attempting discovery to verify endpoint")
+                logging.info("Attempting discovery to verify endpoint")
                 endpoint = self._discoverAndVerify(
                     to_match.claimed_id, [to_match])
 
@@ -976,9 +977,9 @@ class GenericConsumer(object):
                 except TypeURIMismatch:
                     self._verifyDiscoverySingle(endpoint, to_match_1_0)
             except ProtocolError, e:
-                oidutil.log("Error attempting to use stored discovery information: " +
+                logging.exception("Error attempting to use stored discovery information: " +
                             str(e))
-                oidutil.log("Attempting discovery to verify endpoint")
+                logging.info("Attempting discovery to verify endpoint")
             else:
                 return endpoint
 
@@ -1048,7 +1049,7 @@ class GenericConsumer(object):
 
         @raises DiscoveryFailure: when discovery fails.
         """
-        oidutil.log('Performing discovery on %s' % (claimed_id,))
+        logging.info('Performing discovery on %s' % (claimed_id,))
         _, services = self._discover(claimed_id)
         if not services:
             raise DiscoveryFailure('No OpenID information found at %s' %
@@ -1075,10 +1076,10 @@ class GenericConsumer(object):
                     # succeeded. Return this endpoint.
                     return endpoint
         else:
-            oidutil.log('Discovery verification failure for %s' %
+            logging.error('Discovery verification failure for %s' %
                         (claimed_id,))
             for failure_message in failure_messages:
-                oidutil.log(' * Endpoint mismatch: ' + failure_message)
+                logging.error(' * Endpoint mismatch: ' + failure_message)
 
             raise DiscoveryFailure(
                 'No matching endpoint found after discovering %s'
@@ -1090,14 +1091,14 @@ class GenericConsumer(object):
         @returns: True if the request is valid.
         @rtype: bool
         """
-        oidutil.log('Using OpenID check_authentication')
+        logging.info('Using OpenID check_authentication')
         request = self._createCheckAuthRequest(message)
         if request is None:
             return False
         try:
             response = self._makeKVPost(request, server_url)
         except (fetchers.HTTPFetchingError, ServerError), e:
-            oidutil.log('check_authentication failed: %s' % (e[0],))
+            logging.exception('check_authentication failed: %s' % (e[0],))
             return False
         else:
             return self._processCheckAuthResponse(response, server_url)
@@ -1109,12 +1110,12 @@ class GenericConsumer(object):
         signed = message.getArg(OPENID_NS, 'signed')
         if signed:
             for k in signed.split(','):
-                oidutil.log(k)
+                logging.info(k)
                 val = message.getAliasedArg(k)
 
                 # Signed value is missing
                 if val is None:
-                    oidutil.log('Missing signed field %r' % (k,))
+                    logging.info('Missing signed field %r' % (k,))
                     return None
 
         check_auth_message = message.copy()
@@ -1129,10 +1130,10 @@ class GenericConsumer(object):
 
         invalidate_handle = response.getArg(OPENID_NS, 'invalidate_handle')
         if invalidate_handle is not None:
-            oidutil.log(
+            logging.info(
                 'Received "invalidate_handle" from server %s' % (server_url,))
             if self.store is None:
-                oidutil.log('Unexpectedly got invalidate_handle without '
+                logging.error('Unexpectedly got invalidate_handle without '
                             'a store!')
             else:
                 self.store.removeAssociation(server_url, invalidate_handle)
@@ -1140,7 +1141,7 @@ class GenericConsumer(object):
         if is_valid == 'true':
             return True
         else:
-            oidutil.log('Server responds that checkAuth call is not valid')
+            logging.error('Server responds that checkAuth call is not valid')
             return False
 
     def _getAssociation(self, endpoint):
@@ -1193,7 +1194,7 @@ class GenericConsumer(object):
                 except ServerError, why:
                     # Do not keep trying, since it rejected the
                     # association type that it told us to use.
-                    oidutil.log('Server %s refused its suggested association '
+                    logging.error('Server %s refused its suggested association '
                                 'type: session_type=%s, assoc_type=%s'
                                 % (endpoint.server_url, session_type,
                                    assoc_type))
@@ -1216,7 +1217,7 @@ class GenericConsumer(object):
         # should be considered a total failure.
         if server_error.error_code != 'unsupported-type' or \
                server_error.message.isOpenID1():
-            oidutil.log(
+            logging.error(
                 'Server error when requesting an association from %r: %s'
                 % (endpoint.server_url, server_error.error_text))
             return None
@@ -1224,7 +1225,7 @@ class GenericConsumer(object):
         # The server didn't like the association/session type
         # that we sent, and it sent us back a message that
         # might tell us how to handle it.
-        oidutil.log(
+        logging.error(
             'Unsupported association type %s: %s' % (assoc_type,
                                                      server_error.error_text,))
 
@@ -1234,13 +1235,13 @@ class GenericConsumer(object):
         session_type = server_error.message.getArg(OPENID_NS, 'session_type')
 
         if assoc_type is None or session_type is None:
-            oidutil.log('Server responded with unsupported association '
+            logging.error('Server responded with unsupported association '
                         'session but did not supply a fallback.')
             return None
         elif not self.negotiator.isAllowed(assoc_type, session_type):
             fmt = ('Server sent unsupported session/association type: '
                    'session_type=%s, assoc_type=%s')
-            oidutil.log(fmt % (session_type, assoc_type))
+            logging.error(fmt % (session_type, assoc_type))
             return None
         else:
             return assoc_type, session_type
@@ -1261,17 +1262,17 @@ class GenericConsumer(object):
         try:
             response = self._makeKVPost(args, endpoint.server_url)
         except fetchers.HTTPFetchingError, why:
-            oidutil.log('openid.associate request failed: %s' % (why[0],))
+            logging.exception('openid.associate request failed: %s' % (why[0],))
             return None
 
         try:
             assoc = self._extractAssociation(response, assoc_session)
         except KeyError, why:
-            oidutil.log('Missing required parameter in response from %s: %s'
+            logging.exception('Missing required parameter in response from %s: %s'
                         % (endpoint.server_url, why[0]))
             return None
         except ProtocolError, why:
-            oidutil.log('Protocol error parsing response from %s: %s' % (
+            logging.exception('Protocol error parsing response from %s: %s' % (
                 endpoint.server_url, why[0]))
             return None
         else:
@@ -1348,7 +1349,7 @@ class GenericConsumer(object):
         # OpenID 1, but we'll accept it anyway, while issuing a
         # warning.
         if session_type == 'no-encryption':
-            oidutil.log('WARNING: OpenID server sent "no-encryption"'
+            logging.warn('OpenID server sent "no-encryption"'
                         'for OpenID 1.X')
 
         # Missing or empty session type is the way to flag a
@@ -1599,7 +1600,7 @@ class AuthRequest(object):
         else:
             assoc_log_msg = 'using stateless mode.'
 
-        oidutil.log("Generated %s request to %s %s" %
+        logging.info("Generated %s request to %s %s" %
                     (mode, self.endpoint.server_url, assoc_log_msg))
 
         return message
@@ -1779,7 +1780,7 @@ class SuccessResponse(Response):
 
         for key in msg_args.iterkeys():
             if not self.isSigned(ns_uri, key):
-                oidutil.log("SuccessResponse.getSignedNS: (%s, %s) not signed."
+                logging.info("SuccessResponse.getSignedNS: (%s, %s) not signed."
                             % (ns_uri, key))
                 return None
 

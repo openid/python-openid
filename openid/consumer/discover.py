@@ -14,8 +14,9 @@ __all__ = [
     ]
 
 import urlparse
+import logging
 
-from openid import oidutil, fetchers, urinorm
+from openid import fetchers, urinorm
 
 from openid import yadis
 from openid.yadis.etxrd import nsTag, XRDSError, XRD_NS_2_0
@@ -425,7 +426,7 @@ def discoverXRI(iname):
         for service_element in services:
             endpoints.extend(flt.getServiceEndpoints(iname, service_element))
     except XRDSError:
-        oidutil.log('xrds error on ' + iname)
+        logging.exception('xrds error on ' + iname)
 
     for endpoint in endpoints:
         # Is there a way to pass this through the filter to the endpoint
