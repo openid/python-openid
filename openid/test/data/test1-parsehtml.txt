@@ -148,5 +148,5 @@ None
 </body><html><head>
 <meta http-equiv="X-XRDS-Location" content="found">
 
-None
+EOF
 <!bad processing instruction!>

@@ -15,7 +15,7 @@ class _TestCase(unittest.TestCase):
 
     def runTest(self):
         p = YadisHTMLParser()
-        try:
+	try:
             p.feed(self.case)
         except ParseDone, why:
             found = why[0]
@@ -57,7 +57,7 @@ def pyUnitTests():
 
 def test():
     runner = unittest.TextTestRunner()
-    return runner.run(loadTests())
+    return runner.run(pyUnitTests())
 
 filenames = ['data/test1-parsehtml.txt']
 
