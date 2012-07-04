@@ -1,5 +1,11 @@
 This is the Python OpenID library.
 
+[![Build Status][travis-image]][travis-link]
+
+[travis-image]: https://secure.travis-ci.org/openid/python-openid.png?branch=master
+[travis-link]: http://travis-ci.org/openid/python-openid
+
+
 REQUIREMENTS
 ============
 
