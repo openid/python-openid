@@ -1,0 +1,17 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+  <head>
+      <meta http-equiv="X-XRDS-Location" content="http://someuser.unittest/xrds" />
+      <title param="¿¿¿¿¿ýáíé &raquo;">Title with param which raises UnicodeError</title>
+  </head>
+  <body>
+      <p>
+         weird sign Å to prevent successful decoding
+      </p>
+      <p>
+          This page can not be properly decoded so its content will be passed to HTML parser
+          encoded but service will be found because x-xrds-location is found on time
+      </p>
+  </body>
+</html>
+
