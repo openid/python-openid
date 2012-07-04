@@ -93,7 +93,10 @@ def setDefaultFetcher(fetcher, wrap_exceptions=True):
 
 def usingCurl():
     """Whether the currently set HTTP fetcher is a Curl HTTP fetcher."""
-    return isinstance(getDefaultFetcher(), CurlHTTPFetcher)
+    fetcher = getDefaultFetcher()
+    if isinstance(fetcher, ExceptionWrappingFetcher):
+        fetcher = fetcher.fetcher
+    return isinstance(fetcher, CurlHTTPFetcher)
 
 class HTTPResponse(object):
     """XXX document attributes"""
@@ -319,7 +322,7 @@ class CurlHTTPFetcher(HTTPFetcher):
                         return 0
                     else:
                         return data.write(chunk)
-                    
+
                 response_header_data = cStringIO.StringIO()
                 c.setopt(pycurl.WRITEFUNCTION, write_data)
                 c.setopt(pycurl.HEADERFUNCTION, response_header_data.write)
