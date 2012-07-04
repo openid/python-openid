@@ -133,7 +133,7 @@ def normalDict(request_data):
     values are lists, because in OpenID, each key in the query arg set
     can have at most one value.
     """
-    return dict((k, v[0]) for k, v in request_data.iteritems())
+    return dict((k, v) for k, v in request_data.iteritems())
 
 def renderXRDS(request, type_uris, endpoint_urls):
     """Render an XRDS page with the specified type URIs and endpoint
