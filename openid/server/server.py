@@ -1339,7 +1339,7 @@ class Encoder(object):
                                       headers={'location': location})
         elif encode_as == ENCODE_HTML_FORM:
             wr = self.responseFactory(code=HTTP_OK,
-                                      body=response.toFormMarkup())
+                                      body=response.toHTML())
         else:
             # Can't encode this to a protocol message.  You should probably
             # render it to HTML and show it to the user.
