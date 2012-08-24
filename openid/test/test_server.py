@@ -5,6 +5,7 @@ from openid import association, cryptutil, oidutil
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
      IDENTIFIER_SELECT, no_default, OPENID1_URL_LIMIT
 from openid.store import memstore
+from openid.test.support import CatchLogs
 import cgi
 
 import unittest
@@ -20,18 +21,6 @@ from urlparse import urlparse
 
 ALT_MODULUS = 0xCAADDDEC1667FC68B5FA15D53C4E1532DD24561A1A2D47A12C01ABEA1E00731F6921AAC40742311FDF9E634BB7131BEE1AF240261554389A910425E044E88C8359B010F5AD2B80E29CB1A5B027B19D9E01A6F63A6F45E5D7ED2FF6A2A0085050A7D0CF307C3DB51D2490355907B4427C23A98DF1EB8ABEF2BA209BB7AFFE86A7
 ALT_GEN = 5
-
-class CatchLogs(object):
-    def setUp(self):
-        self.old_logger = oidutil.log
-        oidutil.log = self.gotLogMessage
-        self.messages = []
-
-    def gotLogMessage(self, message):
-        self.messages.append(message)
-
-    def tearDown(self):
-        oidutil.log = self.old_logger
 
 class TestProtocolError(unittest.TestCase):
     def test_browserWithReturnTo(self):
@@ -1999,10 +1988,10 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.failIf(self.messages, self.messages)
 
     def test_getAssocExpired(self):
-        assoc_handle = self.makeAssoc(dumb=True, lifetime=-10)
+	assoc_handle = self.makeAssoc(dumb=True, lifetime=-10)
         assoc = self.signatory.getAssociation(assoc_handle, True)
         self.failIf(assoc, assoc)
-        self.failUnless(self.messages)
+	self.failUnless(self.messages)
 
     def test_getAssocInvalid(self):
         ah = 'no-such-handle'

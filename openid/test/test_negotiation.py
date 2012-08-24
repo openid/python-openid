@@ -163,8 +163,8 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
     Tests for the OpenID 1 consumer association session behavior.  See
     the docs for TestOpenID2SessionNegotiation.  Notice that this
     class is not a subclass of the OpenID 2 tests.  Instead, it uses
-    many of the same inputs but inspects the log messages logged with
-    oidutil.log.  See the calls to self.failUnlessLogMatches.  Some of
+    many of the same inputs but inspects the log messages.
+    See the calls to self.failUnlessLogMatches.  Some of
     these tests pass openid2-style messages to the openid 1
     association processing logic to be sure it ignores the extra data.
     """
