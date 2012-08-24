@@ -1,26 +1,19 @@
 from openid import kvform
-from openid import oidutil
+from openid.test.support import CatchLogs
 import unittest
 
-class KVBaseTest(unittest.TestCase):
+class KVBaseTest(unittest.TestCase, CatchLogs):
     def shortDescription(self):
         return '%s test for %r' % (self.__class__.__name__, self.kvform)
 
-    def log(self, message, unused_priority=None):
-        self.warnings.append(message)
-
     def checkWarnings(self, num_warnings):
-        self.failUnlessEqual(num_warnings, len(self.warnings), repr(self.warnings))
+        self.failUnlessEqual(num_warnings, len(self.messages), repr(self.messages))
 
     def setUp(self):
-        self.warnings = []
-        self.old_log = oidutil.log
-        self.log_func = oidutil.log = self.log
-        self.failUnless(self.log_func is oidutil.log,
-                        (oidutil.log, self.log_func))
+        CatchLogs.setUp(self)
 
     def tearDown(self):
-        oidutil.log = self.old_log
+        CatchLogs.tearDown(self)
 
 class KVDictTest(KVBaseTest):
     def __init__(self, kv, dct, warnings):
@@ -172,3 +165,8 @@ def pyUnitTests():
     tests.extend([KVExcTest(case) for case in kvexc_cases])
     tests.append(unittest.defaultTestLoader.loadTestsFromTestCase(GeneralTest))
     return unittest.TestSuite(tests)
+
+if __name__ == '__main__':
+    suite = pyUnitTests()
+    runner = unittest.TextTestRunner()
+    runner.run(suite)

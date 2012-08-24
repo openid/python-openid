@@ -10,6 +10,7 @@ __all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'autoSubmitHTML', 'toU
 import binascii
 import sys
 import urlparse
+import logging
 
 from urllib import urlencode
 
@@ -77,9 +78,8 @@ def importElementTree(module_names=None):
             except (SystemExit, MemoryError, AssertionError):
                 raise
             except:
-                why = sys.exc_info()[1]
-                log('Not using ElementTree library %r because it failed to '
-                    'parse a trivial document: %s' % (mod_name, why))
+                logging.exception('Not using ElementTree library %r because it failed to '
+                    'parse a trivial document: %s' % mod_name)
             else:
                 return ElementTree
     else:
@@ -91,20 +91,8 @@ def importElementTree(module_names=None):
 def log(message, level=0):
     """Handle a log message from the OpenID library.
 
-    This implementation writes the string it to C{sys.stderr},
-    followed by a newline.
-
-    Currently, the library does not use the second parameter to this
-    function, but that may change in the future.
-
-    To install your own logging hook::
-
-      from openid import oidutil
-
-      def myLoggingFunction(message, level):
-          ...
-
-      oidutil.log = myLoggingFunction
+    This is a legacy function which redirects to logging.error.
+    The logging module should be used instead of this
 
     @param message: A string containing a debugging message from the
         OpenID library
@@ -118,8 +106,8 @@ def log(message, level=0):
     @returns: Nothing.
     """
 
-    sys.stderr.write(message)
-    sys.stderr.write('\n')
+    logging.error("This is a legacy log message, please use the "
+      "logging module. Message: %s", message)
 
 def appendArgs(url, args):
     """Append query arguments to a HTTP(s) URL. If the URL already has

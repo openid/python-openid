@@ -1,8 +1,7 @@
 __all__ = ['seqToKV', 'kvToSeq', 'dictToKV', 'kvToDict']
 
-from openid import oidutil
-
 import types
+import logging
 
 class KVFormError(ValueError):
     pass
@@ -22,7 +21,7 @@ def seqToKV(seq, strict=False):
         if strict:
             raise KVFormError(formatted)
         else:
-            oidutil.log(formatted)
+            logging.warn(formatted)
 
     lines = []
     for k, v in seq:
@@ -73,7 +72,7 @@ def kvToSeq(data, strict=False):
         if strict:
             raise KVFormError(formatted)
         else:
-            oidutil.log(formatted)
+            logging.warn(formatted)
 
     lines = data.split('\n')
     if lines[-1]:

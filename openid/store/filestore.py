@@ -7,6 +7,7 @@ import string
 import os
 import os.path
 import time
+import logging
 
 from errno import EEXIST, ENOENT
 
@@ -371,7 +372,7 @@ class FileOpenIDStore(OpenIDStore):
                 association_file = file(association_filename, 'rb')
             except IOError, why:
                 if why.errno == ENOENT:
-                    oidutil.log("%s disappeared during %s._allAssocs" % (
+                    logging.exception("%s disappeared during %s._allAssocs" % (
                         association_filename, self.__class__.__name__))
                 else:
                     raise
