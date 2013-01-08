@@ -1,3 +1,4 @@
+import warnings
 from openid import message as message_module
 
 class Extension(object):
