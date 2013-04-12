@@ -128,7 +128,7 @@ from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot, verifyReturnTo
 from openid.association import Association, default_negotiator, getSecretSize
 from openid.message import Message, InvalidOpenIDNamespace, \
-     OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, OPENID1_URL_LIMIT
+     OPENID_NS, OPENID1_NS, OPENID2_NS, IDENTIFIER_SELECT, OPENID1_URL_LIMIT
 from openid.urinorm import urinorm
 
 HTTP_OK = 200
@@ -1043,7 +1043,7 @@ class OpenIDResponse(object):
         @change: 2.1.0 added the ENCODE_HTML_FORM response.
         """
         if self.request.mode in BROWSER_REQUEST_MODES:
-            if self.fields.getOpenIDNamespace() == OPENID2_NS and \
+            if self.fields.getOpenIDNamespace() == OPENID1_NS and \
                len(self.encodeToURL()) > OPENID1_URL_LIMIT:
                 return ENCODE_HTML_FORM
             else:
@@ -1719,7 +1719,7 @@ class ProtocolError(Exception):
             displayed to the user.
         """
         if self.hasReturnTo():
-            if self.openid_message.getOpenIDNamespace() == OPENID2_NS and \
+            if self.openid_message.getOpenIDNamespace() == OPENID1_NS and \
                len(self.encodeToURL()) > OPENID1_URL_LIMIT:
                 return ENCODE_HTML_FORM
             else:
