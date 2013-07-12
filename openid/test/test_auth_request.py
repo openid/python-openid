@@ -23,7 +23,7 @@ class DummyEndpoint(object):
 class DummyAssoc(object):
     handle = "assoc-handle"
 
-class TestAuthRequestMixin(support.OpenIDTestMixin):
+class AuthRequestTestMixin(support.OpenIDTestMixin):
     """Mixin for AuthRequest tests for OpenID 1 and 2; DON'T add
     unittest.TestCase as a base class here."""
 
@@ -101,7 +101,7 @@ class TestAuthRequestMixin(support.OpenIDTestMixin):
         self.failUnlessHasIdentifiers(
             msg, self.endpoint.local_id, self.endpoint.claimed_id)
 
-class TestAuthRequestOpenID2(TestAuthRequestMixin, unittest.TestCase):
+class TestAuthRequestOpenID2(AuthRequestTestMixin, unittest.TestCase):
     preferred_namespace = message.OPENID2_NS
 
     def failUnlessHasRealm(self, msg):
@@ -151,7 +151,7 @@ class TestAuthRequestOpenID2(TestAuthRequestMixin, unittest.TestCase):
         self.failUnlessHasIdentifiers(
             msg, message.IDENTIFIER_SELECT, message.IDENTIFIER_SELECT)
 
-class TestAuthRequestOpenID1(TestAuthRequestMixin, unittest.TestCase):
+class TestAuthRequestOpenID1(AuthRequestTestMixin, unittest.TestCase):
     preferred_namespace = message.OPENID1_NS
 
     def setUpEndpoint(self):
