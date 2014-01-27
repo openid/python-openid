@@ -8,6 +8,7 @@ __all__ = ['fetch', 'getDefaultFetcher', 'setDefaultFetcher', 'HTTPResponse',
            'HTTPError']
 
 import urllib2
+import urlparse
 import time
 import cStringIO
 import sys
@@ -334,10 +335,10 @@ class CurlHTTPFetcher(HTTPFetcher):
                 response_headers = self._parseHeaders(response_header_data)
                 code = c.getinfo(pycurl.RESPONSE_CODE)
                 if code in [301, 302, 303, 307]:
-                    url = response_headers.get('location')
-                    if url is None:
+                    if response_headers.get('location') is None:
                         raise HTTPError(
                             'Redirect (%s) returned without a location' % code)
+                    url = urlparse.urljoin(url, response_headers.get('location'))
 
                     # Redirects are always GETs
                     c.setopt(pycurl.POST, 0)
