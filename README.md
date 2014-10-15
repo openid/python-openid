@@ -9,14 +9,7 @@ This is the Python OpenID library.
 REQUIREMENTS
 ============
 
- - Python 2.3, 2.4, or 2.5.
-
- - ElementTree.  This is included in the Python 2.5 standard library,
-   but users of earlier versions of Python may need to install it
-   seperately.
-
- - pycrypto, if on Python 2.3 and without /dev/urandom, or on Python
-   2.3 or 2.4 and you want SHA256.
+ - Python 2.6, 2.7.
 
 
 INSTALLATION
