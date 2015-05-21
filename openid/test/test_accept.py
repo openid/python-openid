@@ -2,6 +2,7 @@ import unittest
 import os.path
 from openid.yadis import accept
 
+
 def getTestData():
     """Read the test data off of disk
 
@@ -14,6 +15,7 @@ def getTestData():
         lines.append((i, line))
         i += 1
     return lines
+
 
 def chunk(lines):
     """Return groups of lines separated by whitespace or comments
@@ -36,6 +38,7 @@ def chunk(lines):
 
     return chunks
 
+
 def parseLines(chunk):
     """Take the given chunk of lines and turn it into a test data dictionary
 
@@ -49,12 +52,14 @@ def parseLines(chunk):
 
     return items
 
+
 def parseAvailable(available_text):
     """Parse an Available: line's data
 
     str -> [str]
     """
     return [s.strip() for s in available_text.split(',')]
+
 
 def parseExpected(expected_text):
     """Parse an Expected: line's data
@@ -76,7 +81,9 @@ def parseExpected(expected_text):
 
     return expected
 
+
 class MatchAcceptTest(unittest.TestCase):
+
     def __init__(self, descr, accept_header, available, expected):
         unittest.TestCase.__init__(self)
         self.accept_header = accept_header
@@ -91,6 +98,7 @@ class MatchAcceptTest(unittest.TestCase):
         accepted = accept.parseAcceptHeader(self.accept_header)
         actual = accept.matchTypes(accepted, self.available)
         self.failUnlessEqual(self.expected, actual)
+
 
 def pyUnitTests():
     lines = getTestData()

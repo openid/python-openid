@@ -8,7 +8,9 @@ import time
 from openid import cryptutil
 import warnings
 
+
 class AssociationSerializationTest(unittest.TestCase):
+
     def test_roundTrip(self):
         issued = int(time.time())
         lifetime = 600
@@ -23,20 +25,22 @@ class AssociationSerializationTest(unittest.TestCase):
         self.failUnlessEqual(assoc.assoc_type, assoc2.assoc_type)
 
 from openid.server.server import \
-     DiffieHellmanSHA1ServerSession, \
-     DiffieHellmanSHA256ServerSession, \
-     PlainTextServerSession
+    DiffieHellmanSHA1ServerSession, \
+    DiffieHellmanSHA256ServerSession, \
+    PlainTextServerSession
 
 from openid.consumer.consumer import \
-     DiffieHellmanSHA1ConsumerSession, \
-     DiffieHellmanSHA256ConsumerSession, \
-     PlainTextConsumerSession
+    DiffieHellmanSHA1ConsumerSession, \
+    DiffieHellmanSHA256ConsumerSession, \
+    PlainTextConsumerSession
 
 from openid.dh import DiffieHellman
+
 
 def createNonstandardConsumerDH():
     nonstandard_dh = DiffieHellman(1315291, 2)
     return DiffieHellmanSHA1ConsumerSession(nonstandard_dh)
+
 
 class DiffieHellmanSessionTest(datadriven.DataDrivenTestCase):
     secrets = [
@@ -44,13 +48,13 @@ class DiffieHellmanSessionTest(datadriven.DataDrivenTestCase):
         '\xff' * 20,
         ' ' * 20,
         'This is a secret....',
-        ]
+    ]
 
     session_factories = [
         (DiffieHellmanSHA1ConsumerSession, DiffieHellmanSHA1ServerSession),
         (createNonstandardConsumerDH, DiffieHellmanSHA1ServerSession),
         (PlainTextConsumerSession, PlainTextServerSession),
-        ]
+    ]
 
     def generateCases(cls):
         return [(c, s, sec)
@@ -74,8 +78,8 @@ class DiffieHellmanSessionTest(datadriven.DataDrivenTestCase):
         self.failUnlessEqual(self.secret, check_secret)
 
 
-
 class TestMakePairs(unittest.TestCase):
+
     """Check the key-value formatting methods of associations.
     """
 
@@ -86,11 +90,10 @@ class TestMakePairs(unittest.TestCase):
             'identifier': '=example',
             'signed': 'identifier,mode',
             'sig': 'cephalopod',
-            })
+        })
         m.updateArgs(BARE_NS, {'xey': 'value'})
         self.assoc = association.Association.fromExpiresIn(
             3600, '{sha1}', 'very_secret', "HMAC-SHA1")
-
 
     def testMakePairs(self):
         """Make pairs using the OpenID 1.x type signed list."""
@@ -98,16 +101,15 @@ class TestMakePairs(unittest.TestCase):
         expected = [
             ('identifier', '=example'),
             ('mode', 'id_res'),
-            ]
+        ]
         self.failUnlessEqual(pairs, expected)
 
 
-
 class TestMac(unittest.TestCase):
+
     def setUp(self):
         self.pairs = [('key1', 'value1'),
                       ('key2', 'value2')]
-
 
     def test_sha1(self):
         assoc = association.Association.fromExpiresIn(
@@ -127,8 +129,8 @@ class TestMac(unittest.TestCase):
             self.failUnlessEqual(sig, expected)
 
 
-
 class TestMessageSigning(unittest.TestCase):
+
     def setUp(self):
         self.message = m = Message(OPENID2_NS)
         m.updateArgs(OPENID2_NS, {'mode': 'id_res',
@@ -137,7 +139,6 @@ class TestMessageSigning(unittest.TestCase):
         self.args = {'openid.mode': 'id_res',
                      'openid.identifier': '=example',
                      'xey': 'value'}
-
 
     def test_signSHA1(self):
         assoc = association.Association.fromExpiresIn(
@@ -162,6 +163,7 @@ class TestMessageSigning(unittest.TestCase):
 
 
 class TestCheckMessageSignature(unittest.TestCase):
+
     def test_aintGotSignedList(self):
         m = Message(OPENID2_NS)
         m.updateArgs(OPENID2_NS, {'mode': 'id_res',

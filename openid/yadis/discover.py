@@ -6,10 +6,12 @@ from StringIO import StringIO
 from openid import fetchers
 
 from openid.yadis.constants import \
-     YADIS_HEADER_NAME, YADIS_CONTENT_TYPE, YADIS_ACCEPT_HEADER
+    YADIS_HEADER_NAME, YADIS_CONTENT_TYPE, YADIS_ACCEPT_HEADER
 from openid.yadis.parsehtml import MetaNotFound, findHTMLMeta
 
+
 class DiscoveryFailure(Exception):
+
     """Raised when a YADIS protocol error occurs in the discovery process"""
     identity_url = None
 
@@ -17,7 +19,9 @@ class DiscoveryFailure(Exception):
         Exception.__init__(self, message)
         self.http_response = http_response
 
+
 class DiscoveryResult(object):
+
     """Contains the result of performing Yadis discovery on a URI"""
 
     # The URI that was passed to the fetcher
@@ -53,6 +57,7 @@ class DiscoveryResult(object):
         """Is the response text supposed to be an XRDS document?"""
         return (self.usedYadisLocation() or
                 self.content_type == YADIS_CONTENT_TYPE)
+
 
 def discover(uri):
     """Discover services for a given URI.
@@ -98,7 +103,6 @@ def discover(uri):
     return result
 
 
-
 def whereIsYadis(resp):
     """Given a HTTPResponse, return the location of the Yadis document.
 
@@ -116,7 +120,7 @@ def whereIsYadis(resp):
     # According to the spec, the content-type header must be an exact
     # match, or else we have to look for an indirection.
     if (content_type and
-        content_type.split(';', 1)[0].lower() == YADIS_CONTENT_TYPE):
+            content_type.split(';', 1)[0].lower() == YADIS_CONTENT_TYPE):
         return resp.final_url
     else:
         # Try the header
@@ -152,4 +156,3 @@ def whereIsYadis(resp):
                 pass
 
         return yadis_loc
-

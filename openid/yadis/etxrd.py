@@ -16,7 +16,7 @@ __all__ = [
     'iterServices',
     'expandService',
     'expandServices',
-    ]
+]
 
 import sys
 import random
@@ -42,19 +42,20 @@ except:
 
 from openid.yadis import xri
 
+
 class XRDSError(Exception):
+
     """An error with the XRDS document."""
 
     # The exception that triggered this exception
     reason = None
 
 
-
 class XRDSFraud(XRDSError):
+
     """Raised when there's an assertion in the XRDS that it does not have
     the authority to make.
     """
-
 
 
 def parseXRDS(text):
@@ -81,8 +82,10 @@ def parseXRDS(text):
 XRD_NS_2_0 = 'xri://$xrd*($v*2.0)'
 XRDS_NS = 'xri://$xrds'
 
+
 def nsTag(ns, t):
     return '{%s}%s' % (ns, t)
+
 
 def mkXRDTag(t):
     """basestring -> basestring
@@ -91,6 +94,7 @@ def mkXRDTag(t):
     with ElementTree
     """
     return nsTag(XRD_NS_2_0, t)
+
 
 def mkXRDSTag(t):
     """basestring -> basestring
@@ -111,10 +115,12 @@ expires_tag = mkXRDTag('Expires')
 # Other XRD tags
 canonicalID_tag = mkXRDTag('CanonicalID')
 
+
 def isXRDS(xrd_tree):
     """Is this document an XRDS document?"""
     root = xrd_tree.getroot()
     return root.tag == root_tag
+
 
 def getYadisXRD(xrd_tree):
     """Return the XRD element that should contain the Yadis services"""
@@ -131,6 +137,7 @@ def getYadisXRD(xrd_tree):
         raise XRDSError('No XRD present in tree')
 
     return xrd
+
 
 def getXRDExpiration(xrd_element, default=None):
     """Return the expiration date of this XRD element, or None if no
@@ -155,6 +162,7 @@ def getXRDExpiration(xrd_element, default=None):
         # Will raise ValueError if the string is not the expected format
         expires_time = strptime(expires_string, "%Y-%m-%dT%H:%M:%SZ")
         return datetime(*expires_time[0:6])
+
 
 def getCanonicalID(iname, xrd_tree):
     """Return the CanonicalID from this XRDS document.
@@ -194,12 +202,13 @@ def getCanonicalID(iname, xrd_tree):
     return canonicalID
 
 
-
 class _Max(object):
+
     """Value that compares greater than any other value.
 
     Should only be used as a singleton. Implemented for use as a
     priority value for when a priority is not specified."""
+
     def __cmp__(self, other):
         if other is self:
             return 0
@@ -207,6 +216,7 @@ class _Max(object):
         return 1
 
 Max = _Max()
+
 
 def getPriorityStrict(element):
     """Get the priority of this element.
@@ -226,6 +236,7 @@ def getPriorityStrict(element):
     # Any errors in parsing the priority fall through to here
     return Max
 
+
 def getPriority(element):
     """Get the priority of this element
 
@@ -235,6 +246,7 @@ def getPriority(element):
         return getPriorityStrict(element)
     except ValueError:
         return Max
+
 
 def prioSort(elements):
     """Sort a list of elements that have priority attributes"""
@@ -247,6 +259,7 @@ def prioSort(elements):
     sorted_elems = [s for (_, s) in prio_elems]
     return sorted_elems
 
+
 def iterServices(xrd_tree):
     """Return an iterable over the Service elements in the Yadis XRD
 
@@ -254,17 +267,20 @@ def iterServices(xrd_tree):
     xrd = getYadisXRD(xrd_tree)
     return prioSort(xrd.findall(service_tag))
 
+
 def sortedURIs(service_element):
     """Given a Service element, return a list of the contents of all
     URI tags in priority order."""
     return [uri_element.text for uri_element
             in prioSort(service_element.findall(uri_tag))]
 
+
 def getTypeURIs(service_element):
     """Given a Service element, return a list of the contents of all
     Type tags"""
     return [type_element.text for type_element
             in service_element.findall(type_tag)]
+
 
 def expandService(service_element):
     """Take a service element and expand it into an iterator of:
@@ -280,6 +296,7 @@ def expandService(service_element):
         expanded.append((type_uris, uri, service_element))
 
     return expanded
+
 
 def expandServices(service_elements):
     """Take a sorted iterator of service elements and expand it into a

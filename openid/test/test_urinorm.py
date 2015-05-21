@@ -2,7 +2,9 @@ import os
 import unittest
 import openid.urinorm
 
+
 class UrinormTest(unittest.TestCase):
+
     def __init__(self, desc, case, expected):
         unittest.TestCase.__init__(self)
         self.desc = desc
@@ -40,6 +42,7 @@ def parseTests(test_data):
             result.append(UrinormTest.parse(case))
 
     return result
+
 
 def pyUnitTests():
     here = os.path.dirname(os.path.abspath(__file__))

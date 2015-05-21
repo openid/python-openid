@@ -10,12 +10,14 @@ from openid.yadis.services import iterServices
 
 DEFAULT_PROXY = 'http://proxy.xri.net/'
 
+
 class ProxyResolver(object):
+
     """Python interface to a remote XRI proxy resolver.
     """
+
     def __init__(self, proxy_url=DEFAULT_PROXY):
         self.proxy_url = proxy_url
-
 
     def queryURL(self, xri, service_type=None):
         """Build a URL to query the proxy resolver.
@@ -41,7 +43,7 @@ class ProxyResolver(object):
             # 11:13:42), then we could ask for application/xrd+xml instead,
             # which would give us a bit less to process.
             '_xrd_r': 'application/xrds+xml',
-            }
+        }
         if service_type:
             args['_xrd_t'] = service_type
         else:
@@ -49,7 +51,6 @@ class ProxyResolver(object):
             args['_xrd_r'] += ';sep=false'
         query = _appendArgs(hxri, args)
         return query
-
 
     def query(self, xri, service_types):
         """Resolve some services for an XRI.

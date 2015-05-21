@@ -195,13 +195,13 @@ from urlparse import urlparse, urldefrag
 from openid import fetchers
 
 from openid.consumer.discover import discover, OpenIDServiceEndpoint, \
-     DiscoveryFailure, OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE
+    DiscoveryFailure, OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
-     IDENTIFIER_SELECT, no_default, BARE_NS
+    IDENTIFIER_SELECT, no_default, BARE_NS
 from openid import cryptutil
 from openid import oidutil
 from openid.association import Association, default_negotiator, \
-     SessionNegotiator
+    SessionNegotiator
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.yadis.manager import Discovery
@@ -256,8 +256,8 @@ def _httpResponseToMessage(response, server_url):
     return response_message
 
 
-
 class Consumer(object):
+
     """An OpenID consumer implementation that performs discovery and
     does session management.
 
@@ -420,7 +420,7 @@ class Consumer(object):
             pass
 
         if (response.status in ['success', 'cancel'] and
-            response.identity_url is not None):
+                response.identity_url is not None):
 
             disco = Discovery(self.session,
                               response.identity_url,
@@ -453,6 +453,7 @@ class Consumer(object):
         """
         self.consumer.negotiator = SessionNegotiator(association_preferences)
 
+
 class DiffieHellmanSHA1ConsumerSession(object):
     session_type = 'DH-SHA1'
     hash_func = staticmethod(cryptutil.sha1)
@@ -474,7 +475,7 @@ class DiffieHellmanSHA1ConsumerSession(object):
             args.update({
                 'dh_modulus': cryptutil.longToBase64(self.dh.modulus),
                 'dh_gen': cryptutil.longToBase64(self.dh.generator),
-                })
+            })
 
         return args
 
@@ -486,11 +487,13 @@ class DiffieHellmanSHA1ConsumerSession(object):
         enc_mac_key = oidutil.fromBase64(enc_mac_key64)
         return self.dh.xorSecret(dh_server_public, enc_mac_key, self.hash_func)
 
+
 class DiffieHellmanSHA256ConsumerSession(DiffieHellmanSHA1ConsumerSession):
     session_type = 'DH-SHA256'
     hash_func = staticmethod(cryptutil.sha256)
     secret_size = 32
     allowed_assoc_types = ['HMAC-SHA256']
+
 
 class PlainTextConsumerSession(object):
     session_type = 'no-encryption'
@@ -503,18 +506,25 @@ class PlainTextConsumerSession(object):
         mac_key64 = response.getArg(OPENID_NS, 'mac_key', no_default)
         return oidutil.fromBase64(mac_key64)
 
+
 class SetupNeededError(Exception):
+
     """Internally-used exception that indicates that an immediate-mode
     request cancelled."""
+
     def __init__(self, user_setup_url=None):
         Exception.__init__(self, user_setup_url)
         self.user_setup_url = user_setup_url
 
+
 class ProtocolError(ValueError):
+
     """Exception that indicates that a message violated the
     protocol. It is raised and caught internally to this file."""
 
+
 class TypeURIMismatch(ProtocolError):
+
     """A protocol error arising from type URIs mismatching
     """
 
@@ -530,8 +540,8 @@ class TypeURIMismatch(ProtocolError):
         return s
 
 
-
 class ServerError(Exception):
+
     """Exception that is raised when the server returns a 400 response
     code to a direct request."""
 
@@ -551,7 +561,9 @@ class ServerError(Exception):
 
     fromMessage = classmethod(fromMessage)
 
+
 class GenericConsumer(object):
+
     """This is the implementation of the common logic for OpenID
     consumers. It is unaware of the application in which it is
     running.
@@ -578,10 +590,10 @@ class GenericConsumer(object):
     openid1_return_to_identifier_name = 'openid1_claimed_id'
 
     session_types = {
-        'DH-SHA1':DiffieHellmanSHA1ConsumerSession,
-        'DH-SHA256':DiffieHellmanSHA256ConsumerSession,
-        'no-encryption':PlainTextConsumerSession,
-        }
+        'DH-SHA1': DiffieHellmanSHA1ConsumerSession,
+        'DH-SHA256': DiffieHellmanSHA256ConsumerSession,
+        'no-encryption': PlainTextConsumerSession,
+    }
 
     _discover = staticmethod(discover)
 
@@ -726,12 +738,11 @@ class GenericConsumer(object):
                 "return_to does not match return URL. Expected %r, got %r"
                 % (return_to, message.getArg(OPENID_NS, 'return_to')))
 
-
         # Verify discovery information:
         endpoint = self._verifyDiscoveryResults(message, endpoint)
         logging.info("Received id_res response from %s using association %s" %
-                    (endpoint.server_url,
-                     message.getArg(OPENID_NS, 'assoc_handle')))
+                     (endpoint.server_url,
+                      message.getArg(OPENID_NS, 'assoc_handle')))
 
         self._idResCheckSignature(message, endpoint.server_url)
 
@@ -773,7 +784,7 @@ class GenericConsumer(object):
             raise ProtocolError('Malformed nonce: %s' % (why[0],))
 
         if (self.store is not None and
-            not self.store.useNonce(server_url, timestamp, salt)):
+                not self.store.useNonce(server_url, timestamp, salt)):
             raise ProtocolError('Nonce already used or out of range')
 
     def _idResCheckSignature(self, message, server_url):
@@ -817,15 +828,15 @@ class GenericConsumer(object):
         require_fields = {
             OPENID2_NS: basic_fields + ['op_endpoint'],
             OPENID1_NS: basic_fields + ['identity'],
-            }
+        }
 
         require_sigs = {
             OPENID2_NS: basic_sig_fields + ['response_nonce',
                                             'claimed_id',
                                             'assoc_handle',
-                                            'op_endpoint',],
+                                            'op_endpoint', ],
             OPENID1_NS: basic_sig_fields,
-            }
+        }
 
         for field in require_fields[message.getOpenIDNamespace()]:
             if not message.hasKey(OPENID_NS, field):
@@ -838,7 +849,6 @@ class GenericConsumer(object):
             # Field is present and not in signed list
             if message.hasKey(OPENID_NS, field) and field not in signed_list:
                 raise ProtocolError('"%s" not signed' % (field,))
-
 
     def _verifyReturnToArgs(query):
         """Verify that the arguments in the return_to URL are present in this
@@ -870,7 +880,8 @@ class GenericConsumer(object):
         bare_args = message.getArgs(BARE_NS)
         for pair in bare_args.iteritems():
             if pair not in parsed_args:
-                raise ProtocolError("Parameter %s not in return_to URL" % (pair[0],))
+                raise ProtocolError(
+                    "Parameter %s not in return_to URL" % (pair[0],))
 
     _verifyReturnToArgs = staticmethod(_verifyReturnToArgs)
 
@@ -889,7 +900,6 @@ class GenericConsumer(object):
         else:
             return self._verifyDiscoveryResultsOpenID1(resp_msg, endpoint)
 
-
     def _verifyDiscoveryResultsOpenID2(self, resp_msg, endpoint):
         to_match = OpenIDServiceEndpoint()
         to_match.type_uris = [OPENID_2_0_TYPE]
@@ -903,7 +913,7 @@ class GenericConsumer(object):
         # claimed_id and identifier must both be present or both
         # be absent
         if (to_match.claimed_id is None and
-            to_match.local_id is not None):
+                to_match.local_id is not None):
             raise ProtocolError(
                 'openid.identity is present without openid.claimed_id')
 
@@ -947,7 +957,8 @@ class GenericConsumer(object):
         return endpoint
 
     def _verifyDiscoveryResultsOpenID1(self, resp_msg, endpoint):
-        claimed_id = resp_msg.getArg(BARE_NS, self.openid1_return_to_identifier_name)
+        claimed_id = resp_msg.getArg(
+            BARE_NS, self.openid1_return_to_identifier_name)
 
         if endpoint is None and claimed_id is None:
             raise RuntimeError(
@@ -978,7 +989,7 @@ class GenericConsumer(object):
                     self._verifyDiscoverySingle(endpoint, to_match_1_0)
             except ProtocolError, e:
                 logging.exception("Error attempting to use stored discovery information: " +
-                            str(e))
+                                  str(e))
                 logging.info("Attempting discovery to verify endpoint")
             else:
                 return endpoint
@@ -1057,7 +1068,6 @@ class GenericConsumer(object):
         return self._verifyDiscoveredServices(claimed_id, services,
                                               to_match_endpoints)
 
-
     def _verifyDiscoveredServices(self, claimed_id, services, to_match_endpoints):
         """See @L{_discoverAndVerify}"""
 
@@ -1077,7 +1087,7 @@ class GenericConsumer(object):
                     return endpoint
         else:
             logging.error('Discovery verification failure for %s' %
-                        (claimed_id,))
+                          (claimed_id,))
             for failure_message in failure_messages:
                 logging.error(' * Endpoint mismatch: ' + failure_message)
 
@@ -1134,7 +1144,7 @@ class GenericConsumer(object):
                 'Received "invalidate_handle" from server %s' % (server_url,))
             if self.store is None:
                 logging.error('Unexpectedly got invalidate_handle without '
-                            'a store!')
+                              'a store!')
             else:
                 self.store.removeAssociation(server_url, invalidate_handle)
 
@@ -1195,9 +1205,9 @@ class GenericConsumer(object):
                     # Do not keep trying, since it rejected the
                     # association type that it told us to use.
                     logging.error('Server %s refused its suggested association '
-                                'type: session_type=%s, assoc_type=%s'
-                                % (endpoint.server_url, session_type,
-                                   assoc_type))
+                                  'type: session_type=%s, assoc_type=%s'
+                                  % (endpoint.server_url, session_type,
+                                     assoc_type))
                     return None
                 else:
                     return assoc
@@ -1216,7 +1226,7 @@ class GenericConsumer(object):
         # Any error message whose code is not 'unsupported-type'
         # should be considered a total failure.
         if server_error.error_code != 'unsupported-type' or \
-               server_error.message.isOpenID1():
+                server_error.message.isOpenID1():
             logging.error(
                 'Server error when requesting an association from %r: %s'
                 % (endpoint.server_url, server_error.error_text))
@@ -1236,7 +1246,7 @@ class GenericConsumer(object):
 
         if assoc_type is None or session_type is None:
             logging.error('Server responded with unsupported association '
-                        'session but did not supply a fallback.')
+                          'session but did not supply a fallback.')
             return None
         elif not self.negotiator.isAllowed(assoc_type, session_type):
             fmt = ('Server sent unsupported session/association type: '
@@ -1245,7 +1255,6 @@ class GenericConsumer(object):
             return None
         else:
             return assoc_type, session_type
-
 
     def _requestAssociation(self, endpoint, assoc_type, session_type):
         """Make and process one association request to this endpoint's
@@ -1262,14 +1271,15 @@ class GenericConsumer(object):
         try:
             response = self._makeKVPost(args, endpoint.server_url)
         except fetchers.HTTPFetchingError, why:
-            logging.exception('openid.associate request failed: %s' % (why[0],))
+            logging.exception(
+                'openid.associate request failed: %s' % (why[0],))
             return None
 
         try:
             assoc = self._extractAssociation(response, assoc_session)
         except KeyError, why:
             logging.exception('Missing required parameter in response from %s: %s'
-                        % (endpoint.server_url, why[0]))
+                              % (endpoint.server_url, why[0]))
             return None
         except ProtocolError, why:
             logging.exception('Protocol error parsing response from %s: %s' % (
@@ -1308,7 +1318,7 @@ class GenericConsumer(object):
         args = {
             'mode': 'associate',
             'assoc_type': assoc_type,
-            }
+        }
 
         if not endpoint.compatibilityMode():
             args['ns'] = OPENID2_NS
@@ -1316,7 +1326,7 @@ class GenericConsumer(object):
         # Leave out the session type if we're in compatibility mode
         # *and* it's no-encryption.
         if (not endpoint.compatibilityMode() or
-            assoc_session.session_type != 'no-encryption'):
+                assoc_session.session_type != 'no-encryption'):
             args['session_type'] = assoc_session.session_type
 
         args.update(assoc_session.getRequest())
@@ -1350,7 +1360,7 @@ class GenericConsumer(object):
         # warning.
         if session_type == 'no-encryption':
             logging.warn('OpenID server sent "no-encryption"'
-                        'for OpenID 1.X')
+                         'for OpenID 1.X')
 
         # Missing or empty session type is the way to flag a
         # 'no-encryption' response. Change the session type to
@@ -1407,7 +1417,7 @@ class GenericConsumer(object):
         # Session type mismatch
         if assoc_session.session_type != session_type:
             if (assoc_response.isOpenID1() and
-                session_type == 'no-encryption'):
+                    session_type == 'no-encryption'):
                 # In OpenID 1, any association request can result in a
                 # 'no-encryption' association response. Setting
                 # assoc_session to a new no-encryption session should
@@ -1439,7 +1449,9 @@ class GenericConsumer(object):
         return Association.fromExpiresIn(
             expires_in, assoc_handle, secret, assoc_type)
 
+
 class AuthRequest(object):
+
     """An object that holds the state necessary for generating an
     OpenID authentication request. This object holds the association
     with the server and the discovered information with which the
@@ -1572,11 +1584,11 @@ class AuthRequest(object):
             realm_key = 'realm'
 
         message.updateArgs(OPENID_NS,
-            {
-            realm_key:realm,
-            'mode':mode,
-            'return_to':return_to,
-            })
+                           {
+                               realm_key: realm,
+                               'mode': mode,
+                               'return_to': return_to,
+                           })
 
         if not self._anonymous:
             if self.endpoint.isOPIdentifier():
@@ -1601,7 +1613,7 @@ class AuthRequest(object):
             assoc_log_msg = 'using stateless mode.'
 
         logging.info("Generated %s request to %s %s" %
-                    (mode, self.endpoint.server_url, assoc_log_msg))
+                     (mode, self.endpoint.server_url, assoc_log_msg))
 
         return message
 
@@ -1647,7 +1659,7 @@ class AuthRequest(object):
         return message.toURL(self.endpoint.server_url)
 
     def formMarkup(self, realm, return_to=None, immediate=False,
-            form_tag_attrs=None):
+                   form_tag_attrs=None):
         """Get html for a form to submit this request to the IDP.
 
         @param form_tag_attrs: Dictionary of attributes to be added to
@@ -1658,10 +1670,10 @@ class AuthRequest(object):
         """
         message = self.getMessage(realm, return_to, immediate)
         return message.toFormMarkup(self.endpoint.server_url,
-                    form_tag_attrs)
+                                    form_tag_attrs)
 
     def htmlMarkup(self, realm, return_to=None, immediate=False,
-            form_tag_attrs=None):
+                   form_tag_attrs=None):
         """Get an autosubmitting HTML page that submits this request to the
         IDP.  This is just a wrapper for formMarkup.
 
@@ -1669,9 +1681,9 @@ class AuthRequest(object):
 
         @returns: str
         """
-        return oidutil.autoSubmitHTML(self.formMarkup(realm, 
+        return oidutil.autoSubmitHTML(self.formMarkup(realm,
                                                       return_to,
-                                                      immediate, 
+                                                      immediate,
                                                       form_tag_attrs))
 
     def shouldSendRedirect(self):
@@ -1686,6 +1698,7 @@ FAILURE = 'failure'
 SUCCESS = 'success'
 CANCEL = 'cancel'
 SETUP_NEEDED = 'setup_needed'
+
 
 class Response(object):
     status = None
@@ -1717,7 +1730,9 @@ class Response(object):
             return self.endpoint.getDisplayIdentifier()
         return None
 
+
 class SuccessResponse(Response):
+
     """A response with a status of SUCCESS. Indicates that this request is a
     successful acknowledgement from the OpenID server that the
     supplied URL is, indeed controlled by the requesting agent.
@@ -1781,7 +1796,7 @@ class SuccessResponse(Response):
         for key in msg_args.iterkeys():
             if not self.isSigned(ns_uri, key):
                 logging.info("SuccessResponse.getSignedNS: (%s, %s) not signed."
-                            % (ns_uri, key))
+                             % (ns_uri, key))
                 return None
 
         return msg_args
@@ -1836,6 +1851,7 @@ class SuccessResponse(Response):
 
 
 class FailureResponse(Response):
+
     """A response with a status of FAILURE. Indicates that the OpenID
     protocol has failed. This could be locally or remotely triggered.
 
@@ -1864,6 +1880,7 @@ class FailureResponse(Response):
 
 
 class CancelResponse(Response):
+
     """A response with a status of CANCEL. Indicates that the user
     cancelled the OpenID authentication request.
 
@@ -1878,7 +1895,9 @@ class CancelResponse(Response):
     def __init__(self, endpoint):
         self.setEndpoint(endpoint)
 
+
 class SetupNeededResponse(Response):
+
     """A response with a status of SETUP_NEEDED. Indicates that the
     request was in immediate mode, and the server is unable to
     authenticate the user without further interaction.

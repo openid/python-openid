@@ -2,13 +2,14 @@
 from unittest import TestCase
 from openid.yadis import xrires
 
+
 class ProxyQueryTestCase(TestCase):
+
     def setUp(self):
         self.proxy_url = 'http://xri.example.com/'
         self.proxy = xrires.ProxyResolver(self.proxy_url)
         self.servicetype = 'xri://+i-service*(+forwarding)*($v*1.0)'
         self.servicetype_enc = 'xri%3A%2F%2F%2Bi-service%2A%28%2Bforwarding%29%2A%28%24v%2A1.0%29'
-
 
     def test_proxy_url(self):
         st = self.servicetype
@@ -27,7 +28,6 @@ class ProxyQueryTestCase(TestCase):
         # With no service endpoint selection.
         args_esc = "_xrd_r=application%2Fxrds%2Bxml%3Bsep%3Dfalse"
         self.failUnlessEqual(h + '=foo?' + args_esc, pqu('=foo', None))
-
 
     def test_proxy_url_qmarks(self):
         st = self.servicetype

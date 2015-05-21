@@ -3,6 +3,7 @@ import os.path
 import codecs
 import unittest
 
+
 def parseLink(line):
     parts = line.split()
     optional = parts[0] == 'Link*:'
@@ -21,6 +22,7 @@ def parseLink(line):
 
     return (optional, attrs)
 
+
 def parseCase(s):
     header, markup = s.split('\n\n', 1)
     lines = header.split('\n')
@@ -28,6 +30,7 @@ def parseCase(s):
     assert name.startswith('Name: ')
     desc = name[6:]
     return desc, markup, map(parseLink, lines)
+
 
 def parseTests(s):
     tests = []
@@ -45,7 +48,9 @@ def parseTests(s):
 
     return num_tests, tests
 
+
 class _LinkTest(unittest.TestCase):
+
     def __init__(self, desc, case, expected, raw):
         unittest.TestCase.__init__(self)
         self.desc = desc
@@ -81,6 +86,7 @@ class _LinkTest(unittest.TestCase):
                 i += 1
 
         assert i == len(actual)
+
 
 def pyUnitTests():
     here = os.path.dirname(os.path.abspath(__file__))

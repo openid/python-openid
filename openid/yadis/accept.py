@@ -2,6 +2,7 @@
 supporting server-directed content negotiation.
 """
 
+
 def generateAcceptHeader(*elements):
     """Generate an accept header value
 
@@ -31,6 +32,7 @@ def generateAcceptHeader(*elements):
             chunks.append('%s; q=%s' % (mtype, q))
 
     return ', '.join(chunks)
+
 
 def parseAcceptHeader(value):
     """Parse an accept header, ignoring any accept-extensions
@@ -70,6 +72,7 @@ def parseAcceptHeader(value):
     accept.sort()
     accept.reverse()
     return [(main, sub, q) for (q, main, sub) in accept]
+
 
 def matchTypes(accept_types, have_types):
     """Given the result of parsing an Accept: header, and the
@@ -117,6 +120,7 @@ def matchTypes(accept_types, have_types):
 
     accepted_list.sort()
     return [(mtype, q) for (_, _, q, mtype) in accepted_list]
+
 
 def getAcceptable(accept_header, have_types):
     """Parse the accept header and return a list of available types in

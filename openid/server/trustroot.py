@@ -15,7 +15,7 @@ __all__ = [
     'extractReturnToURLs',
     'returnToMatches',
     'verifyReturnTo',
-    ]
+]
 
 from openid import urinorm
 from openid.yadis import services
@@ -64,11 +64,14 @@ _top_level_domains = [
 host_segment_re = re.compile(
     r"(?:[-a-zA-Z0-9!$&'\(\)\*+,;=._~]|%[a-zA-Z0-9]{2})+$")
 
+
 class RealmVerificationRedirected(Exception):
+
     """Attempting to verify this realm resulted in a redirect.
 
     @since: 2.1.0
     """
+
     def __init__(self, relying_party_url, rp_url_after_redirects):
         self.relying_party_url = relying_party_url
         self.rp_url_after_redirects = rp_url_after_redirects
@@ -113,7 +116,9 @@ def _parseURL(url):
 
     return proto, host, port, path
 
+
 class TrustRoot(object):
+
     """
     This class represents an OpenID trust root.  The C{L{parse}}
     classmethod accepts a trust root string, producing a
@@ -180,7 +185,7 @@ class TrustRoot(object):
         if self.wildcard:
             if len(tld) == 2 and len(host_parts[-2]) <= 3:
                 # It's a 2-letter tld with a short second to last segment
-                # so there needs to be more than two segments specified 
+                # so there needs to be more than two segments specified
                 # (e.g. *.co.uk is insane)
                 return len(host_parts) > 2
 
@@ -242,7 +247,7 @@ class TrustRoot(object):
                 allowed = '?/'
 
             return (self.path[-1] in allowed or
-                path[path_len] in allowed)
+                    path[path_len] in allowed)
 
         return True
 
@@ -356,6 +361,7 @@ class TrustRoot(object):
 # openid.consumer or openid.yadis somewhere)
 RP_RETURN_TO_URL_TYPE = 'http://specs.openid.net/auth/2.0/return_to'
 
+
 def _extractReturnURL(endpoint):
     """If the endpoint is a relying party OpenID return_to endpoint,
     return the endpoint URL. Otherwise, return None.
@@ -378,6 +384,7 @@ def _extractReturnURL(endpoint):
     else:
         return None
 
+
 def returnToMatches(allowed_return_to_urls, return_to):
     """Is the return_to URL under one of the supplied allowed
     return_to URLs?
@@ -392,7 +399,7 @@ def returnToMatches(allowed_return_to_urls, return_to):
         # a wildcard.
 
         return_realm = TrustRoot.parse(allowed_return_to)
-        if (# Parses as a trust root
+        if (  # Parses as a trust root
             return_realm is not None and
 
             # Does not have a wildcard
@@ -400,11 +407,12 @@ def returnToMatches(allowed_return_to_urls, return_to):
 
             # Matches the return_to that we passed in with it
             return_realm.validateURL(return_to)
-            ):
+        ):
             return True
 
     # No URL in the list matched
     return False
+
 
 def getAllowedReturnURLs(relying_party_url):
     """Given a relying party discovery URL return a list of return_to URLs.
@@ -422,6 +430,8 @@ def getAllowedReturnURLs(relying_party_url):
     return return_to_urls
 
 # _vrfy parameter is there to make testing easier
+
+
 def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):
     """Verify that a return_to URL is valid for the given realm.
 
@@ -450,5 +460,5 @@ def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):
         return True
     else:
         logging.error("Failed to validate return_to %r for realm %r, was not "
-                    "in %s" % (return_to, realm_str, allowable_urls))
+                      "in %s" % (return_to, realm_str, allowable_urls))
         return False

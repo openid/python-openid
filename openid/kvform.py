@@ -3,8 +3,10 @@ __all__ = ['seqToKV', 'kvToSeq', 'dictToKV', 'kvToDict']
 import types
 import logging
 
+
 class KVFormError(ValueError):
     pass
+
 
 def seqToKV(seq, strict=False):
     """Represent a sequence of pairs of strings as newline-terminated
@@ -58,6 +60,7 @@ def seqToKV(seq, strict=False):
         lines.append(k + ':' + v + '\n')
 
     return ''.join(lines).encode('UTF8')
+
 
 def kvToSeq(data, strict=False):
     """
@@ -113,10 +116,12 @@ def kvToSeq(data, strict=False):
 
     return pairs
 
+
 def dictToKV(d):
     seq = d.items()
     seq.sort()
     return seqToKV(seq)
+
 
 def kvToDict(s):
     return dict(kvToSeq(s))

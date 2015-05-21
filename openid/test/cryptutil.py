@@ -7,6 +7,7 @@ from openid import cryptutil
 # Most of the purpose of this test is to make sure that cryptutil can
 # find a good source of randomness on this machine.
 
+
 def test_cryptrand():
     # It's possible, but HIGHLY unlikely that a correct implementation
     # will fail by returning the same number twice
@@ -27,6 +28,7 @@ def test_cryptrand():
     # than platform int size
     cryptutil.randrange(long(sys.maxint) + 1L)
 
+
 def test_reversed():
     if hasattr(cryptutil, 'reversed'):
         cases = [
@@ -37,10 +39,10 @@ def test_reversed():
             ('abcdefg', 'gfedcba'),
             ([], []),
             ([1], [1]),
-            ([1,2], [2,1]),
-            ([1,2,3], [3,2,1]),
+            ([1, 2], [2, 1]),
+            ([1, 2, 3], [3, 2, 1]),
             (range(1000), range(999, -1, -1)),
-            ]
+        ]
 
         for case, expected in cases:
             expected = list(expected)
@@ -48,6 +50,7 @@ def test_reversed():
             assert actual == expected, (case, expected, actual)
             twice = list(cryptutil.reversed(actual))
             assert twice == list(case), (actual, case, twice)
+
 
 def test_binaryLongConvert():
     MAX = sys.maxint
@@ -70,13 +73,14 @@ def test_binaryLongConvert():
         ('\x00\x81', 129L),
         ('\x00\x80\x00', 32768L),
         ('OpenID is cool', 1611215304203901150134421257416556L)
-        ]
+    ]
 
     for s, n in cases:
         n_prime = cryptutil.binaryToLong(s)
         s_prime = cryptutil.longToBinary(n)
         assert n == n_prime, (s, n, n_prime)
         assert s == s_prime, (n, s, s_prime)
+
 
 def test_longToBase64():
     f = file(os.path.join(os.path.dirname(__file__), 'n2b64'))
@@ -86,6 +90,7 @@ def test_longToBase64():
             assert parts[0] == cryptutil.longToBase64(long(parts[1]))
     finally:
         f.close()
+
 
 def test_base64ToLong():
     f = file(os.path.join(os.path.dirname(__file__), 'n2b64'))

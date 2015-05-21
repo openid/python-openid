@@ -12,9 +12,11 @@ from openid.yadis.xri import XRI
 from urlparse import urlsplit
 from openid import message
 
-### Tests for conditions that trigger DiscoveryFailure
+# Tests for conditions that trigger DiscoveryFailure
+
 
 class SimpleMockFetcher(object):
+
     def __init__(self, responses):
         self.responses = list(responses)
 
@@ -24,6 +26,7 @@ class SimpleMockFetcher(object):
         assert response.final_url == url
         return response
 
+
 class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
     cases = [
         [HTTPResponse('http://network.error/', None)],
@@ -31,9 +34,9 @@ class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
         [HTTPResponse('http://bad.request/', 400)],
         [HTTPResponse('http://server.error/', 500)],
         [HTTPResponse('http://header.found/', 200,
-                      headers={'x-xrds-location':'http://xrds.missing/'}),
+                      headers={'x-xrds-location': 'http://xrds.missing/'}),
          HTTPResponse('http://xrds.missing/', 404)],
-        ]
+    ]
 
     def __init__(self, responses):
         self.url = responses[0].final_url
@@ -57,8 +60,8 @@ class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
             self.fail('Did not raise DiscoveryFailure')
 
 
-### Tests for raising/catching exceptions from the fetcher through the
-### discover function
+# Tests for raising/catching exceptions from the fetcher through the
+# discover function
 
 # Python 2.5 displays a message when running this test, which is
 # testing the behaviour in the presence of string exceptions,
@@ -68,7 +71,9 @@ import warnings
 warnings.filterwarnings('ignore', 'raising a string.*', DeprecationWarning,
                         r'^openid\.test\.test_discover$', 77)
 
+
 class ErrorRaisingFetcher(object):
+
     """Just raise an exception when fetch is called"""
 
     def __init__(self, thing_to_raise):
@@ -77,10 +82,14 @@ class ErrorRaisingFetcher(object):
     def fetch(self, url, body=None, headers=None):
         raise self.thing_to_raise
 
+
 class DidFetch(Exception):
+
     """Custom exception just to make sure it's not handled differently"""
 
+
 class TestFetchException(datadriven.DataDrivenTestCase):
+
     """Make sure exceptions get passed through discover function from
     fetcher."""
 
@@ -89,7 +98,7 @@ class TestFetchException(datadriven.DataDrivenTestCase):
         DidFetch(),
         ValueError(),
         RuntimeError(),
-        ]
+    ]
 
     # String exceptions are finally gone from Python 2.6.
     if sys.version_info[:2] < (2, 6):
@@ -120,9 +129,10 @@ class TestFetchException(datadriven.DataDrivenTestCase):
             self.fail('Expected %r', self.exc)
 
 
-### Tests for openid.consumer.discover.discover
+# Tests for openid.consumer.discover.discover
 
 class TestNormalization(unittest.TestCase):
+
     def testAddingProtocol(self):
         f = ErrorRaisingFetcher(RuntimeError())
         fetchers.setDefaultFetcher(f, wrap_exceptions=False)
@@ -132,7 +142,7 @@ class TestNormalization(unittest.TestCase):
         except DiscoveryFailure, why:
             self.fail('failed to parse url with port correctly')
         except RuntimeError:
-            pass #expected
+            pass  # expected
 
         fetchers.setDefaultFetcher(None)
 
@@ -163,6 +173,7 @@ class DiscoveryMockFetcher(object):
         return HTTPResponse(final_url, status, {'content-type': ctype}, body)
 
 # from twisted.trial import unittest as trialtest
+
 
 class BaseTestDiscovery(unittest.TestCase):
     id_url = "http://someuser.unittest/"
@@ -205,7 +216,7 @@ class BaseTestDiscovery(unittest.TestCase):
             '1.0': discover.OPENID_1_0_TYPE,
             '2.0': discover.OPENID_2_0_TYPE,
             '2.0 OP': discover.OPENID_IDP_2_0_TYPE,
-            }
+        }
 
         type_uris = [openid_types[t] for t in types]
         self.failUnlessEqual(type_uris, s.type_uris)
@@ -217,7 +228,8 @@ class BaseTestDiscovery(unittest.TestCase):
             self.failUnlessEqual(display_identifier, s.getDisplayIdentifier())
             self.failUnlessEqual(s.claimed_id, s.canonicalID)
 
-        self.failUnlessEqual(s.display_identifier or s.claimed_id, s.getDisplayIdentifier())
+        self.failUnlessEqual(
+            s.display_identifier or s.claimed_id, s.getDisplayIdentifier())
 
     def setUp(self):
         self.documents = self.documents.copy()
@@ -227,13 +239,16 @@ class BaseTestDiscovery(unittest.TestCase):
     def tearDown(self):
         fetchers.setDefaultFetcher(None)
 
+
 def readDataFile(filename):
     module_directory = os.path.dirname(os.path.abspath(__file__))
     filename = os.path.join(
         module_directory, 'data', 'test_discover', filename)
     return file(filename).read()
 
+
 class TestDiscovery(BaseTestDiscovery):
+
     def _discover(self, content_type, data,
                   expected_services, expected_id=None):
         if expected_id is None:
@@ -265,7 +280,7 @@ class TestDiscovery(BaseTestDiscovery):
         data = readDataFile('unicode2.html')
         self.failUnlessRaises(UnicodeDecodeError, data.decode, 'utf-8')
         self._discover(content_type='text/html;charset=utf-8',
-            data=data, expected_services=0)
+                       data=data, expected_services=0)
 
     def test_unicode_undecodable_html2(self):
         """
@@ -278,7 +293,7 @@ class TestDiscovery(BaseTestDiscovery):
         data = readDataFile('unicode3.html')
         self.failUnlessRaises(UnicodeDecodeError, data.decode, 'utf-8')
         self._discover(content_type='text/html;charset=utf-8',
-            data=data, expected_services=1)
+                       data=data, expected_services=1)
 
     def test_noOpenID(self):
         services = self._discover(content_type='text/plain',
@@ -289,7 +304,7 @@ class TestDiscovery(BaseTestDiscovery):
             content_type='text/html',
             data=readDataFile('openid_no_delegate.html'),
             expected_services=1,
-            )
+        )
 
         self._checkService(
             services[0],
@@ -298,14 +313,13 @@ class TestDiscovery(BaseTestDiscovery):
             server_url="http://www.myopenid.com/server",
             claimed_id=self.id_url,
             local_id=self.id_url,
-            )
+        )
 
     def test_html1(self):
         services = self._discover(
             content_type='text/html',
             data=readDataFile('openid.html'),
             expected_services=1)
-
 
         self._checkService(
             services[0],
@@ -315,7 +329,7 @@ class TestDiscovery(BaseTestDiscovery):
             claimed_id=self.id_url,
             local_id='http://smoker.myopenid.com/',
             display_identifier=self.id_url,
-            )
+        )
 
     def test_html1Fragment(self):
         """Ensure that the Claimed Identifier does not have a fragment
@@ -339,14 +353,14 @@ class TestDiscovery(BaseTestDiscovery):
             claimed_id=expected_id,
             local_id='http://smoker.myopenid.com/',
             display_identifier=expected_id,
-            )
+        )
 
     def test_html2(self):
         services = self._discover(
             content_type='text/html',
             data=readDataFile('openid2.html'),
             expected_services=1,
-            )
+        )
 
         self._checkService(
             services[0],
@@ -356,14 +370,14 @@ class TestDiscovery(BaseTestDiscovery):
             claimed_id=self.id_url,
             local_id='http://smoker.myopenid.com/',
             display_identifier=self.id_url,
-            )
+        )
 
     def test_html1And2(self):
         services = self._discover(
             content_type='text/html',
             data=readDataFile('openid_1_and_2.html'),
             expected_services=2,
-            )
+        )
 
         for t, s in zip(['2.0', '1.1'], services):
             self._checkService(
@@ -374,7 +388,7 @@ class TestDiscovery(BaseTestDiscovery):
                 claimed_id=self.id_url,
                 local_id='http://smoker.myopenid.com/',
                 display_identifier=self.id_url,
-                )
+            )
 
     def test_yadisEmpty(self):
         services = self._discover(content_type='application/xrds+xml',
@@ -400,7 +414,7 @@ class TestDiscovery(BaseTestDiscovery):
             claimed_id=self.id_url,
             local_id='http://smoker.myopenid.com/',
             display_identifier=self.id_url,
-            )
+        )
 
     def test_yadis1NoDelegate(self):
         services = self._discover(content_type='application/xrds+xml',
@@ -415,14 +429,14 @@ class TestDiscovery(BaseTestDiscovery):
             claimed_id=self.id_url,
             local_id=self.id_url,
             display_identifier=self.id_url,
-            )
+        )
 
     def test_yadis2NoLocalID(self):
         services = self._discover(
             content_type='application/xrds+xml',
             data=readDataFile('openid2_xrds_no_local_id.xml'),
             expected_services=1,
-            )
+        )
 
         self._checkService(
             services[0],
@@ -432,14 +446,14 @@ class TestDiscovery(BaseTestDiscovery):
             claimed_id=self.id_url,
             local_id=self.id_url,
             display_identifier=self.id_url,
-            )
+        )
 
     def test_yadis2(self):
         services = self._discover(
             content_type='application/xrds+xml',
             data=readDataFile('openid2_xrds.xml'),
             expected_services=1,
-            )
+        )
 
         self._checkService(
             services[0],
@@ -449,14 +463,14 @@ class TestDiscovery(BaseTestDiscovery):
             claimed_id=self.id_url,
             local_id='http://smoker.myopenid.com/',
             display_identifier=self.id_url,
-            )
+        )
 
     def test_yadis2OP(self):
         services = self._discover(
             content_type='application/xrds+xml',
             data=readDataFile('yadis_idp.xml'),
             expected_services=1,
-            )
+        )
 
         self._checkService(
             services[0],
@@ -464,7 +478,7 @@ class TestDiscovery(BaseTestDiscovery):
             types=['2.0 OP'],
             server_url="http://www.myopenid.com/server",
             display_identifier=self.id_url,
-            )
+        )
 
     def test_yadis2OPDelegate(self):
         """The delegate tag isn't meaningful for OP entries."""
@@ -472,7 +486,7 @@ class TestDiscovery(BaseTestDiscovery):
             content_type='application/xrds+xml',
             data=readDataFile('yadis_idp_delegate.xml'),
             expected_services=1,
-            )
+        )
 
         self._checkService(
             services[0],
@@ -480,21 +494,21 @@ class TestDiscovery(BaseTestDiscovery):
             types=['2.0 OP'],
             server_url="http://www.myopenid.com/server",
             display_identifier=self.id_url,
-            )
+        )
 
     def test_yadis2BadLocalID(self):
         self.failUnlessRaises(DiscoveryFailure, self._discover,
-            content_type='application/xrds+xml',
-            data=readDataFile('yadis_2_bad_local_id.xml'),
-            expected_services=1,
-            )
+                              content_type='application/xrds+xml',
+                              data=readDataFile('yadis_2_bad_local_id.xml'),
+                              expected_services=1,
+                              )
 
     def test_yadis1And2(self):
         services = self._discover(
             content_type='application/xrds+xml',
             data=readDataFile('openid_1_and_2_xrds.xml'),
             expected_services=1,
-            )
+        )
 
         self._checkService(
             services[0],
@@ -504,14 +518,16 @@ class TestDiscovery(BaseTestDiscovery):
             claimed_id=self.id_url,
             local_id='http://smoker.myopenid.com/',
             display_identifier=self.id_url,
-            )
+        )
 
     def test_yadis1And2BadLocalID(self):
         self.failUnlessRaises(DiscoveryFailure, self._discover,
-            content_type='application/xrds+xml',
-            data=readDataFile('openid_1_and_2_xrds_bad_delegate.xml'),
-            expected_services=1,
-            )
+                              content_type='application/xrds+xml',
+                              data=readDataFile(
+                                  'openid_1_and_2_xrds_bad_delegate.xml'),
+                              expected_services=1,
+                              )
+
 
 class MockFetcherForXRIProxy(object):
 
@@ -519,7 +535,6 @@ class MockFetcherForXRIProxy(object):
         self.documents = documents
         self.fetchlog = []
         self.proxy_url = None
-
 
     def fetch(self, url, body=None, headers=None):
         self.fetchlog.append((url, body, headers))
@@ -554,7 +569,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
     documents = {'=smoker': ('application/xrds+xml',
                              readDataFile('yadis_2entries_delegate.xml')),
                  '=smoker*bad': ('application/xrds+xml',
-                                 readDataFile('yadis_another_delegate.xml')) }
+                                 readDataFile('yadis_another_delegate.xml'))}
 
     def test_xri(self):
         user_xri, services = discover.discoverXRI('=smoker')
@@ -568,7 +583,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
             canonical_id=XRI("=!1000"),
             local_id='http://smoker.myopenid.com/',
             display_identifier='=smoker'
-            )
+        )
 
         self._checkService(
             services[1],
@@ -579,7 +594,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
             canonical_id=XRI("=!1000"),
             local_id='http://frank.livejournal.com/',
             display_identifier='=smoker'
-            )
+        )
 
     def test_xri_normalize(self):
         user_xri, services = discover.discoverXRI('xri://=smoker')
@@ -593,7 +608,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
             canonical_id=XRI("=!1000"),
             local_id='http://smoker.myopenid.com/',
             display_identifier='=smoker'
-            )
+        )
 
         self._checkService(
             services[1],
@@ -604,7 +619,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
             canonical_id=XRI("=!1000"),
             local_id='http://frank.livejournal.com/',
             display_identifier='=smoker'
-            )
+        )
 
     def test_xriNoCanonicalID(self):
         user_xri, services = discover.discoverXRI('=smoker*bad')
@@ -623,7 +638,7 @@ class TestXRIDiscoveryIDP(BaseTestDiscovery):
     fetcherClass = MockFetcherForXRIProxy
 
     documents = {'=smoker': ('application/xrds+xml',
-                             readDataFile('yadis_2entries_idp.xml')) }
+                             readDataFile('yadis_2entries_idp.xml'))}
 
     def test_xri(self):
         user_xri, services = discover.discoverXRI('=smoker')
@@ -633,6 +648,7 @@ class TestXRIDiscoveryIDP(BaseTestDiscovery):
 
 
 class TestPreferredNamespace(datadriven.DataDrivenTestCase):
+
     def __init__(self, expected_ns, type_uris):
         datadriven.DataDrivenTestCase.__init__(
             self, 'Expecting %s from %s' % (expected_ns, type_uris))
@@ -656,9 +672,11 @@ class TestPreferredNamespace(datadriven.DataDrivenTestCase):
                               discover.OPENID_1_0_TYPE]),
         (message.OPENID2_NS, [discover.OPENID_1_0_TYPE,
                               discover.OPENID_2_0_TYPE]),
-        ]
+    ]
+
 
 class TestIsOPIdentifier(unittest.TestCase):
+
     def setUp(self):
         self.endpoint = discover.OpenIDServiceEndpoint()
 
@@ -692,7 +710,9 @@ class TestIsOPIdentifier(unittest.TestCase):
                                    discover.OPENID_IDP_2_0_TYPE]
         self.failUnless(self.endpoint.isOPIdentifier())
 
+
 class TestFromOPEndpointURL(unittest.TestCase):
+
     def setUp(self):
         self.op_endpoint_url = 'http://example.com/op/endpoint'
         self.endpoint = discover.OpenIDServiceEndpoint.fromOPEndpointURL(
@@ -714,7 +734,9 @@ class TestFromOPEndpointURL(unittest.TestCase):
     def test_serverURL(self):
         self.failUnlessEqual(self.endpoint.server_url, self.op_endpoint_url)
 
+
 class TestDiscoverFunction(unittest.TestCase):
+
     def setUp(self):
         self._old_discoverURI = discover.discoverURI
         self._old_discoverXRI = discover.discoverXRI
@@ -744,7 +766,9 @@ class TestDiscoverFunction(unittest.TestCase):
     def test_xriChar(self):
         self.failUnlessEqual('XRI', discover.discover('=something'))
 
+
 class TestEndpointSupportsType(unittest.TestCase):
+
     def setUp(self):
         self.endpoint = discover.OpenIDServiceEndpoint()
 
@@ -755,7 +779,7 @@ class TestEndpointSupportsType(unittest.TestCase):
             discover.OPENID_1_0_TYPE,
             discover.OPENID_2_0_TYPE,
             discover.OPENID_IDP_2_0_TYPE,
-            ]:
+        ]:
             if t in types:
                 self.failUnless(self.endpoint.supportsType(t),
                                 "Must support %r" % (t,))
@@ -800,10 +824,12 @@ class TestEndpointSupportsType(unittest.TestCase):
 
 
 class TestEndpointDisplayIdentifier(unittest.TestCase):
+
     def test_strip_fragment(self):
         endpoint = discover.OpenIDServiceEndpoint()
         endpoint.claimed_id = 'http://recycled.invalid/#123'
-        self.failUnlessEqual('http://recycled.invalid/', endpoint.getDisplayIdentifier())
+        self.failUnlessEqual(
+            'http://recycled.invalid/', endpoint.getDisplayIdentifier())
 
 
 def pyUnitTests():

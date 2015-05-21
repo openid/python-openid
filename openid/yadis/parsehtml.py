@@ -8,14 +8,18 @@ from openid.yadis.constants import YADIS_HEADER_NAME
 
 # Size of the chunks to search at a time (also the amount that gets
 # read at a time)
-CHUNK_SIZE = 1024 * 16 # 16 KB
+CHUNK_SIZE = 1024 * 16  # 16 KB
+
 
 class ParseDone(Exception):
+
     """Exception to hold the URI that was located when the parse is
     finished. If the parse finishes without finding the URI, set it to
     None."""
 
+
 class MetaNotFound(Exception):
+
     """Exception to hold the content of the page if we did not find
     the appropriate <meta> tag"""
 
@@ -32,6 +36,7 @@ ent_pat = r'''
 
 ent_re = re.compile(ent_pat, re_flags)
 
+
 def substituteMO(mo):
     if mo.lastgroup == 'hex':
         codepoint = int(mo.group('hex'), 16)
@@ -46,10 +51,13 @@ def substituteMO(mo):
     else:
         return unichr(codepoint)
 
+
 def substituteEntities(s):
     return ent_re.sub(substituteMO, s)
 
+
 class YadisHTMLParser(HTMLParser):
+
     """Parser that finds a meta http-equiv tag in the head of a html
     document.
 
@@ -107,7 +115,7 @@ class YadisHTMLParser(HTMLParser):
         # if we ever see a start body tag, bail out right away, since
         # we want to prevent the meta tag from appearing in the body
         # [2]
-        if tag=='body':
+        if tag == 'body':
             self._terminate()
 
         if self.phase == self.TOP:
@@ -154,6 +162,7 @@ class YadisHTMLParser(HTMLParser):
             self._terminate()
 
         return HTMLParser.feed(self, chars)
+
 
 def findHTMLMeta(stream):
     """Look for a meta http-equiv tag with the YADIS header name.

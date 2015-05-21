@@ -10,7 +10,7 @@ __all__ = [
     'services',
     'xri',
     'xrires',
-    ]
+]
 
 __version__ = '[library version:1.1.0-rc1]'[17:-1]
 

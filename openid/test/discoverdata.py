@@ -9,7 +9,7 @@ tests_dir = os.path.dirname(__file__)
 data_path = os.path.join(tests_dir, 'data')
 
 testlist = [
-# success,  input_name,          id_name,            result_name
+    # success,  input_name,          id_name,            result_name
     (True,  "equiv",             "equiv",            "xrds"),
     (True,  "header",            "header",           "xrds"),
     (True,  "lowercase_header",  "lowercase_header", "xrds"),
@@ -27,7 +27,8 @@ testlist = [
     (False, "404_with_meta",       None,             None),
     (False, "201_server_response", None,             None),
     (False, "500_server_response", None,             None),
-    ]
+]
+
 
 def getDataName(*components):
     sanitized = []
@@ -42,6 +43,7 @@ def getDataName(*components):
 
     return os.path.join(data_path, *sanitized)
 
+
 def getExampleXRDS():
     filename = getDataName('example-xrds.xml')
     return file(filename).read()
@@ -51,6 +53,7 @@ default_test_file = getDataName('test1-discover.txt')
 
 discover_tests = {}
 
+
 def readTests(filename):
     data = file(filename).read()
     tests = {}
@@ -58,6 +61,7 @@ def readTests(filename):
         (name, content) = case.split('\n', 1)
         tests[name] = content
     return tests
+
 
 def getData(filename, name):
     global discover_tests
@@ -67,18 +71,20 @@ def getData(filename, name):
         file_tests = discover_tests[filename] = readTests(filename)
     return file_tests[name]
 
+
 def fillTemplate(test_name, template, base_url, example_xrds):
     mapping = [
         ('URL_BASE/', base_url),
         ('<XRDS Content>', example_xrds),
         ('YADIS_HEADER', YADIS_HEADER_NAME),
         ('NAME', test_name),
-        ]
+    ]
 
     for k, v in mapping:
         template = template.replace(k, v)
 
     return template
+
 
 def generateSample(test_name, base_url,
                    example_xrds=example_xrds,
@@ -93,6 +99,7 @@ def generateSample(test_name, base_url,
             raise
 
     return fillTemplate(test_name, template, base_url, example_xrds)
+
 
 def generateResult(base_url, input_name, id_name, result_name, success):
     input_url = urlparse.urljoin(base_url, input_name)

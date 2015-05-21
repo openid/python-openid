@@ -4,6 +4,7 @@ from openid.yadis.filters import mkFilter
 from openid.yadis.discover import discover, DiscoveryFailure
 from openid.yadis.etxrd import parseXRDS, iterServices, XRDSError
 
+
 def getServiceEndpoints(input_url, flt=None):
     """Perform the Yadis protocol on the input URL and return an
     iterable of resulting endpoint objects.
@@ -29,6 +30,7 @@ def getServiceEndpoints(input_url, flt=None):
     except XRDSError, err:
         raise DiscoveryFailure(str(err), None)
     return (result.normalized_uri, endpoints)
+
 
 def applyFilter(normalized_uri, xrd_data, flt=None):
     """Generate an iterable of endpoint objects given this input data,

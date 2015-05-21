@@ -30,7 +30,7 @@ __all__ = [
     'encrypted_negotiator',
     'SessionNegotiator',
     'Association',
-    ]
+]
 
 import time
 
@@ -42,7 +42,7 @@ from openid.message import OPENID_NS
 all_association_types = [
     'HMAC-SHA1',
     'HMAC-SHA256',
-    ]
+]
 
 if hasattr(cryptutil, 'hmacSha256'):
     supported_association_types = list(all_association_types)
@@ -52,31 +52,33 @@ if hasattr(cryptutil, 'hmacSha256'):
         ('HMAC-SHA1', 'no-encryption'),
         ('HMAC-SHA256', 'DH-SHA256'),
         ('HMAC-SHA256', 'no-encryption'),
-        ]
+    ]
 
     only_encrypted_association_order = [
         ('HMAC-SHA1', 'DH-SHA1'),
         ('HMAC-SHA256', 'DH-SHA256'),
-        ]
+    ]
 else:
     supported_association_types = ['HMAC-SHA1']
 
     default_association_order = [
         ('HMAC-SHA1', 'DH-SHA1'),
         ('HMAC-SHA1', 'no-encryption'),
-        ]
+    ]
 
     only_encrypted_association_order = [
         ('HMAC-SHA1', 'DH-SHA1'),
-        ]
+    ]
+
 
 def getSessionTypes(assoc_type):
     """Return the allowed session types for a given association type"""
     assoc_to_session = {
         'HMAC-SHA1': ['DH-SHA1', 'no-encryption'],
         'HMAC-SHA256': ['DH-SHA256', 'no-encryption'],
-        }
+    }
     return assoc_to_session.get(assoc_type, [])
+
 
 def checkSessionType(assoc_type, session_type):
     """Check to make sure that this pair of assoc type and session
@@ -86,7 +88,9 @@ def checkSessionType(assoc_type, session_type):
             'Session type %r not valid for assocation type %r'
             % (session_type, assoc_type))
 
+
 class SessionNegotiator(object):
+
     """A session negotiator controls the allowed and preferred
     association types and association session types. Both the
     C{L{Consumer<openid.consumer.consumer.Consumer>}} and
@@ -168,7 +172,6 @@ class SessionNegotiator(object):
             checkSessionType(assoc_type, session_type)
             self.allowed_types.append((assoc_type, session_type))
 
-
     def isAllowed(self, assoc_type, session_type):
         """Is this combination of association type and session type allowed?"""
         assoc_good = (assoc_type, session_type) in self.allowed_types
@@ -186,6 +189,7 @@ class SessionNegotiator(object):
 default_negotiator = SessionNegotiator(default_association_order)
 encrypted_negotiator = SessionNegotiator(only_encrypted_association_order)
 
+
 def getSecretSize(assoc_type):
     if assoc_type == 'HMAC-SHA1':
         return 20
@@ -194,7 +198,9 @@ def getSecretSize(assoc_type):
     else:
         raise ValueError('Unsupported association type: %r' % (assoc_type,))
 
+
 class Association(object):
+
     """
     This class represents an association between a server and a
     consumer.  In general, users of this library will never see
@@ -249,14 +255,12 @@ class Association(object):
         'issued',
         'lifetime',
         'assoc_type',
-        ]
-
+    ]
 
     _macs = {
         'HMAC-SHA1': cryptutil.hmacSha1,
         'HMAC-SHA256': cryptutil.hmacSha256,
-        }
-
+    }
 
     def fromExpiresIn(cls, expires_in, handle, secret, assoc_type):
         """
@@ -405,13 +409,13 @@ class Association(object):
         @rtype: str
         """
         data = {
-            'version':'2',
-            'handle':self.handle,
-            'secret':oidutil.toBase64(self.secret),
-            'issued':str(int(self.issued)),
-            'lifetime':str(int(self.lifetime)),
-            'assoc_type':self.assoc_type
-            }
+            'version': '2',
+            'handle': self.handle,
+            'secret': oidutil.toBase64(self.secret),
+            'issued': str(int(self.issued)),
+            'lifetime': str(int(self.lifetime)),
+            'assoc_type': self.assoc_type
+        }
 
         assert len(data) == len(self.assoc_keys)
         pairs = []
@@ -478,7 +482,6 @@ class Association(object):
 
         return mac(self.secret, kv)
 
-
     def getMessageSignature(self, message):
         """Return the signature of a message.
 
@@ -502,7 +505,7 @@ class Association(object):
         @rtype: L{openid.message.Message}
         """
         if (message.hasKey(OPENID_NS, 'sig') or
-            message.hasKey(OPENID_NS, 'signed')):
+                message.hasKey(OPENID_NS, 'signed')):
             raise ValueError('Message already has signed list or signature')
 
         extant_handle = message.getArg(OPENID_NS, 'assoc_handle')
@@ -533,7 +536,6 @@ class Association(object):
             raise ValueError("%s has no sig." % (message,))
         calculated_sig = self.getMessageSignature(message)
         return cryptutil.const_eq(calculated_sig, message_sig)
-
 
     def _makePairs(self, message):
         signed = message.getArg(OPENID_NS, 'signed')

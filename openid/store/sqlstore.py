@@ -13,6 +13,7 @@ from openid.association import Association
 from openid.store.interface import OpenIDStore
 from openid.store import nonce
 
+
 def _inTxn(func):
     def wrapped(self, *args, **kwargs):
         return self._callInTransaction(func, self, *args, **kwargs)
@@ -28,7 +29,9 @@ def _inTxn(func):
 
     return wrapped
 
+
 class SQLStore(OpenIDStore):
+
     """
     This is the parent class for the SQL stores, which contains the
     logic common to all of the SQL stores.
@@ -97,14 +100,14 @@ class SQLStore(OpenIDStore):
         self._table_names = {
             'associations': associations_table or self.associations_table,
             'nonces': nonces_table or self.nonces_table,
-            }
-        self.max_nonce_age = 6 * 60 * 60 # Six hours, in seconds
+        }
+        self.max_nonce_age = 6 * 60 * 60  # Six hours, in seconds
 
         # DB API extension: search for "Connection Attributes .Error,
         # .ProgrammingError, etc." in
         # http://www.python.org/dev/peps/pep-0249/
         if (hasattr(self.conn, 'IntegrityError') and
-            hasattr(self.conn, 'OperationalError')):
+                hasattr(self.conn, 'OperationalError')):
             self.exceptions = self.conn
 
         if not (hasattr(self.exceptions, 'IntegrityError') and
@@ -138,6 +141,7 @@ class SQLStore(OpenIDStore):
         # arguments if they are passed in as unicode instead of str.
         # Currently the strings in our tables just have ascii in them,
         # so this ought to be safe.
+
         def unicode_to_str(arg):
             if isinstance(arg, unicode):
                 return str(arg)
@@ -152,6 +156,7 @@ class SQLStore(OpenIDStore):
         # as an attribute of this object and executes it.
         if attr[:3] == 'db_':
             sql_name = attr[3:] + '_sql'
+
             def func(*args):
                 return self._execSQL(sql_name, *args)
             setattr(self, attr, func)
@@ -247,7 +252,7 @@ class SQLStore(OpenIDStore):
         (str, str) -> bool
         """
         self.db_remove_assoc(server_url, handle)
-        return self.cur.rowcount > 0 # -1 is undefined
+        return self.cur.rowcount > 0  # -1 is undefined
 
     removeAssociation = _inTxn(txn_removeAssociation)
 
@@ -284,6 +289,7 @@ class SQLStore(OpenIDStore):
 
 
 class SQLiteStore(SQLStore):
+
     """
     This is an SQLite-based specialization of C{L{SQLStore}}.
 
@@ -355,7 +361,9 @@ class SQLiteStore(SQLStore):
             else:
                 raise
 
+
 class MySQLStore(SQLStore):
+
     """
     This is a MySQL-based specialization of C{L{SQLStore}}.
 
@@ -423,7 +431,9 @@ class MySQLStore(SQLStore):
             # Versions of MySQLdb prior to 1.2.2 (as far as we can tell)
             return blob.tostring()
 
+
 class PostgreSQLStore(SQLStore):
+
     """
     This is a PostgreSQL-based specialization of C{L{SQLStore}}.
 

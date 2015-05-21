@@ -3,7 +3,9 @@ This module contains the definition of the C{L{OpenIDStore}}
 interface.
 """
 
+
 class OpenIDStore(object):
+
     """
     This is the interface for the store objects the OpenID library
     uses.  It is a single class that provides all of the persistence

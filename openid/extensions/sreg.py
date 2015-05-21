@@ -36,15 +36,15 @@ OpenID providers.
 """
 
 from openid.message import registerNamespaceAlias, \
-     NamespaceAliasRegistrationError
+    NamespaceAliasRegistrationError
 from openid.extension import Extension
 import logging
 
 try:
-    basestring #pylint:disable-msg=W0104
+    basestring  # pylint:disable-msg=W0104
 except NameError:
     # For Python 2.2
-    basestring = (str, unicode) #pylint:disable-msg=W0622
+    basestring = (str, unicode)  # pylint:disable-msg=W0622
 
 __all__ = [
     'SRegRequest',
@@ -54,20 +54,21 @@ __all__ = [
     'ns_uri_1_0',
     'ns_uri_1_1',
     'supportsSReg',
-    ]
+]
 
 # The data fields that are listed in the sreg spec
 data_fields = {
-    'fullname':'Full Name',
-    'nickname':'Nickname',
-    'dob':'Date of Birth',
-    'email':'E-mail Address',
-    'gender':'Gender',
-    'postcode':'Postal Code',
-    'country':'Country',
-    'language':'Language',
-    'timezone':'Time Zone',
-    }
+    'fullname': 'Full Name',
+    'nickname': 'Nickname',
+    'dob': 'Date of Birth',
+    'email': 'E-mail Address',
+    'gender': 'Gender',
+    'postcode': 'Postal Code',
+    'country': 'Country',
+    'language': 'Language',
+    'timezone': 'Time Zone',
+}
+
 
 def checkFieldName(field_name):
     """Check to see that the given value is a valid simple
@@ -96,7 +97,8 @@ try:
     registerNamespaceAlias(ns_uri_1_1, 'sreg')
 except NamespaceAliasRegistrationError, e:
     logging.exception('registerNamespaceAlias(%r, %r) failed: %s' % (ns_uri_1_1,
-                                                               'sreg', str(e),))
+                                                                     'sreg', str(e),))
+
 
 def supportsSReg(endpoint):
     """Does the given endpoint advertise support for simple
@@ -111,7 +113,9 @@ def supportsSReg(endpoint):
     return (endpoint.usesExtension(ns_uri_1_1) or
             endpoint.usesExtension(ns_uri_1_0))
 
+
 class SRegNamespaceError(ValueError):
+
     """The simple registration namespace was not found and could not
     be created using the expected name (there's another extension
     using the name 'sreg')
@@ -124,6 +128,7 @@ class SRegNamespaceError(ValueError):
     should not happen unless some code has modified the namespaces for
     the message that is being processed.
     """
+
 
 def getSRegNS(message):
     """Extract the simple registration namespace URI from the given
@@ -163,9 +168,11 @@ def getSRegNS(message):
 
     # we know that sreg_ns_uri defined, because it's defined in the
     # else clause of the loop as well, so disable the warning
-    return sreg_ns_uri #pylint:disable-msg=W0631
+    return sreg_ns_uri  # pylint:disable-msg=W0631
+
 
 class SRegRequest(Extension):
+
     """An object to hold the state of a simple registration request.
 
     @ivar required: A list of the required fields in this simple
@@ -373,7 +380,9 @@ class SRegRequest(Extension):
 
         return args
 
+
 class SRegResponse(Extension):
+
     """Represents the data returned in a simple registration response
     inside of an OpenID C{id_res} response. This object will be
     created by the OpenID server, added to the C{id_res} response

@@ -1,6 +1,7 @@
 import os.path
 from openid.dh import DiffieHellman, strxor
 
+
 def test_strxor():
     NUL = '\x00'
 
@@ -14,7 +15,7 @@ def test_strxor():
         ('\x01', '\x02', '\x03'),
         ('\xf0', '\x0f', '\xff'),
         ('\xff', '\x0f', '\xf0'),
-        ]
+    ]
 
     for aa, bb, expected in cases:
         actual = strxor(aa, bb)
@@ -26,7 +27,7 @@ def test_strxor():
         (NUL * 3, NUL * 4),
         (''.join(map(chr, xrange(256))),
          ''.join(map(chr, xrange(128)))),
-        ]
+    ]
 
     for aa, bb in exc_cases:
         try:
@@ -36,6 +37,7 @@ def test_strxor():
         else:
             assert False, 'Expected ValueError, got %r' % (unexpected,)
 
+
 def test1():
     dh1 = DiffieHellman.fromDefaults()
     dh2 = DiffieHellman.fromDefaults()
@@ -44,10 +46,12 @@ def test1():
     assert secret1 == secret2
     return secret1
 
+
 def test_exchange():
     s1 = test1()
     s2 = test1()
     assert s1 != s2
+
 
 def test_public():
     f = file(os.path.join(os.path.dirname(__file__), 'dhpriv'))
@@ -60,6 +64,7 @@ def test_public():
             assert dh.public == long(parts[1])
     finally:
         f.close()
+
 
 def test():
     test_exchange()

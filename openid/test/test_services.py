@@ -5,6 +5,7 @@ from openid.yadis.discover import DiscoveryFailure, DiscoveryResult
 
 
 class TestGetServiceEndpoints(unittest.TestCase):
+
     def setUp(self):
         self.orig_discover = services.discover
         services.discover = self.discover

@@ -1,6 +1,8 @@
 from openid import message as message_module
 
+
 class Extension(object):
+
     """An interface for OpenID extensions.
 
     @ivar ns_uri: The namespace to which to add the arguments for this

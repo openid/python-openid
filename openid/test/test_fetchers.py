@@ -8,6 +8,7 @@ from openid import fetchers
 
 # XXX: make these separate test cases
 
+
 def failUnlessResponseExpected(expected, actual):
     assert expected.final_url == actual.final_url, (
         "%r != %r" % (expected.final_url, actual.final_url))
@@ -19,13 +20,14 @@ def failUnlessResponseExpected(expected, actual):
     for k, v in expected.headers.iteritems():
         assert got_headers[k] == v, (k, v, got_headers[k])
 
+
 def test_fetcher(fetcher, exc, server):
     def geturl(path):
         return 'http://%s:%s%s' % (socket.getfqdn(server.server_name),
                                    server.socket.getsockname()[1],
                                    path)
 
-    expected_headers = {'content-type':'text/plain'}
+    expected_headers = {'content-type': 'text/plain'}
 
     def plain(path, code):
         path = '/' + path
@@ -46,7 +48,7 @@ def test_fetcher(fetcher, exc, server):
         plain('forbidden', 403),
         plain('error', 500),
         plain('server_error', 503),
-        ]
+    ]
 
     for path, expected in cases:
         fetch_url = geturl(path)
@@ -78,7 +80,9 @@ def test_fetcher(fetcher, exc, server):
         except:
             assert exc
         else:
-            assert False, 'An exception was expected for %r (%r)' % (fetcher, result)
+            assert False, 'An exception was expected for %r (%r)' % (
+                fetcher, result)
+
 
 def run_fetcher_tests(server):
     exc_fetchers = []
@@ -86,7 +90,7 @@ def run_fetcher_tests(server):
         (fetchers.Urllib2Fetcher, 'urllib2'),
         (fetchers.CurlHTTPFetcher, 'pycurl'),
         (fetchers.HTTPLib2Fetcher, 'httplib2'),
-        ]:
+    ]:
         try:
             exc_fetchers.append(klass())
         except RuntimeError, why:
@@ -99,7 +103,8 @@ def run_fetcher_tests(server):
                         'the library did not import.' % (library_name,))
                     pass
                 else:
-                    assert False, ('%s present but not detected' % (library_name,))
+                    assert False, ('%s present but not detected' %
+                                   (library_name,))
             else:
                 raise
 
@@ -115,19 +120,20 @@ def run_fetcher_tests(server):
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
+
 class FetcherTestHandler(BaseHTTPRequestHandler):
     cases = {
-        '/success':(200, None),
-        '/301redirect':(301, '/success'),
-        '/302redirect':(302, '/success'),
-        '/303redirect':(303, '/success'),
-        '/307redirect':(307, '/success'),
-        '/notfound':(404, None),
-        '/badreq':(400, None),
-        '/forbidden':(403, None),
-        '/error':(500, None),
-        '/server_error':(503, None),
-        }
+        '/success': (200, None),
+        '/301redirect': (301, '/success'),
+        '/302redirect': (302, '/success'),
+        '/303redirect': (303, '/success'),
+        '/307redirect': (307, '/success'),
+        '/notfound': (404, None),
+        '/badreq': (400, None),
+        '/forbidden': (403, None),
+        '/error': (500, None),
+        '/server_error': (503, None),
+    }
 
     def log_request(self, *args):
         pass
@@ -168,7 +174,7 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
         req = [
             ('HTTP method', self.command),
             ('path', self.path),
-            ]
+        ]
         if message:
             req.append(('message', message))
 
@@ -192,6 +198,7 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
         self.wfile.close()
         self.rfile.close()
 
+
 def test():
     import socket
     host = socket.getfqdn('127.0.0.1')
@@ -210,13 +217,16 @@ def test():
 
     run_fetcher_tests(server)
 
+
 class FakeFetcher(object):
     sentinel = object()
 
     def fetch(self, *args, **kwargs):
         return self.sentinel
 
+
 class DefaultFetcherTest(unittest.TestCase):
+
     def setUp(self):
         """reset the default fetcher to None"""
         fetchers.setDefaultFetcher(None)
@@ -277,6 +287,7 @@ class DefaultFetcherTest(unittest.TestCase):
             pass
         else:
             self.fail('Should have raised an exception')
+
 
 def pyUnitTests():
     case1 = unittest.FunctionTestCase(test)

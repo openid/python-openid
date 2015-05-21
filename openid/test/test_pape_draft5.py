@@ -9,7 +9,9 @@ warnings.filterwarnings('ignore', module=__name__,
 
 import unittest
 
+
 class PapeRequestTestCase(unittest.TestCase):
+
     def setUp(self):
         self.req = pape.Request()
 
@@ -110,7 +112,7 @@ class PapeRequestTestCase(unittest.TestCase):
             ('auth_level.ns.%s' % alias2): uri2,
             'preferred_auth_level_types': ' '.join([alias, alias2]),
             'preferred_auth_policies': '',
-            }
+        }
 
         self.failUnlessEqual(expected_args, self.req.getExtensionArgs())
 
@@ -126,10 +128,11 @@ class PapeRequestTestCase(unittest.TestCase):
             ('auth_level.ns.%s' % alias2): uri2,
             'preferred_auth_level_types': ' '.join([alias, alias2]),
             'preferred_auth_policies': '',
-            }
+        }
 
         # Check request object state
-        self.req.parseExtensionArgs(request_args, is_openid1=False, strict=False)
+        self.req.parseExtensionArgs(
+            request_args, is_openid1=False, strict=False)
 
         expected_auth_levels = [uri, uri2]
 
@@ -140,8 +143,8 @@ class PapeRequestTestCase(unittest.TestCase):
 
     def test_parseExtensionArgsWithAuthLevels_openID1(self):
         request_args = {
-            'preferred_auth_level_types':'nist jisa',
-            }
+            'preferred_auth_level_types': 'nist jisa',
+        }
         expected_auth_levels = [pape.LEVELS_NIST, pape.LEVELS_JISA]
         self.req.parseExtensionArgs(request_args, is_openid1=True)
         self.assertEqual(expected_auth_levels,
@@ -158,12 +161,12 @@ class PapeRequestTestCase(unittest.TestCase):
                               request_args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_ignoreBadAuthLevels(self):
-        request_args = {'preferred_auth_level_types':'monkeys'}
+        request_args = {'preferred_auth_level_types': 'monkeys'}
         self.req.parseExtensionArgs(request_args, False)
         self.assertEqual([], self.req.preferred_auth_level_types)
 
     def test_parseExtensionArgs_strictBadAuthLevels(self):
-        request_args = {'preferred_auth_level_types':'monkeys'}
+        request_args = {'preferred_auth_level_types': 'monkeys'}
         self.failUnlessRaises(ValueError, self.req.parseExtensionArgs,
                               request_args, is_openid1=False, strict=True)
 
@@ -172,7 +175,7 @@ class PapeRequestTestCase(unittest.TestCase):
                 'max_auth_age': '9'}
         self.req.parseExtensionArgs(args, False)
         self.failUnlessEqual(9, self.req.max_auth_age)
-        self.failUnlessEqual(['http://foo','http://bar'],
+        self.failUnlessEqual(['http://foo', 'http://bar'],
                              self.req.preferred_auth_policies)
         self.failUnlessEqual([], self.req.preferred_auth_level_types)
 
@@ -190,12 +193,12 @@ class PapeRequestTestCase(unittest.TestCase):
     def test_fromOpenIDRequest(self):
         policy_uris = [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]
         openid_req_msg = Message.fromOpenIDArgs({
-          'mode': 'checkid_setup',
-          'ns': OPENID2_NS,
-          'ns.pape': pape.ns_uri,
-          'pape.preferred_auth_policies': ' '.join(policy_uris),
-          'pape.max_auth_age': '5476'
-          })
+            'mode': 'checkid_setup',
+            'ns': OPENID2_NS,
+            'ns.pape': pape.ns_uri,
+            'pape.preferred_auth_policies': ' '.join(policy_uris),
+            'pape.max_auth_age': '5476'
+        })
         oid_req = server.OpenIDRequest()
         oid_req.message = openid_req_msg
         req = pape.Request.fromOpenIDRequest(oid_req)
@@ -216,7 +219,9 @@ class PapeRequestTestCase(unittest.TestCase):
                                       pape.AUTH_MULTI_FACTOR_PHYSICAL])
         self.failUnlessEqual([pape.AUTH_MULTI_FACTOR], pt)
 
+
 class DummySuccessResponse:
+
     def __init__(self, message, signed_stuff):
         self.message = message
         self.signed_stuff = signed_stuff
@@ -227,7 +232,9 @@ class DummySuccessResponse:
     def getSignedNS(self, ns_uri):
         return self.signed_stuff
 
+
 class PapeResponseTestCase(unittest.TestCase):
+
     def setUp(self):
         self.resp = pape.Response()
 
@@ -292,7 +299,7 @@ class PapeResponseTestCase(unittest.TestCase):
                 'auth_time': '1970-01-01T00:00:00Z'}
         self.resp.parseExtensionArgs(args, is_openid1=False)
         self.failUnlessEqual('1970-01-01T00:00:00Z', self.resp.auth_time)
-        self.failUnlessEqual(['http://foo','http://bar'],
+        self.failUnlessEqual(['http://foo', 'http://bar'],
                              self.resp.auth_policies)
 
     def test_parseExtensionArgs_valid_none(self):
@@ -326,7 +333,7 @@ class PapeResponseTestCase(unittest.TestCase):
 
         args = {
             'auth_policies': ' '.join(policies),
-            }
+        }
 
         self.resp.parseExtensionArgs(args, is_openid1=False, strict=False)
 
@@ -338,7 +345,7 @@ class PapeResponseTestCase(unittest.TestCase):
 
         args = {
             'auth_policies': ' '.join(policies),
-            }
+        }
 
         self.failUnlessRaises(ValueError, self.resp.parseExtensionArgs,
                               args, is_openid1=False, strict=True)
@@ -384,7 +391,7 @@ class PapeResponseTestCase(unittest.TestCase):
                 'auth_level.nist': '0',
                 'auth_level.ns.nist': pape.LEVELS_NIST}
         self.resp.parseExtensionArgs(args, is_openid1=False, strict=True)
-        self.failUnlessEqual(['http://foo','http://bar'],
+        self.failUnlessEqual(['http://foo', 'http://bar'],
                              self.resp.auth_policies)
         self.failUnlessEqual('1970-01-01T00:00:00Z', self.resp.auth_time)
         self.failUnlessEqual(0, self.resp.nist_auth_level)
@@ -394,7 +401,7 @@ class PapeResponseTestCase(unittest.TestCase):
                 'auth_time': 'when the cows come home',
                 'nist_auth_level': 'some'}
         self.resp.parseExtensionArgs(args, is_openid1=False)
-        self.failUnlessEqual(['http://foo','http://bar'],
+        self.failUnlessEqual(['http://foo', 'http://bar'],
                              self.resp.auth_policies)
         self.failUnlessEqual(None, self.resp.auth_time)
         self.failUnlessEqual(None, self.resp.nist_auth_level)
@@ -402,15 +409,15 @@ class PapeResponseTestCase(unittest.TestCase):
     def test_fromSuccessResponse(self):
         policy_uris = [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]
         openid_req_msg = Message.fromOpenIDArgs({
-          'mode': 'id_res',
-          'ns': OPENID2_NS,
-          'ns.pape': pape.ns_uri,
-          'pape.auth_policies': ' '.join(policy_uris),
-          'pape.auth_time': '1970-01-01T00:00:00Z'
-          })
+            'mode': 'id_res',
+            'ns': OPENID2_NS,
+            'ns.pape': pape.ns_uri,
+            'pape.auth_policies': ' '.join(policy_uris),
+            'pape.auth_time': '1970-01-01T00:00:00Z'
+        })
         signed_stuff = {
-          'auth_policies': ' '.join(policy_uris),
-          'auth_time': '1970-01-01T00:00:00Z'
+            'auth_policies': ' '.join(policy_uris),
+            'auth_time': '1970-01-01T00:00:00Z'
         }
         oid_req = DummySuccessResponse(openid_req_msg, signed_stuff)
         req = pape.Response.fromSuccessResponse(oid_req)
@@ -420,16 +427,17 @@ class PapeResponseTestCase(unittest.TestCase):
     def test_fromSuccessResponseNoSignedArgs(self):
         policy_uris = [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]
         openid_req_msg = Message.fromOpenIDArgs({
-          'mode': 'id_res',
-          'ns': OPENID2_NS,
-          'ns.pape': pape.ns_uri,
-          'pape.auth_policies': ' '.join(policy_uris),
-          'pape.auth_time': '1970-01-01T00:00:00Z'
-          })
+            'mode': 'id_res',
+            'ns': OPENID2_NS,
+            'ns.pape': pape.ns_uri,
+            'pape.auth_policies': ' '.join(policy_uris),
+            'pape.auth_time': '1970-01-01T00:00:00Z'
+        })
 
         signed_stuff = {}
 
         class NoSigningDummyResponse(DummySuccessResponse):
+
             def getSignedNS(self, ns_uri):
                 return None
 

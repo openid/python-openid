@@ -24,7 +24,7 @@ __all__ = [
     'randrange',
     'sha1',
     'sha256',
-    ]
+]
 
 import hmac
 import os
@@ -44,6 +44,7 @@ except ImportError:
 
 else:
     class HashContainer(object):
+
         def __init__(self, hash_constructor):
             self.new = hash_constructor
             self.digest_size = hash_constructor().digest_size
@@ -51,8 +52,10 @@ else:
     sha1_module = HashContainer(hashlib.sha1)
     sha256_module = HashContainer(hashlib.sha256)
 
+
 def hmacSha1(key, text):
     return hmac.new(key, text, sha1_module).digest()
+
 
 def sha1(s):
     return sha1_module.new(s).digest()
@@ -154,6 +157,7 @@ except AttributeError:
                 return ''.join(bytes)
     else:
         _pool = RandomPool()
+
         def getBytes(n, pool=_pool):
             if pool.entropy < n:
                 pool.randomize()
@@ -170,6 +174,7 @@ except AttributeError:
     from math import log, ceil
 
     _duplicate_cache = {}
+
     def randrange(start, stop=None, step=1):
         if stop is None:
             stop = start
@@ -205,11 +210,14 @@ except AttributeError:
 
         return start + (n % r) * step
 
+
 def longToBase64(l):
     return toBase64(longToBinary(l))
 
+
 def base64ToLong(s):
     return binaryToLong(fromBase64(s))
+
 
 def randomString(length, chrs=None):
     """Produce a string of length random bytes, chosen from chrs."""
@@ -218,6 +226,7 @@ def randomString(length, chrs=None):
     else:
         n = len(chrs)
         return ''.join([chrs[randrange(n)] for _ in xrange(length)])
+
 
 def const_eq(s1, s2):
     if len(s1) != len(s2):

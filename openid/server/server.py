@@ -116,7 +116,8 @@ From 1.1 to 2.0
 @group Response Encodings: ENCODE_KVFORM, ENCODE_HTML_FORM, ENCODE_URL
 """
 
-import time, warnings
+import time
+import warnings
 import logging
 from copy import deepcopy
 
@@ -128,7 +129,7 @@ from openid.store.nonce import mkNonce
 from openid.server.trustroot import TrustRoot, verifyReturnTo
 from openid.association import Association, default_negotiator, getSecretSize
 from openid.message import Message, InvalidOpenIDNamespace, \
-     OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, OPENID1_URL_LIMIT
+    OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, OPENID1_URL_LIMIT
 from openid.urinorm import urinorm
 
 HTTP_OK = 200
@@ -143,7 +144,9 @@ ENCODE_HTML_FORM = ('HTML form',)
 
 UNUSED = None
 
+
 class OpenIDRequest(object):
+
     """I represent an incoming OpenID request.
 
     @cvar mode: the C{X{openid.mode}} of this request.
@@ -153,6 +156,7 @@ class OpenIDRequest(object):
 
 
 class CheckAuthRequest(OpenIDRequest):
+
     """A request to verify the validity of a previous response.
 
     @cvar mode: "X{C{check_authentication}}"
@@ -189,7 +193,6 @@ class CheckAuthRequest(OpenIDRequest):
         self.invalidate_handle = invalidate_handle
         self.namespace = OPENID2_NS
 
-
     def fromMessage(klass, message, op_endpoint=UNUSED):
         """Construct me from an OpenID Message.
 
@@ -205,7 +208,7 @@ class CheckAuthRequest(OpenIDRequest):
         self.sig = message.getArg(OPENID_NS, 'sig')
 
         if (self.assoc_handle is None or
-            self.sig is None):
+                self.sig is None):
             fmt = "%s request missing required parameter from message %s"
             raise ProtocolError(
                 message, text=fmt % (self.mode, message))
@@ -246,12 +249,12 @@ class CheckAuthRequest(OpenIDRequest):
         response.fields.setArg(OPENID_NS, 'is_valid', valid_str)
 
         if self.invalidate_handle:
-            assoc = signatory.getAssociation(self.invalidate_handle, dumb=False)
+            assoc = signatory.getAssociation(
+                self.invalidate_handle, dumb=False)
             if not assoc:
                 response.fields.setArg(
                     OPENID_NS, 'invalidate_handle', self.invalidate_handle)
         return response
-
 
     def __str__(self):
         if self.invalidate_handle:
@@ -265,6 +268,7 @@ class CheckAuthRequest(OpenIDRequest):
 
 
 class PlainTextServerSession(object):
+
     """An object that knows how to handle association requests with no
     session type.
 
@@ -290,6 +294,7 @@ class PlainTextServerSession(object):
 
 
 class DiffieHellmanSHA1ServerSession(object):
+
     """An object that knows how to handle association requests with the
     Diffie-Hellman session type.
 
@@ -329,7 +334,7 @@ class DiffieHellmanSHA1ServerSession(object):
         dh_modulus = message.getArg(OPENID_NS, 'dh_modulus')
         dh_gen = message.getArg(OPENID_NS, 'dh_gen')
         if (dh_modulus is None and dh_gen is not None or
-            dh_gen is None and dh_modulus is not None):
+                dh_gen is None and dh_modulus is not None):
 
             if dh_modulus is None:
                 missing = 'modulus'
@@ -366,14 +371,17 @@ class DiffieHellmanSHA1ServerSession(object):
         return {
             'dh_server_public': cryptutil.longToBase64(self.dh.public),
             'enc_mac_key': oidutil.toBase64(mac_key),
-            }
+        }
+
 
 class DiffieHellmanSHA256ServerSession(DiffieHellmanSHA1ServerSession):
     session_type = 'DH-SHA256'
     hash_func = staticmethod(cryptutil.sha256)
     allowed_assoc_types = ['HMAC-SHA256']
 
+
 class AssociateRequest(OpenIDRequest):
+
     """A request to establish an X{association}.
 
     @cvar mode: "X{C{check_authentication}}"
@@ -396,7 +404,7 @@ class AssociateRequest(OpenIDRequest):
         'no-encryption': PlainTextServerSession,
         'DH-SHA1': DiffieHellmanSHA1ServerSession,
         'DH-SHA256': DiffieHellmanSHA256ServerSession,
-        }
+    }
 
     def __init__(self, session, assoc_type):
         """Construct me.
@@ -408,7 +416,6 @@ class AssociateRequest(OpenIDRequest):
         self.session = session
         self.assoc_type = assoc_type
         self.namespace = OPENID2_NS
-
 
     def fromMessage(klass, message, op_endpoint=UNUSED):
         """Construct me from an OpenID Message.
@@ -422,7 +429,7 @@ class AssociateRequest(OpenIDRequest):
             session_type = message.getArg(OPENID_NS, 'session_type')
             if session_type == 'no-encryption':
                 logging.warn('Received OpenID 1 request with a no-encryption '
-                            'assocaition session type. Continuing anyway.')
+                             'assocaition session type. Continuing anyway.')
             elif not session_type:
                 session_type = 'no-encryption'
         else:
@@ -470,7 +477,7 @@ class AssociateRequest(OpenIDRequest):
             'expires_in': '%d' % (assoc.getExpiresIn(),),
             'assoc_type': self.assoc_type,
             'assoc_handle': assoc.handle,
-            })
+        })
         response.fields.updateArgs(OPENID_NS,
                                    self.session.answer(assoc.secret))
 
@@ -504,7 +511,9 @@ class AssociateRequest(OpenIDRequest):
 
         return response
 
+
 class CheckIDRequest(OpenIDRequest):
+
     """A request to confirm the identity of a user.
 
     This class handles requests for openid modes X{C{checkid_immediate}}
@@ -563,7 +572,7 @@ class CheckIDRequest(OpenIDRequest):
             self.mode = "checkid_setup"
 
         if self.return_to is not None and \
-               not TrustRoot.parse(self.return_to):
+                not TrustRoot.parse(self.return_to):
             raise MalformedReturnURL(None, self.return_to)
         if not self.trustRootValid():
             raise UntrustedReturnURL(None, self.return_to, self.trust_root)
@@ -658,7 +667,7 @@ class CheckIDRequest(OpenIDRequest):
         # however (particularly ones with wildcards), so this is still a
         # little sketchy.
         if self.return_to is not None and \
-               not TrustRoot.parse(self.return_to):
+                not TrustRoot.parse(self.return_to):
             raise MalformedReturnURL(message, self.return_to)
 
         # I first thought that checking to see if the return_to is within
@@ -789,10 +798,10 @@ class CheckIDRequest(OpenIDRequest):
         if allow:
             mode = 'id_res'
         elif self.message.isOpenID1():
-             if self.immediate:
-                 mode = 'id_res'
-             else:
-                 mode = 'cancel'
+            if self.immediate:
+                mode = 'id_res'
+            else:
+                mode = 'cancel'
         else:
             if self.immediate:
                 mode = 'setup_needed'
@@ -821,7 +830,7 @@ class CheckIDRequest(OpenIDRequest):
                     normalized_answer_identity = urinorm(identity)
 
                     if (normalized_request_identity !=
-                        normalized_answer_identity):
+                            normalized_answer_identity):
                         raise ValueError(
                             "Request was for identity %r, cannot reply "
                             "with identity %r" % (self.identity, identity))
@@ -842,13 +851,13 @@ class CheckIDRequest(OpenIDRequest):
                 raise ValueError(
                     "Request was an OpenID 1 request, so response must "
                     "include an identifier."
-                    )
+                )
 
             response.fields.updateArgs(OPENID_NS, {
                 'mode': mode,
                 'return_to': self.return_to,
                 'response_nonce': mkNonce(),
-                })
+            })
 
             if server_url:
                 response.fields.setArg(OPENID_NS, 'op_endpoint', server_url)
@@ -878,7 +887,6 @@ class CheckIDRequest(OpenIDRequest):
                 response.fields.setArg(OPENID_NS, 'user_setup_url', setup_url)
 
         return response
-
 
     def encodeToURL(self, server_url):
         """Encode this request as a URL to GET.
@@ -913,7 +921,6 @@ class CheckIDRequest(OpenIDRequest):
         response.updateArgs(OPENID_NS, q)
         return response.toURL(server_url)
 
-
     def getCancelURL(self):
         """Get the URL to cancel this request.
 
@@ -940,7 +947,6 @@ class CheckIDRequest(OpenIDRequest):
         response.setArg(OPENID_NS, 'mode', 'cancel')
         return response.toURL(self.return_to)
 
-
     def __repr__(self):
         return '<%s id:%r im:%s tr:%r ah:%r>' % (self.__class__.__name__,
                                                  self.identity,
@@ -949,8 +955,8 @@ class CheckIDRequest(OpenIDRequest):
                                                  self.assoc_handle)
 
 
-
 class OpenIDResponse(object):
+
     """I am a response to an OpenID request.
 
     @ivar request: The request I respond to.
@@ -985,7 +991,6 @@ class OpenIDResponse(object):
             self.__class__.__name__,
             self.request.__class__.__name__,
             self.fields)
-
 
     def toFormMarkup(self, form_tag_attrs=None):
         """Returns the form markup for this response.
@@ -1024,14 +1029,12 @@ class OpenIDResponse(object):
         """
         return self.whichEncoding() == ENCODE_HTML_FORM
 
-
     def needsSigning(self):
         """Does this response require signing?
 
         @returntype: bool
         """
         return self.fields.getArg(OPENID_NS, 'mode') == 'id_res'
-
 
     # implements IEncodable
 
@@ -1051,7 +1054,6 @@ class OpenIDResponse(object):
         else:
             return ENCODE_KVFORM
 
-
     def encodeToURL(self):
         """Encode a response as a URL for the user agent to GET.
 
@@ -1061,7 +1063,6 @@ class OpenIDResponse(object):
         @returntype: str
         """
         return self.fields.toURL(self.request.return_to)
-
 
     def addExtension(self, extension_response):
         """
@@ -1075,7 +1076,6 @@ class OpenIDResponse(object):
         @returntype: None
         """
         extension_response.toMessage(self.fields)
-
 
     def encodeToKVForm(self):
         """Encode a response in key-value colon/newline format.
@@ -1091,8 +1091,8 @@ class OpenIDResponse(object):
         return self.fields.toKVForm()
 
 
-
 class WebResponse(object):
+
     """I am a response to an OpenID request in terms a web server understands.
 
     I generally come from an L{Encoder}, either directly or from
@@ -1122,8 +1122,8 @@ class WebResponse(object):
         self.body = body
 
 
-
 class Signatory(object):
+
     """I sign things.
 
     I also check signatures.
@@ -1136,7 +1136,7 @@ class Signatory(object):
     @type SECRET_LIFETIME: int
     """
 
-    SECRET_LIFETIME = 14 * 24 * 60 * 60 # 14 days, in seconds
+    SECRET_LIFETIME = 14 * 24 * 60 * 60  # 14 days, in seconds
 
     # keys have a bogus server URL in them because the filestore
     # really does expect that key to be a URL.  This seems a little
@@ -1144,7 +1144,6 @@ class Signatory(object):
     # server URL.
     _normal_key = 'http://localhost/|normal'
     _dumb_key = 'http://localhost/|dumb'
-
 
     def __init__(self, store):
         """Create a new Signatory.
@@ -1154,7 +1153,6 @@ class Signatory(object):
         """
         assert store is not None
         self.store = store
-
 
     def verify(self, assoc_handle, message):
         """Verify that the signature for some data is valid.
@@ -1172,19 +1170,18 @@ class Signatory(object):
         assoc = self.getAssociation(assoc_handle, dumb=True)
         if not assoc:
             logging.error("failed to get assoc with handle %r to verify "
-                        "message %r"
-                        % (assoc_handle, message))
+                          "message %r"
+                          % (assoc_handle, message))
             return False
 
         try:
             valid = assoc.checkMessageSignature(message)
         except ValueError, ex:
             logging.exception("Error in verifying %s with %s: %s" % (message,
-                                                               assoc,
-                                                               ex))
+                                                                     assoc,
+                                                                     ex))
             return False
         return valid
-
 
     def sign(self, response):
         """Sign a response.
@@ -1219,7 +1216,8 @@ class Signatory(object):
                     # now do the clean-up that the disabled checkExpiration
                     # code didn't get to do.
                     self.invalidate(assoc_handle, dumb=False)
-                assoc = self.createAssociation(dumb=True, assoc_type=assoc_type)
+                assoc = self.createAssociation(
+                    dumb=True, assoc_type=assoc_type)
         else:
             # dumb mode.
             assoc = self.createAssociation(dumb=True)
@@ -1229,7 +1227,6 @@ class Signatory(object):
         except kvform.KVFormError, err:
             raise EncodingError(response, explanation=str(err))
         return signed_response
-
 
     def createAssociation(self, dumb=True, assoc_type='HMAC-SHA1'):
         """Make a new association.
@@ -1257,7 +1254,6 @@ class Signatory(object):
             key = self._normal_key
         self.store.storeAssociation(key, assoc)
         return assoc
-
 
     def getAssociation(self, assoc_handle, dumb, checkExpiration=True):
         """Get the association with the specified handle.
@@ -1287,13 +1283,12 @@ class Signatory(object):
         assoc = self.store.getAssociation(key, assoc_handle)
         if assoc is not None and assoc.expiresIn <= 0:
             logging.info("requested %sdumb key %r is expired (by %s seconds)" %
-                        ((not dumb) and 'not-' or '',
-                         assoc_handle, assoc.expiresIn))
+                         ((not dumb) and 'not-' or '',
+                          assoc_handle, assoc.expiresIn))
             if checkExpiration:
                 self.store.removeAssociation(key, assoc_handle)
                 assoc = None
         return assoc
-
 
     def invalidate(self, assoc_handle, dumb):
         """Invalidates the association with the given handle.
@@ -1310,8 +1305,8 @@ class Signatory(object):
         self.store.removeAssociation(key, assoc_handle)
 
 
-
 class Encoder(object):
+
     """I encode responses in to L{WebResponses<WebResponse>}.
 
     If you don't like L{WebResponses<WebResponse>}, you can do
@@ -1321,7 +1316,6 @@ class Encoder(object):
     """
 
     responseFactory = WebResponse
-
 
     def encode(self, response):
         """Encode a response to a L{WebResponse}.
@@ -1348,8 +1342,8 @@ class Encoder(object):
         return wr
 
 
-
 class SigningEncoder(Encoder):
+
     """I encode responses in to L{WebResponses<WebResponse>}, signing them when required.
     """
 
@@ -1360,7 +1354,6 @@ class SigningEncoder(Encoder):
         @type signatory: L{Signatory}
         """
         self.signatory = signatory
-
 
     def encode(self, response):
         """Encode a response to a L{WebResponse}, signing it first if appropriate.
@@ -1385,8 +1378,8 @@ class SigningEncoder(Encoder):
         return super(SigningEncoder, self).encode(response)
 
 
-
 class Decoder(object):
+
     """I decode an incoming web request in to a L{OpenIDRequest}.
     """
 
@@ -1395,7 +1388,7 @@ class Decoder(object):
         'checkid_immediate': CheckIDRequest.fromMessage,
         'check_authentication': CheckAuthRequest.fromMessage,
         'associate': AssociateRequest.fromMessage,
-        }
+    }
 
     def __init__(self, server):
         """Construct a Decoder.
@@ -1444,7 +1437,6 @@ class Decoder(object):
         handler = self._handlers.get(mode, self.defaultDecoder)
         return handler(message, self.server.op_endpoint)
 
-
     def defaultDecoder(self, message, server):
         """Called to decode queries when no handler for that mode is found.
 
@@ -1456,8 +1448,8 @@ class Decoder(object):
         raise ProtocolError(message, text=fmt % (mode,))
 
 
-
 class Server(object):
+
     """I handle requests for an OpenID server.
 
     Some types of requests (those which are not C{checkid} requests) may be
@@ -1505,14 +1497,14 @@ class Server(object):
         associations I can make and how.
     @type negotiator: L{openid.association.SessionNegotiator}
     """
-    
+
     def __init__(
-        self,
-        store,
-        op_endpoint=None,
-        signatoryClass=Signatory, 
-        encoderClass=SigningEncoder, 
-        decoderClass=Decoder):
+            self,
+            store,
+            op_endpoint=None,
+            signatoryClass=Signatory,
+            encoderClass=SigningEncoder,
+            decoderClass=Decoder):
         """A new L{Server}.
 
         @param store: The back-end where my associations are stored.
@@ -1540,7 +1532,6 @@ class Server(object):
                           stacklevel=2)
         self.op_endpoint = op_endpoint
 
-
     def handleRequest(self, request):
         """Handle a request.
 
@@ -1562,14 +1553,12 @@ class Server(object):
                 "%s has no handler for a request of mode %r." %
                 (self, request.mode))
 
-
     def openid_check_authentication(self, request):
         """Handle and respond to C{check_authentication} requests.
 
         @returntype: L{OpenIDResponse}
         """
         return request.answer(self.signatory)
-
 
     def openid_associate(self, request):
         """Handle and respond to C{associate} requests.
@@ -1587,12 +1576,11 @@ class Server(object):
             message = ('Association type %r is not supported with '
                        'session type %r' % (assoc_type, session_type))
             (preferred_assoc_type, preferred_session_type) = \
-                                   self.negotiator.getAllowedType()
+                self.negotiator.getAllowedType()
             return request.answerUnsupported(
                 message,
                 preferred_assoc_type,
                 preferred_session_type)
-
 
     def decodeRequest(self, query):
         """Transform query parameters into an L{OpenIDRequest}.
@@ -1613,7 +1601,6 @@ class Server(object):
         """
         return self.decoder.decode(query)
 
-
     def encodeResponse(self, response):
         """Encode a response to a L{WebResponse}, signing it first if appropriate.
 
@@ -1629,8 +1616,8 @@ class Server(object):
         return self.encoder.encode(response)
 
 
-
 class ProtocolError(Exception):
+
     """A message did not conform to the OpenID protocol.
 
     @ivar message: The query that is failing to be a valid OpenID request.
@@ -1652,7 +1639,6 @@ class ProtocolError(Exception):
         self.contact = contact
         assert type(message) not in [str, unicode]
         Exception.__init__(self, text)
-
 
     def getReturnTo(self):
         """Get the return_to argument from the request, if any.
@@ -1747,22 +1733,22 @@ class ProtocolError(Exception):
         return None
 
 
-
 class VersionError(Exception):
+
     """Raised when an operation was attempted that is not compatible with
     the protocol version being used."""
 
 
-
 class NoReturnToError(Exception):
+
     """Raised when a response to a request cannot be generated because
     the request contains no return_to URL.
     """
     pass
 
 
-
 class EncodingError(Exception):
+
     """Could not encode this as a protocol message.
 
     You should probably render it and show it to the user.
@@ -1787,11 +1773,12 @@ class EncodingError(Exception):
 
 
 class AlreadySigned(EncodingError):
+
     """This response is already signed."""
 
 
-
 class UntrustedReturnURL(ProtocolError):
+
     """A return_to is outside the trust_root."""
 
     def __init__(self, message, return_to, trust_root):
@@ -1805,14 +1792,16 @@ class UntrustedReturnURL(ProtocolError):
 
 
 class MalformedReturnURL(ProtocolError):
+
     """The return_to URL doesn't look like a valid URL."""
+
     def __init__(self, openid_message, return_to):
         self.return_to = return_to
         ProtocolError.__init__(self, openid_message)
 
 
-
 class MalformedTrustRoot(ProtocolError):
+
     """The trust root is not well-formed.
 
     @see: OpenID Specs, U{openid.trust_root<http://openid.net/specs.bml#mode-checkid_immediate>}
@@ -1820,7 +1809,7 @@ class MalformedTrustRoot(ProtocolError):
     pass
 
 
-#class IEncodable: # Interface
+# class IEncodable: # Interface
 #     def encodeToURL(return_to):
 #         """Encode a response as a URL for redirection.
 #

@@ -3,6 +3,7 @@ from openid import message
 
 import unittest
 
+
 class DummyExtension(extension.Extension):
     ns_uri = 'http://an.extension/'
     ns_alias = 'dummy'
@@ -10,7 +11,9 @@ class DummyExtension(extension.Extension):
     def getExtensionArgs(self):
         return {}
 
+
 class ToMessageTest(unittest.TestCase):
+
     def test_OpenID1(self):
         oid1_msg = message.Message(message.OPENID1_NS)
         ext = DummyExtension()

@@ -10,7 +10,7 @@ __all__ = [
     'FetchResponse',
     'StoreRequest',
     'StoreResponse',
-    ]
+]
 
 from openid import extension
 from openid.server.trustroot import TrustRoot
@@ -24,6 +24,7 @@ UNLIMITED_VALUES = "unlimited"
 # completeness.
 MINIMUM_SUPPORTED_ALIAS_LENGTH = 32
 
+
 def checkAlias(alias):
     """
     Check an alias for invalid characters; raise AXError if any are
@@ -36,11 +37,13 @@ def checkAlias(alias):
 
 
 class AXError(ValueError):
+
     """Results from data that does not meet the attribute exchange 1.0
     specification"""
 
 
 class NotAXMessage(AXError):
+
     """Raised when there is no Attribute Exchange mode in the message."""
 
     def __repr__(self):
@@ -51,6 +54,7 @@ class NotAXMessage(AXError):
 
 
 class AXMessage(extension.Extension):
+
     """Abstract class containing common code for attribute exchange messages
 
     @cvar ns_alias: The preferred namespace alias for attribute
@@ -63,7 +67,7 @@ class AXMessage(extension.Extension):
     # This class is abstract, so it's OK that it doesn't override the
     # abstract method in Extension:
     #
-    #pylint:disable-msg=W0223
+    # pylint:disable-msg=W0223
 
     ns_alias = 'ax'
     mode = None
@@ -90,10 +94,11 @@ class AXMessage(extension.Extension):
         basic information that must be in every attribute exchange
         message.
         """
-        return {'mode':self.mode}
+        return {'mode': self.mode}
 
 
 class AttrInfo(object):
+
     """Represents a single attribute in an attribute exchange
     request. This should be added to an AXRequest object in order to
     request the attribute.
@@ -125,7 +130,7 @@ class AttrInfo(object):
     # It's OK that this class doesn't have public methods (it's just a
     # holder for a bunch of attributes):
     #
-    #pylint:disable-msg=R0903
+    # pylint:disable-msg=R0903
 
     def __init__(self, type_uri, count=1, required=False, alias=None):
         self.required = required
@@ -145,6 +150,7 @@ class AttrInfo(object):
         case self.count is an integer.
         """
         return self.count == UNLIMITED_VALUES
+
 
 def toTypeURIs(namespace_map, alias_list_s):
     """Given a namespace mapping and a string containing a
@@ -180,6 +186,7 @@ def toTypeURIs(namespace_map, alias_list_s):
 
 
 class FetchRequest(AXMessage):
+
     """An attribute exchange 'fetch_request' message. This message is
     sent by a relying party when it wishes to obtain attributes about
     the subject of an OpenID authentication request.
@@ -361,10 +368,12 @@ class FetchRequest(AXMessage):
                     try:
                         count = int(count_s)
                         if count <= 0:
-                            raise AXError("Count %r must be greater than zero, got %r" % (count_key, count_s,))
+                            raise AXError(
+                                "Count %r must be greater than zero, got %r" % (count_key, count_s,))
                     except ValueError:
                         if count_s != UNLIMITED_VALUES:
-                            raise AXError("Invalid count value for %r: %r" % (count_key, count_s,))
+                            raise AXError(
+                                "Invalid count value for %r: %r" % (count_key, count_s,))
                         count = count_s
                 else:
                     count = 1
@@ -408,6 +417,7 @@ class FetchRequest(AXMessage):
 
 
 class AXKeyValueMessage(AXMessage):
+
     """An abstract class that implements a message that has attribute
     keys and values. It contains the common code between
     fetch_response and store_request.
@@ -416,7 +426,7 @@ class AXKeyValueMessage(AXMessage):
     # This class is abstract, so it's OK that it doesn't override the
     # abstract method in Extension:
     #
-    #pylint:disable-msg=W0223
+    # pylint:disable-msg=W0223
 
     def __init__(self):
         AXMessage.__init__(self)
@@ -590,6 +600,7 @@ class AXKeyValueMessage(AXMessage):
 
 
 class FetchResponse(AXKeyValueMessage):
+
     """A fetch_response attribute exchange message
     """
     mode = 'fetch_response'
@@ -653,7 +664,7 @@ class FetchResponse(AXKeyValueMessage):
                     zero_value_types.append(attr_info)
 
                 if (attr_info.count != UNLIMITED_VALUES) and \
-                       (attr_info.count < len(values)):
+                        (attr_info.count < len(values)):
                     raise AXError(
                         'More than the number of requested values were '
                         'specified for %r' % (attr_info.type_uri,))
@@ -718,6 +729,7 @@ class FetchResponse(AXKeyValueMessage):
 
 
 class StoreRequest(AXKeyValueMessage):
+
     """A store request attribute exchange message representation
     """
     mode = 'store_request'
@@ -741,6 +753,7 @@ class StoreRequest(AXKeyValueMessage):
 
 
 class StoreResponse(AXMessage):
+
     """An indication that the store request was processed along with
     this OpenID transaction.
     """
@@ -753,7 +766,7 @@ class StoreResponse(AXMessage):
 
         if succeeded and error_message is not None:
             raise AXError('An error message may only be included in a '
-                             'failing fetch response')
+                          'failing fetch response')
         if succeeded:
             self.mode = self.SUCCESS_MODE
         else:

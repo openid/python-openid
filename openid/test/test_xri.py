@@ -1,7 +1,9 @@
 from unittest import TestCase
 from openid.yadis import xri
 
+
 class XriDiscoveryTestCase(TestCase):
+
     def test_isXRI(self):
         i = xri.identifierScheme
         self.failUnlessEqual(i('=john.smith'), 'XRI')
@@ -12,10 +14,10 @@ class XriDiscoveryTestCase(TestCase):
 
 
 class XriEscapingTestCase(TestCase):
+
     def test_escaping_percents(self):
         self.failUnlessEqual(xri.escapeForIRI('@example/abc%2Fd/ef'),
                              '@example/abc%252Fd/ef')
-
 
     def test_escaping_xref(self):
         # no escapes
@@ -31,8 +33,8 @@ class XriEscapingTestCase(TestCase):
                              esc('@example/foo/(@baz?p=q#r)?i=j#k'))
 
 
-
 class XriTransformationTestCase(TestCase):
+
     def test_to_iri_normal(self):
         self.failUnlessEqual(xri.toIRINormal('@example'), 'xri://@example')
 
@@ -51,8 +53,8 @@ class XriTransformationTestCase(TestCase):
             self.failUnlessEqual(xri.iriToURI(s), expected)
 
 
-
 class CanonicalIDTest(TestCase):
+
     def mkTest(providerID, canonicalID, isAuthoritative):
         def test(self):
             result = xri.providerIsAuthoritative(providerID, canonicalID)
@@ -71,7 +73,9 @@ class CanonicalIDTest(TestCase):
     test_atEqualsAndTooDeepFails = mkTest('@!1234!ABCD', '=!1234', False)
     test_differentBeginningFails = mkTest('=!BABE', '=!D00D', False)
 
+
 class TestGetRootAuthority(TestCase):
+
     def mkTest(the_xri, expected_root):
         def test(self):
             actual_root = xri.rootAuthority(the_xri)

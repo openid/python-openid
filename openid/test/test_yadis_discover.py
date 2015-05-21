@@ -25,7 +25,10 @@ Content-Type: text/plain
 No such file %s
 """
 
-class QuitServer(Exception): pass
+
+class QuitServer(Exception):
+    pass
+
 
 def mkResponse(data):
     status_mo = status_header_re.match(data)
@@ -41,7 +44,9 @@ def mkResponse(data):
                                  headers=headers,
                                  body=body)
 
+
 class TestFetcher(object):
+
     def __init__(self, base_url):
         self.base_url = base_url
 
@@ -65,16 +70,20 @@ class TestFetcher(object):
                 response.final_url = current_url
                 return response
 
+
 class TestSecondGet(unittest.TestCase):
+
     class MockFetcher(object):
+
         def __init__(self):
             self.count = 0
+
         def fetch(self, uri, headers=None, body=None):
             self.count += 1
             if self.count == 1:
                 headers = {
                     'X-XRDS-Location'.lower(): 'http://unittest/404',
-                    }
+                }
                 return fetchers.HTTPResponse(uri, 200, headers, '')
             else:
                 return fetchers.HTTPResponse(uri, 404)
@@ -163,6 +172,7 @@ class _TestCase(unittest.TestCase):
             n,
             self.__class__.__module__)
 
+
 def pyUnitTests():
     s = unittest.TestSuite()
     for success, input_name, id_name, result_name in discoverdata.testlist:
@@ -170,6 +180,7 @@ def pyUnitTests():
         s.addTest(test)
 
     return s
+
 
 def test():
     runner = unittest.TextTestRunner()

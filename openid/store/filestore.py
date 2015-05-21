@@ -59,12 +59,14 @@ except NameError:
 else:
     _isFilenameSafe = set(_filename_allowed).__contains__
 
+
 def _safe64(s):
     h64 = oidutil.toBase64(cryptutil.sha1(s))
     h64 = h64.replace('+', '_')
     h64 = h64.replace('/', '.')
     h64 = h64.replace('=', '')
     return h64
+
 
 def _filenameEscape(s):
     filename_chunks = []
@@ -74,6 +76,7 @@ def _filenameEscape(s):
         else:
             filename_chunks.append('_%02X' % ord(c))
     return ''.join(filename_chunks)
+
 
 def _removeIfPresent(filename):
     """Attempt to remove a file, returning whether the file existed at
@@ -93,6 +96,7 @@ def _removeIfPresent(filename):
         # File was present
         return 1
 
+
 def _ensureDir(dir_name):
     """Create dir_name as a directory if it does not exist. If it
     exists, make sure that it is, in fact, a directory.
@@ -107,7 +111,9 @@ def _ensureDir(dir_name):
         if why.errno != EEXIST or not os.path.isdir(dir_name):
             raise
 
+
 class FileOpenIDStore(OpenIDStore):
+
     """
     This is a filesystem-based store for OpenID associations and
     nonces.  This store should be safe for use in concurrent systems
@@ -146,7 +152,7 @@ class FileOpenIDStore(OpenIDStore):
         # directory
         self.temp_dir = os.path.join(directory, 'temp')
 
-        self.max_nonce_age = 6 * 60 * 60 # Six hours, in seconds
+        self.max_nonce_age = 6 * 60 * 60  # Six hours, in seconds
 
         self._setup()
 

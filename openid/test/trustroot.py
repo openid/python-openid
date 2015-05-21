@@ -2,7 +2,9 @@ import os
 import unittest
 from openid.server.trustroot import TrustRoot
 
+
 class _ParseTest(unittest.TestCase):
+
     def __init__(self, sanity, desc, case):
         unittest.TestCase.__init__(self)
         self.desc = desc + ': ' + repr(case)
@@ -21,7 +23,9 @@ class _ParseTest(unittest.TestCase):
         else:
             assert tr is None, tr
 
+
 class _MatchTest(unittest.TestCase):
+
     def __init__(self, match, desc, line):
         unittest.TestCase.__init__(self)
         tr, rt = line.split()
@@ -43,6 +47,7 @@ class _MatchTest(unittest.TestCase):
         else:
             assert not match
 
+
 def getTests(t, grps, head, dat):
     tests = []
     top = head.strip()
@@ -59,6 +64,7 @@ def getTests(t, grps, head, dat):
         i += 2
     return tests
 
+
 def parseTests(data):
     parts = map(str.strip, data.split('=' * 40 + '\n'))
     assert not parts[0]
@@ -68,6 +74,7 @@ def parseTests(data):
     tests.extend(getTests(_ParseTest, ['bad', 'insane', 'sane'], ph, pdat))
     tests.extend(getTests(_MatchTest, [1, 0], mh, mdat))
     return tests
+
 
 def pyUnitTests():
     here = os.path.dirname(os.path.abspath(__file__))

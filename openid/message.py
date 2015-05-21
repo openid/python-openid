@@ -55,17 +55,22 @@ OPENID_PROTOCOL_FIELDS = [
     'dh_consumer_public', 'claimed_id', 'identity', 'realm',
     'invalidate_handle', 'op_endpoint', 'response_nonce', 'sig',
     'assoc_handle', 'trust_root', 'openid',
-    ]
+]
+
 
 class UndefinedOpenIDNamespace(ValueError):
+
     """Raised if the generic OpenID namespace is accessed when there
     is no OpenID namespace set for this message."""
 
+
 class InvalidOpenIDNamespace(ValueError):
+
     """Raised if openid.ns is not a recognized value.
 
     For recognized values, see L{Message.allowed_openid_namespaces}
     """
+
     def __str__(self):
         s = "Invalid OpenID Namespace"
         if self.args:
@@ -81,11 +86,14 @@ no_default = object()
 # registerNamespaceAlias.
 registered_aliases = {}
 
+
 class NamespaceAliasRegistrationError(Exception):
+
     """
     Raised when an alias or namespace URI has already been registered.
     """
     pass
+
 
 def registerNamespaceAlias(namespace_uri, alias):
     """
@@ -102,15 +110,17 @@ def registerNamespaceAlias(namespace_uri, alias):
 
     if namespace_uri in registered_aliases.values():
         raise NamespaceAliasRegistrationError, \
-              'Namespace uri %r already registered' % (namespace_uri,)
+            'Namespace uri %r already registered' % (namespace_uri,)
 
     if alias in registered_aliases:
         raise NamespaceAliasRegistrationError, \
-              'Alias %r already registered' % (alias,)
+            'Alias %r already registered' % (alias,)
 
     registered_aliases[alias] = namespace_uri
 
+
 class Message(object):
+
     """
     In the implementation of this object, None represents the global
     namespace as well as a namespace with no key.
@@ -152,7 +162,6 @@ class Message(object):
             if isinstance(value, list):
                 raise TypeError("query dict must have one value for each key, "
                                 "not lists of values.  Query is %r" % (args,))
-
 
             try:
                 prefix, rest = key.split('.', 1)
@@ -343,7 +352,7 @@ class Message(object):
             form.append(ElementTree.Element(u'input', attrs))
 
         submit = ElementTree.Element(u'input',
-            {u'type':'submit', u'value':oidutil.toUnicode(submit_text)})
+                                     {u'type': 'submit', u'value': oidutil.toUnicode(submit_text)})
         form.append(submit)
 
         return ElementTree.tostring(form, encoding='utf-8')
@@ -459,7 +468,7 @@ class Message(object):
             for ((pair_ns, ns_key), value)
             in self.args.iteritems()
             if pair_ns == namespace
-            ])
+        ])
 
     def updateArgs(self, namespace, updates):
         """Set multiple key/value pairs in one call
@@ -492,10 +501,8 @@ class Message(object):
     def __eq__(self, other):
         return self.args == other.args
 
-
     def __ne__(self, other):
         return not (self == other)
-
 
     def getAliasedArg(self, aliased_key, default=None):
         if aliased_key == 'ns':
@@ -525,9 +532,12 @@ class Message(object):
 
         return self.getArg(ns, key, default)
 
+
 class NamespaceMap(object):
+
     """Maintains a bijective map between namespace uris and aliases.
     """
+
     def __init__(self):
         self.alias_to_namespace = {}
         self.namespace_to_alias = {}
@@ -560,7 +570,7 @@ class NamespaceMap(object):
         # Check that desired_alias is not an openid protocol field as
         # per the spec.
         assert desired_alias not in OPENID_PROTOCOL_FIELDS, \
-               "%r is not an allowed namespace alias" % (desired_alias,)
+            "%r is not an allowed namespace alias" % (desired_alias,)
 
         # Check that desired_alias does not contain a period as per
         # the spec.
@@ -572,7 +582,7 @@ class NamespaceMap(object):
         # the desired alias
         current_namespace_uri = self.alias_to_namespace.get(desired_alias)
         if (current_namespace_uri is not None
-            and current_namespace_uri != namespace_uri):
+                and current_namespace_uri != namespace_uri):
 
             fmt = ('Cannot map %r to alias %r. '
                    '%r is already mapped to alias %r')

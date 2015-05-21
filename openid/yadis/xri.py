@@ -16,11 +16,11 @@ except ValueError:
         (0xA0, 0xD7FF),
         (0xF900, 0xFDCF),
         (0xFDF0, 0xFFEF),
-        ]
+    ]
 
     IPRIVATE = [
         (0xE000, 0xF8FF),
-        ]
+    ]
 else:
     UCSCHAR = [
         (0xA0, 0xD7FF),
@@ -40,13 +40,13 @@ else:
         (0xC0000, 0xCFFFD),
         (0xD0000, 0xDFFFD),
         (0xE1000, 0xEFFFD),
-        ]
+    ]
 
     IPRIVATE = [
         (0xE000, 0xF8FF),
         (0xF0000, 0xFFFFD),
         (0x100000, 0x10FFFD),
-        ]
+    ]
 
 
 _escapeme_re = re.compile('[%s]' % (''.join(
@@ -60,7 +60,7 @@ def identifierScheme(identifier):
     @returns: C{"XRI"} or C{"URI"}
     """
     if identifier.startswith('xri://') or (
-        identifier and identifier[0] in XRI_AUTHORITIES):
+            identifier and identifier[0] in XRI_AUTHORITIES):
         return "XRI"
     else:
         return "URI"
@@ -147,7 +147,7 @@ def rootAuthority(xri):
         # IRI reference.  XXX: Can IRI authorities have segments?
         segments = authority.split('!')
         segments = reduce(list.__add__,
-            map(lambda s: s.split('*'), segments))
+                          map(lambda s: s.split('*'), segments))
         root = segments[0]
 
     return XRI(root)

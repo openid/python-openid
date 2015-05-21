@@ -1,6 +1,6 @@
 import unittest
 from openid.consumer.discover import \
-     OpenIDServiceEndpoint, OPENID_1_1_TYPE, OPENID_1_0_TYPE
+    OpenIDServiceEndpoint, OPENID_1_1_TYPE, OPENID_1_0_TYPE
 
 from openid.yadis.services import applyFilter
 
@@ -16,8 +16,10 @@ XRDS_BOILERPLATE = '''\
 </xrds:XRDS>
 '''
 
+
 def mkXRDS(services):
     return XRDS_BOILERPLATE % (services,)
+
 
 def mkService(uris=None, type_uris=None, local_id=None, dent='        '):
     chunks = [dent, '<Service>\n']
@@ -48,16 +50,18 @@ def mkService(uris=None, type_uris=None, local_id=None, dent='        '):
 
 # Different sets of server URLs for use in the URI tag
 server_url_options = [
-    [], # This case should not generate an endpoint object
+    [],  # This case should not generate an endpoint object
     ['http://server.url/'],
     ['https://server.url/'],
     ['https://server.url/', 'http://server.url/'],
     ['https://server.url/',
      'http://server.url/',
      'http://example.server.url/'],
-    ]
+]
 
 # Used for generating test data
+
+
 def subsets(l):
     """Generate all non-empty sublists of a list"""
     subsets_list = [[]]
@@ -70,7 +74,7 @@ def subsets(l):
 ext_types = [
     'http://janrain.com/extension/blah',
     'http://openid.net/sreg/1.0',
-    ]
+]
 
 # All valid combinations of Type tags that should produce an OpenID endpoint
 type_uri_options = [
@@ -82,14 +86,14 @@ type_uri_options = [
 
     # All combinations of extension types (including empty extenstion list)
     for exts in subsets(ext_types)
-    ]
+]
 
 # Range of valid Delegate tag values for generating test data
 local_id_options = [
     None,
     'http://vanity.domain/',
     'https://somewhere/yadis/',
-    ]
+]
 
 # All combinations of valid URIs, Type URIs and Delegate tags
 data = [
@@ -97,9 +101,11 @@ data = [
     for uris in server_url_options
     for type_uris in type_uri_options
     for local_id in local_id_options
-    ]
+]
+
 
 class OpenIDYadisTest(unittest.TestCase):
+
     def __init__(self, uris, type_uris, local_id):
         unittest.TestCase.__init__(self)
         self.uris = uris
@@ -156,6 +162,7 @@ class OpenIDYadisTest(unittest.TestCase):
 
         # Make sure we saw all URIs, and saw each one once
         self.failUnlessEqual(uris, seen_uris)
+
 
 def pyUnitTests():
     cases = []
