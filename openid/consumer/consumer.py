@@ -195,7 +195,8 @@ from urlparse import urlparse, urldefrag
 from openid import fetchers
 
 from openid.consumer.discover import discover, OpenIDServiceEndpoint, \
-     DiscoveryFailure, OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE
+     DiscoveryFailure, OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE, \
+     OPENID_IDP_2_0_TYPE
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
      IDENTIFIER_SELECT, no_default, BARE_NS
 from openid import cryptutil
@@ -922,9 +923,18 @@ class GenericConsumer(object):
         # again. This covers not using sessions, OP identifier
         # endpoints and responses that didn't match the original
         # request.
+        if to_match.server_url.startswith(u'https://www.google.com/a/'):
+            import urllib
+            claimed_id = u'https://www.google.com/accounts/o8/user-xrds?uri=%s' % urllib.quote_plus(to_match.claimed_id)
+        else:
+            claimed_id = to_match.claimed_id
+
         if not endpoint:
             logging.info('No pre-discovered information supplied.')
             endpoint = self._discoverAndVerify(to_match.claimed_id, [to_match])
+        elif endpoint.isOPIdentifier():
+            logging.info('Pre-discovered information based on OP-ID; need to rediscover.')
+            endpoint = self._discoverAndVerify(claimed_id, [to_match])
         else:
             # The claimed ID matches, so we use the endpoint that we
             # discovered in initiation. This should be the most common
@@ -937,7 +947,7 @@ class GenericConsumer(object):
                     str(e))
                 logging.info("Attempting discovery to verify endpoint")
                 endpoint = self._discoverAndVerify(
-                    to_match.claimed_id, [to_match])
+                    claimed_id, [to_match])
 
         # The endpoint we return should have the claimed ID from the
         # message we just verified, fragment and all.
@@ -1007,16 +1017,28 @@ class GenericConsumer(object):
 
         # Fragments do not influence discovery, so we can't compare a
         # claimed identifier with a fragment to discovered information.
-        defragged_claimed_id, _ = urldefrag(to_match.claimed_id)
+        if to_match.server_url.startswith(u'https://www.google.com/a/'):
+            import urllib
+            claimed_id = u'https://www.google.com/accounts/o8/user-xrds?uri=%s' % urllib.quote_plus(to_match.claimed_id)
+        else:
+            claimed_id = to_match.claimed_id
+
+        defragged_claimed_id, _ = urldefrag(claimed_id)
         if defragged_claimed_id != endpoint.claimed_id:
             raise ProtocolError(
                 'Claimed ID does not match (different subjects!), '
                 'Expected %s, got %s' %
                 (defragged_claimed_id, endpoint.claimed_id))
 
-        if to_match.getLocalID() != endpoint.getLocalID():
+        if to_match.server_url.startswith(u'https://www.google.com/a/'):
+            import urllib
+            local_id = u'https://www.google.com/accounts/o8/user-xrds?uri=%s' % urllib.quote_plus(to_match.local_id)
+        else:
+            local_id =  to_match.getLocalID()
+
+        if local_id != endpoint.getLocalID():
             raise ProtocolError('local_id mismatch. Expected %s, got %s' %
-                                (to_match.getLocalID(), endpoint.getLocalID()))
+                                (local_id, endpoint.getLocalID()))
 
         # If the server URL is None, this must be an OpenID 1
         # response, because op_endpoint is a required parameter in

@@ -9,7 +9,7 @@ except ImportError:
 if 'sdist' in sys.argv:
     os.system('./admin/makedoc')
 
-version = '[library version:2.2.5]'[17:-1]
+version = '[library version:2.2.6.1POR]'[17:-1]
 
 setup(
     name='python-openid',
