@@ -69,6 +69,8 @@ data_fields = {
     'timezone':'Time Zone',
     }
 
+log = logging.getLogger(__name__)
+
 def checkFieldName(field_name):
     """Check to see that the given value is a valid simple
     registration data field name.
@@ -95,7 +97,7 @@ ns_uri = ns_uri_1_1
 try:
     registerNamespaceAlias(ns_uri_1_1, 'sreg')
 except NamespaceAliasRegistrationError, e:
-    logging.exception('registerNamespaceAlias(%r, %r) failed: %s' % (ns_uri_1_1,
+    log.exception('registerNamespaceAlias(%r, %r) failed: %s' % (ns_uri_1_1,
                                                                'sreg', str(e),))
 
 def supportsSReg(endpoint):

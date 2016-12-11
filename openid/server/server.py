@@ -143,6 +143,8 @@ ENCODE_HTML_FORM = ('HTML form',)
 
 UNUSED = None
 
+log = logging.getLogger(__name__)
+
 class OpenIDRequest(object):
     """I represent an incoming OpenID request.
 
@@ -421,8 +423,8 @@ class AssociateRequest(OpenIDRequest):
         if message.isOpenID1():
             session_type = message.getArg(OPENID_NS, 'session_type')
             if session_type == 'no-encryption':
-                logging.warn('Received OpenID 1 request with a no-encryption '
-                            'assocaition session type. Continuing anyway.')
+                log.warn('Received OpenID 1 request with a no-encryption '
+                            'association session type. Continuing anyway.')
             elif not session_type:
                 session_type = 'no-encryption'
         else:
@@ -1171,15 +1173,14 @@ class Signatory(object):
         """
         assoc = self.getAssociation(assoc_handle, dumb=True)
         if not assoc:
-            logging.error("failed to get assoc with handle %r to verify "
-                        "message %r"
-                        % (assoc_handle, message))
+            log.error("failed to get assoc with handle %r to verify "
+                        "message %r" % (assoc_handle, message))
             return False
 
         try:
             valid = assoc.checkMessageSignature(message)
         except ValueError, ex:
-            logging.exception("Error in verifying %s with %s: %s" % (message,
+            log.exception("Error in verifying %s with %s: %s" % (message,
                                                                assoc,
                                                                ex))
             return False
@@ -1286,7 +1287,7 @@ class Signatory(object):
             key = self._normal_key
         assoc = self.store.getAssociation(key, assoc_handle)
         if assoc is not None and assoc.expiresIn <= 0:
-            logging.info("requested %sdumb key %r is expired (by %s seconds)" %
+            log.info("requested %sdumb key %r is expired (by %s seconds)" %
                         ((not dumb) and 'not-' or '',
                          assoc_handle, assoc.expiresIn))
             if checkExpiration:

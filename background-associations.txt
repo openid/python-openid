@@ -71,21 +71,24 @@ could make the background fetcher listen for inserts into the queue.
 
 The background fetcher needs to do something similar to the following::
 
+  import logging
+  log = logging.getLogger(__name__)
+
   def refresh(consumer, endpoint):
       if consumer.store.getAssociation(endpoint.server_url):
-          logging.info("We don't need to associate with %r", endpoint.server_url)
+          log.info("We don't need to associate with %r" % endpoint.server_url)
           return
 
-      logging.info("Associating with %r", endpoint.server_url)
+      log.info("Associating with %r" % endpoint.server_url)
       now = time.time()
       assoc = consumer._negotiateAssociation(endpoint)
       if assoc:
           elapsed = time.time() - now
-          logging.info('(%0.2f seconds) Associated with %r', elapsed,
-                       endpoint.server_url)
+          log.info('(%0.2f seconds) Associated with %r' % (elapsed,
+                       endpoint.server_url))
           consumer.store.storeAssociation(endpoint.server_url, assoc)
       else:
-          logging.error('Failed to make an association with %r',
+          log.error('Failed to make an association with %r' %
                         endpoint.server_url)
 
 The code in this example logs the amount of time that the association

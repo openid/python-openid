@@ -59,6 +59,8 @@ except NameError:
 else:
     _isFilenameSafe = set(_filename_allowed).__contains__
 
+log = logging.getLogger(__name__)
+
 def _safe64(s):
     h64 = oidutil.toBase64(cryptutil.sha1(s))
     h64 = h64.replace('+', '_')
@@ -372,7 +374,7 @@ class FileOpenIDStore(OpenIDStore):
                 association_file = file(association_filename, 'rb')
             except IOError, why:
                 if why.errno == ENOENT:
-                    logging.exception("%s disappeared during %s._allAssocs" % (
+                    log.exception("%s disappeared during %s._allAssocs" % (
                         association_filename, self.__class__.__name__))
                 else:
                     raise

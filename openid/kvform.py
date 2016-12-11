@@ -3,6 +3,8 @@ __all__ = ['seqToKV', 'kvToSeq', 'dictToKV', 'kvToDict']
 import types
 import logging
 
+log = logging.getLogger(__name__)
+
 class KVFormError(ValueError):
     pass
 
@@ -21,7 +23,7 @@ def seqToKV(seq, strict=False):
         if strict:
             raise KVFormError(formatted)
         else:
-            logging.warn(formatted)
+            log.warn(formatted)
 
     lines = []
     for k, v in seq:
@@ -72,7 +74,7 @@ def kvToSeq(data, strict=False):
         if strict:
             raise KVFormError(formatted)
         else:
-            logging.warn(formatted)
+            log.warn(formatted)
 
     lines = data.split('\n')
     if lines[-1]:

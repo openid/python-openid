@@ -8,8 +8,6 @@ interesting.
 __all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'autoSubmitHTML', 'toUnicode']
 
 import binascii
-import sys
-import urlparse
 import logging
 
 from urllib import urlencode
@@ -21,6 +19,8 @@ elementtree_modules = [
     'cElementTree',
     'elementtree.ElementTree',
     ]
+
+log = logging.getLogger(__name__)
 
 def toUnicode(value):
     """Returns the given argument as a unicode object.
@@ -73,13 +73,14 @@ def importElementTree(module_names=None):
             pass
         else:
             # Make sure it can actually parse XML
+            xml_test = '<unused/>'
             try:
-                ElementTree.XML('<unused/>')
+                ElementTree.XML(xml_test)
             except (SystemExit, MemoryError, AssertionError):
                 raise
             except:
-                logging.exception('Not using ElementTree library %r because it failed to '
-                    'parse a trivial document: %s' % mod_name)
+                log.exception('Not using ElementTree library %r because it failed to '
+                    'parse a trivial document: %s' % (mod_name, xml_test))
             else:
                 return ElementTree
     else:
@@ -91,7 +92,7 @@ def importElementTree(module_names=None):
 def log(message, level=0):
     """Handle a log message from the OpenID library.
 
-    This is a legacy function which redirects to logging.error.
+    This is a legacy function which redirects to log.error.
     The logging module should be used instead of this
 
     @param message: A string containing a debugging message from the
@@ -106,7 +107,7 @@ def log(message, level=0):
     @returns: Nothing.
     """
 
-    logging.error("This is a legacy log message, please use the "
+    log.error("This is a legacy log message, please use the "
       "logging module. Message: %s", message)
 
 def appendArgs(url, args):

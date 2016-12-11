@@ -24,6 +24,8 @@ from urlparse import urlparse, urlunparse
 import re
 import logging
 
+log = logging.getLogger(__name__)
+
 ############################################
 _protocols = ['http', 'https']
 _top_level_domains = [
@@ -443,12 +445,12 @@ def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):
     try:
         allowable_urls = _vrfy(realm.buildDiscoveryURL())
     except RealmVerificationRedirected, err:
-        logging.exception(str(err))
+        log.exception(str(err))
         return False
 
     if returnToMatches(allowable_urls, return_to):
         return True
     else:
-        logging.error("Failed to validate return_to %r for realm %r, was not "
+        log.error("Failed to validate return_to %r for realm %r, was not "
                     "in %s" % (return_to, realm_str, allowable_urls))
         return False
