@@ -1043,8 +1043,9 @@ class OpenIDResponse(object):
         @change: 2.1.0 added the ENCODE_HTML_FORM response.
         """
         if self.request.mode in BROWSER_REQUEST_MODES:
-            if self.fields.isOpenID1() and \
+            if self.fields.isOpenID2() and \
                len(self.encodeToURL()) > OPENID1_URL_LIMIT:
+                # Message can be encoded as HTML form only if it's OpenID 2.0.
                 return ENCODE_HTML_FORM
             else:
                 return ENCODE_URL
@@ -1719,8 +1720,9 @@ class ProtocolError(Exception):
             displayed to the user.
         """
         if self.hasReturnTo():
-            if self.openid_message.isOpenID1() and \
+            if self.openid_message.isOpenID2() and \
                len(self.encodeToURL()) > OPENID1_URL_LIMIT:
+                # Message can be encoded as HTML form only if it's OpenID 2.0.
                 return ENCODE_HTML_FORM
             else:
                 return ENCODE_URL
