@@ -1,3 +1,2 @@
 #!/bin/sh
-
-nosetests
+python admin/runtests

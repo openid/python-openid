@@ -4,6 +4,6 @@ python:
   - 2.6
   - 2.7
 
-before_install: pip install --use-mirrors Django nose twill pycrypto
+before_install: pip install Django pycrypto lxml
 install: python setup.py install
 script: ./run_tests.sh

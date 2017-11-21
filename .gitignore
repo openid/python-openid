@@ -2,3 +2,5 @@
 *.pyc
 *.swp
 .tox
+# Created in tests
+/sstore
