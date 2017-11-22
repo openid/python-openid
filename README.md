@@ -9,7 +9,7 @@ This is the Python OpenID library.
 REQUIREMENTS
 ============
 
- - Python 2.6, 2.7.
+ - Python 2.7.
 
 
 INSTALLATION

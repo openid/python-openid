@@ -91,10 +91,6 @@ class TestFetchException(datadriven.DataDrivenTestCase):
         RuntimeError(),
         ]
 
-    # String exceptions are finally gone from Python 2.6.
-    if sys.version_info[:2] < (2, 6):
-        cases.append('oi!')
-
     def __init__(self, exc):
         datadriven.DataDrivenTestCase.__init__(self, repr(exc))
         self.exc = exc
