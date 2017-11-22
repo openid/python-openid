@@ -1520,14 +1520,18 @@ class Server(object):
         associations I can make and how.
     @type negotiator: L{openid.association.SessionNegotiator}
     """
-    
+
+    signatoryClass = Signatory
+    encoderClass = SigningEncoder
+    decoderClass = Decoder
+
     def __init__(
         self,
         store,
         op_endpoint=None,
-        signatoryClass=Signatory, 
-        encoderClass=SigningEncoder, 
-        decoderClass=Decoder):
+        signatoryClass=None,
+        encoderClass=None,
+        decoderClass=None):
         """A new L{Server}.
 
         @param store: The back-end where my associations are stored.
@@ -1543,8 +1547,23 @@ class Server(object):
             if you want to respond to any version 2 OpenID requests.
         """
         self.store = store
+        if signatoryClass is None:
+            signatoryClass = self.signatoryClass
+            if signatoryClass != Server.signatoryClass:
+                warnings.warn("Attribute signatoryClass on Server class is deprecated."
+                              "Use signatoryClass argument of __init__ instead.", DeprecationWarning)
         self.signatory = signatoryClass(self.store)
+        if encoderClass is None:
+            encoderClass = self.encoderClass
+            if encoderClass != Server.encoderClass:
+                warnings.warn("Attribute encoderClass on Server class is deprecated."
+                              "Use encoderClass argument of __init__ instead.", DeprecationWarning)
         self.encoder = encoderClass(self.signatory)
+        if decoderClass is None:
+            decoderClass = self.decoderClass
+            if decoderClass != Server.decoderClass:
+                warnings.warn("Attribute decoderClass on Server class is deprecated."
+                              "Use decoderClass argument of __init__ instead.", DeprecationWarning)
         self.decoder = decoderClass(self)
         self.negotiator = default_negotiator.copy()
 
