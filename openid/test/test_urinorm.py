@@ -1,6 +1,8 @@
 import os
 import unittest
+
 import openid.urinorm
+
 
 class UrinormTest(unittest.TestCase):
     def __init__(self, desc, case, expected):

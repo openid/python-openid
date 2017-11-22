@@ -3,6 +3,8 @@ language: python
 python:
   - 2.7
 
-before_install: pip install Django pycrypto lxml
+before_install: pip install Django pycrypto lxml isort
 install: python setup.py install
-script: ./run_tests.sh
+script:
+  - make check-isort
+  - make test

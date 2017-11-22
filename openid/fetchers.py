@@ -7,10 +7,10 @@ __all__ = ['fetch', 'getDefaultFetcher', 'setDefaultFetcher', 'HTTPResponse',
            'HTTPFetcher', 'createHTTPFetcher', 'HTTPFetchingError',
            'HTTPError']
 
-import urllib2
-import time
 import cStringIO
 import sys
+import time
+import urllib2
 
 import openid
 import openid.urinorm

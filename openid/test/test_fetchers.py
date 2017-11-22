@@ -1,10 +1,11 @@
-import warnings
-import unittest
-import sys
-import urllib2
-from urllib import addinfourl
 import socket
+import sys
+import unittest
+import urllib2
+import warnings
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from cStringIO import StringIO
+from urllib import addinfourl
 
 from mock import Mock
 
@@ -118,7 +119,6 @@ def run_fetcher_tests(server):
     for f in non_exc_fetchers:
         test_fetcher(f, False, server)
 
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 class FetcherTestHandler(BaseHTTPRequestHandler):
     cases = {

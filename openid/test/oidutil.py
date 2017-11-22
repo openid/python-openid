@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-import unittest
 import codecs
-import string
 import random
+import string
+import unittest
+
 from openid import oidutil
+
 
 def test_base64():
     allowed_s = string.ascii_letters + string.digits + '+/='

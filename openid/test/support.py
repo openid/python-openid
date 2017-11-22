@@ -1,6 +1,8 @@
-from openid import message
-from logging.handlers import BufferingHandler
 import logging
+from logging.handlers import BufferingHandler
+
+from openid import message
+
 
 class TestHandler(BufferingHandler):
     def __init__(self, messages):

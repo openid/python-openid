@@ -1,5 +1,7 @@
 import os.path
+
 from openid.dh import DiffieHellman, strxor
+
 
 def test_strxor():
     NUL = '\x00'

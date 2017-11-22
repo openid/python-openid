@@ -1,5 +1,5 @@
-from openid import cryptutil
-from openid import oidutil
+from openid import cryptutil, oidutil
+
 
 def strxor(x, y):
     if len(x) != len(y):

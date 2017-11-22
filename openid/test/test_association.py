@@ -1,12 +1,16 @@
+import time
+import unittest
+import warnings
+
+from openid import association, cryptutil
+from openid.consumer.consumer import (DiffieHellmanSHA1ConsumerSession, DiffieHellmanSHA256ConsumerSession,
+                                      PlainTextConsumerSession)
+from openid.dh import DiffieHellman
+from openid.message import BARE_NS, OPENID2_NS, OPENID_NS, Message
+from openid.server.server import (DiffieHellmanSHA1ServerSession, DiffieHellmanSHA256ServerSession,
+                                  PlainTextServerSession)
 from openid.test import datadriven
 
-import unittest
-
-from openid.message import Message, BARE_NS, OPENID_NS, OPENID2_NS
-from openid import association
-import time
-from openid import cryptutil
-import warnings
 
 class AssociationSerializationTest(unittest.TestCase):
     def test_roundTrip(self):
@@ -22,17 +26,8 @@ class AssociationSerializationTest(unittest.TestCase):
         self.failUnlessEqual(assoc.lifetime, assoc2.lifetime)
         self.failUnlessEqual(assoc.assoc_type, assoc2.assoc_type)
 
-from openid.server.server import \
-     DiffieHellmanSHA1ServerSession, \
-     DiffieHellmanSHA256ServerSession, \
-     PlainTextServerSession
 
-from openid.consumer.consumer import \
-     DiffieHellmanSHA1ConsumerSession, \
-     DiffieHellmanSHA256ConsumerSession, \
-     PlainTextConsumerSession
 
-from openid.dh import DiffieHellman
 
 def createNonstandardConsumerDH():
     nonstandard_dh = DiffieHellman(1315291, 2)

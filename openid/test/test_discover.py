@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
+import os.path
 import sys
 import unittest
-import datadriven
-import os.path
-from openid import fetchers
-from openid.fetchers import HTTPResponse
-from openid.yadis.discover import DiscoveryFailure
-from openid.consumer import discover
-from openid.yadis import xrires
-from openid.yadis.xri import XRI
+import warnings
 from urlparse import urlsplit
-from openid import message
+
+from openid import fetchers, message
+from openid.consumer import discover
+from openid.fetchers import HTTPResponse
+from openid.yadis import xrires
+from openid.yadis.discover import DiscoveryFailure
+from openid.yadis.xri import XRI
+
+from . import datadriven
 
 ### Tests for conditions that trigger DiscoveryFailure
 
@@ -64,7 +66,6 @@ class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
 # testing the behaviour in the presence of string exceptions,
 # deprecated or not, so tell it no to complain when this particular
 # string exception is raised.
-import warnings
 warnings.filterwarnings('ignore', 'raising a string.*', DeprecationWarning,
                         r'^openid\.test\.test_discover$', 77)
 

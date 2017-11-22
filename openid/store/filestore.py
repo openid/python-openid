@@ -3,13 +3,17 @@ This module contains an C{L{OpenIDStore}} implementation backed by
 flat files.
 """
 
-import string
+import logging
 import os
 import os.path
+import string
 import time
-import logging
-
 from errno import EEXIST, ENOENT
+
+from openid import cryptutil, oidutil
+from openid.association import Association
+from openid.store import nonce
+from openid.store.interface import OpenIDStore
 
 try:
     from tempfile import mkstemp
@@ -34,10 +38,6 @@ except ImportError:
 
         raise RuntimeError('Failed to get temp file after 5 attempts')
 
-from openid.association import Association
-from openid.store.interface import OpenIDStore
-from openid.store import nonce
-from openid import cryptutil, oidutil
 
 _filename_allowed = string.ascii_letters + string.digits + '.'
 try:

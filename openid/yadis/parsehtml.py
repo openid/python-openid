@@ -1,8 +1,8 @@
 __all__ = ['findHTMLMeta', 'MetaNotFound']
 
-from HTMLParser import HTMLParser, HTMLParseError
 import htmlentitydefs
 import re
+from HTMLParser import HTMLParseError, HTMLParser
 
 from openid.yadis.constants import YADIS_HEADER_NAME
 

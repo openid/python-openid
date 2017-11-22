@@ -30,7 +30,7 @@ import hmac
 import os
 import random
 
-from openid.oidutil import toBase64, fromBase64
+from openid.oidutil import fromBase64, toBase64
 
 try:
     import hashlib

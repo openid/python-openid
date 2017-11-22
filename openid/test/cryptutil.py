@@ -1,6 +1,6 @@
-import sys
-import random
 import os.path
+import random
+import sys
 
 from openid import cryptutil
 

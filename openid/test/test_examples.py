@@ -1,14 +1,19 @@
 "Test some examples."
 
+import os.path
 import socket
-import os.path, unittest, sys, time
+import sys
+import time
+import unittest
 from cStringIO import StringIO
 
-import twill.commands, twill.parse, twill.unit
+import twill.commands
+import twill.parse
+import twill.unit
 
-from openid.consumer.discover import \
-     OpenIDServiceEndpoint, OPENID_1_1_TYPE
 from openid.consumer.consumer import AuthRequest
+from openid.consumer.discover import OPENID_1_1_TYPE, OpenIDServiceEndpoint
+
 
 class TwillTest(twill.unit.TestInfo):
     """Variant of twill.unit.TestInfo that runs a function as a test script,

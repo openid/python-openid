@@ -1,13 +1,14 @@
 
+import unittest
+import warnings
+
 from openid.extensions.draft import pape5 as pape
 from openid.message import *
 from openid.server import server
 
-import warnings
 warnings.filterwarnings('ignore', module=__name__,
                         message='"none" used as a policy URI')
 
-import unittest
 
 class PapeRequestTestCase(unittest.TestCase):
     def setUp(self):

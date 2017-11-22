@@ -3,10 +3,11 @@
 """
 
 from urllib import urlencode
+
 from openid import fetchers
 from openid.yadis import etxrd
-from openid.yadis.xri import toURINormal
 from openid.yadis.services import iterServices
+from openid.yadis.xri import toURINormal
 
 DEFAULT_PROXY = 'http://proxy.xri.net/'
 

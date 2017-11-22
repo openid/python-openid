@@ -116,19 +116,18 @@ From 1.1 to 2.0
 @group Response Encodings: ENCODE_KVFORM, ENCODE_HTML_FORM, ENCODE_URL
 """
 
-import time, warnings
 import logging
+import time
+import warnings
 from copy import deepcopy
 
-from openid import cryptutil
-from openid import oidutil
-from openid import kvform
-from openid.dh import DiffieHellman
-from openid.store.nonce import mkNonce
-from openid.server.trustroot import TrustRoot, verifyReturnTo
+from openid import cryptutil, kvform, oidutil
 from openid.association import Association, default_negotiator, getSecretSize
-from openid.message import Message, InvalidOpenIDNamespace, InvalidNamespace, \
-     OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, OPENID1_URL_LIMIT
+from openid.dh import DiffieHellman
+from openid.message import (IDENTIFIER_SELECT, OPENID1_URL_LIMIT, OPENID2_NS, OPENID_NS, InvalidNamespace,
+                            InvalidOpenIDNamespace, Message)
+from openid.server.trustroot import TrustRoot, verifyReturnTo
+from openid.store.nonce import mkNonce
 from openid.urinorm import urinorm
 
 HTTP_OK = 200

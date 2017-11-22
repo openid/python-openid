@@ -8,17 +8,18 @@ robust examples, and integrating OpenID into your application.
 """
 __copyright__ = 'Copyright 2005-2008, Janrain, Inc.'
 
-from Cookie import SimpleCookie
 import cgi
-import urlparse
 import cgitb
 import sys
+import urlparse
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from Cookie import SimpleCookie
+
 
 def quoteattr(s):
     qs = cgi.escape(s, 1)
     return '"%s"' % (qs,)
 
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
 try:
     import openid
@@ -32,14 +33,14 @@ PYTHONPATH environment variable).
 For more information, see the README in the root of the library
 distribution.""")
     sys.exit(1)
+else:
+    from openid.consumer import consumer
+    from openid.cryptutil import randomString
+    from openid.extensions import pape, sreg
+    from openid.fetchers import Urllib2Fetcher, setDefaultFetcher
+    from openid.oidutil import appendArgs
+    from openid.store import filestore, memstore
 
-from openid.store import memstore
-from openid.store import filestore
-from openid.consumer import consumer
-from openid.oidutil import appendArgs
-from openid.cryptutil import randomString
-from openid.fetchers import setDefaultFetcher, Urllib2Fetcher
-from openid.extensions import pape, sreg
 
 # Used with an OpenID provider affiliate program.
 OPENID_PROVIDER_NAME = 'MyOpenID'

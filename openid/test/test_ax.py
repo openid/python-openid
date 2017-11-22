@@ -2,9 +2,11 @@
 """
 
 import unittest
-from openid.extensions import ax
-from openid.message import NamespaceMap, Message, OPENID2_NS
+
 from openid.consumer.consumer import SuccessResponse
+from openid.extensions import ax
+from openid.message import OPENID2_NS, Message, NamespaceMap
+
 
 class BogusAXMessage(ax.AXMessage):
     mode = 'bogus'

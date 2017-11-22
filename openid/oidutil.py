@@ -8,10 +8,9 @@ interesting.
 __all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'autoSubmitHTML', 'toUnicode']
 
 import binascii
+import logging
 import sys
 import urlparse
-import logging
-
 from urllib import urlencode
 
 elementtree_modules = [

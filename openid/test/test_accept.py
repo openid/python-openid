@@ -1,6 +1,8 @@
-import unittest
 import os.path
+import unittest
+
 from openid.yadis import accept
+
 
 def getTestData():
     """Read the test data off of disk

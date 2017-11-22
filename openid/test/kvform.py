@@ -1,6 +1,8 @@
+import unittest
+
 from openid import kvform
 from openid.test.support import CatchLogs
-import unittest
+
 
 class KVBaseTest(unittest.TestCase, CatchLogs):
     def shortDescription(self):

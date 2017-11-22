@@ -4,10 +4,9 @@ __all__ = ['discover', 'DiscoveryResult', 'DiscoveryFailure']
 from StringIO import StringIO
 
 from openid import fetchers
-
-from openid.yadis.constants import \
-     YADIS_HEADER_NAME, YADIS_CONTENT_TYPE, YADIS_ACCEPT_HEADER
+from openid.yadis.constants import YADIS_ACCEPT_HEADER, YADIS_CONTENT_TYPE, YADIS_HEADER_NAME
 from openid.yadis.parsehtml import MetaNotFound, findHTMLMeta
+
 
 class DiscoveryFailure(Exception):
     """Raised when a YADIS protocol error occurs in the discovery process"""
@@ -152,4 +151,3 @@ def whereIsYadis(resp):
                 pass
 
         return yadis_loc
-

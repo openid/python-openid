@@ -1,6 +1,8 @@
 import os
 import unittest
+
 from openid.server.trustroot import TrustRoot
+
 
 class _ParseTest(unittest.TestCase):
     def __init__(self, sanity, desc, case):

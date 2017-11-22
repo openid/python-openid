@@ -1,6 +1,8 @@
-import unittest
-from openid.yadis import services, etxrd, xri
 import os.path
+import unittest
+
+from openid.yadis import etxrd, services, xri
+
 
 def datapath(filename):
     module_directory = os.path.dirname(os.path.abspath(__file__))

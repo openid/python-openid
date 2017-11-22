@@ -1,6 +1,8 @@
 
-from djopenid import util
 from django.views.generic.simple import direct_to_template
+
+from . import util
+
 
 def index(request):
     consumer_url = util.getViewURL(
@@ -11,4 +13,3 @@ def index(request):
         request,
         'index.html',
         {'consumer_url':consumer_url, 'server_url':server_url})
-

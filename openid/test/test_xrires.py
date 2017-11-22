@@ -1,6 +1,8 @@
 
 from unittest import TestCase
+
 from openid.yadis import xrires
+
 
 class ProxyQueryTestCase(TestCase):
     def setUp(self):

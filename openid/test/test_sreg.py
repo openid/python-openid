@@ -1,8 +1,9 @@
+import unittest
+
 from openid.extensions import sreg
-from openid.message import NamespaceMap, Message, registerNamespaceAlias
+from openid.message import Message, NamespaceMap, registerNamespaceAlias
 from openid.server.server import OpenIDRequest, OpenIDResponse
 
-import unittest
 
 class SRegURITest(unittest.TestCase):
     def test_is11(self):

@@ -1,7 +1,7 @@
-from openid import extension
-from openid import message
-
 import unittest
+
+from openid import extension, message
+
 
 class DummyExtension(extension.Extension):
     ns_uri = 'http://an.extension/'

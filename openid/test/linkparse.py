@@ -1,7 +1,9 @@
-from openid.consumer.html_parse import parseLinkAttrs
-import os.path
 import codecs
+import os.path
 import unittest
+
+from openid.consumer.html_parse import parseLinkAttrs
+
 
 def parseLink(line):
     parts = line.split()

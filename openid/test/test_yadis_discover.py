@@ -6,16 +6,15 @@
    tests with a mock fetcher instead of spawning threads with BaseHTTPServer.
 """
 
-import unittest
-import urlparse
 import re
 import types
-
-from openid.yadis.discover import discover, DiscoveryFailure
+import unittest
+import urlparse
 
 from openid import fetchers
+from openid.yadis.discover import DiscoveryFailure, discover
 
-import discoverdata
+from . import discoverdata
 
 status_header_re = re.compile(r'Status: (\d+) .*?$', re.MULTILINE)
 

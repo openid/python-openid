@@ -190,23 +190,16 @@ USING THIS LIBRARY
 import cgi
 import copy
 import logging
-from urlparse import urlparse, urldefrag
+from urlparse import urldefrag, urlparse
 
-from openid import fetchers
-
-from openid.consumer.discover import discover, OpenIDServiceEndpoint, \
-     DiscoveryFailure, OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE
-from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
-     IDENTIFIER_SELECT, no_default, BARE_NS
-from openid import cryptutil
-from openid import oidutil
-from openid.association import Association, default_negotiator, \
-     SessionNegotiator
+from openid import cryptutil, fetchers, oidutil, urinorm
+from openid.association import Association, SessionNegotiator, default_negotiator
+from openid.consumer.discover import (OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE, DiscoveryFailure,
+                                      OpenIDServiceEndpoint, discover)
 from openid.dh import DiffieHellman
+from openid.message import BARE_NS, IDENTIFIER_SELECT, OPENID1_NS, OPENID2_NS, OPENID_NS, Message, no_default
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.yadis.manager import Discovery
-from openid import urinorm
-
 
 __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
            'SetupNeededResponse', 'CancelResponse', 'FailureResponse',

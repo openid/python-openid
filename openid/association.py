@@ -34,9 +34,7 @@ __all__ = [
 
 import time
 
-from openid import cryptutil
-from openid import kvform
-from openid import oidutil
+from openid import cryptutil, kvform, oidutil
 from openid.message import OPENID_NS
 
 all_association_types = [

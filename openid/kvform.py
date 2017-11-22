@@ -1,7 +1,8 @@
 __all__ = ['seqToKV', 'kvToSeq', 'dictToKV', 'kvToDict']
 
-import types
 import logging
+import types
+
 
 class KVFormError(ValueError):
     pass

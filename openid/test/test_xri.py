@@ -1,5 +1,7 @@
 from unittest import TestCase
+
 from openid.yadis import xri
+
 
 class XriDiscoveryTestCase(TestCase):
     def test_isXRI(self):

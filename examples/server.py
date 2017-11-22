@@ -2,18 +2,19 @@
 
 __copyright__ = 'Copyright 2005-2008, Janrain, Inc.'
 
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-from urlparse import urlparse
-
-import time
-import Cookie
 import cgi
 import cgitb
+import Cookie
 import sys
+import time
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from urlparse import urlparse
+
 
 def quoteattr(s):
     qs = cgi.escape(s, 1)
     return '"%s"' % (qs,)
+
 
 try:
     import openid
@@ -27,11 +28,12 @@ PYTHONPATH environment variable).
 For more information, see the README in the root of the library
 distribution.""")
     sys.exit(1)
+else:
+    from openid.consumer import discover
+    from openid.extensions import sreg
+    from openid.server import server
+    from openid.store.filestore import FileOpenIDStore
 
-from openid.extensions import sreg
-from openid.server import server
-from openid.store.filestore import FileOpenIDStore
-from openid.consumer import discover
 
 class OpenIDHTTPServer(HTTPServer):
     """

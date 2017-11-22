@@ -1,7 +1,6 @@
 import unittest
-from openid.consumer.discover import \
-     OpenIDServiceEndpoint, OPENID_1_1_TYPE, OPENID_1_0_TYPE
 
+from openid.consumer.discover import OPENID_1_0_TYPE, OPENID_1_1_TYPE, OpenIDServiceEndpoint
 from openid.yadis.services import applyFilter
 
 

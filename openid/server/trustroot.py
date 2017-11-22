@@ -17,12 +17,12 @@ __all__ = [
     'verifyReturnTo',
     ]
 
+import logging
+import re
+from urlparse import urlparse, urlunparse
+
 from openid import urinorm
 from openid.yadis import services
-
-from urlparse import urlparse, urlunparse
-import re
-import logging
 
 ############################################
 _protocols = ['http', 'https']

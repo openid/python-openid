@@ -13,8 +13,8 @@ __all__ = [
     ]
 
 from openid import extension
+from openid.message import OPENID_NS, NamespaceMap
 from openid.server.trustroot import TrustRoot
-from openid.message import NamespaceMap, OPENID_NS
 
 # Use this as the 'count' value for an attribute in a FetchRequest to
 # ask for as many values as the OP can provide.

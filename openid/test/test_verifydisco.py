@@ -1,9 +1,10 @@
 import unittest
+
 from openid import message
+from openid.consumer import consumer, discover
 from openid.test.support import OpenIDTestMixin
-from openid.consumer import consumer
 from openid.test.test_consumer import TestIdRes
-from openid.consumer import discover
+
 
 def const(result):
     """Return a function that ignores any arguments and just returns

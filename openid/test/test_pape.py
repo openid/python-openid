@@ -1,7 +1,8 @@
 
+import unittest
+
 from openid.extensions import pape
 
-import unittest
 
 class PapeImportTestCase(unittest.TestCase):
     def test_version(self):

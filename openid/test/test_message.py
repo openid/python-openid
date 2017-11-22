@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-from openid import message
-from openid import oidutil
-from openid.extensions import sreg
-
-import urllib
 import cgi
 import unittest
+import urllib
+
+from openid import message, oidutil
+from openid.extensions import sreg
+
 
 def mkGetArgTest(ns, key, expected=None):
     def test(self):

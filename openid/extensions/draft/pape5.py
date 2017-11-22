@@ -17,9 +17,10 @@ __all__ = [
     'LEVELS_JISA',
     ]
 
-from openid.extension import Extension
-import warnings
 import re
+import warnings
+
+from openid.extension import Extension
 
 ns_uri = "http://specs.openid.net/extensions/pape/1.0"
 

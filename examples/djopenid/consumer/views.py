@@ -6,10 +6,10 @@ from django.views.generic.simple import direct_to_template
 from openid.consumer import consumer
 from openid.consumer.discover import DiscoveryFailure
 from openid.extensions import ax, pape, sreg
-from openid.yadis.constants import YADIS_HEADER_NAME, YADIS_CONTENT_TYPE
 from openid.server.trustroot import RP_RETURN_TO_URL_TYPE
+from openid.yadis.constants import YADIS_CONTENT_TYPE, YADIS_HEADER_NAME
 
-from djopenid import util
+from .. import util
 
 PAPE_POLICIES = [
     'AUTH_PHISHING_RESISTANT',

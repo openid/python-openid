@@ -1,7 +1,10 @@
-from openid.yadis.parsehtml import YadisHTMLParser, ParseDone
+import os.path
+import sys
+import unittest
 from HTMLParser import HTMLParseError
 
-import os.path, unittest, sys
+from openid.yadis.parsehtml import ParseDone, YadisHTMLParser
+
 
 class _TestCase(unittest.TestCase):
     reserved_values = ['None', 'EOF']

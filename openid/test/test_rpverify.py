@@ -3,11 +3,13 @@
 
 __all__ = ['TestBuildDiscoveryURL']
 
-from openid.yadis.discover import DiscoveryResult, DiscoveryFailure
-from openid.yadis import services
+import unittest
+
 from openid.server import trustroot
 from openid.test.support import CatchLogs
-import unittest
+from openid.yadis import services
+from openid.yadis.discover import DiscoveryFailure, DiscoveryResult
+
 
 # Too many methods does not apply to unit test objects
 #pylint:disable-msg=R0904

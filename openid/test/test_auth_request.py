@@ -1,9 +1,10 @@
 import cgi
 import unittest
 
-from openid.consumer import consumer
 from openid import message
+from openid.consumer import consumer
 from openid.test import support
+
 
 class DummyEndpoint(object):
     preferred_namespace = None

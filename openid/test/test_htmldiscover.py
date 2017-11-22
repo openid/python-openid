@@ -1,5 +1,7 @@
 from openid.consumer.discover import OpenIDServiceEndpoint
-import datadriven
+
+from . import datadriven
+
 
 class BadLinksTestCase(datadriven.DataDrivenTestCase):
     cases = [

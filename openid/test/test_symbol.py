@@ -2,6 +2,7 @@ import unittest
 
 from openid import oidutil
 
+
 class SymbolTest(unittest.TestCase):
     def test_selfEquality(self):
         s = oidutil.Symbol('xxx')

@@ -10,8 +10,9 @@ import re
 import time
 
 from openid.association import Association
-from openid.store.interface import OpenIDStore
 from openid.store import nonce
+from openid.store.interface import OpenIDStore
+
 
 def _inTxn(func):
     def wrapped(self, *args, **kwargs):

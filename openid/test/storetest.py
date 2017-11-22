@@ -1,13 +1,13 @@
+import os
+import random
+import socket
+import string
+import time
+import unittest
+
 from openid.association import Association
 from openid.cryptutil import randomString
 from openid.store.nonce import mkNonce, split
-
-import unittest
-import string
-import time
-import socket
-import random
-import os
 
 db_host = 'dbtest'
 

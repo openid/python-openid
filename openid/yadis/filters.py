@@ -13,6 +13,7 @@ __all__ = [
 
 from openid.yadis.etxrd import expandService
 
+
 class BasicServiceEndpoint(object):
     """Generic endpoint object that contains parsed service
     information, as well as a reference to the service element from

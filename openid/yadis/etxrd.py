@@ -18,13 +18,14 @@ __all__ = [
     'expandServices',
     ]
 
-import sys
 import random
-
+import sys
 from datetime import datetime
 from time import strptime
 
 from openid.oidutil import importElementTree
+from openid.yadis import xri
+
 ElementTree = importElementTree()
 
 # the different elementtree modules don't have a common exception
@@ -40,7 +41,6 @@ except (SystemExit, MemoryError, AssertionError, ImportError):
 except:
     XMLError = sys.exc_info()[0]
 
-from openid.yadis import xri
 
 class XRDSError(Exception):
     """An error with the XRDS document."""

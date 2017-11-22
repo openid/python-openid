@@ -1,17 +1,15 @@
 """Tests for openid.server.
 """
-from openid.server import server
-from openid import association, cryptutil, oidutil
-from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
-     IDENTIFIER_SELECT, no_default, OPENID1_URL_LIMIT
-from openid.store import memstore
-from openid.test.support import CatchLogs
 import cgi
-
 import unittest
 import warnings
-
 from urlparse import urlparse
+
+from openid import association, cryptutil, oidutil
+from openid.message import IDENTIFIER_SELECT, OPENID1_NS, OPENID1_URL_LIMIT, OPENID2_NS, OPENID_NS, Message, no_default
+from openid.server import server
+from openid.store import memstore
+from openid.test.support import CatchLogs
 
 # In general, if you edit or add tests here, try to move in the direction
 # of testing smaller units.  For testing the external interfaces, we'll be

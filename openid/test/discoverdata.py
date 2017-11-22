@@ -1,9 +1,9 @@
 """Module to make discovery data test cases available"""
-import urlparse
 import os.path
+import urlparse
 
-from openid.yadis.discover import DiscoveryResult, DiscoveryFailure
 from openid.yadis.constants import YADIS_HEADER_NAME
+from openid.yadis.discover import DiscoveryFailure, DiscoveryResult
 
 tests_dir = os.path.dirname(__file__)
 data_path = os.path.join(tests_dir, 'data')

@@ -1,15 +1,16 @@
 
-from django.test.testcases import TestCase
-from djopenid.server import views
-from djopenid import util
-
-from django.http import HttpRequest
 from django.contrib.sessions.middleware import SessionWrapper
+from django.http import HttpRequest
+from django.test.testcases import TestCase
 
-from openid.server.server import CheckIDRequest
 from openid.message import Message
+from openid.server.server import CheckIDRequest
 from openid.yadis.constants import YADIS_CONTENT_TYPE
 from openid.yadis.services import applyFilter
+
+from .. import util
+from ..server import views
+
 
 def dummyRequest():
     request = HttpRequest()

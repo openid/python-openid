@@ -1,5 +1,6 @@
-import unittest
 import types
+import unittest
+
 
 class DataDrivenTestCase(unittest.TestCase):
     cases = []

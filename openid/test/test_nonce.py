@@ -1,12 +1,9 @@
-from openid.test import datadriven
+import re
 import time
 import unittest
-import re
 
-from openid.store.nonce import \
-     mkNonce, \
-     split as splitNonce, \
-     checkTimestamp
+from openid.store.nonce import checkTimestamp, mkNonce, split as splitNonce
+from openid.test import datadriven
 
 nonce_re = re.compile(r'\A\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ')
 

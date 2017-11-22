@@ -17,20 +17,19 @@ Some code conventions used here:
 
 import cgi
 
-from djopenid import util
-from djopenid.util import getViewURL
-
 from django import http
 from django.views.generic.simple import direct_to_template
 
-from openid.server.server import Server, ProtocolError, CheckIDRequest, \
-     EncodingError
+from openid.consumer.discover import OPENID_IDP_2_0_TYPE
+from openid.extensions import pape, sreg
+from openid.fetchers import HTTPFetchingError
+from openid.server.server import CheckIDRequest, EncodingError, ProtocolError, Server
 from openid.server.trustroot import verifyReturnTo
 from openid.yadis.discover import DiscoveryFailure
-from openid.consumer.discover import OPENID_IDP_2_0_TYPE
-from openid.extensions import sreg
-from openid.extensions import pape
-from openid.fetchers import HTTPFetchingError
+
+from .. import util
+from ..util import getViewURL
+
 
 def getOpenIDStore():
     """

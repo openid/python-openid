@@ -1,32 +1,27 @@
-import urlparse
 import cgi
 import time
+import unittest
+import urlparse
 import warnings
 
-from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, \
-     OPENID1_NS, BARE_NS
-from openid import cryptutil, dh, oidutil, kvform
-from openid.store.nonce import mkNonce, split as splitNonce
-from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_2_0_TYPE, \
-     OPENID_1_1_TYPE
-from openid.consumer.consumer import \
-     AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
-     SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
-     DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
-     SetupNeededError, DiffieHellmanSHA256ConsumerSession, ServerError, \
-     ProtocolError, _httpResponseToMessage
-from openid import association
-from openid.server.server import \
-     PlainTextServerSession, DiffieHellmanSHA1ServerSession
-from openid.yadis.manager import Discovery
-from openid.yadis.discover import DiscoveryFailure
+from openid import association, cryptutil, dh, fetchers, kvform, oidutil
+from openid.consumer.consumer import (CANCEL, FAILURE, SETUP_NEEDED, SUCCESS, AuthRequest, CancelResponse, Consumer,
+                                      DiffieHellmanSHA1ConsumerSession, DiffieHellmanSHA256ConsumerSession,
+                                      FailureResponse, GenericConsumer, PlainTextConsumerSession, ProtocolError,
+                                      ServerError, SetupNeededError, SetupNeededResponse, SuccessResponse,
+                                      _httpResponseToMessage)
+from openid.consumer.discover import OPENID_1_1_TYPE, OPENID_2_0_TYPE, OpenIDServiceEndpoint
 from openid.dh import DiffieHellman
-
-from openid.fetchers import HTTPResponse, HTTPFetchingError
-from openid import fetchers
+from openid.extension import Extension
+from openid.fetchers import HTTPFetchingError, HTTPResponse
+from openid.message import BARE_NS, IDENTIFIER_SELECT, OPENID1_NS, OPENID2_NS, OPENID_NS, Message
+from openid.server.server import DiffieHellmanSHA1ServerSession, PlainTextServerSession
 from openid.store import memstore
+from openid.store.nonce import mkNonce, split as splitNonce
+from openid.yadis.discover import DiscoveryFailure
+from openid.yadis.manager import Discovery
 
-from support import CatchLogs
+from .support import CatchLogs
 
 assocs = [
     ('another 20-byte key.', 'Snarky'),
@@ -207,7 +202,6 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     run()
     assert fetcher.num_assocs == 2
 
-import unittest
 
 http_server_url = 'http://server.example.com/'
 consumer_url = 'http://consumer.example.com/'
@@ -2044,7 +2038,6 @@ class TestDiscoverAndVerify(unittest.TestCase):
             'http://claimed.id/', [self.to_match])
         self.failUnlessEqual(matching_endpoint, result)
 
-from openid.extension import Extension
 class SillyExtension(Extension):
     ns_uri = 'http://silly.example.com/'
     ns_alias = 'silly'

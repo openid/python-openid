@@ -1,9 +1,10 @@
 
+import unittest
+
 from openid.extensions.draft import pape2 as pape
 from openid.message import *
 from openid.server import server
 
-import unittest
 
 class PapeRequestTestCase(unittest.TestCase):
     def setUp(self):
