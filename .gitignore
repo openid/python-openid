@@ -3,4 +3,6 @@
 *.swp
 .tox
 # Created in tests
+/.coverage
+/htmlcov
 /sstore
