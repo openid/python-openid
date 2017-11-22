@@ -2,7 +2,11 @@ import warnings
 import unittest
 import sys
 import urllib2
+from urllib import addinfourl
 import socket
+from cStringIO import StringIO
+
+from mock import Mock
 
 from openid import fetchers
 
@@ -12,12 +16,14 @@ def failUnlessResponseExpected(expected, actual):
     assert expected.final_url == actual.final_url, (
         "%r != %r" % (expected.final_url, actual.final_url))
     assert expected.status == actual.status
-    assert expected.body == actual.body
+    assert expected.body == actual.body, "%r != %r" % (expected.body, actual.body)
     got_headers = dict(actual.headers)
-    del got_headers['date']
-    del got_headers['server']
+    # TODO: Delete these pops
+    got_headers.pop('date', None)
+    got_headers.pop('server', None)
     for k, v in expected.headers.iteritems():
         assert got_headers[k] == v, (k, v, got_headers[k])
+
 
 def test_fetcher(fetcher, exc, server):
     def geturl(path):
@@ -83,7 +89,6 @@ def test_fetcher(fetcher, exc, server):
 def run_fetcher_tests(server):
     exc_fetchers = []
     for klass, library_name in [
-        (fetchers.Urllib2Fetcher, 'urllib2'),
         (fetchers.CurlHTTPFetcher, 'pycurl'),
         (fetchers.HTTPLib2Fetcher, 'httplib2'),
         ]:
@@ -278,8 +283,82 @@ class DefaultFetcherTest(unittest.TestCase):
         else:
             self.fail('Should have raised an exception')
 
+
+class TestHandler(urllib2.BaseHandler):
+    """Urllib2 test handler."""
+
+    def __init__(self, http_mock):
+        self.http_mock = http_mock
+
+    def http_open(self, req):
+        return self.http_mock()
+
+
+class TestUrllib2Fetcher(unittest.TestCase):
+    """Test `Urllib2Fetcher` class."""
+
+    fetcher = fetchers.Urllib2Fetcher()
+    invalid_url_error = ValueError
+
+    def setUp(self):
+        self.http_mock = Mock(side_effect=[])
+        opener = urllib2.OpenerDirector()
+        opener.add_handler(TestHandler(self.http_mock))
+        urllib2.install_opener(opener)
+
+    def tearDown(self):
+        # Uninstall custom opener
+        urllib2.install_opener(None)
+
+    def add_response(self, url, status_code, headers, body=None):
+        response = addinfourl(StringIO(body or ''), headers, url, status_code)
+        responses = list(self.http_mock.side_effect)
+        responses.append(response)
+        self.http_mock.side_effect = responses
+
+    def test_success(self):
+        # Test success response
+        self.add_response('http://example.cz/success/', 200, {'Content-Type': 'text/plain'}, 'BODY')
+        response = self.fetcher.fetch('http://example.cz/success/')
+        expected = fetchers.HTTPResponse('http://example.cz/success/', 200, {'Content-Type': 'text/plain'}, 'BODY')
+        failUnlessResponseExpected(expected, response)
+
+    def test_redirect(self):
+        # Test redirect response - a final response comes from another URL.
+        self.add_response('http://example.cz/success/', 200, {'Content-Type': 'text/plain'}, 'BODY')
+        response = self.fetcher.fetch('http://example.cz/redirect/')
+        expected = fetchers.HTTPResponse('http://example.cz/success/', 200, {'Content-Type': 'text/plain'}, 'BODY')
+        failUnlessResponseExpected(expected, response)
+
+    def test_error(self):
+        # Test error responses - returned as obtained
+        self.add_response('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, 'BODY')
+        response = self.fetcher.fetch('http://example.cz/error/')
+        expected = fetchers.HTTPResponse('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, 'BODY')
+        failUnlessResponseExpected(expected, response)
+
+    def test_invalid_url(self):
+        with self.assertRaisesRegexp(self.invalid_url_error, 'Bad URL scheme:'):
+            self.fetcher.fetch('invalid://example.cz/')
+
+    def test_connection_error(self):
+        # Test connection error
+        self.http_mock.side_effect = urllib2.HTTPError('http://example.cz/error/', 500, 'Error message',
+                                                       {'Content-Type': 'text/plain'}, StringIO('BODY'))
+        response = self.fetcher.fetch('http://example.cz/error/')
+        expected = fetchers.HTTPResponse('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, 'BODY')
+        failUnlessResponseExpected(expected, response)
+
+
+class TestSilencedUrllib2Fetcher(TestUrllib2Fetcher):
+    """Test silenced `Urllib2Fetcher` class."""
+
+    fetcher = fetchers.ExceptionWrappingFetcher(fetchers.Urllib2Fetcher())
+    invalid_url_error = fetchers.HTTPFetchingError
+
+
 def pyUnitTests():
     case1 = unittest.FunctionTestCase(test)
     loadTests = unittest.defaultTestLoader.loadTestsFromTestCase
     case2 = loadTests(DefaultFetcherTest)
-    return unittest.TestSuite([case1, case2])
+    return unittest.TestSuite([case1, case2, loadTests(TestUrllib2Fetcher), loadTests(TestSilencedUrllib2Fetcher)])
