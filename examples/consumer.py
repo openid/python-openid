@@ -10,6 +10,7 @@ __copyright__ = 'Copyright 2005-2008, Janrain, Inc.'
 
 import cgi
 import cgitb
+import optparse
 import sys
 import urlparse
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -470,39 +471,30 @@ def main(host, port, data_path, weak_ssl=False):
     server.serve_forever()
 
 if __name__ == '__main__':
-    host = 'localhost'
-    port = 8001
-    weak_ssl = False
+    parser = optparse.OptionParser('Usage:\n %prog [options]')
+    parser.add_option(
+        '-d', '--data-path', dest='data_path',
+        help='Data directory for storing OpenID consumer state. '
+        'Setting this option implies using a "FileStore."')
+    parser.add_option(
+        '-p', '--port', dest='port', type='int', default=8001,
+        help='Port on which to listen for HTTP requests. '
+        'Defaults to port %default.')
+    parser.add_option(
+        '-s', '--host', dest='host', default='localhost',
+        help='Host on which to listen for HTTP requests. '
+        'Also used for generating URLs. Defaults to %default.')
+    parser.add_option(
+        '-w', '--weakssl', dest='weakssl', default=False,
+        action='store_true', help='Skip ssl cert verification')
 
-    try:
-        import optparse
-    except ImportError:
-        pass # Use defaults (for Python 2.2)
-    else:
-        parser = optparse.OptionParser('Usage:\n %prog [options]')
-        parser.add_option(
-            '-d', '--data-path', dest='data_path',
-            help='Data directory for storing OpenID consumer state. '
-            'Setting this option implies using a "FileStore."')
-        parser.add_option(
-            '-p', '--port', dest='port', type='int', default=port,
-            help='Port on which to listen for HTTP requests. '
-            'Defaults to port %default.')
-        parser.add_option(
-            '-s', '--host', dest='host', default=host,
-            help='Host on which to listen for HTTP requests. '
-            'Also used for generating URLs. Defaults to %default.')
-        parser.add_option(
-            '-w', '--weakssl', dest='weakssl', default=False,
-            action='store_true', help='Skip ssl cert verification')
+    options, args = parser.parse_args()
+    if args:
+        parser.error('Expected no arguments. Got %r' % args)
 
-        options, args = parser.parse_args()
-        if args:
-            parser.error('Expected no arguments. Got %r' % args)
-
-        host = options.host
-        port = options.port
-        data_path = options.data_path
-        weak_ssl = options.weakssl
+    host = options.host
+    port = options.port
+    data_path = options.data_path
+    weak_ssl = options.weakssl
 
     main(host, port, data_path, weak_ssl)

@@ -5,6 +5,7 @@ __copyright__ = 'Copyright 2005-2008, Janrain, Inc.'
 import cgi
 import cgitb
 import Cookie
+import optparse
 import sys
 import time
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -689,35 +690,26 @@ def main(host, port, data_path):
     httpserver.serve_forever()
 
 if __name__ == '__main__':
-    host = 'localhost'
-    data_path = 'sstore'
-    port = 8000
+    parser = optparse.OptionParser('Usage:\n %prog [options]')
+    parser.add_option(
+        '-d', '--data-path', dest='data_path', default='sstore',
+        help='Data directory for storing OpenID consumer state. '
+        'Defaults to "%default" in the current directory.')
+    parser.add_option(
+        '-p', '--port', dest='port', type='int', default=8000,
+        help='Port on which to listen for HTTP requests. '
+        'Defaults to port %default.')
+    parser.add_option(
+        '-s', '--host', dest='host', default='localhost',
+        help='Host on which to listen for HTTP requests. '
+        'Also used for generating URLs. Defaults to %default.')
 
-    try:
-        import optparse
-    except ImportError:
-        pass # Use defaults (for Python 2.2)
-    else:
-        parser = optparse.OptionParser('Usage:\n %prog [options]')
-        parser.add_option(
-            '-d', '--data-path', dest='data_path', default=data_path,
-            help='Data directory for storing OpenID consumer state. '
-            'Defaults to "%default" in the current directory.')
-        parser.add_option(
-            '-p', '--port', dest='port', type='int', default=port,
-            help='Port on which to listen for HTTP requests. '
-            'Defaults to port %default.')
-        parser.add_option(
-            '-s', '--host', dest='host', default=host,
-            help='Host on which to listen for HTTP requests. '
-            'Also used for generating URLs. Defaults to %default.')
+    options, args = parser.parse_args()
+    if args:
+        parser.error('Expected no arguments. Got %r' % args)
 
-        options, args = parser.parse_args()
-        if args:
-            parser.error('Expected no arguments. Got %r' % args)
-
-        host = options.host
-        port = options.port
-        data_path = options.data_path
+    host = options.host
+    port = options.port
+    data_path = options.data_path
 
     main(host, port, data_path)

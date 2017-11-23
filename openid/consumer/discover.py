@@ -314,13 +314,6 @@ def arrangeByType(service_list, preferred_types):
     """Rearrange service_list in a new list so services are ordered by
     types listed in preferred_types.  Return the new list."""
 
-    def enumerate(elts):
-        """Return an iterable that pairs the index of an element with
-        that element.
-
-        For Python 2.2 compatibility"""
-        return zip(range(len(elts)), elts)
-
     def bestMatchingService(service):
         """Return the index of the first matching type, or something
         higher if no type matches.

@@ -1941,12 +1941,11 @@ class TestOpenID2SHA1(TestDiffieHellmanResponseParameters, unittest.TestCase):
     session_cls = DiffieHellmanSHA1ConsumerSession
     message_namespace = OPENID2_NS
 
-if cryptutil.SHA256_AVAILABLE:
-    class TestOpenID2SHA256(TestDiffieHellmanResponseParameters, unittest.TestCase):
-        session_cls = DiffieHellmanSHA256ConsumerSession
-        message_namespace = OPENID2_NS
-else:
-    warnings.warn("Not running SHA256 association session tests.")
+
+class TestOpenID2SHA256(TestDiffieHellmanResponseParameters, unittest.TestCase):
+    session_cls = DiffieHellmanSHA256ConsumerSession
+    message_namespace = OPENID2_NS
+
 
 class TestNoStore(unittest.TestCase):
     def setUp(self):

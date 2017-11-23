@@ -40,12 +40,6 @@ import logging
 from openid.extension import Extension
 from openid.message import NamespaceAliasRegistrationError, registerNamespaceAlias
 
-try:
-    basestring #pylint:disable-msg=W0104
-except NameError:
-    # For Python 2.2
-    basestring = (str, unicode) #pylint:disable-msg=W0622
-
 __all__ = [
     'SRegRequest',
     'SRegResponse',

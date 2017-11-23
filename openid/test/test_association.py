@@ -112,14 +112,13 @@ class TestMac(unittest.TestCase):
         sig = assoc.sign(self.pairs)
         self.failUnlessEqual(sig, expected)
 
-    if cryptutil.SHA256_AVAILABLE:
-        def test_sha256(self):
-            assoc = association.Association.fromExpiresIn(
-                3600, '{sha256SA}', 'very_secret', "HMAC-SHA256")
-            expected = ('\xfd\xaa\xfe;\xac\xfc*\x988\xad\x05d6-\xeaVy'
-                        '\xd5\xa5Z.<\xa9\xed\x18\x82\\$\x95x\x1c&')
-            sig = assoc.sign(self.pairs)
-            self.failUnlessEqual(sig, expected)
+    def test_sha256(self):
+        assoc = association.Association.fromExpiresIn(
+            3600, '{sha256SA}', 'very_secret', "HMAC-SHA256")
+        expected = ('\xfd\xaa\xfe;\xac\xfc*\x988\xad\x05d6-\xeaVy'
+                    '\xd5\xa5Z.<\xa9\xed\x18\x82\\$\x95x\x1c&')
+        sig = assoc.sign(self.pairs)
+        self.failUnlessEqual(sig, expected)
 
 
 
@@ -144,16 +143,15 @@ class TestMessageSigning(unittest.TestCase):
         self.failUnlessEqual(signed.getArg(BARE_NS, "xey"), "value",
                              signed)
 
-    if cryptutil.SHA256_AVAILABLE:
-        def test_signSHA256(self):
-            assoc = association.Association.fromExpiresIn(
-                3600, '{sha1}', 'very_secret', "HMAC-SHA256")
-            signed = assoc.signMessage(self.message)
-            self.failUnless(signed.getArg(OPENID_NS, "sig"))
-            self.failUnlessEqual(signed.getArg(OPENID_NS, "signed"),
-                                 "assoc_handle,identifier,mode,ns,signed")
-            self.failUnlessEqual(signed.getArg(BARE_NS, "xey"), "value",
-                                 signed)
+    def test_signSHA256(self):
+        assoc = association.Association.fromExpiresIn(
+            3600, '{sha1}', 'very_secret', "HMAC-SHA256")
+        signed = assoc.signMessage(self.message)
+        self.failUnless(signed.getArg(OPENID_NS, "sig"))
+        self.failUnlessEqual(signed.getArg(OPENID_NS, "signed"),
+                             "assoc_handle,identifier,mode,ns,signed")
+        self.failUnlessEqual(signed.getArg(BARE_NS, "xey"), "value",
+                             signed)
 
 
 class TestCheckMessageSignature(unittest.TestCase):

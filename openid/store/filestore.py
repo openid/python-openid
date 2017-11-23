@@ -9,55 +9,15 @@ import os.path
 import string
 import time
 from errno import EEXIST, ENOENT
+from tempfile import mkstemp
 
 from openid import cryptutil, oidutil
 from openid.association import Association
 from openid.store import nonce
 from openid.store.interface import OpenIDStore
 
-try:
-    from tempfile import mkstemp
-except ImportError:
-    # Python < 2.3
-    import warnings
-    warnings.filterwarnings("ignore",
-                            "tempnam is a potential security risk",
-                            RuntimeWarning,
-                            "openid.store.filestore")
-
-    def mkstemp(dir):
-        for _ in range(5):
-            name = os.tempnam(dir)
-            try:
-                fd = os.open(name, os.O_CREAT | os.O_EXCL | os.O_RDWR, 0600)
-            except OSError, why:
-                if why.errno != EEXIST:
-                    raise
-            else:
-                return fd, name
-
-        raise RuntimeError('Failed to get temp file after 5 attempts')
-
-
 _filename_allowed = string.ascii_letters + string.digits + '.'
-try:
-    # 2.4
-    set
-except NameError:
-    try:
-        # 2.3
-        import sets
-    except ImportError:
-        # Python < 2.2
-        d = {}
-        for c in _filename_allowed:
-            d[c] = None
-        _isFilenameSafe = d.has_key
-        del d
-    else:
-        _isFilenameSafe = sets.Set(_filename_allowed).__contains__
-else:
-    _isFilenameSafe = set(_filename_allowed).__contains__
+_isFilenameSafe = set(_filename_allowed).__contains__
 
 def _safe64(s):
     h64 = oidutil.toBase64(cryptutil.sha1(s))

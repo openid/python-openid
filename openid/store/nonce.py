@@ -33,10 +33,7 @@ def split(nonce_string):
         formatted time string
     """
     timestamp_str = nonce_string[:time_str_len]
-    try:
-        timestamp = timegm(strptime(timestamp_str, time_fmt))
-    except AssertionError: # Python 2.2
-        timestamp = -1
+    timestamp = timegm(strptime(timestamp_str, time_fmt))
     if timestamp < 0:
         raise ValueError('time out of range')
     return timestamp, nonce_string[time_str_len:]

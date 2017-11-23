@@ -2,7 +2,6 @@
 """
 import cgi
 import unittest
-import warnings
 from urlparse import urlparse
 
 from openid import association, cryptutil, oidutil
@@ -1434,58 +1433,54 @@ class TestAssociate(unittest.TestCase):
         secret = consumer_dh.xorSecret(spub, enc_key, cryptutil.sha1)
         self.failUnlessEqual(secret, self.assoc.secret)
 
+    def test_dhSHA256(self):
+        self.assoc = self.signatory.createAssociation(
+            dumb=False, assoc_type='HMAC-SHA256')
+        from openid.dh import DiffieHellman
+        from openid.server.server import DiffieHellmanSHA256ServerSession
+        consumer_dh = DiffieHellman.fromDefaults()
+        cpub = consumer_dh.public
+        server_dh = DiffieHellman.fromDefaults()
+        session = DiffieHellmanSHA256ServerSession(server_dh, cpub)
+        self.request = server.AssociateRequest(session, 'HMAC-SHA256')
+        response = self.request.answer(self.assoc)
+        rfg = lambda f: response.fields.getArg(OPENID_NS, f)
+        self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA256")
+        self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
+        self.failIf(rfg("mac_key"))
+        self.failUnlessEqual(rfg("session_type"), "DH-SHA256")
+        self.failUnless(rfg("enc_mac_key"))
+        self.failUnless(rfg("dh_server_public"))
 
-    if not cryptutil.SHA256_AVAILABLE:
-        warnings.warn("Not running SHA256 tests.")
-    else:
-        def test_dhSHA256(self):
-            self.assoc = self.signatory.createAssociation(
-                dumb=False, assoc_type='HMAC-SHA256')
-            from openid.dh import DiffieHellman
-            from openid.server.server import DiffieHellmanSHA256ServerSession
-            consumer_dh = DiffieHellman.fromDefaults()
-            cpub = consumer_dh.public
-            server_dh = DiffieHellman.fromDefaults()
-            session = DiffieHellmanSHA256ServerSession(server_dh, cpub)
-            self.request = server.AssociateRequest(session, 'HMAC-SHA256')
-            response = self.request.answer(self.assoc)
-            rfg = lambda f: response.fields.getArg(OPENID_NS, f)
-            self.failUnlessEqual(rfg("assoc_type"), "HMAC-SHA256")
-            self.failUnlessEqual(rfg("assoc_handle"), self.assoc.handle)
-            self.failIf(rfg("mac_key"))
-            self.failUnlessEqual(rfg("session_type"), "DH-SHA256")
-            self.failUnless(rfg("enc_mac_key"))
-            self.failUnless(rfg("dh_server_public"))
+        enc_key = rfg("enc_mac_key").decode('base64')
+        spub = cryptutil.base64ToLong(rfg("dh_server_public"))
+        secret = consumer_dh.xorSecret(spub, enc_key, cryptutil.sha256)
+        self.failUnlessEqual(secret, self.assoc.secret)
 
-            enc_key = rfg("enc_mac_key").decode('base64')
-            spub = cryptutil.base64ToLong(rfg("dh_server_public"))
-            secret = consumer_dh.xorSecret(spub, enc_key, cryptutil.sha256)
-            self.failUnlessEqual(secret, self.assoc.secret)
+    def test_protoError256(self):
+        from openid.consumer.consumer import \
+             DiffieHellmanSHA256ConsumerSession
 
-        def test_protoError256(self):
-            from openid.consumer.consumer import \
-                 DiffieHellmanSHA256ConsumerSession
+        s256_session = DiffieHellmanSHA256ConsumerSession()
 
-            s256_session = DiffieHellmanSHA256ConsumerSession()
+        invalid_s256 = {'openid.assoc_type':'HMAC-SHA1',
+                        'openid.session_type':'DH-SHA256',}
+        invalid_s256.update(s256_session.getRequest())
 
-            invalid_s256 = {'openid.assoc_type':'HMAC-SHA1',
-                            'openid.session_type':'DH-SHA256',}
-            invalid_s256.update(s256_session.getRequest())
+        invalid_s256_2 = {'openid.assoc_type':'MONKEY-PIRATE',
+                          'openid.session_type':'DH-SHA256',}
+        invalid_s256_2.update(s256_session.getRequest())
 
-            invalid_s256_2 = {'openid.assoc_type':'MONKEY-PIRATE',
-                              'openid.session_type':'DH-SHA256',}
-            invalid_s256_2.update(s256_session.getRequest())
+        bad_request_argss = [
+            invalid_s256,
+            invalid_s256_2,
+            ]
 
-            bad_request_argss = [
-                invalid_s256,
-                invalid_s256_2,
-                ]
-
-            for request_args in bad_request_argss:
-                message = Message.fromPostArgs(request_args)
-                self.failUnlessRaises(server.ProtocolError,
-                                      server.AssociateRequest.fromMessage,
-                                      message)
+        for request_args in bad_request_argss:
+            message = Message.fromPostArgs(request_args)
+            self.failUnlessRaises(server.ProtocolError,
+                                  server.AssociateRequest.fromMessage,
+                                  message)
 
     def test_protoError(self):
         from openid.consumer.consumer import DiffieHellmanSHA1ConsumerSession
@@ -1739,25 +1734,22 @@ class TestServer(unittest.TestCase, CatchLogs):
         self.failUnlessEqual(response.fields.getArg(OPENID_NS, "session_type"),
                              'DH-SHA256')
 
-    if not cryptutil.SHA256_AVAILABLE:
-        warnings.warn("Not running SHA256 tests.")
-    else:
-        def test_associate4(self):
-            """DH-SHA256 association session"""
-            self.server.negotiator.setAllowedTypes(
-                [('HMAC-SHA256', 'DH-SHA256')])
-            query = {
-                'openid.dh_consumer_public':
-                'ALZgnx8N5Lgd7pCj8K86T/DDMFjJXSss1SKoLmxE72kJTzOtG6I2PaYrHX'
-                'xku4jMQWSsGfLJxwCZ6280uYjUST/9NWmuAfcrBfmDHIBc3H8xh6RBnlXJ'
-                '1WxJY3jHd5k1/ZReyRZOxZTKdF/dnIqwF8ZXUwI6peV0TyS/K1fOfF/s',
-                'openid.assoc_type': 'HMAC-SHA256',
-                'openid.session_type': 'DH-SHA256',
-                }
-            message = Message.fromPostArgs(query)
-            request = server.AssociateRequest.fromMessage(message)
-            response = self.server.openid_associate(request)
-            self.failUnless(response.fields.hasKey(OPENID_NS, "assoc_handle"))
+    def test_associate4(self):
+        """DH-SHA256 association session"""
+        self.server.negotiator.setAllowedTypes(
+            [('HMAC-SHA256', 'DH-SHA256')])
+        query = {
+            'openid.dh_consumer_public':
+            'ALZgnx8N5Lgd7pCj8K86T/DDMFjJXSss1SKoLmxE72kJTzOtG6I2PaYrHX'
+            'xku4jMQWSsGfLJxwCZ6280uYjUST/9NWmuAfcrBfmDHIBc3H8xh6RBnlXJ'
+            '1WxJY3jHd5k1/ZReyRZOxZTKdF/dnIqwF8ZXUwI6peV0TyS/K1fOfF/s',
+            'openid.assoc_type': 'HMAC-SHA256',
+            'openid.session_type': 'DH-SHA256',
+            }
+        message = Message.fromPostArgs(query)
+        request = server.AssociateRequest.fromMessage(message)
+        response = self.server.openid_associate(request)
+        self.failUnless(response.fields.hasKey(OPENID_NS, "assoc_handle"))
 
     def test_missingSessionTypeOpenID2(self):
         """Make sure session_type is required in OpenID 2"""

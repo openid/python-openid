@@ -1,9 +1,6 @@
 """Module containing a cryptographic-quality source of randomness and
 other cryptographically useful functionality
 
-Python 2.4 needs no external support for this module, nor does Python
-2.3 on a system with /dev/urandom.
-
 Other configurations will need a quality source of random bytes and
 access to a function that will convert binary strings to long
 integers. This module will work with the Python Cryptography Toolkit
@@ -26,30 +23,21 @@ __all__ = [
     'sha256',
     ]
 
+import hashlib
 import hmac
 import os
 import random
 
 from openid.oidutil import fromBase64, toBase64
 
-try:
-    import hashlib
-except ImportError:
-    import sha as sha1_module
 
-    try:
-        from Crypto.Hash import SHA256 as sha256_module
-    except ImportError:
-        sha256_module = None
+class HashContainer(object):
+    def __init__(self, hash_constructor):
+        self.new = hash_constructor
+        self.digest_size = hash_constructor().digest_size
 
-else:
-    class HashContainer(object):
-        def __init__(self, hash_constructor):
-            self.new = hash_constructor
-            self.digest_size = hash_constructor().digest_size
-
-    sha1_module = HashContainer(hashlib.sha1)
-    sha256_module = HashContainer(hashlib.sha256)
+sha1_module = HashContainer(hashlib.sha1)
+sha256_module = HashContainer(hashlib.sha256)
 
 def hmacSha1(key, text):
     return hmac.new(key, text, sha1_module).digest()
@@ -57,47 +45,17 @@ def hmacSha1(key, text):
 def sha1(s):
     return sha1_module.new(s).digest()
 
-if sha256_module is not None:
-    def hmacSha256(key, text):
-        return hmac.new(key, text, sha256_module).digest()
+def hmacSha256(key, text):
+    return hmac.new(key, text, sha256_module).digest()
 
-    def sha256(s):
-        return sha256_module.new(s).digest()
+def sha256(s):
+    return sha256_module.new(s).digest()
 
-    SHA256_AVAILABLE = True
-
-else:
-    _no_sha256 = NotImplementedError(
-        'Use Python 2.5, install pycrypto or install hashlib to use SHA256')
-
-    def hmacSha256(unused_key, unused_text):
-        raise _no_sha256
-
-    def sha256(s):
-        raise _no_sha256
-
-    SHA256_AVAILABLE = False
 
 try:
     from Crypto.Util.number import long_to_bytes, bytes_to_long
 except ImportError:
     import pickle
-    try:
-        # Check Python compatiblity by raising an exception on import
-        # if the needed functionality is not present. Present in
-        # Python >= 2.3
-        pickle.encode_long
-        pickle.decode_long
-    except AttributeError:
-        raise ImportError(
-            'No functionality for serializing long integers found')
-
-    # Present in Python >= 2.4
-    try:
-        reversed
-    except NameError:
-        def reversed(seq):
-            return map(seq.__getitem__, xrange(len(seq) - 1, -1, -1))
 
     def longToBinary(l):
         if l == 0:
