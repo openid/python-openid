@@ -16,6 +16,8 @@ from openid.association import Association
 from openid.store import nonce
 from openid.store.interface import OpenIDStore
 
+_LOGGER = logging.getLogger(__name__)
+
 _filename_allowed = string.ascii_letters + string.digits + '.'
 _isFilenameSafe = set(_filename_allowed).__contains__
 
@@ -332,8 +334,8 @@ class FileOpenIDStore(OpenIDStore):
                 association_file = file(association_filename, 'rb')
             except IOError, why:
                 if why.errno == ENOENT:
-                    logging.exception("%s disappeared during %s._allAssocs" % (
-                        association_filename, self.__class__.__name__))
+                    _LOGGER.exception("%s disappeared during %s._allAssocs",
+                                      association_filename, self.__class__.__name__)
                 else:
                     raise
             else:

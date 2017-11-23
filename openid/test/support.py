@@ -13,7 +13,7 @@ class TestHandler(BufferingHandler):
         return False
 
     def emit(self, record):
-        self.messages.append(record.__dict__)
+        self.messages.append(record)
 
 class OpenIDTestMixin(object):
     def failUnlessOpenIDValueEquals(self, msg, key, expected, ns=None):
@@ -57,7 +57,7 @@ class CatchLogs(object):
         number of prefixes is different than the number of log
         messages.
         """
-	messages = [r['msg'] for r in self.messages]
+        messages = [r.getMessage() for r in self.messages]
 	assert len(prefixes) == len(messages), \
                "Expected log prefixes %r, got %r" % (prefixes,
                                                      messages)

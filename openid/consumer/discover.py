@@ -24,6 +24,8 @@ from openid.yadis.discover import DiscoveryFailure, discover as yadisDiscover
 from openid.yadis.etxrd import XRD_NS_2_0, XRDSError, nsTag
 from openid.yadis.services import applyFilter as extractServices
 
+_LOGGER = logging.getLogger(__name__)
+
 OPENID_1_0_NS = 'http://openid.net/xmlns/1.0'
 OPENID_IDP_2_0_TYPE = 'http://specs.openid.net/auth/2.0/server'
 OPENID_2_0_TYPE = 'http://specs.openid.net/auth/2.0/signon'
@@ -413,7 +415,7 @@ def discoverXRI(iname):
         for service_element in services:
             endpoints.extend(flt.getServiceEndpoints(iname, service_element))
     except XRDSError:
-        logging.exception('xrds error on ' + iname)
+        _LOGGER.exception('xrds error on %s', iname)
 
     for endpoint in endpoints:
         # Is there a way to pass this through the filter to the endpoint

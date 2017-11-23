@@ -206,6 +206,8 @@ __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
            'SUCCESS', 'FAILURE', 'CANCEL', 'SETUP_NEEDED',
            ]
 
+_LOGGER = logging.getLogger(__name__)
+
 
 def makeKVPost(request_message, server_url):
     """Make a Direct Request to an OpenID Provider and return the
@@ -656,7 +658,7 @@ class GenericConsumer(object):
         try:
             self._verifyReturnToArgs(message.toPostArgs())
         except ProtocolError, why:
-            logging.exception("Verifying return_to arguments: %s" % (why[0],))
+            _LOGGER.exception("Verifying return_to arguments: %s", why)
             return False
 
         # Check the return_to base URL against the one in the message.
@@ -722,9 +724,8 @@ class GenericConsumer(object):
 
         # Verify discovery information:
         endpoint = self._verifyDiscoveryResults(message, endpoint)
-        logging.info("Received id_res response from %s using association %s" %
-                    (endpoint.server_url,
-                     message.getArg(OPENID_NS, 'assoc_handle')))
+        _LOGGER.info("Received id_res response from %s using association %s",
+                     endpoint.server_url, message.getArg(OPENID_NS, 'assoc_handle'))
 
         self._idResCheckSignature(message, endpoint.server_url)
 
@@ -916,7 +917,7 @@ class GenericConsumer(object):
         # endpoints and responses that didn't match the original
         # request.
         if not endpoint:
-            logging.info('No pre-discovered information supplied.')
+            _LOGGER.info('No pre-discovered information supplied.')
             endpoint = self._discoverAndVerify(to_match.claimed_id, [to_match])
         else:
             # The claimed ID matches, so we use the endpoint that we
@@ -925,10 +926,8 @@ class GenericConsumer(object):
             try:
                 self._verifyDiscoverySingle(endpoint, to_match)
             except ProtocolError, e:
-                logging.exception(
-                    "Error attempting to use stored discovery information: " +
-                    str(e))
-                logging.info("Attempting discovery to verify endpoint")
+                _LOGGER.exception("Error attempting to use stored discovery information: %s", e)
+                _LOGGER.info("Attempting discovery to verify endpoint")
                 endpoint = self._discoverAndVerify(
                     to_match.claimed_id, [to_match])
 
@@ -970,9 +969,8 @@ class GenericConsumer(object):
                 except TypeURIMismatch:
                     self._verifyDiscoverySingle(endpoint, to_match_1_0)
             except ProtocolError, e:
-                logging.exception("Error attempting to use stored discovery information: " +
-                            str(e))
-                logging.info("Attempting discovery to verify endpoint")
+                _LOGGER.exception("Error attempting to use stored discovery information: %s", e)
+                _LOGGER.info("Attempting discovery to verify endpoint")
             else:
                 return endpoint
 
@@ -1042,7 +1040,7 @@ class GenericConsumer(object):
 
         @raises DiscoveryFailure: when discovery fails.
         """
-        logging.info('Performing discovery on %s' % (claimed_id,))
+        _LOGGER.info('Performing discovery on %s', claimed_id)
         _, services = self._discover(claimed_id)
         if not services:
             raise DiscoveryFailure('No OpenID information found at %s' %
@@ -1069,10 +1067,9 @@ class GenericConsumer(object):
                     # succeeded. Return this endpoint.
                     return endpoint
         else:
-            logging.error('Discovery verification failure for %s' %
-                        (claimed_id,))
+            _LOGGER.error('Discovery verification failure for %s', claimed_id)
             for failure_message in failure_messages:
-                logging.error(' * Endpoint mismatch: ' + failure_message)
+                _LOGGER.error(' * Endpoint mismatch: %s', failure_message)
 
             raise DiscoveryFailure(
                 'No matching endpoint found after discovering %s'
@@ -1084,14 +1081,14 @@ class GenericConsumer(object):
         @returns: True if the request is valid.
         @rtype: bool
         """
-        logging.info('Using OpenID check_authentication')
+        _LOGGER.info('Using OpenID check_authentication')
         request = self._createCheckAuthRequest(message)
         if request is None:
             return False
         try:
             response = self._makeKVPost(request, server_url)
         except (fetchers.HTTPFetchingError, ServerError), e:
-            logging.exception('check_authentication failed: %s' % (e[0],))
+            _LOGGER.exception('check_authentication failed: %s', e)
             return False
         else:
             return self._processCheckAuthResponse(response, server_url)
@@ -1103,12 +1100,12 @@ class GenericConsumer(object):
         signed = message.getArg(OPENID_NS, 'signed')
         if signed:
             for k in signed.split(','):
-                logging.info(k)
+                _LOGGER.info(k)
                 val = message.getAliasedArg(k)
 
                 # Signed value is missing
                 if val is None:
-                    logging.info('Missing signed field %r' % (k,))
+                    _LOGGER.info('Missing signed field %r', k)
                     return None
 
         check_auth_message = message.copy()
@@ -1123,18 +1120,16 @@ class GenericConsumer(object):
 
         invalidate_handle = response.getArg(OPENID_NS, 'invalidate_handle')
         if invalidate_handle is not None:
-            logging.info(
-                'Received "invalidate_handle" from server %s' % (server_url,))
+            _LOGGER.info('Received "invalidate_handle" from server %s', server_url)
             if self.store is None:
-                logging.error('Unexpectedly got invalidate_handle without '
-                            'a store!')
+                _LOGGER.error('Unexpectedly got invalidate_handle without a store!')
             else:
                 self.store.removeAssociation(server_url, invalidate_handle)
 
         if is_valid == 'true':
             return True
         else:
-            logging.error('Server responds that checkAuth call is not valid')
+            _LOGGER.error('Server responds that checkAuth call is not valid')
             return False
 
     def _getAssociation(self, endpoint):
@@ -1187,10 +1182,8 @@ class GenericConsumer(object):
                 except ServerError, why:
                     # Do not keep trying, since it rejected the
                     # association type that it told us to use.
-                    logging.error('Server %s refused its suggested association '
-                                'type: session_type=%s, assoc_type=%s'
-                                % (endpoint.server_url, session_type,
-                                   assoc_type))
+                    _LOGGER.error('Server %s refused its suggested association type: session_type=%s, assoc_type=%s',
+                                  endpoint.server_url, session_type, assoc_type)
                     return None
                 else:
                     return assoc
@@ -1210,17 +1203,14 @@ class GenericConsumer(object):
         # should be considered a total failure.
         if server_error.error_code != 'unsupported-type' or \
                server_error.message.isOpenID1():
-            logging.error(
-                'Server error when requesting an association from %r: %s'
-                % (endpoint.server_url, server_error.error_text))
+            _LOGGER.error('Server error when requesting an association from %r: %s',
+                          endpoint.server_url, server_error.error_text)
             return None
 
         # The server didn't like the association/session type
         # that we sent, and it sent us back a message that
         # might tell us how to handle it.
-        logging.error(
-            'Unsupported association type %s: %s' % (assoc_type,
-                                                     server_error.error_text,))
+        _LOGGER.error('Unsupported association type %s: %s', assoc_type, server_error.error_text)
 
         # Extract the session_type and assoc_type from the
         # error message
@@ -1228,13 +1218,11 @@ class GenericConsumer(object):
         session_type = server_error.message.getArg(OPENID_NS, 'session_type')
 
         if assoc_type is None or session_type is None:
-            logging.error('Server responded with unsupported association '
-                        'session but did not supply a fallback.')
+            _LOGGER.error('Server responded with unsupported association session but did not supply a fallback.')
             return None
         elif not self.negotiator.isAllowed(assoc_type, session_type):
-            fmt = ('Server sent unsupported session/association type: '
-                   'session_type=%s, assoc_type=%s')
-            logging.error(fmt % (session_type, assoc_type))
+            _LOGGER.error('Server sent unsupported session/association type: session_type=%s, assoc_type=%s',
+                          session_type, assoc_type)
             return None
         else:
             return assoc_type, session_type
@@ -1255,18 +1243,16 @@ class GenericConsumer(object):
         try:
             response = self._makeKVPost(args, endpoint.server_url)
         except fetchers.HTTPFetchingError, why:
-            logging.exception('openid.associate request failed: %s' % (why[0],))
+            _LOGGER.exception('openid.associate request failed: %s', why)
             return None
 
         try:
             assoc = self._extractAssociation(response, assoc_session)
         except KeyError, why:
-            logging.exception('Missing required parameter in response from %s: %s'
-                        % (endpoint.server_url, why[0]))
+            _LOGGER.exception('Missing required parameter in response from %s: %s', endpoint.server_url, why)
             return None
         except ProtocolError, why:
-            logging.exception('Protocol error parsing response from %s: %s' % (
-                endpoint.server_url, why[0]))
+            _LOGGER.exception('Protocol error parsing response from %s: %s', endpoint.server_url, why)
             return None
         else:
             return assoc
@@ -1342,8 +1328,7 @@ class GenericConsumer(object):
         # OpenID 1, but we'll accept it anyway, while issuing a
         # warning.
         if session_type == 'no-encryption':
-            logging.warn('OpenID server sent "no-encryption"'
-                        'for OpenID 1.X')
+            _LOGGER.warn('OpenID server sent "no-encryption" for OpenID 1.X')
 
         # Missing or empty session type is the way to flag a
         # 'no-encryption' response. Change the session type to
@@ -1593,8 +1578,7 @@ class AuthRequest(object):
         else:
             assoc_log_msg = 'using stateless mode.'
 
-        logging.info("Generated %s request to %s %s" %
-                    (mode, self.endpoint.server_url, assoc_log_msg))
+        _LOGGER.info("Generated %s request to %s %s", mode, self.endpoint.server_url, assoc_log_msg)
 
         return message
 
@@ -1773,8 +1757,7 @@ class SuccessResponse(Response):
 
         for key in msg_args.iterkeys():
             if not self.isSigned(ns_uri, key):
-                logging.info("SuccessResponse.getSignedNS: (%s, %s) not signed."
-                            % (ns_uri, key))
+                _LOGGER.info("SuccessResponse.getSignedNS: (%s, %s) not signed.", ns_uri, key)
                 return None
 
         return msg_args

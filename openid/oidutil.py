@@ -13,6 +13,8 @@ import sys
 import urlparse
 from urllib import urlencode
 
+_LOGGER = logging.getLogger(__name__)
+
 elementtree_modules = [
     'lxml.etree',
     'xml.etree.cElementTree',
@@ -77,8 +79,8 @@ def importElementTree(module_names=None):
             except (SystemExit, MemoryError, AssertionError):
                 raise
             except:
-                logging.exception('Not using ElementTree library %r because it failed to '
-                    'parse a trivial document: %s' % mod_name)
+                logging.exception('Not using ElementTree library %r because it failed to parse a trivial document: %s',
+                                  mod_name)
             else:
                 return ElementTree
     else:
@@ -105,8 +107,7 @@ def log(message, level=0):
     @returns: Nothing.
     """
 
-    logging.error("This is a legacy log message, please use the "
-      "logging module. Message: %s", message)
+    logging.error("This is a legacy log message, please use the logging module. Message: %s", message)
 
 def appendArgs(url, args):
     """Append query arguments to a HTTP(s) URL. If the URL already has
