@@ -2,7 +2,7 @@ __all__ = [
     'split',
     'mkNonce',
     'checkTimestamp',
-    ]
+]
 
 import string
 from calendar import timegm
@@ -19,6 +19,7 @@ SKEW = 60 * 60 * 5
 
 time_fmt = '%Y-%m-%dT%H:%M:%SZ'
 time_str_len = len('0000-00-00T00:00:00Z')
+
 
 def split(nonce_string):
     """Extract a timestamp from the given nonce string
@@ -37,6 +38,7 @@ def split(nonce_string):
     if timestamp < 0:
         raise ValueError('time out of range')
     return timestamp, nonce_string[time_str_len:]
+
 
 def checkTimestamp(nonce_string, allowed_skew=SKEW, now=None):
     """Is the timestamp that is part of the specified nonce string
@@ -73,6 +75,7 @@ def checkTimestamp(nonce_string, allowed_skew=SKEW, now=None):
         # the stamp is not too far in the future and is not too far in
         # the past
         return past <= stamp <= future
+
 
 def mkNonce(when=None):
     """Generate a nonce with the current timestamp

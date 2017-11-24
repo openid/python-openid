@@ -23,6 +23,7 @@ class _ParseTest(unittest.TestCase):
         else:
             assert tr is None, tr
 
+
 class _MatchTest(unittest.TestCase):
     def __init__(self, match, desc, line):
         unittest.TestCase.__init__(self)
@@ -45,6 +46,7 @@ class _MatchTest(unittest.TestCase):
         else:
             assert not match
 
+
 def getTests(t, grps, head, dat):
     tests = []
     top = head.strip()
@@ -61,6 +63,7 @@ def getTests(t, grps, head, dat):
         i += 2
     return tests
 
+
 def parseTests(data):
     parts = map(str.strip, data.split('=' * 40 + '\n'))
     assert not parts[0]
@@ -71,6 +74,7 @@ def parseTests(data):
     tests.extend(getTests(_MatchTest, [1, 0], mh, mdat))
     return tests
 
+
 def pyUnitTests():
     here = os.path.dirname(os.path.abspath(__file__))
     test_data_file_name = os.path.join(here, 'data', 'trustroot.txt')
@@ -80,6 +84,7 @@ def pyUnitTests():
 
     tests = parseTests(test_data)
     return unittest.TestSuite(tests)
+
 
 if __name__ == '__main__':
     suite = pyUnitTests()

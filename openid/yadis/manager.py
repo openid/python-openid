@@ -54,6 +54,7 @@ class YadisServiceManager(object):
         """Store this object in the session, by its session key."""
         session[self.session_key] = self
 
+
 class Discovery(object):
     """State management for discovery.
 
@@ -133,7 +134,7 @@ class Discovery(object):
 
         return service
 
-    ### Lower-level methods
+    # Lower-level methods
 
     def getSessionKey(self):
         """Get the session key for this starting URL and suffix

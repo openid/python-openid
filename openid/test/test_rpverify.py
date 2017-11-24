@@ -11,8 +11,6 @@ from openid.yadis import services
 from openid.yadis.discover import DiscoveryFailure, DiscoveryResult
 
 
-# Too many methods does not apply to unit test objects
-#pylint:disable-msg=R0904
 class TestBuildDiscoveryURL(unittest.TestCase):
     """Tests for building the discovery URL from a realm and a
     return_to URL
@@ -43,6 +41,7 @@ class TestBuildDiscoveryURL(unittest.TestCase):
         """
         self.failUnlessDiscoURL('http://*.example.com:8001/foo',
                                 'http://www.example.com:8001/foo')
+
 
 class TestExtractReturnToURLs(unittest.TestCase):
     disco_url = 'http://example.com/'
@@ -141,8 +140,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
     </Service>
   </XRD>
 </xrds:XRDS>
-''', ['http://rp.example.com/return',
-      'http://other.rp.example.com/return'])
+''', ['http://rp.example.com/return', 'http://other.rp.example.com/return'])
 
     def test_twoEntries_withOther(self):
         self.failUnlessXRDSHasReturnURLs('''\
@@ -165,9 +163,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
     </Service>
   </XRD>
 </xrds:XRDS>
-''', ['http://rp.example.com/return',
-      'http://other.rp.example.com/return'])
-
+''', ['http://rp.example.com/return', 'http://other.rp.example.com/return'])
 
 
 class TestReturnToMatches(unittest.TestCase):
@@ -203,6 +199,7 @@ class TestReturnToMatches(unittest.TestCase):
             [r],
             'http://example.com/xss_exploit'))
 
+
 class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
 
     def setUp(self):
@@ -210,7 +207,7 @@ class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
 
     def tearDown(self):
         CatchLogs.tearDown(self)
-    
+
     def test_bogusRealm(self):
         self.failIf(trustroot.verifyReturnTo('', 'http://example.com/'))
 
@@ -249,6 +246,7 @@ class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
         self.failIf(
             trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
         self.failUnlessLogMatches("Attempting to verify")
+
 
 if __name__ == '__main__':
     unittest.main()

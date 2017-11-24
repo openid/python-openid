@@ -19,6 +19,7 @@ def dummyRequest():
     request.META['SERVER_PROTOCOL'] = 'HTTP'
     return request
 
+
 class TestProcessTrustResult(TestCase):
     def setUp(self):
         self.request = dummyRequest()
@@ -32,11 +33,10 @@ class TestProcessTrustResult(TestCase):
             'openid.identity': id_url,
             'openid.return_to': 'http://127.0.0.1/%s' % (self.id(),),
             'openid.sreg.required': 'postcode',
-            })
+        })
         self.openid_request = CheckIDRequest.fromMessage(message, op_endpoint)
 
         views.setRequest(self.request, self.openid_request)
-
 
     def test_allow(self):
         self.request.POST['allow'] = 'Yes'
@@ -61,7 +61,6 @@ class TestProcessTrustResult(TestCase):
         self.failIf('openid.sreg.postcode=12345' in finalURL, finalURL)
 
 
-
 class TestShowDecidePage(TestCase):
     def test_unreachableRealm(self):
         self.request = dummyRequest()
@@ -75,7 +74,7 @@ class TestShowDecidePage(TestCase):
             'openid.identity': id_url,
             'openid.return_to': 'http://unreachable.invalid/%s' % (self.id(),),
             'openid.sreg.required': 'postcode',
-            })
+        })
         self.openid_request = CheckIDRequest.fromMessage(message, op_endpoint)
 
         views.setRequest(self.request, self.openid_request)
@@ -83,7 +82,6 @@ class TestShowDecidePage(TestCase):
         response = views.showDecidePage(self.request, self.openid_request)
         self.failUnless('trust_root_valid is Unreachable' in response.content,
                         response)
-
 
 
 class TestGenericXRDS(TestCase):

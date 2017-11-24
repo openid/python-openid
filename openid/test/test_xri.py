@@ -18,7 +18,6 @@ class XriEscapingTestCase(TestCase):
         self.failUnlessEqual(xri.escapeForIRI('@example/abc%2Fd/ef'),
                              '@example/abc%252Fd/ef')
 
-
     def test_escaping_xref(self):
         # no escapes
         esc = xri.escapeForIRI
@@ -31,7 +30,6 @@ class XriEscapingTestCase(TestCase):
         # escape query ? and fragment #
         self.failUnlessEqual('@example/foo/(@baz%3Fp=q%23r)?i=j#k',
                              esc('@example/foo/(@baz?p=q#r)?i=j#k'))
-
 
 
 class XriTransformationTestCase(TestCase):
@@ -53,7 +51,6 @@ class XriTransformationTestCase(TestCase):
             self.failUnlessEqual(xri.iriToURI(s), expected)
 
 
-
 class CanonicalIDTest(TestCase):
     def mkTest(providerID, canonicalID, isAuthoritative):
         def test(self):
@@ -72,6 +69,7 @@ class CanonicalIDTest(TestCase):
     test_tooDeepFails = mkTest('@!1234', '@!1234!ABCD!9765', False)
     test_atEqualsAndTooDeepFails = mkTest('@!1234!ABCD', '=!1234', False)
     test_differentBeginningFails = mkTest('=!BABE', '=!D00D', False)
+
 
 class TestGetRootAuthority(TestCase):
     def mkTest(the_xri, expected_root):
@@ -96,8 +94,9 @@ class TestGetRootAuthority(TestCase):
     # Looking at the ABNF in XRI Syntax 2.0, I don't think you can
     # have example.com*bar.  You can do (example.com)*bar, but that
     # would mean something else.
-    ##("example.com*bar/(=baz)", "example.com*bar"),
-    ##("baz.example.com!01/foo", "baz.example.com!01"),
+    # ("example.com*bar/(=baz)", "example.com*bar"),
+    # ("baz.example.com!01/foo", "baz.example.com!01"),
+
 
 if __name__ == '__main__':
     import unittest

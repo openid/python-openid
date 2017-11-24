@@ -9,11 +9,15 @@ Requires the 'xsel' program to get the contents of the clipboard.
 
 from pprint import pformat
 from urlparse import urlsplit, urlunsplit
-import cgi, re, subprocess, sys
+import cgi
+import re
+import subprocess
+import sys
 
 from openid import message
 
 OPENID_SORT_ORDER = ['mode', 'identity', 'claimed_id']
+
 
 class NoQuery(Exception):
     def __init__(self, url):
@@ -42,7 +46,7 @@ def main():
     for url in urls:
         try:
             queries.append(queryFromURL(url))
-        except NoQuery, err:
+        except NoQuery as err:
             errors.append(err)
 
     queries.extend(queriesFromLogs(source))
@@ -73,7 +77,7 @@ def openidFromQuery(query):
     try:
         msg = message.Message.fromPostArgs(unlistify(query))
         s = formatOpenIDMessage(msg)
-    except Exception, err:
+    except Exception as err:
         # XXX - side effect.
         sys.stderr.write(str(err))
         s = pformat(query)
@@ -103,8 +107,7 @@ def formatOpenIDMessage(msg):
             except KeyError:
                 pass
 
-        values = values.items()
-        values.sort()
+        values = sorted(values.items())
 
         for k, v in values:
             ns_output.append("    %s = %s" % (k, v))
@@ -124,6 +127,7 @@ def queriesFromLogs(s):
     return [(match.group(1), cgi.parse_qs(match.group(2)))
             for match in qre.finditer(s)]
 
+
 def queriesFromPostdata(s):
     # This looks for query data in a line that starts POSTDATA=.
     # Tamperdata outputs such lines.  If there's a 'Host=' in that block,
@@ -133,16 +137,18 @@ def queriesFromPostdata(s):
     return [(match.group('host') or 'POSTDATA',
              cgi.parse_qs(match.group('query'))) for match in qre.finditer(s)]
 
+
 def find_urls(s):
     # Regular expression borrowed from urlscan
     # by Daniel Burrows <dburrows@debian.org>, GPL.
-    urlinternalpattern=r'[{}a-zA-Z/\-_0-9%?&.=:;+,#~]'
-    urltrailingpattern=r'[{}a-zA-Z/\-_0-9%&=+#]'
+    urlinternalpattern = r'[{}a-zA-Z/\-_0-9%?&.=:;+,#~]'
+    urltrailingpattern = r'[{}a-zA-Z/\-_0-9%&=+#]'
     httpurlpattern = r'(?:https?://' + urlinternalpattern + r'*' + urltrailingpattern + r')'
     # Used to guess that blah.blah.blah.TLD is a URL.
-    tlds=['biz', 'com', 'edu', 'info', 'org']
-    guessedurlpattern=r'(?:[a-zA-Z0-9_\-%]+(?:\.[a-zA-Z0-9_\-%]+)*\.(?:' + '|'.join(tlds) + '))'
-    urlre = re.compile(r'(?:<(?:URL:)?)?(' + httpurlpattern + '|' + guessedurlpattern + '|(?:mailto:[a-zA-Z0-9\-_]*@[0-9a-zA-Z_\-.]*[0-9a-zA-Z_\-]))>?')
+    tlds = ['biz', 'com', 'edu', 'info', 'org']
+    guessedurlpattern = r'(?:[a-zA-Z0-9_\-%]+(?:\.[a-zA-Z0-9_\-%]+)*\.(?:' + '|'.join(tlds) + '))'
+    urlre = re.compile(r'(?:<(?:URL:)?)?(' + httpurlpattern + '|' + guessedurlpattern +
+                       '|(?:mailto:[a-zA-Z0-9\-_]*@[0-9a-zA-Z_\-.]*[0-9a-zA-Z_\-]))>?')
 
     return [match.group(1) for match in urlre.finditer(s)]
 

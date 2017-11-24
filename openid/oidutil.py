@@ -9,8 +9,6 @@ __all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'autoSubmitHTML', 'toU
 
 import binascii
 import logging
-import sys
-import urlparse
 from urllib import urlencode
 
 _LOGGER = logging.getLogger(__name__)
@@ -21,7 +19,8 @@ elementtree_modules = [
     'xml.etree.ElementTree',
     'cElementTree',
     'elementtree.ElementTree',
-    ]
+]
+
 
 def toUnicode(value):
     """Returns the given argument as a unicode object.
@@ -34,6 +33,7 @@ def toUnicode(value):
     if isinstance(value, str):
         return value.decode('utf-8')
     return unicode(value)
+
 
 def autoSubmitHTML(form, title='OpenID transaction in progress'):
     return """
@@ -52,6 +52,7 @@ for (var i = 0; i < elements.length; i++) {
 </body>
 </html>
 """ % (title, form)
+
 
 def importElementTree(module_names=None):
     """Find a working ElementTree implementation, trying the standard
@@ -76,9 +77,7 @@ def importElementTree(module_names=None):
             # Make sure it can actually parse XML
             try:
                 ElementTree.XML('<unused/>')
-            except (SystemExit, MemoryError, AssertionError):
-                raise
-            except:
+            except Exception:
                 logging.exception('Not using ElementTree library %r because it failed to parse a trivial document: %s',
                                   mod_name)
             else:
@@ -88,6 +87,7 @@ def importElementTree(module_names=None):
                           'You may need to install one. '
                           'Tried importing %r' % (module_names,)
                           )
+
 
 def log(message, level=0):
     """Handle a log message from the OpenID library.
@@ -109,6 +109,7 @@ def log(message, level=0):
 
     logging.error("This is a legacy log message, please use the logging module. Message: %s", message)
 
+
 def appendArgs(url, args):
     """Append query arguments to a HTTP(s) URL. If the URL already has
     query arguemtns, these arguments will be added, and the existing
@@ -129,8 +130,7 @@ def appendArgs(url, args):
     @rtype: str
     """
     if hasattr(args, 'items'):
-        args = args.items()
-        args.sort()
+        args = sorted(args.items())
     else:
         args = list(args)
 
@@ -146,10 +146,10 @@ def appendArgs(url, args):
     # about the encodings of plain bytes (str).
     i = 0
     for k, v in args:
-        if type(k) is not str:
+        if not isinstance(k, str):
             k = k.encode('UTF-8')
 
-        if type(v) is not str:
+        if not isinstance(v, str):
             v = v.encode('UTF-8')
 
         args[i] = (k, v)
@@ -157,16 +157,19 @@ def appendArgs(url, args):
 
     return '%s%s%s' % (url, sep, urlencode(args))
 
+
 def toBase64(s):
     """Represent string s as base64, omitting newlines"""
     return binascii.b2a_base64(s)[:-1]
 
+
 def fromBase64(s):
     try:
         return binascii.a2b_base64(s)
-    except binascii.Error, why:
+    except binascii.Error as why:
         # Convert to a common exception type
         raise ValueError(why[0])
+
 
 class Symbol(object):
     """This class implements an object that compares equal to others
@@ -178,13 +181,13 @@ class Symbol(object):
         self.name = name
 
     def __eq__(self, other):
-        return type(self) is type(other) and self.name == other.name
+        return type(self) == type(other) and self.name == other.name
 
     def __ne__(self, other):
         return not (self == other)
 
     def __hash__(self):
         return hash((self.__class__, self.name))
-   
+
     def __repr__(self):
         return '<Symbol %s>' % (self.name,)

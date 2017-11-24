@@ -9,6 +9,7 @@ _LOGGER = logging.getLogger(__name__)
 class KVFormError(ValueError):
     pass
 
+
 def seqToKV(seq, strict=False):
     """Represent a sequence of pairs of strings as newline-terminated
     key:value pairs. The pairs are generated in the order given.
@@ -61,6 +62,7 @@ def seqToKV(seq, strict=False):
         lines.append(k + ':' + v + '\n')
 
     return ''.join(lines).encode('UTF8')
+
 
 def kvToSeq(data, strict=False):
     """
@@ -116,10 +118,11 @@ def kvToSeq(data, strict=False):
 
     return pairs
 
+
 def dictToKV(d):
-    seq = d.items()
-    seq.sort()
+    seq = sorted(d.items())
     return seqToKV(seq)
+
 
 def kvToDict(s):
     return dict(kvToSeq(s))

@@ -21,7 +21,7 @@ __all__ = [
     'randrange',
     'sha1',
     'sha256',
-    ]
+]
 
 import hashlib
 import hmac
@@ -36,17 +36,22 @@ class HashContainer(object):
         self.new = hash_constructor
         self.digest_size = hash_constructor().digest_size
 
+
 sha1_module = HashContainer(hashlib.sha1)
 sha256_module = HashContainer(hashlib.sha256)
+
 
 def hmacSha1(key, text):
     return hmac.new(key, text, sha1_module).digest()
 
+
 def sha1(s):
     return sha1_module.new(s).digest()
 
+
 def hmacSha256(key, text):
     return hmac.new(key, text, sha256_module).digest()
+
 
 def sha256(s):
     return sha256_module.new(s).digest()
@@ -57,22 +62,22 @@ try:
 except ImportError:
     import pickle
 
-    def longToBinary(l):
-        if l == 0:
+    def longToBinary(value):
+        if value == 0:
             return '\x00'
 
-        return ''.join(reversed(pickle.encode_long(l)))
+        return ''.join(reversed(pickle.encode_long(value)))
 
     def binaryToLong(s):
         return pickle.decode_long(''.join(reversed(s)))
 else:
     # We have pycrypto
 
-    def longToBinary(l):
-        if l < 0:
+    def longToBinary(value):
+        if value < 0:
             raise ValueError('This function only supports positive integers')
 
-        bytes = long_to_bytes(l)
+        bytes = long_to_bytes(value)
         if ord(bytes[0]) > 127:
             return '\x00' + bytes
         else:
@@ -112,6 +117,7 @@ except AttributeError:
                 return ''.join(bytes)
     else:
         _pool = RandomPool()
+
         def getBytes(n, pool=_pool):
             if pool.entropy < n:
                 pool.randomize()
@@ -125,9 +131,9 @@ except AttributeError:
     # numbers larger than sys.maxint for randrange. For simplicity,
     # use this implementation for any Python that does not have
     # random.SystemRandom
-    from math import log, ceil
 
     _duplicate_cache = {}
+
     def randrange(start, stop=None, step=1):
         if stop is None:
             stop = start
@@ -154,7 +160,7 @@ except AttributeError:
 
             _duplicate_cache[r] = (duplicate, nbytes)
 
-        while 1:
+        while True:
             bytes = '\x00' + getBytes(nbytes)
             n = binaryToLong(bytes)
             # Keep looping if this value is in the low duplicated range
@@ -163,11 +169,14 @@ except AttributeError:
 
         return start + (n % r) * step
 
+
 def longToBase64(l):
     return toBase64(longToBinary(l))
 
+
 def base64ToLong(s):
     return binaryToLong(fromBase64(s))
+
 
 def randomString(length, chrs=None):
     """Produce a string of length random bytes, chosen from chrs."""
@@ -176,6 +185,7 @@ def randomString(length, chrs=None):
     else:
         n = len(chrs)
         return ''.join([chrs[randrange(n)] for _ in xrange(length)])
+
 
 def const_eq(s1, s2):
     if len(s1) != len(s2):

@@ -5,12 +5,12 @@
 """
 
 __all__ = [
-    'AttributeRequest',
+    'AttrInfo',
     'FetchRequest',
     'FetchResponse',
     'StoreRequest',
     'StoreResponse',
-    ]
+]
 
 from openid import extension
 from openid.message import OPENID_NS, NamespaceMap
@@ -23,6 +23,7 @@ UNLIMITED_VALUES = "unlimited"
 # Minimum supported alias length in characters.  Here for
 # completeness.
 MINIMUM_SUPPORTED_ALIAS_LENGTH = 32
+
 
 def checkAlias(alias):
     """
@@ -60,11 +61,6 @@ class AXMessage(extension.Extension):
         be overridden in subclasses.
     """
 
-    # This class is abstract, so it's OK that it doesn't override the
-    # abstract method in Extension:
-    #
-    #pylint:disable-msg=W0223
-
     ns_alias = 'ax'
     mode = None
     ns_uri = 'http://openid.net/srv/ax/1.0'
@@ -90,7 +86,7 @@ class AXMessage(extension.Extension):
         basic information that must be in every attribute exchange
         message.
         """
-        return {'mode':self.mode}
+        return {'mode': self.mode}
 
 
 class AttrInfo(object):
@@ -122,11 +118,6 @@ class AttrInfo(object):
     @type alias: str or NoneType
     """
 
-    # It's OK that this class doesn't have public methods (it's just a
-    # holder for a bunch of attributes):
-    #
-    #pylint:disable-msg=R0903
-
     def __init__(self, type_uri, count=1, required=False, alias=None):
         self.required = required
         self.count = count
@@ -145,6 +136,7 @@ class AttrInfo(object):
         case self.count is an integer.
         """
         return self.count == UNLIMITED_VALUES
+
 
 def toTypeURIs(namespace_map, alias_list_s):
     """Given a namespace mapping and a string containing a
@@ -304,7 +296,7 @@ class FetchRequest(AXMessage):
         self = cls()
         try:
             self.parseExtensionArgs(ax_args)
-        except NotAXMessage, err:
+        except NotAXMessage:
             return None
 
         if self.update_url:
@@ -412,11 +404,6 @@ class AXKeyValueMessage(AXMessage):
     keys and values. It contains the common code between
     fetch_response and store_request.
     """
-
-    # This class is abstract, so it's OK that it doesn't override the
-    # abstract method in Extension:
-    #
-    #pylint:disable-msg=W0223
 
     def __init__(self):
         AXMessage.__init__(self)
@@ -652,8 +639,7 @@ class FetchResponse(AXKeyValueMessage):
                     values = []
                     zero_value_types.append(attr_info)
 
-                if (attr_info.count != UNLIMITED_VALUES) and \
-                       (attr_info.count < len(values)):
+                if (attr_info.count != UNLIMITED_VALUES) and (attr_info.count < len(values)):
                     raise AXError(
                         'More than the number of requested values were '
                         'specified for %r' % (attr_info.type_uri,))
@@ -671,8 +657,7 @@ class FetchResponse(AXKeyValueMessage):
             kv_args['type.' + alias] = attr_info.type_uri
             kv_args['count.' + alias] = '0'
 
-        update_url = ((self.request and self.request.update_url)
-                      or self.update_url)
+        update_url = ((self.request and self.request.update_url) or self.update_url)
 
         if update_url:
             ax_args['update_url'] = update_url
@@ -709,7 +694,7 @@ class FetchResponse(AXKeyValueMessage):
 
         try:
             self.parseExtensionArgs(ax_args)
-        except NotAXMessage, err:
+        except NotAXMessage:
             return None
         else:
             return self
@@ -762,7 +747,7 @@ class StoreRequest(AXKeyValueMessage):
         self = cls()
         try:
             self.parseExtensionArgs(ax_args)
-        except NotAXMessage, err:
+        except NotAXMessage:
             return None
 
         return self
@@ -782,8 +767,7 @@ class StoreResponse(AXMessage):
         AXMessage.__init__(self)
 
         if succeeded and error_message is not None:
-            raise AXError('An error message may only be included in a '
-                             'failing fetch response')
+            raise AXError('An error message may only be included in a failing fetch response')
         if succeeded:
             self.mode = self.SUCCESS_MODE
         else:
@@ -826,7 +810,7 @@ class StoreResponse(AXMessage):
 
         try:
             self.parseExtensionArgs(ax_args)
-        except NotAXMessage, err:
+        except NotAXMessage:
             return None
         else:
             return self

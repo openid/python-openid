@@ -21,7 +21,7 @@ langs = {
     'ruby': ("%w'",
              "", " ", "",
              "'"),
-    }
+}
 
 lang = sys.argv[1]
 prefix, line_prefix, separator, line_suffix, suffix = langs[lang]

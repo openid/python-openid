@@ -31,6 +31,7 @@ class DataDrivenTestCase(unittest.TestCase):
     def shortDescription(self):
         return '%s for %s' % (self.__class__.__name__, self.description)
 
+
 def loadTests(module_name):
     loader = unittest.defaultTestLoader
     this_module = __import__(module_name, {}, {}, [None])
@@ -38,8 +39,7 @@ def loadTests(module_name):
     tests = []
     for name in dir(this_module):
         obj = getattr(this_module, name)
-        if (isinstance(obj, (type, types.ClassType)) and
-            issubclass(obj, unittest.TestCase)):
+        if isinstance(obj, (type, types.ClassType)) and issubclass(obj, unittest.TestCase):
             if hasattr(obj, 'loadTests'):
                 tests.extend(obj.loadTests())
             else:

@@ -23,15 +23,16 @@ from optparse import OptionParser
 def askForPassword():
     return getpass.getpass("DB Password: ")
 
-def askForConfirmation(dbname,tablename):
+
+def askForConfirmation(dbname, tablename):
     print """The table %s from the database %s will be dropped, and
-    an empty table with the new nonce table schema will replace it."""%(
-    tablename, dbname)
+    an empty table with the new nonce table schema will replace it.""" % (tablename, dbname)
     return raw_input("Continue? ").lower().strip().startswith('y')
+
 
 def doSQLiteUpgrade(db_conn, nonce_table_name='oid_nonces'):
     cur = db_conn.cursor()
-    cur.execute('DROP TABLE %s'%nonce_table_name)
+    cur.execute('DROP TABLE %s' % nonce_table_name)
     sql = """
     CREATE TABLE %s (
         server_url VARCHAR,
@@ -39,13 +40,14 @@ def doSQLiteUpgrade(db_conn, nonce_table_name='oid_nonces'):
         salt CHAR(40),
         UNIQUE(server_url, timestamp, salt)
     );
-    """%nonce_table_name
+    """ % nonce_table_name
     cur.execute(sql)
     cur.close()
 
+
 def doMySQLUpgrade(db_conn, nonce_table_name='oid_nonces'):
     cur = db_conn.cursor()
-    cur.execute('DROP TABLE %s'%nonce_table_name)
+    cur.execute('DROP TABLE %s' % nonce_table_name)
     sql = """
     CREATE TABLE %s (
         server_url BLOB,
@@ -54,13 +56,14 @@ def doMySQLUpgrade(db_conn, nonce_table_name='oid_nonces'):
         PRIMARY KEY (server_url(255), timestamp, salt)
     )
     TYPE=InnoDB;
-    """%nonce_table_name
+    """ % nonce_table_name
     cur.execute(sql)
     cur.close()
 
+
 def doPostgreSQLUpgrade(db_conn, nonce_table_name='oid_nonces'):
     cur = db_conn.cursor()
-    cur.execute('DROP TABLE %s'%nonce_table_name)
+    cur.execute('DROP TABLE %s' % nonce_table_name)
     sql = """
     CREATE TABLE %s (
         server_url VARCHAR(2047),
@@ -68,10 +71,11 @@ def doPostgreSQLUpgrade(db_conn, nonce_table_name='oid_nonces'):
         salt CHAR(40),
         PRIMARY KEY (server_url, timestamp, salt)
     );
-    """%nonce_table_name
+    """ % nonce_table_name
     cur.execute(sql)
     cur.close()
     db_conn.commit()
+
 
 def main(argv=None):
     parser = OptionParser()
@@ -106,7 +110,7 @@ def main(argv=None):
             return 1
         try:
             db_conn = sqlite.connect(options.sqlite_db_name)
-        except Exception, e:
+        except Exception as e:
             print "Could not connect to SQLite database:", str(e)
             return 1
 
@@ -125,11 +129,11 @@ def main(argv=None):
             return 1
 
         try:
-            db_conn = psycopg.connect(database = options.postgres_db_name,
-                                      user = options.username,
-                                      host = options.db_host,
-                                      password = password)
-        except Exception, e:
+            db_conn = psycopg.connect(database=options.postgres_db_name,
+                                      user=options.username,
+                                      host=options.db_host,
+                                      password=password)
+        except Exception as e:
             print "Could not connect to PostgreSQL database:", str(e)
             return 1
 
@@ -150,7 +154,7 @@ def main(argv=None):
         try:
             db_conn = MySQLdb.connect(options.db_host, options.username,
                                       password, options.mysql_db_name)
-        except Exception, e:
+        except Exception as e:
             print "Could not connect to MySQL database:", str(e)
             return 1
 

@@ -52,6 +52,7 @@ def splitDir(d, count):
         d = os.path.dirname(d)
     return d
 
+
 def runExampleServer(host, port, data_path):
     thisfile = os.path.abspath(sys.modules[__name__].__file__)
     topDir = splitDir(thisfile, 3)
@@ -62,7 +63,6 @@ def runExampleServer(host, port, data_path):
     serverMain = serverModule['main']
 
     serverMain(host, port, data_path)
-
 
 
 class TestServer(unittest.TestCase):
@@ -88,12 +88,10 @@ class TestServer(unittest.TestCase):
 
         twill.commands.reset_browser()
 
-
     def runExampleServer(self):
         """Zero-arg run-the-server function to be passed to TestInfo."""
         # FIXME - make sure sstore starts clean.
         runExampleServer('127.0.0.1', self.server_port, 'sstore')
-
 
     def v1endpoint(self, port):
         """Return an OpenID 1.1 OpenIDServiceEndpoint for the server."""
@@ -103,7 +101,6 @@ class TestServer(unittest.TestCase):
         ep.server_url = base + "/openidserver"
         ep.type_uris = [OPENID_1_1_TYPE]
         return ep
-
 
     # TODO: test discovery
 
@@ -116,7 +113,6 @@ class TestServer(unittest.TestCase):
         if self.twillErr.getvalue():
             self.fail(self.twillErr.getvalue())
 
-
     def test_allowed(self):
         """OpenID 1.1 checkid_setup request."""
         ti = TwillTest(self.twill_allowed, self.runExampleServer,
@@ -125,7 +121,6 @@ class TestServer(unittest.TestCase):
 
         if self.twillErr.getvalue():
             self.fail(self.twillErr.getvalue())
-
 
     def twill_checkidv1(self, twillInfo):
         endpoint = self.v1endpoint(self.server_port)
@@ -143,11 +138,10 @@ class TestServer(unittest.TestCase):
             finalURL = headers['Location']
             self.failUnless('openid.mode=id_res' in finalURL, finalURL)
             self.failUnless('openid.identity=' in finalURL, finalURL)
-        except twill.commands.TwillAssertionError, e:
+        except twill.commands.TwillAssertionError as e:
             msg = '%s\nFinal page:\n%s' % (
                 str(e), c.get_browser().get_html())
             self.fail(msg)
-
 
     def twill_allowed(self, twillInfo):
         endpoint = self.v1endpoint(self.server_port)
@@ -171,7 +165,7 @@ class TestServer(unittest.TestCase):
             headers = c.get_browser()._browser.response().info()
             finalURL = headers['Location']
             self.failUnless(finalURL.startswith(self.return_to))
-        except twill.commands.TwillAssertionError, e:
+        except twill.commands.TwillAssertionError:
             from traceback import format_exc
             msg = '%s\nTwill output:%s\nTwill errors:%s\nFinal page:\n%s' % (
                 format_exc(),
@@ -179,7 +173,6 @@ class TestServer(unittest.TestCase):
                 self.twillErr.getvalue(),
                 c.get_browser().get_html())
             self.fail(msg)
-
 
     def tearDown(self):
         twill.set_output(None)

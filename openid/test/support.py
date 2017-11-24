@@ -7,13 +7,14 @@ from openid import message
 class TestHandler(BufferingHandler):
     def __init__(self, messages):
         BufferingHandler.__init__(self, 0)
-	self.messages = messages
+        self.messages = messages
 
     def shouldFlush(self):
         return False
 
     def emit(self, record):
         self.messages.append(record)
+
 
 class OpenIDTestMixin(object):
     def failUnlessOpenIDValueEquals(self, msg, key, expected, ns=None):
@@ -33,22 +34,23 @@ class OpenIDTestMixin(object):
         error_message = 'openid.%s unexpectedly present: %s' % (key, actual)
         self.failIf(actual is not None, error_message)
 
+
 class CatchLogs(object):
     def setUp(self):
-	self.messages = []
-	root_logger = logging.getLogger()
-	self.old_log_level = root_logger.getEffectiveLevel()
-	root_logger.setLevel(logging.DEBUG)
+        self.messages = []
+        root_logger = logging.getLogger()
+        self.old_log_level = root_logger.getEffectiveLevel()
+        root_logger.setLevel(logging.DEBUG)
 
-	self.handler = TestHandler(self.messages)
-	formatter = logging.Formatter("%(message)s [%(asctime)s - %(name)s - %(levelname)s]")
-	self.handler.setFormatter(formatter)
-	root_logger.addHandler(self.handler)
+        self.handler = TestHandler(self.messages)
+        formatter = logging.Formatter("%(message)s [%(asctime)s - %(name)s - %(levelname)s]")
+        self.handler.setFormatter(formatter)
+        root_logger.addHandler(self.handler)
 
     def tearDown(self):
         root_logger = logging.getLogger()
-	root_logger.removeHandler(self.handler)
-	root_logger.setLevel(self.old_log_level)
+        root_logger.removeHandler(self.handler)
+        root_logger.setLevel(self.old_log_level)
 
     def failUnlessLogMatches(self, *prefixes):
         """
@@ -58,14 +60,10 @@ class CatchLogs(object):
         messages.
         """
         messages = [r.getMessage() for r in self.messages]
-	assert len(prefixes) == len(messages), \
-               "Expected log prefixes %r, got %r" % (prefixes,
-                                                     messages)
+        assert len(prefixes) == len(messages), "Expected log prefixes %r, got %r" % (prefixes, messages)
 
-        for prefix, message in zip(prefixes, messages):
-            assert message.startswith(prefix), \
-                   "Expected log prefixes %r, got %r" % (prefixes,
-                                                         messages)
+        for prefix, msg in zip(prefixes, messages):
+            assert msg.startswith(prefix), "Expected log prefixes %r, got %r" % (prefixes, messages)
 
     def failUnlessLogEmpty(self):
         self.failUnlessLogMatches()

@@ -17,7 +17,7 @@ class UrinormTest(unittest.TestCase):
     def runTest(self):
         try:
             actual = openid.urinorm.urinorm(self.case)
-        except ValueError, why:
+        except ValueError as why:
             self.assertEqual(self.expected, 'fail', why)
         else:
             self.assertEqual(actual, self.expected)
@@ -42,6 +42,7 @@ def parseTests(test_data):
             result.append(UrinormTest.parse(case))
 
     return result
+
 
 def pyUnitTests():
     here = os.path.dirname(os.path.abspath(__file__))

@@ -15,8 +15,10 @@ XRDS_BOILERPLATE = '''\
 </xrds:XRDS>
 '''
 
+
 def mkXRDS(services):
     return XRDS_BOILERPLATE % (services,)
+
 
 def mkService(uris=None, type_uris=None, local_id=None, dent='        '):
     chunks = [dent, '<Service>\n']
@@ -27,7 +29,7 @@ def mkService(uris=None, type_uris=None, local_id=None, dent='        '):
 
     if uris:
         for uri in uris:
-            if type(uri) is tuple:
+            if isinstance(uri, tuple):
                 uri, prio = uri
             else:
                 prio = None
@@ -45,18 +47,21 @@ def mkService(uris=None, type_uris=None, local_id=None, dent='        '):
 
     return ''.join(chunks)
 
+
 # Different sets of server URLs for use in the URI tag
 server_url_options = [
-    [], # This case should not generate an endpoint object
+    [],  # This case should not generate an endpoint object
     ['http://server.url/'],
     ['https://server.url/'],
     ['https://server.url/', 'http://server.url/'],
     ['https://server.url/',
      'http://server.url/',
      'http://example.server.url/'],
-    ]
+]
 
 # Used for generating test data
+
+
 def subsets(l):
     """Generate all non-empty sublists of a list"""
     subsets_list = [[]]
@@ -64,12 +69,13 @@ def subsets(l):
         subsets_list += [[x] + t for t in subsets_list]
     return subsets_list
 
+
 # A couple of example extension type URIs. These are not at all
 # official, but are just here for testing.
 ext_types = [
     'http://janrain.com/extension/blah',
     'http://openid.net/sreg/1.0',
-    ]
+]
 
 # All valid combinations of Type tags that should produce an OpenID endpoint
 type_uri_options = [
@@ -81,14 +87,14 @@ type_uri_options = [
 
     # All combinations of extension types (including empty extenstion list)
     for exts in subsets(ext_types)
-    ]
+]
 
 # Range of valid Delegate tag values for generating test data
 local_id_options = [
     None,
     'http://vanity.domain/',
     'https://somewhere/yadis/',
-    ]
+]
 
 # All combinations of valid URIs, Type URIs and Delegate tags
 data = [
@@ -96,7 +102,8 @@ data = [
     for uris in server_url_options
     for type_uris in type_uri_options
     for local_id in local_id_options
-    ]
+]
+
 
 class OpenIDYadisTest(unittest.TestCase):
     def __init__(self, uris, type_uris, local_id):
@@ -129,8 +136,7 @@ class OpenIDYadisTest(unittest.TestCase):
         self.failUnlessEqual(len(self.uris), len(endpoints))
 
         # So that we can check equality on the endpoint types
-        type_uris = list(self.type_uris)
-        type_uris.sort()
+        type_uris = sorted(self.type_uris)
 
         seen_uris = []
         for endpoint in endpoints:
@@ -143,18 +149,17 @@ class OpenIDYadisTest(unittest.TestCase):
             self.failUnlessEqual(self.local_id, endpoint.local_id)
 
             # and types
-            actual_types = list(endpoint.type_uris)
-            actual_types.sort()
+            actual_types = sorted(endpoint.type_uris)
             self.failUnlessEqual(actual_types, type_uris)
 
         # So that they will compare equal, because we don't care what
         # order they are in
         seen_uris.sort()
-        uris = list(self.uris)
-        uris.sort()
+        uris = sorted(self.uris)
 
         # Make sure we saw all URIs, and saw each one once
         self.failUnlessEqual(uris, seen_uris)
+
 
 def pyUnitTests():
     cases = []

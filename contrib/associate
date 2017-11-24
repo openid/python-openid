@@ -10,6 +10,7 @@ from openid.consumer.discover import OpenIDServiceEndpoint
 
 from datetime import datetime
 
+
 def verboseAssociation(assoc):
     """A more verbose representation of an Association.
     """
@@ -23,6 +24,7 @@ def verboseAssociation(assoc):
   Secret: %(secret)r
 """
     return fmt % d
+
 
 def main():
     if not sys.argv[1:]:
@@ -42,6 +44,7 @@ def main():
             print verboseAssociation(auth_req.assoc)
         else:
             print "  ...no association."
+
 
 if __name__ == '__main__':
     main()

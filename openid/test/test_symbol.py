@@ -32,5 +32,6 @@ class SymbolTest(unittest.TestCase):
         y = oidutil.Symbol('yyy')
         self.failUnless(x != y)
 
+
 if __name__ == '__main__':
     unittest.main()

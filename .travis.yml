@@ -3,8 +3,9 @@ language: python
 python:
   - 2.7
 
-before_install: pip install Django pycrypto lxml isort
+before_install: pip install Django pycrypto lxml isort flake8
 install: python setup.py install
 script:
   - make check-isort
+  - make check-flake8
   - make test

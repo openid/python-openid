@@ -1,10 +1,9 @@
-
 import unittest
 
 from openid import association
 from openid.consumer.consumer import GenericConsumer, ServerError
 from openid.consumer.discover import OPENID_2_0_TYPE, OpenIDServiceEndpoint
-from openid.message import OPENID1_NS, OPENID2_NS, OPENID_NS, Message
+from openid.message import OPENID1_NS, OPENID_NS, Message
 
 from .support import CatchLogs
 
@@ -29,11 +28,13 @@ class ErrorRaisingConsumer(GenericConsumer):
         else:
             return m
 
+
 class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
     """
     Test the session type negotiation behavior of an OpenID 2
     consumer.
     """
+
     def setUp(self):
         CatchLogs.setUp(self)
         self.consumer = ErrorRaisingConsumer(store=None)
@@ -141,7 +142,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         msg.setArg(OPENID_NS, 'session_type', 'DH-SHA1')
 
         self.consumer.return_messages = [msg,
-             Message(self.endpoint.preferredNamespace())]
+                                         Message(self.endpoint.preferredNamespace())]
 
         self.failUnlessEqual(self.consumer._negotiateAssociation(self.endpoint), None)
 
@@ -160,6 +161,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         self.failUnless(self.consumer._negotiateAssociation(self.endpoint) is assoc)
         self.failUnlessLogEmpty()
 
+
 class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
     """
     Tests for the OpenID 1 consumer association session behavior.  See
@@ -170,6 +172,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
     these tests pass openid2-style messages to the openid 1
     association processing logic to be sure it ignores the extra data.
     """
+
     def setUp(self):
         CatchLogs.setUp(self)
         self.consumer = ErrorRaisingConsumer(store=None)
@@ -247,12 +250,13 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
         self.failUnless(self.consumer._negotiateAssociation(self.endpoint) is assoc)
         self.failUnlessLogEmpty()
 
+
 class TestNegotiatorBehaviors(unittest.TestCase, CatchLogs):
     def setUp(self):
         self.allowed_types = [
             ('HMAC-SHA1', 'no-encryption'),
             ('HMAC-SHA256', 'no-encryption'),
-            ]
+        ]
 
         self.n = association.SessionNegotiator(self.allowed_types)
 
@@ -268,6 +272,7 @@ class TestNegotiatorBehaviors(unittest.TestCase, CatchLogs):
 
         for typ in association.getSessionTypes(assoc_type):
             self.failUnless((assoc_type, typ) in self.n.allowed_types)
+
 
 if __name__ == '__main__':
     unittest.main()

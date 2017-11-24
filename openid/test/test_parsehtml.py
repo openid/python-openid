@@ -18,9 +18,9 @@ class _TestCase(unittest.TestCase):
 
     def runTest(self):
         p = YadisHTMLParser()
-	try:
+        try:
             p.feed(self.case)
-        except ParseDone, why:
+        except ParseDone as why:
             found = why[0]
 
             # make sure we protect outselves against accidental bogus
@@ -44,12 +44,14 @@ class _TestCase(unittest.TestCase):
             self.__class__.__module__,
             os.path.basename(self.filename))
 
+
 def parseCases(data):
     cases = []
     for chunk in data.split('\f\n'):
         expected, case = chunk.split('\n', 1)
         cases.append((expected, case))
     return cases
+
 
 def pyUnitTests():
     """Make a pyunit TestSuite from a file defining test cases."""
@@ -58,9 +60,11 @@ def pyUnitTests():
         s.addTest(_TestCase(filename, str(test_num), expected, case))
     return s
 
+
 def test():
     runner = unittest.TextTestRunner()
     return runner.run(pyUnitTests())
+
 
 filenames = ['data/test1-parsehtml.txt']
 
@@ -69,6 +73,7 @@ base = os.path.dirname(__file__)
 for filename in filenames:
     full_name = os.path.join(base, filename)
     default_test_files.append(full_name)
+
 
 def getCases(test_files=default_test_files):
     cases = []

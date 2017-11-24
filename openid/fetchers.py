@@ -32,6 +32,7 @@ except ImportError:
 USER_AGENT = "python-openid/%s (%s)" % (openid.__version__, sys.platform)
 MAX_RESPONSE_KB = 1024
 
+
 def fetch(url, body=None, headers=None):
     """Invoke the fetch method on the default fetcher. Most users
     should need only this method.
@@ -40,6 +41,7 @@ def fetch(url, body=None, headers=None):
     """
     fetcher = getDefaultFetcher()
     return fetcher.fetch(url, body, headers)
+
 
 def createHTTPFetcher():
     """Create a default HTTP fetcher instance
@@ -52,10 +54,12 @@ def createHTTPFetcher():
 
     return fetcher
 
+
 # Contains the currently set HTTP fetcher. If it is set to None, the
 # library will call createHTTPFetcher() to set it. Do not access this
 # variable outside of this module.
 _default_fetcher = None
+
 
 def getDefaultFetcher():
     """Return the default fetcher instance
@@ -70,6 +74,7 @@ def getDefaultFetcher():
         setDefaultFetcher(createHTTPFetcher())
 
     return _default_fetcher
+
 
 def setDefaultFetcher(fetcher, wrap_exceptions=True):
     """Set the default fetcher
@@ -91,12 +96,14 @@ def setDefaultFetcher(fetcher, wrap_exceptions=True):
     else:
         _default_fetcher = ExceptionWrappingFetcher(fetcher)
 
+
 def usingCurl():
     """Whether the currently set HTTP fetcher is a Curl HTTP fetcher."""
     fetcher = getDefaultFetcher()
     if isinstance(fetcher, ExceptionWrappingFetcher):
         fetcher = fetcher.fetcher
     return isinstance(fetcher, CurlHTTPFetcher)
+
 
 class HTTPResponse(object):
     """XXX document attributes"""
@@ -115,6 +122,7 @@ class HTTPResponse(object):
         return "<%s status %s for %s>" % (self.__class__.__name__,
                                           self.status,
                                           self.final_url)
+
 
 class HTTPFetcher(object):
     """
@@ -145,8 +153,10 @@ class HTTPFetcher(object):
         """
         raise NotImplementedError
 
+
 def _allowedURL(url):
     return url.startswith('http://') or url.startswith('https://')
+
 
 class HTTPFetchingError(Exception):
     """Exception that is wrapped around all exceptions that are raised
@@ -154,9 +164,11 @@ class HTTPFetchingError(Exception):
 
     @ivar why: The exception that caused this exception
     """
+
     def __init__(self, why=None):
         Exception.__init__(self, why)
         self.why = why
+
 
 class ExceptionWrappingFetcher(HTTPFetcher):
     """Fetcher wrapper which wraps all exceptions to `HTTPFetchingError`."""
@@ -174,6 +186,7 @@ class ExceptionWrappingFetcher(HTTPFetcher):
                 exc_inst = exc_cls
 
             raise HTTPFetchingError(why=exc_inst)
+
 
 class Urllib2Fetcher(HTTPFetcher):
     """An C{L{HTTPFetcher}} that uses urllib2.
@@ -201,7 +214,7 @@ class Urllib2Fetcher(HTTPFetcher):
                 return self._makeResponse(f)
             finally:
                 f.close()
-        except urllib2.HTTPError, why:
+        except urllib2.HTTPError as why:
             try:
                 return self._makeResponse(why)
             finally:
@@ -220,6 +233,7 @@ class Urllib2Fetcher(HTTPFetcher):
 
         return resp
 
+
 class HTTPError(HTTPFetchingError):
     """
     This exception is raised by the C{L{CurlHTTPFetcher}} when it
@@ -228,12 +242,14 @@ class HTTPError(HTTPFetchingError):
     pass
 
 # XXX: define what we mean by paranoid, and make sure it is.
+
+
 class CurlHTTPFetcher(HTTPFetcher):
     """
     An C{L{HTTPFetcher}} that uses pycurl for fetching.
     See U{http://pycurl.sourceforge.net/}.
     """
-    ALLOWED_TIME = 20 # seconds
+    ALLOWED_TIME = 20  # seconds
 
     def __init__(self):
         HTTPFetcher.__init__(self)
@@ -244,7 +260,7 @@ class CurlHTTPFetcher(HTTPFetcher):
         header_file.seek(0)
 
         # Remove the status line from the beginning of the input
-        unused_http_status_line = header_file.readline().lower ()
+        unused_http_status_line = header_file.readline().lower()
         if unused_http_status_line.startswith('http/1.1 100 '):
             unused_http_status_line = header_file.readline()
             unused_http_status_line = header_file.readline()
@@ -309,8 +325,9 @@ class CurlHTTPFetcher(HTTPFetcher):
                     raise HTTPError("Fetching URL not allowed: %r" % (url,))
 
                 data = cStringIO.StringIO()
+
                 def write_data(chunk):
-                    if data.tell() > 1024*MAX_RESPONSE_KB:
+                    if data.tell() > 1024 * MAX_RESPONSE_KB:
                         return 0
                     else:
                         return data.write(chunk)
@@ -349,6 +366,7 @@ class CurlHTTPFetcher(HTTPFetcher):
             raise HTTPError("Timed out fetching: %r" % (url,))
         finally:
             c.close()
+
 
 class HTTPLib2Fetcher(HTTPFetcher):
     """A fetcher that uses C{httplib2} for performing HTTP
@@ -419,4 +437,4 @@ class HTTPLib2Fetcher(HTTPFetcher):
             final_url=final_url,
             headers=dict(httplib2_response.items()),
             status=httplib2_response.status,
-            )
+        )

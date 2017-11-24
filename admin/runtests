@@ -1,11 +1,14 @@
 #!/usr/bin/env python
-import os.path, sys, warnings
+import os.path
+import sys
+import warnings
 
 test_modules = [
     'cryptutil',
     'oidutil',
     'dh',
-    ]
+]
+
 
 def fixpath():
     try:
@@ -17,10 +20,11 @@ def fixpath():
         print "putting %s in sys.path" % (parent,)
         sys.path.insert(0, parent)
 
+
 def otherTests():
     failed = []
     for module_name in test_modules:
-        print 'Testing %s...' % (module_name,) ,
+        print 'Testing %s...' % (module_name,),
         sys.stdout.flush()
         module_name = 'openid.test.' + module_name
         try:
@@ -31,16 +35,14 @@ def otherTests():
         else:
             try:
                 test_mod.test()
-            except (SystemExit, KeyboardInterrupt):
-                raise
-            except:
+            except Exception:
                 sys.excepthook(*sys.exc_info())
                 failed.append(module_name)
             else:
                 print 'Succeeded.'
 
-
     return failed
+
 
 def pyunitTests():
     import unittest
@@ -63,16 +65,16 @@ def pyunitTests():
         'pape_draft5',
         'rpverify',
         'extension',
-        ]
+    ]
 
     pyunit_modules = [
         __import__('openid.test.test_%s' % (name,), {}, {}, ['unused'])
         for name in pyunit_module_names
-        ]
+    ]
 
     try:
         from openid.test import test_examples
-    except ImportError, e:
+    except ImportError as e:
         if 'twill' in str(e):
             warnings.warn("Could not import twill; skipping test_examples.")
         else:
@@ -98,7 +100,7 @@ def pyunitTests():
         'test_urinorm',
         'test_yadis_discover',
         'trustroot',
-        ]
+    ]
 
     loader = unittest.TestLoader()
     s = unittest.TestSuite()
@@ -110,16 +112,15 @@ def pyunitTests():
         m = __import__('openid.test.%s' % (name,), {}, {}, ['unused'])
         try:
             s.addTest(m.pyUnitTests())
-        except AttributeError, ex:
+        except AttributeError as ex:
             # because the AttributeError doesn't actually say which
             # object it was.
             print "Error loading tests from %s:" % (name,)
             raise
 
-    runner = unittest.TextTestRunner() # verbosity=2)
+    runner = unittest.TextTestRunner()  # verbosity=2)
 
     return runner.run(s)
-
 
 
 def splitDir(d, count):
@@ -128,7 +129,6 @@ def splitDir(d, count):
     for i in xrange(count):
         d = os.path.dirname(d)
     return d
-
 
 
 def _import_djopenid():
@@ -153,7 +153,6 @@ def _import_djopenid():
     sys.modules['djopenid'] = djopenid
 
 
-
 def django_tests():
     """Runs tests from examples/djopenid.
 
@@ -167,11 +166,12 @@ def django_tests():
 
     try:
         import django.test.simple
-    except ImportError, e:
+    except ImportError as e:
         warnings.warn("django.test.simple not found; "
                       "django examples not tested.")
         return 0
-    import djopenid.server.models, djopenid.consumer.models
+    import djopenid.server.models
+    import djopenid.consumer.models
     print "Testing Django examples:"
 
     # These tests do get put in to a pyunit test suite, so we could run them
@@ -180,11 +180,13 @@ def django_tests():
     return django.test.simple.run_tests([djopenid.server.models,
                                          djopenid.consumer.models])
 
+
 try:
     bool
 except NameError:
     def bool(x):
         return not not x
+
 
 def main():
     fixpath()
@@ -199,6 +201,7 @@ def main():
               bool(not pyunit_result.wasSuccessful()) or
               (django_failures > 0))
     return failed
+
 
 if __name__ == '__main__':
     sys.exit(main() and 1 or 0)

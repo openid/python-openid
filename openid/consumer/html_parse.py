@@ -70,12 +70,17 @@ The parser deals with invalid markup in these ways:
 __all__ = ['parseLinkAttrs']
 
 import re
+from functools import partial
 
-flags = ( re.DOTALL # Match newlines with '.'
-        | re.IGNORECASE
-        | re.VERBOSE # Allow comments and whitespace in patterns
-        | re.UNICODE # Make \b respect Unicode word boundaries
-        )
+flags = (
+    # Match newlines with '.'
+    re.DOTALL |
+    re.IGNORECASE |
+    # Allow comments and whitespace in patterns
+    re.VERBOSE |
+    # Make \b respect Unicode word boundaries
+    re.UNICODE
+)
 
 # Stuff to remove before we start looking for tags
 removed_re = re.compile(r'''
@@ -123,6 +128,7 @@ tag_expr = r'''
 )
 '''
 
+
 def tagMatcher(tag_name, *close_tags):
     if close_tags:
         options = '|'.join((tag_name,) + close_tags)
@@ -132,6 +138,7 @@ def tagMatcher(tag_name, *close_tags):
 
     expr = tag_expr % locals()
     return re.compile(expr, flags)
+
 
 # Must contain at least an open html and an open head tag
 html_find = tagMatcher('html')
@@ -160,16 +167,19 @@ attr_find = re.compile(r'''
 
 # Entity replacement:
 replacements = {
-    'amp':'&',
-    'lt':'<',
-    'gt':'>',
-    'quot':'"',
-    }
+    'amp': '&',
+    'lt': '<',
+    'gt': '>',
+    'quot': '"',
+}
 
 ent_replace = re.compile(r'&(%s);' % '|'.join(replacements.keys()))
+
+
 def replaceEnt(mo):
     "Replace the entities that are specified by OpenID"
     return replacements.get(mo.group(1), mo.group())
+
 
 def parseLinkAttrs(html):
     """Find all link tags in a string representing a HTML document and
@@ -214,6 +224,7 @@ def parseLinkAttrs(html):
 
     return matches
 
+
 def relMatches(rel_attr, target_rel):
     """Does this target_rel appear in the rel_str?"""
     # XXX: TESTME
@@ -225,18 +236,21 @@ def relMatches(rel_attr, target_rel):
 
     return 0
 
+
 def linkHasRel(link_attrs, target_rel):
     """Does this link have target_rel as a relationship?"""
     # XXX: TESTME
     rel_attr = link_attrs.get('rel')
     return rel_attr and relMatches(rel_attr, target_rel)
 
+
 def findLinksRel(link_attrs_list, target_rel):
     """Filter the list of link attributes on whether it has target_rel
     as a relationship."""
     # XXX: TESTME
-    matchesTarget = lambda attrs: linkHasRel(attrs, target_rel)
+    matchesTarget = partial(linkHasRel, target_rel=target_rel)
     return filter(matchesTarget, link_attrs_list)
+
 
 def findFirstHref(link_attrs_list, target_rel):
     """Return the value of the href attribute for the first link tag

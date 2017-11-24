@@ -15,7 +15,7 @@ __all__ = [
     'AUTH_MULTI_FACTOR_PHYSICAL',
     'LEVELS_NIST',
     'LEVELS_JISA',
-    ]
+]
 
 import re
 import warnings
@@ -38,11 +38,12 @@ TIME_VALIDATOR = re.compile('^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ$')
 LEVELS_NIST = 'http://csrc.nist.gov/publications/nistpubs/800-63/SP800-63V1_0_2.pdf'
 LEVELS_JISA = 'http://www.jisa.or.jp/spec/auth_level.html'
 
+
 class PAPEExtension(Extension):
     _default_auth_level_aliases = {
         'nist': LEVELS_NIST,
         'jisa': LEVELS_JISA,
-        }
+    }
 
     def __init__(self):
         self.auth_level_aliases = self._default_auth_level_aliases.copy()
@@ -89,6 +90,7 @@ class PAPEExtension(Extension):
                 return alias
 
         raise KeyError(auth_level_uri)
+
 
 class Request(PAPEExtension):
     """A Provider Authentication Policy request, sent from a relying
@@ -152,8 +154,8 @@ class Request(PAPEExtension):
         """@see: C{L{Extension.getExtensionArgs}}
         """
         ns_args = {
-            'preferred_auth_policies':' '.join(self.preferred_auth_policies),
-            }
+            'preferred_auth_policies': ' '.join(self.preferred_auth_policies),
+        }
 
         if self.max_auth_age is not None:
             ns_args['max_auth_age'] = str(self.max_auth_age)
@@ -265,6 +267,7 @@ class Request(PAPEExtension):
         """
         return filter(self.preferred_auth_policies.__contains__,
                       supported_types)
+
 
 Request.ns_uri = ns_uri
 
@@ -455,8 +458,8 @@ class Response(PAPEExtension):
             }
         else:
             ns_args = {
-                'auth_policies':' '.join(self.auth_policies),
-                }
+                'auth_policies': ' '.join(self.auth_policies),
+            }
 
         for level_type, level in self.auth_levels.iteritems():
             alias = self._getAlias(level_type)
@@ -470,5 +473,6 @@ class Response(PAPEExtension):
             ns_args['auth_time'] = self.auth_time
 
         return ns_args
+
 
 Response.ns_uri = ns_uri

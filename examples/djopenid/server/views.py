@@ -23,7 +23,7 @@ from django.views.generic.simple import direct_to_template
 from openid.consumer.discover import OPENID_IDP_2_0_TYPE
 from openid.extensions import pape, sreg
 from openid.fetchers import HTTPFetchingError
-from openid.server.server import CheckIDRequest, EncodingError, ProtocolError, Server
+from openid.server.server import EncodingError, ProtocolError, Server
 from openid.server.trustroot import verifyReturnTo
 from openid.yadis.discover import DiscoveryFailure
 
@@ -38,11 +38,13 @@ def getOpenIDStore():
     """
     return util.getOpenIDStore('/tmp/djopenid_s_store', 's_')
 
+
 def getServer(request):
     """
     Get a Server object to perform OpenID authentication.
     """
     return Server(getOpenIDStore(), getViewURL(request, endpoint))
+
 
 def setRequest(request, openid_request):
     """
@@ -53,11 +55,13 @@ def setRequest(request, openid_request):
     else:
         request.session['openid_request'] = None
 
+
 def getRequest(request):
     """
     Get an openid request from the session, if any.
     """
     return request.session.get('openid_request')
+
 
 def server(request):
     """
@@ -70,6 +74,7 @@ def server(request):
          'server_xrds_url': getViewURL(request, idpXrds),
          })
 
+
 def idpXrds(request):
     """
     Respond to requests for the IDP's XRDS document, which is used in
@@ -77,6 +82,7 @@ def idpXrds(request):
     """
     return util.renderXRDS(
         request, [OPENID_IDP_2_0_TYPE], [getViewURL(request, endpoint)])
+
 
 def idPage(request):
     """
@@ -87,6 +93,7 @@ def idPage(request):
         'server/idPage.html',
         {'server_url': getViewURL(request, endpoint)})
 
+
 def trustPage(request):
     """
     Display the trust page template, which allows the user to decide
@@ -95,7 +102,8 @@ def trustPage(request):
     return direct_to_template(
         request,
         'server/trust.html',
-        {'trust_handler_url':getViewURL(request, processTrustResult)})
+        {'trust_handler_url': getViewURL(request, processTrustResult)})
+
 
 def endpoint(request):
     """
@@ -109,7 +117,7 @@ def endpoint(request):
     # library can use.
     try:
         openid_request = s.decodeRequest(query)
-    except ProtocolError, why:
+    except ProtocolError as why:
         # This means the incoming request was invalid.
         return direct_to_template(
             request,
@@ -133,6 +141,7 @@ def endpoint(request):
         # server handle this.
         openid_response = s.handleRequest(openid_request)
         return displayResponse(request, openid_response)
+
 
 def handleCheckIDRequest(request, openid_request):
     """
@@ -175,6 +184,7 @@ def handleCheckIDRequest(request, openid_request):
         setRequest(request, openid_request)
         return showDecidePage(request, openid_request)
 
+
 def showDecidePage(request, openid_request):
     """
     Render a page to the user so a trust decision can be made.
@@ -186,11 +196,10 @@ def showDecidePage(request, openid_request):
 
     try:
         # Stringify because template's ifequal can only compare to strings.
-        trust_root_valid = verifyReturnTo(trust_root, return_to) \
-                           and "Valid" or "Invalid"
-    except DiscoveryFailure, err:
+        trust_root_valid = verifyReturnTo(trust_root, return_to) and "Valid" or "Invalid"
+    except DiscoveryFailure:
         trust_root_valid = "DISCOVERY_FAILED"
-    except HTTPFetchingError, err:
+    except HTTPFetchingError:
         trust_root_valid = "Unreachable"
 
     pape_request = pape.Request.fromOpenIDRequest(openid_request)
@@ -199,10 +208,11 @@ def showDecidePage(request, openid_request):
         request,
         'server/trust.html',
         {'trust_root': trust_root,
-         'trust_handler_url':getViewURL(request, processTrustResult),
+         'trust_handler_url': getViewURL(request, processTrustResult),
          'trust_root_valid': trust_root_valid,
          'pape_request': pape_request,
          })
+
 
 def processTrustResult(request):
     """
@@ -236,7 +246,7 @@ def processTrustResult(request):
             'country': 'ES',
             'language': 'eu',
             'timezone': 'America/New_York',
-            }
+        }
 
         sreg_req = sreg.SRegRequest.fromOpenIDRequest(openid_request)
         sreg_resp = sreg.SRegResponse.extractResponse(sreg_req, sreg_data)
@@ -247,6 +257,7 @@ def processTrustResult(request):
         openid_response.addExtension(pape_response)
 
     return displayResponse(request, openid_response)
+
 
 def displayResponse(request, openid_response):
     """
@@ -260,7 +271,7 @@ def displayResponse(request, openid_response):
     # Encode the response into something that is renderable.
     try:
         webresponse = s.encodeResponse(openid_response)
-    except EncodingError, why:
+    except EncodingError as why:
         # If it couldn't be encoded, display an error.
         text = why.response.encodeToKVForm()
         return direct_to_template(

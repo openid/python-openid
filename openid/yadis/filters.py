@@ -9,7 +9,7 @@ __all__ = [
     'IFilter',
     'TransformFilterMaker',
     'CompoundFilter',
-    ]
+]
 
 from openid.yadis.etxrd import expandService
 
@@ -27,6 +27,7 @@ class BasicServiceEndpoint(object):
     The simplest kind of filter you can write implements
     fromBasicServiceEndpoint, which takes one of these objects.
     """
+
     def __init__(self, yadis_url, type_uris, uri, service_element):
         self.type_uris = type_uris
         self.yadis_url = yadis_url
@@ -61,6 +62,7 @@ class BasicServiceEndpoint(object):
 
     fromBasicServiceEndpoint = staticmethod(fromBasicServiceEndpoint)
 
+
 class IFilter(object):
     """Interface for Yadis filter objects. Other filter-like things
     are convertable to this class."""
@@ -68,6 +70,7 @@ class IFilter(object):
     def getServiceEndpoints(self, yadis_url, service_element):
         """Returns an iterator of endpoint objects"""
         raise NotImplementedError
+
 
 class TransformFilterMaker(object):
     """Take a list of basic filters and makes a filter that transforms
@@ -124,10 +127,12 @@ class TransformFilterMaker(object):
 
         return None
 
+
 class CompoundFilter(object):
     """Create a new filter that applies a set of filters to an endpoint
     and collects their results.
     """
+
     def __init__(self, subfilters):
         self.subfilters = subfilters
 
@@ -140,9 +145,11 @@ class CompoundFilter(object):
                 subfilter.getServiceEndpoints(yadis_url, service_element))
         return endpoints
 
+
 # Exception raised when something is not able to be turned into a filter
 filter_type_error = TypeError(
     'Expected a filter, an endpoint, a callable or a list of any of these.')
+
 
 def mkFilter(parts):
     """Convert a filter-convertable thing into a filter
@@ -159,6 +166,7 @@ def mkFilter(parts):
         return mkCompoundFilter([parts])
     else:
         return mkCompoundFilter(parts)
+
 
 def mkCompoundFilter(parts):
     """Create a filter out of a list of filter-like things

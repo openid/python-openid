@@ -49,12 +49,12 @@ class ServerAssocs(object):
         return len(remove), len(self.assocs)
 
 
-
 class MemoryStore(object):
     """In-process memory store.
 
     Use for single long-running processes.  No persistence supplied.
     """
+
     def __init__(self):
         self.server_assocs = {}
         self.nonces = {}

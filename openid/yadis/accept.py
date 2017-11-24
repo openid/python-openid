@@ -1,6 +1,8 @@
 """Functions for generating and parsing HTTP Accept: headers for
 supporting server-directed content negotiation.
 """
+from operator import itemgetter
+
 
 def generateAcceptHeader(*elements):
     """Generate an accept header value
@@ -9,7 +11,7 @@ def generateAcceptHeader(*elements):
     """
     parts = []
     for element in elements:
-        if type(element) is str:
+        if isinstance(element, str):
             qs = "1.0"
             mtype = element
         else:
@@ -31,6 +33,7 @@ def generateAcceptHeader(*elements):
             chunks.append('%s; q=%s' % (mtype, q))
 
     return ', '.join(chunks)
+
 
 def parseAcceptHeader(value):
     """Parse an accept header, ignoring any accept-extensions
@@ -65,11 +68,11 @@ def parseAcceptHeader(value):
         else:
             q = 1.0
 
-        accept.append((q, main, sub))
+        accept.append((main, sub, q))
 
-    accept.sort()
-    accept.reverse()
-    return [(main, sub, q) for (q, main, sub) in accept]
+    # Sort in order q, main, sub
+    return sorted(accept, key=itemgetter(2, 0, 1), reverse=True)
+
 
 def matchTypes(accept_types, have_types):
     """Given the result of parsing an Accept: header, and the
@@ -93,30 +96,31 @@ def matchTypes(accept_types, have_types):
 
     match_main = {}
     match_sub = {}
-    for (main, sub, q) in accept_types:
+    for (main, sub, qvalue) in accept_types:
         if main == '*':
-            default = max(default, q)
+            default = max(default, qvalue)
             continue
         elif sub == '*':
-            match_main[main] = max(match_main.get(main, 0), q)
+            match_main[main] = max(match_main.get(main, 0), qvalue)
         else:
-            match_sub[(main, sub)] = max(match_sub.get((main, sub), 0), q)
+            match_sub[(main, sub)] = max(match_sub.get((main, sub), 0), qvalue)
 
     accepted_list = []
     order_maintainer = 0
     for mtype in have_types:
         main, sub = mtype.split('/')
         if (main, sub) in match_sub:
-            q = match_sub[(main, sub)]
+            quality = match_sub[(main, sub)]
         else:
-            q = match_main.get(main, default)
+            quality = match_main.get(main, default)
 
-        if q:
-            accepted_list.append((1 - q, order_maintainer, q, mtype))
+        if quality:
+            accepted_list.append((1 - quality, order_maintainer, quality, mtype))
             order_maintainer += 1
 
     accepted_list.sort()
     return [(mtype, q) for (_, _, q, mtype) in accepted_list]
+
 
 def getAcceptable(accept_header, have_types):
     """Parse the accept header and return a list of available types in

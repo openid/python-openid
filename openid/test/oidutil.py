@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import codecs
 import random
 import string
 import unittest
@@ -25,7 +24,7 @@ def test_base64():
         '\x01',
         '\x00' * 100,
         ''.join(map(chr, range(256))),
-        ]
+    ]
 
     for s in cases:
         b64 = oidutil.toBase64(s)
@@ -42,6 +41,7 @@ def test_base64():
         s_prime = oidutil.fromBase64(b64)
         assert s_prime == s, (s, b64, s_prime)
 
+
 class AppendArgsTest(unittest.TestCase):
     def __init__(self, desc, args, expected):
         unittest.TestCase.__init__(self)
@@ -56,6 +56,7 @@ class AppendArgsTest(unittest.TestCase):
     def shortDescription(self):
         return self.desc
 
+
 class TestUnicodeConversion(unittest.TestCase):
 
     def test_toUnicode(self):
@@ -67,6 +68,7 @@ class TestUnicodeConversion(unittest.TestCase):
         self.assertEquals(oidutil.toUnicode('fööbär'), u'fööbär')
         # Other encodings raise exceptions
         self.assertRaises(UnicodeDecodeError, lambda: oidutil.toUnicode(u'fööbär'.encode('latin-1')))
+
 
 class TestSymbol(unittest.TestCase):
     def testCopyHash(self):
@@ -96,7 +98,7 @@ def buildAppendTests():
          simple + '?a=b'),
 
         ('one dict',
-         (simple, {'a':'b'}),
+         (simple, {'a': 'b'}),
          simple + '?a=b'),
 
         ('two list (same)',
@@ -112,7 +114,7 @@ def buildAppendTests():
          simple + '?b=c&a=b'),
 
         ('two dict (order)',
-         (simple, {'b':'c', 'a':'b'}),
+         (simple, {'b': 'c', 'a': 'b'}),
          simple + '?a=b&b=c'),
 
         ('escape',
@@ -144,17 +146,17 @@ def buildAppendTests():
          simple + '?stuff=bother&ack=ack'),
 
         ('args exist (dict 2)',
-         (simple + '?stuff=bother', {'ack': 'ack', 'zebra':'lion'}),
+         (simple + '?stuff=bother', {'ack': 'ack', 'zebra': 'lion'}),
          simple + '?stuff=bother&ack=ack&zebra=lion'),
 
         ('three args (dict)',
-         (simple, {'stuff': 'bother', 'ack': 'ack', 'zebra':'lion'}),
+         (simple, {'stuff': 'bother', 'ack': 'ack', 'zebra': 'lion'}),
          simple + '?ack=ack&stuff=bother&zebra=lion'),
 
         ('three args (list)',
          (simple, [('stuff', 'bother'), ('ack', 'ack'), ('zebra', 'lion')]),
          simple + '?stuff=bother&ack=ack&zebra=lion'),
-        ]
+    ]
 
     tests = []
 
@@ -164,11 +166,13 @@ def buildAppendTests():
 
     return unittest.TestSuite(tests)
 
+
 def pyUnitTests():
     some = buildAppendTests()
     some.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(TestSymbol))
     some.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(TestUnicodeConversion))
     return some
+
 
 def test_appendArgs():
     suite = buildAppendTests()
@@ -181,10 +185,12 @@ def test_appendArgs():
 # specified and tested in oidutil.py These include, but are not
 # limited to appendArgs
 
+
 def test(skipPyUnit=True):
     test_base64()
     if not skipPyUnit:
         test_appendArgs()
+
 
 if __name__ == '__main__':
     test(skipPyUnit=False)

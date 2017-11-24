@@ -12,4 +12,4 @@ def index(request):
     return direct_to_template(
         request,
         'index.html',
-        {'consumer_url':consumer_url, 'server_url':server_url})
+        {'consumer_url': consumer_url, 'server_url': server_url})

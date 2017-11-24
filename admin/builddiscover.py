@@ -29,6 +29,7 @@ manifest_header = """\
 
 """
 
+
 def buildDiscover(base_url, out_dir):
     """Convert all files in a directory to apache mod_asis files in
     another directory."""
@@ -62,6 +63,7 @@ def buildDiscover(base_url, out_dir):
     for chunk in manifest:
         manifest_file.write(chunk)
     manifest_file.close()
+
 
 if __name__ == '__main__':
     import sys

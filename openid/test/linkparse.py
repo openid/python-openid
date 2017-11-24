@@ -23,6 +23,7 @@ def parseLink(line):
 
     return (optional, attrs)
 
+
 def parseCase(s):
     header, markup = s.split('\n\n', 1)
     lines = header.split('\n')
@@ -30,6 +31,7 @@ def parseCase(s):
     assert name.startswith('Name: ')
     desc = name[6:]
     return desc, markup, map(parseLink, lines)
+
 
 def parseTests(s):
     tests = []
@@ -46,6 +48,7 @@ def parseTests(s):
         tests.append((desc, markup, links, case))
 
     return num_tests, tests
+
 
 class _LinkTest(unittest.TestCase):
     def __init__(self, desc, case, expected, raw):
@@ -84,6 +87,7 @@ class _LinkTest(unittest.TestCase):
 
         assert i == len(actual)
 
+
 def pyUnitTests():
     here = os.path.dirname(os.path.abspath(__file__))
     test_data_file_name = os.path.join(here, 'linkparse.txt')
@@ -104,6 +108,7 @@ def pyUnitTests():
     tests.insert(0, check)
 
     return unittest.TestSuite(tests)
+
 
 if __name__ == '__main__':
     suite = pyUnitTests()

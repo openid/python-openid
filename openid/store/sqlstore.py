@@ -4,7 +4,8 @@ various SQL databases to back them.
 
 Example of how to initialize a store database::
 
-    python -c 'from openid.store import sqlstore; import pysqlite2.dbapi2; sqlstore.SQLiteStore(pysqlite2.dbapi2.connect("cstore.db")).createTables()'
+    python -c 'from openid.store import sqlstore; import pysqlite2.dbapi2;
+               sqlstore.SQLiteStore(pysqlite2.dbapi2.connect("cstore.db")).createTables()'
 """
 import re
 import time
@@ -28,6 +29,7 @@ def _inTxn(func):
         wrapped.__doc__ = func.__doc__
 
     return wrapped
+
 
 class SQLStore(OpenIDStore):
     """
@@ -98,14 +100,13 @@ class SQLStore(OpenIDStore):
         self._table_names = {
             'associations': associations_table or self.associations_table,
             'nonces': nonces_table or self.nonces_table,
-            }
-        self.max_nonce_age = 6 * 60 * 60 # Six hours, in seconds
+        }
+        self.max_nonce_age = 6 * 60 * 60  # Six hours, in seconds
 
         # DB API extension: search for "Connection Attributes .Error,
         # .ProgrammingError, etc." in
         # http://www.python.org/dev/peps/pep-0249/
-        if (hasattr(self.conn, 'IntegrityError') and
-            hasattr(self.conn, 'OperationalError')):
+        if hasattr(self.conn, 'IntegrityError') and hasattr(self.conn, 'OperationalError'):
             self.exceptions = self.conn
 
         if not (hasattr(self.exceptions, 'IntegrityError') and
@@ -139,6 +140,7 @@ class SQLStore(OpenIDStore):
         # arguments if they are passed in as unicode instead of str.
         # Currently the strings in our tables just have ascii in them,
         # so this ought to be safe.
+
         def unicode_to_str(arg):
             if isinstance(arg, unicode):
                 return str(arg)
@@ -153,6 +155,7 @@ class SQLStore(OpenIDStore):
         # as an attribute of this object and executes it.
         if attr[:3] == 'db_':
             sql_name = attr[3:] + '_sql'
+
             def func(*args):
                 return self._execSQL(sql_name, *args)
             setattr(self, attr, func)
@@ -174,7 +177,7 @@ class SQLStore(OpenIDStore):
             finally:
                 self.cur.close()
                 self.cur = None
-        except:
+        except Exception:
             self.conn.rollback()
             raise
         else:
@@ -248,7 +251,7 @@ class SQLStore(OpenIDStore):
         (str, str) -> bool
         """
         self.db_remove_assoc(server_url, handle)
-        return self.cur.rowcount > 0 # -1 is undefined
+        return self.cur.rowcount > 0  # -1 is undefined
 
     removeAssociation = _inTxn(txn_removeAssociation)
 
@@ -350,11 +353,12 @@ class SQLiteStore(SQLStore):
         # message from the OperationalError.
         try:
             return super(SQLiteStore, self).useNonce(*args, **kwargs)
-        except self.exceptions.OperationalError, why:
+        except self.exceptions.OperationalError as why:
             if re.match('^columns .* are not unique$', why[0]):
                 return False
             else:
                 raise
+
 
 class MySQLStore(SQLStore):
     """
@@ -417,12 +421,13 @@ class MySQLStore(SQLStore):
     clean_nonce_sql = 'DELETE FROM %(nonces)s WHERE timestamp < %%s;'
 
     def blobDecode(self, blob):
-        if type(blob) is str:
+        if isinstance(blob, str):
             # Versions of MySQLdb >= 1.2.2
             return blob
         else:
             # Versions of MySQLdb prior to 1.2.2 (as far as we can tell)
             return blob.tostring()
+
 
 class PostgreSQLStore(SQLStore):
     """
@@ -473,7 +478,7 @@ class PostgreSQLStore(SQLStore):
         REPLACE INTO is not supported by PostgreSQL (and is not
         standard SQL).
         """
-        result = self.db_get_assoc(server_url, handle)
+        self.db_get_assoc(server_url, handle)
         rows = self.cur.fetchall()
         if len(rows):
             # Update the table since this associations already exists.

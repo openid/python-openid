@@ -13,6 +13,7 @@ from openid import fetchers
 
 # XXX: make these separate test cases
 
+
 def failUnlessResponseExpected(expected, actual):
     assert expected.final_url == actual.final_url, (
         "%r != %r" % (expected.final_url, actual.final_url))
@@ -32,7 +33,7 @@ def test_fetcher(fetcher, exc, server):
                                    server.socket.getsockname()[1],
                                    path)
 
-    expected_headers = {'content-type':'text/plain'}
+    expected_headers = {'content-type': 'text/plain'}
 
     def plain(path, code):
         path = '/' + path
@@ -53,15 +54,13 @@ def test_fetcher(fetcher, exc, server):
         plain('forbidden', 403),
         plain('error', 500),
         plain('server_error', 503),
-        ]
+    ]
 
     for path, expected in cases:
         fetch_url = geturl(path)
         try:
             actual = fetcher.fetch(fetch_url)
-        except (SystemExit, KeyboardInterrupt):
-            pass
-        except:
+        except Exception:
             print fetcher, fetch_url
             raise
         else:
@@ -73,29 +72,28 @@ def test_fetcher(fetcher, exc, server):
                     'ftp://janrain.com/pub/']:
         try:
             result = fetcher.fetch(err_url)
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except fetchers.HTTPError, why:
+        except fetchers.HTTPError:
             # This is raised by the Curl fetcher for bad cases
             # detected by the fetchers module, but it's a subclass of
             # HTTPFetchingError, so we have to catch it explicitly.
             assert exc
-        except fetchers.HTTPFetchingError, why:
+        except fetchers.HTTPFetchingError:
             assert not exc, (fetcher, exc, server)
-        except:
+        except Exception:
             assert exc
         else:
             assert False, 'An exception was expected for %r (%r)' % (fetcher, result)
+
 
 def run_fetcher_tests(server):
     exc_fetchers = []
     for klass, library_name in [
         (fetchers.CurlHTTPFetcher, 'pycurl'),
         (fetchers.HTTPLib2Fetcher, 'httplib2'),
-        ]:
+    ]:
         try:
             exc_fetchers.append(klass())
-        except RuntimeError, why:
+        except RuntimeError as why:
             if why[0].startswith('Cannot find %s library' % (library_name,)):
                 try:
                     __import__(library_name)
@@ -122,17 +120,17 @@ def run_fetcher_tests(server):
 
 class FetcherTestHandler(BaseHTTPRequestHandler):
     cases = {
-        '/success':(200, None),
-        '/301redirect':(301, '/success'),
-        '/302redirect':(302, '/success'),
-        '/303redirect':(303, '/success'),
-        '/307redirect':(307, '/success'),
-        '/notfound':(404, None),
-        '/badreq':(400, None),
-        '/forbidden':(403, None),
-        '/error':(500, None),
-        '/server_error':(503, None),
-        }
+        '/success': (200, None),
+        '/301redirect': (301, '/success'),
+        '/302redirect': (302, '/success'),
+        '/303redirect': (303, '/success'),
+        '/307redirect': (307, '/success'),
+        '/notfound': (404, None),
+        '/badreq': (400, None),
+        '/forbidden': (403, None),
+        '/error': (500, None),
+        '/server_error': (503, None),
+    }
 
     def log_request(self, *args):
         pass
@@ -173,7 +171,7 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
         req = [
             ('HTTP method', self.command),
             ('path', self.path),
-            ]
+        ]
         if message:
             req.append(('message', message))
 
@@ -197,6 +195,7 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
         self.wfile.close()
         self.rfile.close()
 
+
 def test():
     import socket
     host = socket.getfqdn('127.0.0.1')
@@ -215,11 +214,13 @@ def test():
 
     run_fetcher_tests(server)
 
+
 class FakeFetcher(object):
     sentinel = object()
 
     def fetch(self, *args, **kwargs):
         return self.sentinel
+
 
 class DefaultFetcherTest(unittest.TestCase):
     def setUp(self):
@@ -276,7 +277,7 @@ class DefaultFetcherTest(unittest.TestCase):
             fetchers.fetch('http://invalid.janrain.com/')
         except fetchers.HTTPFetchingError:
             self.fail('Should not be wrapping exception')
-        except:
+        except Exception:
             exc = sys.exc_info()[1]
             self.failUnless(isinstance(exc, urllib2.URLError), exc)
             pass

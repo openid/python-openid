@@ -1,5 +1,3 @@
-
-from django import http
 from django.http import HttpResponseRedirect
 from django.views.generic.simple import direct_to_template
 
@@ -7,7 +5,7 @@ from openid.consumer import consumer
 from openid.consumer.discover import DiscoveryFailure
 from openid.extensions import ax, pape, sreg
 from openid.server.trustroot import RP_RETURN_TO_URL_TYPE
-from openid.yadis.constants import YADIS_CONTENT_TYPE, YADIS_HEADER_NAME
+from openid.yadis.constants import YADIS_HEADER_NAME
 
 from .. import util
 
@@ -15,11 +13,12 @@ PAPE_POLICIES = [
     'AUTH_PHISHING_RESISTANT',
     'AUTH_MULTI_FACTOR',
     'AUTH_MULTI_FACTOR_PHYSICAL',
-    ]
+]
 
 # List of (name, uri) for use in generating the request form.
 POLICY_PAIRS = [(p, getattr(pape, p))
                 for p in PAPE_POLICIES]
+
 
 def getOpenIDStore():
     """
@@ -28,20 +27,23 @@ def getOpenIDStore():
     """
     return util.getOpenIDStore('/tmp/djopenid_c_store', 'c_')
 
+
 def getConsumer(request):
     """
     Get a Consumer object to perform OpenID authentication.
     """
     return consumer.Consumer(request.session, getOpenIDStore())
 
+
 def renderIndexPage(request, **template_args):
     template_args['consumer_url'] = util.getViewURL(request, startOpenID)
     template_args['pape_policies'] = POLICY_PAIRS
 
-    response =  direct_to_template(
+    response = direct_to_template(
         request, 'consumer/index.html', template_args)
     response[YADIS_HEADER_NAME] = util.getViewURL(request, rpXRDS)
     return response
+
 
 def startOpenID(request):
     """
@@ -67,7 +69,7 @@ def startOpenID(request):
 
         try:
             auth_request = c.begin(openid_url)
-        except DiscoveryFailure, e:
+        except DiscoveryFailure as e:
             # Some other protocol-level failure occurred.
             error = "OpenID discovery error: %s" % (str(e),)
 
@@ -133,6 +135,7 @@ def startOpenID(request):
 
     return renderIndexPage(request)
 
+
 def finishOpenID(request):
     """
     Finish the OpenID authentication process.  Invoke the OpenID
@@ -173,7 +176,7 @@ def finishOpenID(request):
                         'http://schema.openid.net/namePerson'),
                     'web': ax_response.get(
                         'http://schema.openid.net/contact/web/default'),
-                    }
+                }
 
         # Get a PAPE response object if response information was
         # included in the OpenID response.
@@ -197,7 +200,7 @@ def finishOpenID(request):
              'sreg': sreg_response and sreg_response.items(),
              'ax': ax_items.items(),
              'pape': pape_response}
-            }
+        }
 
         result = results[response.status]
 
@@ -209,6 +212,7 @@ def finishOpenID(request):
             result['failure_reason'] = response.message
 
     return renderIndexPage(request, **result)
+
 
 def rpXRDS(request):
     """

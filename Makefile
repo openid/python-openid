@@ -1,4 +1,4 @@
-.PHONY: test coverage isort check-isort
+.PHONY: test coverage isort check-all check-isort check-flake8
 
 test:
 	python admin/runtests
@@ -12,5 +12,10 @@ coverage:
 isort:
 	isort --recursive .
 
+check-all: check-isort check-flake8
+
 check-isort:
 	isort --check-only --diff --recursive .
+
+check-flake8:
+	flake8 --format=pylint .

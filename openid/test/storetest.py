@@ -17,18 +17,20 @@ for c in string.printable:
         allowed_handle.append(c)
 allowed_handle = ''.join(allowed_handle)
 
+
 def generateHandle(n):
     return randomString(n, allowed_handle)
 
+
 generateSecret = randomString
+
 
 def getTmpDbName():
     hostname = socket.gethostname()
     hostname = hostname.replace('.', '_')
     hostname = hostname.replace('-', '_')
-    return "%s_%d_%s_openid_test" % \
-           (hostname, os.getpid(), \
-            random.randrange(1, int(time.time())))
+    return "%s_%d_%s_openid_test" % (hostname, os.getpid(), random.randrange(1, int(time.time())))
+
 
 def testStore(store):
     """Make sure a given store has a minimum of API compliance. Call
@@ -38,10 +40,11 @@ def testStore(store):
 
     OpenIDStore -> NoneType
     """
-    ### Association functions
+    # Association functions
     now = int(time.time())
 
     server_url = 'http://www.myopenid.com/openid'
+
     def genAssoc(issued, lifetime=600):
         sec = generateSecret(20)
         hdl = generateHandle(128)
@@ -146,15 +149,15 @@ def testStore(store):
     checkRemove(server_url, assoc.handle, False)
     checkRemove(server_url, assoc3.handle, False)
 
-    ### test expired associations
+    # test expired associations
     # assoc 1: server 1, valid
     # assoc 2: server 1, expired
     # assoc 3: server 2, expired
     # assoc 4: server 3, valid
-    assocValid1 = genAssoc(issued=-3600,lifetime=7200)
+    assocValid1 = genAssoc(issued=-3600, lifetime=7200)
     assocValid2 = genAssoc(issued=-5)
-    assocExpired1 = genAssoc(issued=-7200,lifetime=3600)
-    assocExpired2 = genAssoc(issued=-7200,lifetime=3600)
+    assocExpired1 = genAssoc(issued=-7200, lifetime=3600)
+    assocExpired2 = genAssoc(issued=-7200, lifetime=3600)
 
     store.cleanupAssociations()
     store.storeAssociation(server_url + '1', assocValid1)
@@ -165,7 +168,7 @@ def testStore(store):
     cleaned = store.cleanupAssociations()
     assert cleaned == 2, cleaned
 
-    ### Nonce functions
+    # Nonce functions
 
     def checkUseNonce(nonce, expected, server_url, msg=''):
         stamp, salt = split(nonce)
@@ -188,7 +191,6 @@ def testStore(store):
         # Nonces from when the universe was an hour old should not pass these days.
         old_nonce = mkNonce(3600)
         checkUseNonce(old_nonce, False, url, "Old nonce (%r) passed." % (old_nonce,))
-
 
     old_nonce1 = mkNonce(now - 20000)
     old_nonce2 = mkNonce(now - 10000)
@@ -235,10 +237,11 @@ def test_filestore():
     try:
         testStore(store)
         store.cleanup()
-    except:
+    except Exception:
         raise
     else:
         shutil.rmtree(temp_dir)
+
 
 def test_sqlite():
     from openid.store import sqlstore
@@ -252,6 +255,7 @@ def test_sqlite():
         store.createTables()
         testStore(store)
 
+
 def test_mysql():
     from openid.store import sqlstore
     try:
@@ -263,12 +267,10 @@ def test_mysql():
         db_passwd = ''
         db_name = getTmpDbName()
 
-        from MySQLdb.constants import ER
-
         # Change this connect line to use the right user and password
         try:
-            conn = MySQLdb.connect(user=db_user, passwd=db_passwd, host = db_host)
-        except MySQLdb.OperationalError, why:
+            conn = MySQLdb.connect(user=db_user, passwd=db_passwd, host=db_host)
+        except MySQLdb.OperationalError as why:
             if why[0] == 2005:
                 print ('Skipping MySQL store test (cannot connect '
                        'to test server on host %r)' % (db_host,))
@@ -291,6 +293,7 @@ def test_mysql():
             # Remove the database. If you want to do post-mortem on a
             # failing test, comment out this line.
             conn.query('DROP DATABASE %s;' % db_name)
+
 
 def test_postgresql():
     """
@@ -329,8 +332,7 @@ def test_postgresql():
 
         # Connect once to create the database; reconnect to access the
         # new database.
-        conn_create = psycopg.connect(database = 'template1', user = db_user,
-                                      host = db_host)
+        conn_create = psycopg.connect(database='template1', user=db_user, host=db_host)
         conn_create.autocommit()
 
         # Create the test database.
@@ -339,8 +341,7 @@ def test_postgresql():
         conn_create.close()
 
         # Connect to the test database.
-        conn_test = psycopg.connect(database = db_name, user = db_user,
-                                    host = db_host)
+        conn_test = psycopg.connect(database=db_name, user=db_user, host=db_host)
 
         # OK, we're in the right environment. Create the store
         # instance and create the tables.
@@ -361,17 +362,18 @@ def test_postgresql():
         time.sleep(1)
 
         # Remove the database now that the test is over.
-        conn_remove = psycopg.connect(database = 'template1', user = db_user,
-                                      host = db_host)
+        conn_remove = psycopg.connect(database='template1', user=db_user, host=db_host)
         conn_remove.autocommit()
 
         cursor = conn_remove.cursor()
         cursor.execute('DROP DATABASE %s;' % (db_name,))
         conn_remove.close()
 
+
 def test_memstore():
     from openid.store import memstore
     testStore(memstore.MemoryStore())
+
 
 test_functions = [
     test_filestore,
@@ -379,12 +381,13 @@ test_functions = [
     test_mysql,
     test_postgresql,
     test_memstore,
-    ]
+]
+
 
 def pyUnitTests():
     tests = map(unittest.FunctionTestCase, test_functions)
-    load = unittest.defaultTestLoader.loadTestsFromTestCase
     return unittest.TestSuite(tests)
+
 
 if __name__ == '__main__':
     import sys

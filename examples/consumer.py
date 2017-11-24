@@ -35,6 +35,7 @@ For more information, see the README in the root of the library
 distribution.""")
     sys.exit(1)
 else:
+    del openid
     from openid.consumer import consumer
     from openid.cryptutil import randomString
     from openid.extensions import pape, sreg
@@ -45,13 +46,14 @@ else:
 
 # Used with an OpenID provider affiliate program.
 OPENID_PROVIDER_NAME = 'MyOpenID'
-OPENID_PROVIDER_URL ='https://www.myopenid.com/affiliate_signup?affiliate_id=39'
+OPENID_PROVIDER_URL = 'https://www.myopenid.com/affiliate_signup?affiliate_id=39'
 
 
 class OpenIDHTTPServer(HTTPServer):
     """http server that contains a reference to an OpenID consumer and
     knows its base URL.
     """
+
     def __init__(self, store, *args, **kwargs):
         HTTPServer.__init__(self, *args, **kwargs)
         self.sessions = {}
@@ -62,6 +64,7 @@ class OpenIDHTTPServer(HTTPServer):
                              (self.server_name, self.server_port))
         else:
             self.base_url = 'http://%s/' % (self.server_name,)
+
 
 class OpenIDRequestHandler(BaseHTTPRequestHandler):
     """Request handler that knows how to verify an OpenID identity."""
@@ -145,9 +148,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             else:
                 self.notFound()
 
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
+        except Exception:
             self.send_response(500)
             self.send_header('Content-type', 'text/html')
             self.setSessionCookie()
@@ -170,10 +171,10 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         use_pape = 'use_pape' in self.query
         use_stateless = 'use_stateless' in self.query
 
-        oidconsumer = self.getConsumer(stateless = use_stateless)
+        oidconsumer = self.getConsumer(stateless=use_stateless)
         try:
             request = oidconsumer.begin(openid_url)
-        except consumer.DiscoveryFailure, exc:
+        except consumer.DiscoveryFailure as exc:
             fetch_error_string = 'Error in discovery: %s' % (
                 cgi.escape(str(exc[0])))
             self.render(fetch_error_string,
@@ -207,7 +208,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                 else:
                     form_html = request.htmlMarkup(
                         trust_root, return_to,
-                        form_tag_attrs={'id':'openid_message'},
+                        form_tag_attrs={'id': 'openid_message'},
                         immediate=immediate)
 
                     self.wfile.write(form_html)
@@ -230,7 +231,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         # us.  Status is a code indicating the response type. info is
         # either None or a string containing more information about
         # the return type.
-        url = 'http://'+self.headers.get('Host')+self.path
+        url = 'http://' + self.headers.get('Host') + self.path
         info = oidconsumer.complete(self.query, url)
 
         sreg_resp = None
@@ -300,8 +301,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(
                 '<div class="alert">No registration data was returned</div>')
         else:
-            sreg_list = sreg_data.items()
-            sreg_list.sort()
+            sreg_list = sorted(sreg_data.items())
             self.wfile.write(
                 '<h2>Registration Data</h2>'
                 '<table class="sreg">'
@@ -443,13 +443,16 @@ Content-type: text/html; charset=UTF-8
         <input type="submit" value="Verify" /><br />
         <input type="checkbox" name="immediate" id="immediate" /><label for="immediate">Use immediate mode</label>
         <input type="checkbox" name="use_sreg" id="use_sreg" /><label for="use_sreg">Request registration data</label>
-        <input type="checkbox" name="use_pape" id="use_pape" /><label for="use_pape">Request phishing-resistent auth policy (PAPE)</label>
-        <input type="checkbox" name="use_stateless" id="use_stateless" /><label for="use_stateless">Use stateless mode</label>
+        <input type="checkbox" name="use_pape" id="use_pape" />
+            <label for="use_pape">Request phishing-resistent auth policy (PAPE)</label>
+        <input type="checkbox" name="use_stateless" id="use_stateless" />
+            <label for="use_stateless">Use stateless mode</label>
       </form>
     </div>
   </body>
 </html>
 ''' % (quoteattr(self.buildURL('verify')), quoteattr(form_contents)))
+
 
 def main(host, port, data_path, weak_ssl=False):
     # Instantiate OpenID consumer store and OpenID consumer.  If you
@@ -469,6 +472,7 @@ def main(host, port, data_path, weak_ssl=False):
     print 'Server running at:'
     print server.base_url
     server.serve_forever()
+
 
 if __name__ == '__main__':
     parser = optparse.OptionParser('Usage:\n %prog [options]')

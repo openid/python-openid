@@ -1,11 +1,11 @@
 import re
-import time
 import unittest
 
 from openid.store.nonce import checkTimestamp, mkNonce, split as splitNonce
 from openid.test import datadriven
 
 nonce_re = re.compile(r'\A\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ')
+
 
 class NonceTest(unittest.TestCase):
     def test_mkNonce(self):
@@ -35,6 +35,7 @@ class NonceTest(unittest.TestCase):
         self.failUnlessEqual(len(salt), 6)
         self.failUnlessEqual(et, t)
 
+
 class BadSplitTest(datadriven.DataDrivenTestCase):
     cases = [
         '',
@@ -44,7 +45,7 @@ class BadSplitTest(datadriven.DataDrivenTestCase):
         '1970.01-01T00:00:00Z',
         'Thu Sep  7 13:29:31 PDT 2006',
         'monkeys',
-        ]
+    ]
 
     def __init__(self, nonce_str):
         datadriven.DataDrivenTestCase.__init__(self, nonce_str)
@@ -52,6 +53,7 @@ class BadSplitTest(datadriven.DataDrivenTestCase):
 
     def runOneTest(self):
         self.failUnlessRaises(ValueError, splitNonce, self.nonce_str)
+
 
 class CheckTimestampTest(datadriven.DataDrivenTestCase):
     cases = [
@@ -78,7 +80,7 @@ class CheckTimestampTest(datadriven.DataDrivenTestCase):
 
         # malformed nonce string
         ('monkeys', 0, 0, False),
-        ]
+    ]
 
     def __init__(self, nonce_string, allowed_skew, now, expected):
         datadriven.DataDrivenTestCase.__init__(
@@ -92,8 +94,10 @@ class CheckTimestampTest(datadriven.DataDrivenTestCase):
         actual = checkTimestamp(self.nonce_string, self.allowed_skew, self.now)
         self.failUnlessEqual(bool(self.expected), bool(actual))
 
+
 def pyUnitTests():
     return datadriven.loadTests(__name__)
+
 
 if __name__ == '__main__':
     suite = pyUnitTests()

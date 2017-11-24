@@ -17,6 +17,7 @@ def getTestData():
         i += 1
     return lines
 
+
 def chunk(lines):
     """Return groups of lines separated by whitespace or comments
 
@@ -38,6 +39,7 @@ def chunk(lines):
 
     return chunks
 
+
 def parseLines(chunk):
     """Take the given chunk of lines and turn it into a test data dictionary
 
@@ -51,12 +53,14 @@ def parseLines(chunk):
 
     return items
 
+
 def parseAvailable(available_text):
     """Parse an Available: line's data
 
     str -> [str]
     """
     return [s.strip() for s in available_text.split(',')]
+
 
 def parseExpected(expected_text):
     """Parse an Expected: line's data
@@ -78,6 +82,7 @@ def parseExpected(expected_text):
 
     return expected
 
+
 class MatchAcceptTest(unittest.TestCase):
     def __init__(self, descr, accept_header, available, expected):
         unittest.TestCase.__init__(self)
@@ -94,6 +99,7 @@ class MatchAcceptTest(unittest.TestCase):
         actual = accept.matchTypes(accepted, self.available)
         self.failUnlessEqual(self.expected, actual)
 
+
 def pyUnitTests():
     lines = getTestData()
     chunks = chunk(lines)
@@ -107,7 +113,7 @@ def pyUnitTests():
         lnos.append(lno)
         try:
             available = parseAvailable(avail_data)
-        except:
+        except Exception:
             print 'On line', lno
             raise
 
@@ -115,7 +121,7 @@ def pyUnitTests():
         lnos.append(lno)
         try:
             expected = parseExpected(exp_data)
-        except:
+        except Exception:
             print 'On line', lno
             raise
 
@@ -123,6 +129,7 @@ def pyUnitTests():
         case = MatchAcceptTest(descr, header, available, expected)
         cases.append(case)
     return unittest.TestSuite(cases)
+
 
 if __name__ == '__main__':
     runner = unittest.TextTestRunner()

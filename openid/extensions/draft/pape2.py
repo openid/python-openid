@@ -13,7 +13,7 @@ __all__ = [
     'AUTH_PHISHING_RESISTANT',
     'AUTH_MULTI_FACTOR',
     'AUTH_MULTI_FACTOR_PHYSICAL',
-    ]
+]
 
 import re
 
@@ -29,6 +29,7 @@ AUTH_PHISHING_RESISTANT = \
     'http://schemas.openid.net/pape/policies/2007/06/phishing-resistant'
 
 TIME_VALIDATOR = re.compile('^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ$')
+
 
 class Request(Extension):
     """A Provider Authentication Policy request, sent from a relying
@@ -75,8 +76,8 @@ class Request(Extension):
         """@see: C{L{Extension.getExtensionArgs}}
         """
         ns_args = {
-            'preferred_auth_policies':' '.join(self.preferred_auth_policies)
-            }
+            'preferred_auth_policies': ' '.join(self.preferred_auth_policies)
+        }
 
         if self.max_auth_age is not None:
             ns_args['max_auth_age'] = str(self.max_auth_age)
@@ -147,6 +148,7 @@ class Request(Extension):
         """
         return filter(self.preferred_auth_policies.__contains__,
                       supported_types)
+
 
 Request.ns_uri = ns_uri
 
@@ -254,12 +256,12 @@ class Response(Extension):
         """
         if len(self.auth_policies) == 0:
             ns_args = {
-                'auth_policies':'none',
+                'auth_policies': 'none',
             }
         else:
             ns_args = {
-                'auth_policies':' '.join(self.auth_policies),
-                }
+                'auth_policies': ' '.join(self.auth_policies),
+            }
 
         if self.nist_auth_level is not None:
             if self.nist_auth_level not in range(0, 5):
@@ -274,5 +276,6 @@ class Response(Extension):
             ns_args['auth_time'] = self.auth_time
 
         return ns_args
+
 
 Response.ns_uri = ns_uri

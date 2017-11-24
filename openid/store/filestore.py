@@ -21,12 +21,14 @@ _LOGGER = logging.getLogger(__name__)
 _filename_allowed = string.ascii_letters + string.digits + '.'
 _isFilenameSafe = set(_filename_allowed).__contains__
 
+
 def _safe64(s):
     h64 = oidutil.toBase64(cryptutil.sha1(s))
     h64 = h64.replace('+', '_')
     h64 = h64.replace('/', '.')
     h64 = h64.replace('=', '')
     return h64
+
 
 def _filenameEscape(s):
     filename_chunks = []
@@ -37,6 +39,7 @@ def _filenameEscape(s):
             filename_chunks.append('_%02X' % ord(c))
     return ''.join(filename_chunks)
 
+
 def _removeIfPresent(filename):
     """Attempt to remove a file, returning whether the file existed at
     the time of the call.
@@ -45,7 +48,7 @@ def _removeIfPresent(filename):
     """
     try:
         os.unlink(filename)
-    except OSError, why:
+    except OSError as why:
         if why.errno == ENOENT:
             # Someone beat us to it, but it's gone, so that's OK
             return 0
@@ -54,6 +57,7 @@ def _removeIfPresent(filename):
     else:
         # File was present
         return 1
+
 
 def _ensureDir(dir_name):
     """Create dir_name as a directory if it does not exist. If it
@@ -65,9 +69,10 @@ def _ensureDir(dir_name):
     """
     try:
         os.makedirs(dir_name)
-    except OSError, why:
+    except OSError as why:
         if why.errno != EEXIST or not os.path.isdir(dir_name):
             raise
+
 
 class FileOpenIDStore(OpenIDStore):
     """
@@ -108,7 +113,7 @@ class FileOpenIDStore(OpenIDStore):
         # directory
         self.temp_dir = os.path.join(directory, 'temp')
 
-        self.max_nonce_age = 6 * 60 * 60 # Six hours, in seconds
+        self.max_nonce_age = 6 * 60 * 60  # Six hours, in seconds
 
         self._setup()
 
@@ -137,7 +142,9 @@ class FileOpenIDStore(OpenIDStore):
         try:
             file_obj = os.fdopen(fd, 'wb')
             return file_obj, name
-        except:
+        except Exception:
+            # If there was an error, don't leave the temporary file
+            # around.
             _removeIfPresent(name)
             raise
 
@@ -183,7 +190,7 @@ class FileOpenIDStore(OpenIDStore):
 
             try:
                 os.rename(tmp, filename)
-            except OSError, why:
+            except OSError as why:
                 if why.errno != EEXIST:
                     raise
 
@@ -192,7 +199,7 @@ class FileOpenIDStore(OpenIDStore):
                 # file, but not in putting the temporary file in place.
                 try:
                     os.unlink(filename)
-                except OSError, why:
+                except OSError as why:
                     if why.errno == ENOENT:
                         pass
                     else:
@@ -201,7 +208,7 @@ class FileOpenIDStore(OpenIDStore):
                 # Now the target should not exist. Try renaming again,
                 # giving up if it fails.
                 os.rename(tmp, filename)
-        except:
+        except Exception:
             # If there was an error, don't leave the temporary file
             # around.
             _removeIfPresent(tmp)
@@ -252,7 +259,7 @@ class FileOpenIDStore(OpenIDStore):
     def _getAssociation(self, filename):
         try:
             assoc_file = file(filename, 'rb')
-        except IOError, why:
+        except IOError as why:
             if why.errno == ENOENT:
                 # No association exists for that URL and handle
                 return None
@@ -313,8 +320,8 @@ class FileOpenIDStore(OpenIDStore):
 
         filename = os.path.join(self.nonce_dir, filename)
         try:
-            fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0200)
-        except OSError, why:
+            fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o200)
+        except OSError as why:
             if why.errno == EEXIST:
                 return False
             else:
@@ -332,7 +339,7 @@ class FileOpenIDStore(OpenIDStore):
         for association_filename in association_filenames:
             try:
                 association_file = file(association_filename, 'rb')
-            except IOError, why:
+            except IOError as why:
                 if why.errno == ENOENT:
                     _LOGGER.exception("%s disappeared during %s._allAssocs",
                                       association_filename, self.__class__.__name__)

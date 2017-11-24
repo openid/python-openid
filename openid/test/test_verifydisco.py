@@ -14,11 +14,12 @@ def const(result):
 
     return constResult
 
+
 class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
     def failUnlessProtocolError(self, prefix, callable, *args, **kwargs):
         try:
             result = callable(*args, **kwargs)
-        except consumer.ProtocolError, e:
+        except consumer.ProtocolError as e:
             self.failUnless(
                 e[0].startswith(prefix),
                 'Expected message prefix %r, got message %r' % (prefix, e[0]))
@@ -37,30 +38,30 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         self.failUnlessLogEmpty()
 
     def test_openID1NoEndpoint(self):
-        msg = message.Message.fromOpenIDArgs({'identity':'snakes on a plane'})
+        msg = message.Message.fromOpenIDArgs({'identity': 'snakes on a plane'})
         self.failUnlessRaises(RuntimeError,
                               self.consumer._verifyDiscoveryResults, msg)
         self.failUnlessLogEmpty()
 
     def test_openID2NoOPEndpointArg(self):
-        msg = message.Message.fromOpenIDArgs({'ns':message.OPENID2_NS})
+        msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS})
         self.failUnlessRaises(KeyError,
                               self.consumer._verifyDiscoveryResults, msg)
         self.failUnlessLogEmpty()
 
     def test_openID2LocalIDNoClaimed(self):
-        msg = message.Message.fromOpenIDArgs({'ns':message.OPENID2_NS,
-                                              'op_endpoint':'Phone Home',
-                                              'identity':'Jose Lius Borges'})
+        msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS,
+                                              'op_endpoint': 'Phone Home',
+                                              'identity': 'Jose Lius Borges'})
         self.failUnlessProtocolError(
             'openid.identity is present without',
             self.consumer._verifyDiscoveryResults, msg)
         self.failUnlessLogEmpty()
 
     def test_openID2NoLocalIDClaimed(self):
-        msg = message.Message.fromOpenIDArgs({'ns':message.OPENID2_NS,
-                                              'op_endpoint':'Phone Home',
-                                              'claimed_id':'Manuel Noriega'})
+        msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS,
+                                              'op_endpoint': 'Phone Home',
+                                              'claimed_id': 'Manuel Noriega'})
         self.failUnlessProtocolError(
             'openid.claimed_id is present without',
             self.consumer._verifyDiscoveryResults, msg)
@@ -68,8 +69,8 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
 
     def test_openID2NoIdentifiers(self):
         op_endpoint = 'Phone Home'
-        msg = message.Message.fromOpenIDArgs({'ns':message.OPENID2_NS,
-                                              'op_endpoint':op_endpoint})
+        msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS,
+                                              'op_endpoint': op_endpoint})
         result_endpoint = self.consumer._verifyDiscoveryResults(msg)
         self.failUnless(result_endpoint.isOPIdentifier())
         self.failUnlessEqual(op_endpoint, result_endpoint.server_url)
@@ -82,10 +83,10 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         sentinel.claimed_id = 'monkeysoft'
         self.consumer._discoverAndVerify = const(sentinel)
         msg = message.Message.fromOpenIDArgs(
-            {'ns':message.OPENID2_NS,
-             'identity':'sour grapes',
-             'claimed_id':'monkeysoft',
-             'op_endpoint':op_endpoint})
+            {'ns': message.OPENID2_NS,
+             'identity': 'sour grapes',
+             'claimed_id': 'monkeysoft',
+             'op_endpoint': op_endpoint})
         result = self.consumer._verifyDiscoveryResults(msg)
         self.failUnlessEqual(sentinel, result)
         self.failUnlessLogMatches('No pre-discovered')
@@ -100,10 +101,10 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         sentinel.claimed_id = 'monkeysoft'
         self.consumer._discoverAndVerify = const(sentinel)
         msg = message.Message.fromOpenIDArgs(
-            {'ns':message.OPENID2_NS,
-             'identity':'sour grapes',
-             'claimed_id':'monkeysoft',
-             'op_endpoint':op_endpoint})
+            {'ns': message.OPENID2_NS,
+             'identity': 'sour grapes',
+             'claimed_id': 'monkeysoft',
+             'op_endpoint': op_endpoint})
         result = self.consumer._verifyDiscoveryResults(msg, mismatched)
         self.failUnlessEqual(sentinel, result)
         self.failUnlessLogMatches('Error attempting to use stored',
@@ -117,10 +118,10 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         endpoint.type_uris = [discover.OPENID_2_0_TYPE]
 
         msg = message.Message.fromOpenIDArgs(
-            {'ns':message.OPENID2_NS,
-             'identity':endpoint.local_id,
-             'claimed_id':endpoint.claimed_id,
-             'op_endpoint':endpoint.server_url})
+            {'ns': message.OPENID2_NS,
+             'identity': endpoint.local_id,
+             'claimed_id': endpoint.claimed_id,
+             'op_endpoint': endpoint.server_url})
         result = self.consumer._verifyDiscoveryResults(msg, endpoint)
         self.failUnless(result is endpoint)
         self.failUnlessLogEmpty()
@@ -143,14 +144,14 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         self.consumer._discoverAndVerify = discoverAndVerify
 
         msg = message.Message.fromOpenIDArgs(
-            {'ns':message.OPENID2_NS,
-             'identity':endpoint.local_id,
-             'claimed_id':endpoint.claimed_id,
-             'op_endpoint':endpoint.server_url})
+            {'ns': message.OPENID2_NS,
+             'identity': endpoint.local_id,
+             'claimed_id': endpoint.claimed_id,
+             'op_endpoint': endpoint.server_url})
 
         try:
             r = self.consumer._verifyDiscoveryResults(msg, endpoint)
-        except consumer.ProtocolError, e:
+        except consumer.ProtocolError as e:
             # Should we make more ProtocolError subclasses?
             self.failUnless(str(e), text)
         else:
@@ -167,14 +168,15 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         endpoint.type_uris = [discover.OPENID_1_1_TYPE]
 
         msg = message.Message.fromOpenIDArgs(
-            {'ns':message.OPENID1_NS,
-             'identity':endpoint.local_id})
+            {'ns': message.OPENID1_NS,
+             'identity': endpoint.local_id})
         result = self.consumer._verifyDiscoveryResults(msg, endpoint)
         self.failUnless(result is endpoint)
         self.failUnlessLogEmpty()
 
     def test_openid1UsePreDiscoveredWrongType(self):
-        class VerifiedError(Exception): pass
+        class VerifiedError(Exception):
+            pass
 
         def discoverAndVerify(claimed_id, _to_match):
             raise VerifiedError
@@ -188,8 +190,8 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         endpoint.type_uris = [discover.OPENID_2_0_TYPE]
 
         msg = message.Message.fromOpenIDArgs(
-            {'ns':message.OPENID1_NS,
-             'identity':endpoint.local_id})
+            {'ns': message.OPENID1_NS,
+             'identity': endpoint.local_id})
 
         self.failUnlessRaises(
             VerifiedError,
@@ -208,18 +210,18 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         endpoint.type_uris = [discover.OPENID_2_0_TYPE]
 
         msg = message.Message.fromOpenIDArgs(
-            {'ns':message.OPENID2_NS,
-             'identity':endpoint.local_id,
+            {'ns': message.OPENID2_NS,
+             'identity': endpoint.local_id,
              'claimed_id': claimed_id_frag,
              'op_endpoint': endpoint.server_url})
         result = self.consumer._verifyDiscoveryResults(msg, endpoint)
-        
+
         self.failUnlessEqual(result.local_id, endpoint.local_id)
         self.failUnlessEqual(result.server_url, endpoint.server_url)
         self.failUnlessEqual(result.type_uris, endpoint.type_uris)
 
         self.failUnlessEqual(result.claimed_id, claimed_id_frag)
-        
+
         self.failUnlessLogEmpty()
 
     def test_openid1Fallback1_0(self):
@@ -266,6 +268,7 @@ class TestVerifyDiscoverySingle(TestIdRes):
         # result should always be None, raises exception on failure.
         self.failUnlessEqual(result, None)
         self.failUnlessLogEmpty()
+
 
 if __name__ == '__main__':
     unittest.main()

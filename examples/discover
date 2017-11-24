@@ -2,10 +2,11 @@
 from openid.consumer.discover import discover, DiscoveryFailure
 from openid.fetchers import HTTPFetchingError
 
-names = [["server_url",  "Server URL  "],
-         ["local_id",    "Local ID    "],
+names = [["server_url", "Server URL  "],
+         ["local_id", "Local ID    "],
          ["canonicalID", "Canonical ID"],
-        ]
+         ]
+
 
 def show_services(user_input, normalized, services):
     print " Claimed identifier:", normalized
@@ -28,6 +29,7 @@ def show_services(user_input, normalized, services):
         print " No OpenID services found"
         print
 
+
 if __name__ == "__main__":
     import sys
 
@@ -36,10 +38,10 @@ if __name__ == "__main__":
         print "Running discovery on", user_input
         try:
             normalized, services = discover(user_input)
-        except DiscoveryFailure, why:
+        except DiscoveryFailure as why:
             print "Discovery failed:", why
             print
-        except HTTPFetchingError, why:
+        except HTTPFetchingError as why:
             print "HTTP request failed:", why
             print
         else:

@@ -8,7 +8,8 @@ def datapath(filename):
     module_directory = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(module_directory, 'data', 'test_etxrd', filename)
 
-XRD_FILE =  datapath('valid-populated-xrds.xml')
+
+XRD_FILE = datapath('valid-populated-xrds.xml')
 NOXRDS_FILE = datapath('not-xrds.xml')
 NOXRD_FILE = datapath('no-xrd.xml')
 
@@ -17,6 +18,7 @@ NOXRD_FILE = datapath('no-xrd.xml')
 
 LID_2_0 = "http://lid.netmesh.org/sso/2.0b5"
 TYPEKEY_1_0 = "http://typekey.com/services/1.0"
+
 
 def simpleOpenIDTransformer(endpoint):
     """Function to extract information from an OpenID service element"""
@@ -29,6 +31,7 @@ def simpleOpenIDTransformer(endpoint):
     delegate = delegates[0].text
     return (endpoint.uri, delegate)
 
+
 class TestServiceParser(unittest.TestCase):
     def setUp(self):
         self.xmldoc = file(XRD_FILE).read()
@@ -39,7 +42,7 @@ class TestServiceParser(unittest.TestCase):
 
     def testParse(self):
         """Make sure that parsing succeeds at all"""
-        services = self._getServices()
+        self._getServices()
 
     def testParseOpenID(self):
         """Parse for OpenID services with a transformer function"""
@@ -50,7 +53,7 @@ class TestServiceParser(unittest.TestCase):
             ("http://www.schtuff.com/openid", "http://users.schtuff.com/josh"),
             ("http://www.livejournal.com/openid/server.bml",
              "http://www.livejournal.com/users/nedthealpaca/"),
-            ]
+        ]
 
         it = iter(services)
         for (server_url, delegate) in expectedServices:
@@ -79,16 +82,13 @@ class TestServiceParser(unittest.TestCase):
             # type, URL
             (TYPEKEY_1_0, None),
             (LID_2_0, "http://mylid.net/josh"),
-            ]
+        ]
 
         self._checkServices(expectedServices)
 
     def testGetSeveralForOne(self):
         """Getting services for one Service with several Type elements."""
-        types = [ 'http://lid.netmesh.org/sso/2.0b5'
-                , 'http://lid.netmesh.org/2.0b5'
-                ]
-
+        types = ['http://lid.netmesh.org/sso/2.0b5', 'http://lid.netmesh.org/2.0b5']
         uri = "http://mylid.net/josh"
 
         for service in self._getServices():
@@ -131,6 +131,7 @@ class TestCanonicalID(unittest.TestCase):
         test for the given set of inputs"""
 
         filename = datapath(filename)
+
         def test(self):
             xrds = etxrd.parseXRDS(file(filename).read())
             self._getCanonicalID(iname, xrds, expectedID)

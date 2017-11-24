@@ -1,4 +1,3 @@
-import cgi
 import unittest
 
 from openid import message
@@ -21,8 +20,10 @@ class DummyEndpoint(object):
     def isOPIdentifier(self):
         return self.is_op_identifier
 
+
 class DummyAssoc(object):
     handle = "assoc-handle"
+
 
 class AuthRequestTestMixin(support.OpenIDTestMixin):
     """Mixin for AuthRequest tests for OpenID 1 and 2; DON'T add
@@ -102,6 +103,7 @@ class AuthRequestTestMixin(support.OpenIDTestMixin):
         self.failUnlessHasIdentifiers(
             msg, self.endpoint.local_id, self.endpoint.claimed_id)
 
+
 class TestAuthRequestOpenID2(AuthRequestTestMixin, unittest.TestCase):
     preferred_namespace = message.OPENID2_NS
 
@@ -152,12 +154,9 @@ class TestAuthRequestOpenID2(AuthRequestTestMixin, unittest.TestCase):
         self.failUnlessHasIdentifiers(
             msg, message.IDENTIFIER_SELECT, message.IDENTIFIER_SELECT)
 
+
 class TestAuthRequestOpenID1(AuthRequestTestMixin, unittest.TestCase):
     preferred_namespace = message.OPENID1_NS
-
-    def setUpEndpoint(self):
-        TestAuthRequestBase.setUpEndpoint(self)
-        self.endpoint.preferred_namespace = message.OPENID1_NS
 
     def failUnlessHasIdentifiers(self, msg, op_specific_id, claimed_id):
         """Make sure claimed_is is *absent* in request."""
@@ -195,13 +194,16 @@ class TestAuthRequestOpenID1(AuthRequestTestMixin, unittest.TestCase):
         self.failUnlessEqual(message.IDENTIFIER_SELECT,
                              msg.getArg(message.OPENID1_NS, 'identity'))
 
+
 class TestAuthRequestOpenID1Immediate(TestAuthRequestOpenID1):
     immediate = True
     expected_mode = 'checkid_immediate'
 
+
 class TestAuthRequestOpenID2Immediate(TestAuthRequestOpenID2):
     immediate = True
     expected_mode = 'checkid_immediate'
+
 
 if __name__ == '__main__':
     unittest.main()

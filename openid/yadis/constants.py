@@ -10,4 +10,4 @@ YADIS_ACCEPT_HEADER = generateAcceptHeader(
     ('text/html', 0.3),
     ('application/xhtml+xml', 0.5),
     (YADIS_CONTENT_TYPE, 1.0),
-    )
+)

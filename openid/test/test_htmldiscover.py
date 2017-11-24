@@ -8,7 +8,7 @@ class BadLinksTestCase(datadriven.DataDrivenTestCase):
         '',
         "http://not.in.a.link.tag/",
         '<link rel="openid.server" href="not.in.html.or.head" />',
-        ]
+    ]
 
     def __init__(self, data):
         datadriven.DataDrivenTestCase.__init__(self, data)
@@ -18,6 +18,7 @@ class BadLinksTestCase(datadriven.DataDrivenTestCase):
         actual = OpenIDServiceEndpoint.fromHTML('http://unused.url/', self.data)
         expected = []
         self.failUnlessEqual(expected, actual)
+
 
 def pyUnitTests():
     return datadriven.loadTests(__name__)

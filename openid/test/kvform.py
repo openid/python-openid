@@ -17,6 +17,7 @@ class KVBaseTest(unittest.TestCase, CatchLogs):
     def tearDown(self):
         CatchLogs.tearDown(self)
 
+
 class KVDictTest(KVBaseTest):
     def __init__(self, kv, dct, warnings):
         unittest.TestCase.__init__(self)
@@ -40,6 +41,7 @@ class KVDictTest(KVBaseTest):
         d2 = kvform.kvToDict(kv)
         self.failUnlessEqual(d, d2)
 
+
 class KVSeqTest(KVBaseTest):
     def __init__(self, seq, kv, expected_warnings):
         unittest.TestCase.__init__(self)
@@ -52,9 +54,9 @@ class KVSeqTest(KVBaseTest):
         and end of each value of each pair"""
         clean = []
         for k, v in self.seq:
-            if type(k) is str:
+            if isinstance(k, str):
                 k = k.decode('utf8')
-            if type(v) is str:
+            if isinstance(v, str):
                 v = v.decode('utf8')
             clean.append((k.strip(), v.strip()))
         return clean
@@ -63,7 +65,7 @@ class KVSeqTest(KVBaseTest):
         # seq serializes to expected kvform
         actual = kvform.seqToKV(self.seq)
         self.failUnlessEqual(self.kvform, actual)
-        self.failUnless(type(actual) is str)
+        self.assertIsInstance(actual, str)
 
         # Parse back to sequence. Expected to be unchanged, except
         # stripping whitespace from start and end of values
@@ -74,15 +76,14 @@ class KVSeqTest(KVBaseTest):
         self.failUnlessEqual(seq, clean_seq)
         self.checkWarnings(self.expected_warnings)
 
+
 kvdict_cases = [
     # (kvform, parsed dictionary, expected warnings)
     ('', {}, 0),
-    ('college:harvey mudd\n', {'college':'harvey mudd'}, 0),
-    ('city:claremont\nstate:CA\n',
-     {'city':'claremont', 'state':'CA'}, 0),
+    ('college:harvey mudd\n', {'college': 'harvey mudd'}, 0),
+    ('city:claremont\nstate:CA\n', {'city': 'claremont', 'state': 'CA'}, 0),
     ('is_valid:true\ninvalidate_handle:{HMAC-SHA1:2398410938412093}\n',
-     {'is_valid':'true',
-      'invalidate_handle':'{HMAC-SHA1:2398410938412093}'}, 0),
+     {'is_valid': 'true', 'invalidate_handle': '{HMAC-SHA1:2398410938412093}'}, 0),
 
     # Warnings from lines with no colon:
     ('x\n', {}, 1),
@@ -93,18 +94,18 @@ kvdict_cases = [
     ('x\n\n', {}, 1),
 
     # Warning from empty key
-    (':\n', {'':''}, 1),
-    (':missing key\n', {'':'missing key'}, 1),
+    (':\n', {'': ''}, 1),
+    (':missing key\n', {'': 'missing key'}, 1),
 
     # Warnings from leading or trailing whitespace in key or value
-    (' street:foothill blvd\n', {'street':'foothill blvd'}, 1),
-    ('major: computer science\n', {'major':'computer science'}, 1),
-    (' dorm : east \n', {'dorm':'east'}, 2),
+    (' street:foothill blvd\n', {'street': 'foothill blvd'}, 1),
+    ('major: computer science\n', {'major': 'computer science'}, 1),
+    (' dorm : east \n', {'dorm': 'east'}, 2),
 
     # Warnings from missing trailing newline
-    ('e^(i*pi)+1:0', {'e^(i*pi)+1':'0'}, 1),
-    ('east:west\nnorth:south', {'east':'west', 'north':'south'}, 1),
-    ]
+    ('e^(i*pi)+1:0', {'e^(i*pi)+1': '0'}, 1),
+    ('east:west\nnorth:south', {'east': 'west', 'north': 'south'}, 1),
+]
 
 kvseq_cases = [
     ([], '', 0),
@@ -131,7 +132,7 @@ kvseq_cases = [
       (' a ', ' b ')], ' open id : use ful \n a : b \n', 8),
 
     ([(u'foo', 'bar')], 'foo:bar\n', 0),
-    ]
+]
 
 kvexc_cases = [
     [('openid', 'use\nful')],
@@ -140,7 +141,8 @@ kvexc_cases = [
     [('open:id', 'useful')],
     [('foo', 'bar'), ('ba\n d', 'seed')],
     [('foo', 'bar'), ('bad:', 'seed')],
-    ]
+]
+
 
 class KVExcTest(unittest.TestCase):
     def __init__(self, seq):
@@ -153,13 +155,15 @@ class KVExcTest(unittest.TestCase):
     def runTest(self):
         self.failUnlessRaises(ValueError, kvform.seqToKV, self.seq)
 
+
 class GeneralTest(KVBaseTest):
     kvform = '<None>'
 
     def test_convert(self):
-        result = kvform.seqToKV([(1,1)])
+        result = kvform.seqToKV([(1, 1)])
         self.failUnlessEqual(result, '1:1\n')
         self.checkWarnings(2)
+
 
 def pyUnitTests():
     tests = [KVDictTest(*case) for case in kvdict_cases]
@@ -167,6 +171,7 @@ def pyUnitTests():
     tests.extend([KVExcTest(case) for case in kvexc_cases])
     tests.append(unittest.defaultTestLoader.loadTestsFromTestCase(GeneralTest))
     return unittest.TestSuite(tests)
+
 
 if __name__ == '__main__':
     suite = pyUnitTests()

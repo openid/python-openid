@@ -41,7 +41,7 @@ __all__ = [
     'store',
     'urinorm',
     'yadis',
-    ]
+]
 
 # Parse the version info
 try:

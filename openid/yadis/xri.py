@@ -1,10 +1,12 @@
 # -*- test-case-name: openid.test.test_xri -*-
 """Utility functions for handling XRIs.
 
-@see: XRI Syntax v2.0 at the U{OASIS XRI Technical Committee<http://www.oasis-open.org/committees/tc_home.php?wg_abbrev=xri>}
+@see: XRI Syntax v2.0 at the
+      U{OASIS XRI Technical Committee<http://www.oasis-open.org/committees/tc_home.php?wg_abbrev=xri>}
 """
 
 import re
+from functools import reduce
 
 XRI_AUTHORITIES = ['!', '=', '@', '+', '$', '(']
 
@@ -16,11 +18,11 @@ except ValueError:
         (0xA0, 0xD7FF),
         (0xF900, 0xFDCF),
         (0xFDF0, 0xFFEF),
-        ]
+    ]
 
     IPRIVATE = [
         (0xE000, 0xF8FF),
-        ]
+    ]
 else:
     UCSCHAR = [
         (0xA0, 0xD7FF),
@@ -40,17 +42,17 @@ else:
         (0xC0000, 0xCFFFD),
         (0xD0000, 0xDFFFD),
         (0xE1000, 0xEFFFD),
-        ]
+    ]
 
     IPRIVATE = [
         (0xE000, 0xF8FF),
         (0xF0000, 0xFFFFD),
         (0x100000, 0x10FFFD),
-        ]
+    ]
 
 
 _escapeme_re = re.compile('[%s]' % (''.join(
-    map(lambda (m, n): u'%s-%s' % (unichr(m), unichr(n)),
+    map(lambda m_n: u'%s-%s' % (unichr(m_n[0]), unichr(m_n[1])),
         UCSCHAR + IPRIVATE)),))
 
 
@@ -59,8 +61,7 @@ def identifierScheme(identifier):
 
     @returns: C{"XRI"} or C{"URI"}
     """
-    if identifier.startswith('xri://') or (
-        identifier and identifier[0] in XRI_AUTHORITIES):
+    if identifier.startswith('xri://') or (identifier and identifier[0] in XRI_AUTHORITIES):
         return "XRI"
     else:
         return "URI"
@@ -146,8 +147,7 @@ def rootAuthority(xri):
     else:
         # IRI reference.  XXX: Can IRI authorities have segments?
         segments = authority.split('!')
-        segments = reduce(list.__add__,
-            map(lambda s: s.split('*'), segments))
+        segments = reduce(list.__add__, map(lambda s: s.split('*'), segments))
         root = segments[0]
 
     return XRI(root)
