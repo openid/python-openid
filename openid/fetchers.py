@@ -159,13 +159,7 @@ class HTTPFetchingError(Exception):
         self.why = why
 
 class ExceptionWrappingFetcher(HTTPFetcher):
-    """Fetcher that wraps another fetcher, causing all exceptions
-
-    @cvar uncaught_exceptions: Exceptions that should be exposed to the
-        user if they are raised by the fetch call
-    """
-
-    uncaught_exceptions = (SystemExit, KeyboardInterrupt, MemoryError)
+    """Fetcher wrapper which wraps all exceptions to `HTTPFetchingError`."""
 
     def __init__(self, fetcher):
         self.fetcher = fetcher
@@ -173,9 +167,7 @@ class ExceptionWrappingFetcher(HTTPFetcher):
     def fetch(self, *args, **kwargs):
         try:
             return self.fetcher.fetch(*args, **kwargs)
-        except self.uncaught_exceptions:
-            raise
-        except:
+        except Exception:
             exc_cls, exc_inst = sys.exc_info()[:2]
             if exc_inst is None:
                 # string exceptions
