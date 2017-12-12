@@ -1,3 +1,4 @@
+"""Test `openid.store` module."""
 import os
 import random
 import socket
@@ -222,179 +223,169 @@ def testStore(store):
         nonceModule.SKEW = orig_skew
 
 
-def test_filestore():
-    from openid.store import filestore
-    import tempfile
-    import shutil
-    try:
-        temp_dir = tempfile.mkdtemp()
-    except AttributeError:
-        import os
-        temp_dir = os.tmpnam()
-        os.mkdir(temp_dir)
+class TestFileOpenIDStore(unittest.TestCase):
+    """Test `FileOpenIDStore` class."""
 
-    store = filestore.FileOpenIDStore(temp_dir)
-    try:
-        testStore(store)
-        store.cleanup()
-    except Exception:
-        raise
-    else:
-        shutil.rmtree(temp_dir)
-
-
-def test_sqlite():
-    from openid.store import sqlstore
-    try:
-        from pysqlite2 import dbapi2 as sqlite
-    except ImportError:
-        pass
-    else:
-        conn = sqlite.connect(':memory:')
-        store = sqlstore.SQLiteStore(conn)
-        store.createTables()
-        testStore(store)
-
-
-def test_mysql():
-    from openid.store import sqlstore
-    try:
-        import MySQLdb
-    except ImportError:
-        pass
-    else:
-        db_user = 'openid_test'
-        db_passwd = ''
-        db_name = getTmpDbName()
-
-        # Change this connect line to use the right user and password
+    def test_filestore(self):
+        from openid.store import filestore
+        import tempfile
+        import shutil
         try:
-            conn = MySQLdb.connect(user=db_user, passwd=db_passwd, host=db_host)
-        except MySQLdb.OperationalError as why:
-            if why[0] == 2005:
-                print ('Skipping MySQL store test (cannot connect '
-                       'to test server on host %r)' % (db_host,))
-                return
-            else:
-                raise
+            temp_dir = tempfile.mkdtemp()
+        except AttributeError:
+            import os
+            temp_dir = os.tmpnam()
+            os.mkdir(temp_dir)
 
-        conn.query('CREATE DATABASE %s;' % db_name)
+        store = filestore.FileOpenIDStore(temp_dir)
         try:
-            conn.query('USE %s;' % db_name)
+            testStore(store)
+            store.cleanup()
+        except Exception:
+            raise
+        else:
+            shutil.rmtree(temp_dir)
 
-            # OK, we're in the right environment. Create store and
-            # create the tables.
-            store = sqlstore.MySQLStore(conn)
+
+class TestSQLiteStore(unittest.TestCase):
+    """Test `SQLiteStore` class."""
+
+    def test_sqlite(self):
+        from openid.store import sqlstore
+        try:
+            from pysqlite2 import dbapi2 as sqlite
+        except ImportError:
+            pass
+        else:
+            conn = sqlite.connect(':memory:')
+            store = sqlstore.SQLiteStore(conn)
+            store.createTables()
+            testStore(store)
+
+
+class TestMySQLStore(unittest.TestCase):
+    """Test `MySQLStore` class."""
+
+    def test_mysql(self):
+        from openid.store import sqlstore
+        try:
+            import MySQLdb
+        except ImportError:
+            pass
+        else:
+            db_user = 'openid_test'
+            db_passwd = ''
+            db_name = getTmpDbName()
+
+            # Change this connect line to use the right user and password
+            try:
+                conn = MySQLdb.connect(user=db_user, passwd=db_passwd, host=db_host)
+            except MySQLdb.OperationalError as why:
+                if why[0] == 2005:
+                    print ('Skipping MySQL store test (cannot connect '
+                           'to test server on host %r)' % (db_host,))
+                    return
+                else:
+                    raise
+
+            conn.query('CREATE DATABASE %s;' % db_name)
+            try:
+                conn.query('USE %s;' % db_name)
+
+                # OK, we're in the right environment. Create store and
+                # create the tables.
+                store = sqlstore.MySQLStore(conn)
+                store.createTables()
+
+                # At last, we get to run the test.
+                testStore(store)
+            finally:
+                # Remove the database. If you want to do post-mortem on a
+                # failing test, comment out this line.
+                conn.query('DROP DATABASE %s;' % db_name)
+
+
+class TestPostgreSQLStore(unittest.TestCase):
+    """Test `PostgreSQLStore` class."""
+
+    def test_postgresql(self):
+        """
+        Tests the PostgreSQLStore on a locally-hosted PostgreSQL database
+        cluster, version 7.4 or later.  To run this test, you must have:
+
+        - The 'psycopg' python module (version 1.1) installed
+
+        - PostgreSQL running locally
+
+        - An 'openid_test' user account in your database cluster, which
+          you can create by running 'createuser -Ad openid_test' as the
+          'postgres' user
+
+        - Trust auth for the 'openid_test' account, which you can activate
+          by adding the following line to your pg_hba.conf file:
+
+          local all openid_test trust
+
+        This test connects to the database cluster three times:
+
+        - To the 'template1' database, to create the test database
+
+        - To the test database, to run the store tests
+
+        - To the 'template1' database once more, to drop the test database
+        """
+        from openid.store import sqlstore
+        try:
+            import psycopg
+        except ImportError:
+            pass
+        else:
+            db_name = getTmpDbName()
+            db_user = 'openid_test'
+
+            # Connect once to create the database; reconnect to access the
+            # new database.
+            conn_create = psycopg.connect(database='template1', user=db_user, host=db_host)
+            conn_create.autocommit()
+
+            # Create the test database.
+            cursor = conn_create.cursor()
+            cursor.execute('CREATE DATABASE %s;' % (db_name,))
+            conn_create.close()
+
+            # Connect to the test database.
+            conn_test = psycopg.connect(database=db_name, user=db_user, host=db_host)
+
+            # OK, we're in the right environment. Create the store
+            # instance and create the tables.
+            store = sqlstore.PostgreSQLStore(conn_test)
             store.createTables()
 
             # At last, we get to run the test.
             testStore(store)
-        finally:
-            # Remove the database. If you want to do post-mortem on a
-            # failing test, comment out this line.
-            conn.query('DROP DATABASE %s;' % db_name)
+
+            # Disconnect.
+            conn_test.close()
+
+            # It takes a little time for the close() call above to take
+            # effect, so we'll wait for a second before trying to remove
+            # the database.  (Maybe this is because we're using a UNIX
+            # socket to connect to postgres rather than TCP?)
+            import time
+            time.sleep(1)
+
+            # Remove the database now that the test is over.
+            conn_remove = psycopg.connect(database='template1', user=db_user, host=db_host)
+            conn_remove.autocommit()
+
+            cursor = conn_remove.cursor()
+            cursor.execute('DROP DATABASE %s;' % (db_name,))
+            conn_remove.close()
 
 
-def test_postgresql():
-    """
-    Tests the PostgreSQLStore on a locally-hosted PostgreSQL database
-    cluster, version 7.4 or later.  To run this test, you must have:
+class TestMemoryStore(unittest.TestCase):
+    """Test `MemoryStore` class."""
 
-    - The 'psycopg' python module (version 1.1) installed
-
-    - PostgreSQL running locally
-
-    - An 'openid_test' user account in your database cluster, which
-      you can create by running 'createuser -Ad openid_test' as the
-      'postgres' user
-
-    - Trust auth for the 'openid_test' account, which you can activate
-      by adding the following line to your pg_hba.conf file:
-
-      local all openid_test trust
-
-    This test connects to the database cluster three times:
-
-    - To the 'template1' database, to create the test database
-
-    - To the test database, to run the store tests
-
-    - To the 'template1' database once more, to drop the test database
-    """
-    from openid.store import sqlstore
-    try:
-        import psycopg
-    except ImportError:
-        pass
-    else:
-        db_name = getTmpDbName()
-        db_user = 'openid_test'
-
-        # Connect once to create the database; reconnect to access the
-        # new database.
-        conn_create = psycopg.connect(database='template1', user=db_user, host=db_host)
-        conn_create.autocommit()
-
-        # Create the test database.
-        cursor = conn_create.cursor()
-        cursor.execute('CREATE DATABASE %s;' % (db_name,))
-        conn_create.close()
-
-        # Connect to the test database.
-        conn_test = psycopg.connect(database=db_name, user=db_user, host=db_host)
-
-        # OK, we're in the right environment. Create the store
-        # instance and create the tables.
-        store = sqlstore.PostgreSQLStore(conn_test)
-        store.createTables()
-
-        # At last, we get to run the test.
-        testStore(store)
-
-        # Disconnect.
-        conn_test.close()
-
-        # It takes a little time for the close() call above to take
-        # effect, so we'll wait for a second before trying to remove
-        # the database.  (Maybe this is because we're using a UNIX
-        # socket to connect to postgres rather than TCP?)
-        import time
-        time.sleep(1)
-
-        # Remove the database now that the test is over.
-        conn_remove = psycopg.connect(database='template1', user=db_user, host=db_host)
-        conn_remove.autocommit()
-
-        cursor = conn_remove.cursor()
-        cursor.execute('DROP DATABASE %s;' % (db_name,))
-        conn_remove.close()
-
-
-def test_memstore():
-    from openid.store import memstore
-    testStore(memstore.MemoryStore())
-
-
-test_functions = [
-    test_filestore,
-    test_sqlite,
-    test_mysql,
-    test_postgresql,
-    test_memstore,
-]
-
-
-def pyUnitTests():
-    tests = map(unittest.FunctionTestCase, test_functions)
-    return unittest.TestSuite(tests)
-
-
-if __name__ == '__main__':
-    import sys
-    suite = pyUnitTests()
-    runner = unittest.TextTestRunner()
-    result = runner.run(suite)
-    if result.wasSuccessful():
-        sys.exit(0)
-    else:
-        sys.exit(1)
+    def test_memstore(self):
+        from openid.store import memstore
+        testStore(memstore.MemoryStore())

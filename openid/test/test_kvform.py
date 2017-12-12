@@ -6,8 +6,11 @@ from openid.test.support import CatchLogs
 
 class KVBaseTest(unittest.TestCase, CatchLogs):
 
-    def checkWarnings(self, num_warnings):
-        self.failUnlessEqual(num_warnings, len(self.messages), repr(self.messages))
+    def checkWarnings(self, num_warnings, msg=None):
+        full_msg = 'Invalid number of warnings {} != {}'.format(num_warnings, len(self.messages))
+        if msg is not None:
+            full_msg = full_msg + ' ' + msg
+        self.failUnlessEqual(num_warnings, len(self.messages), full_msg)
 
     def setUp(self):
         CatchLogs.setUp(self)
@@ -20,6 +23,9 @@ class KVDictTest(KVBaseTest):
 
     def runTest(self):
         for kv_data, result, expected_warnings in kvdict_cases:
+            # Clean captrured messages
+            del self.messages[:]
+
             # Convert KVForm to dict
             d = kvform.kvToDict(kv_data)
 
@@ -27,7 +33,7 @@ class KVDictTest(KVBaseTest):
             self.failUnlessEqual(d, result)
 
             # Check to make sure we got the expected number of warnings
-            self.checkWarnings(expected_warnings)
+            self.checkWarnings(expected_warnings, msg='kvToDict({!r})'.format(kv_data))
 
             # Convert back to KVForm and round-trip back to dict to make
             # sure that *** dict -> kv -> dict is identity. ***
@@ -42,7 +48,7 @@ class KVSeqTest(KVBaseTest):
         """Create a new sequence by stripping whitespace from start
         and end of each value of each pair"""
         clean = []
-        for k, v in self.seq:
+        for k, v in seq:
             if isinstance(k, str):
                 k = k.decode('utf8')
             if isinstance(v, str):
@@ -52,6 +58,9 @@ class KVSeqTest(KVBaseTest):
 
     def runTest(self):
         for kv_data, result, expected_warnings in kvseq_cases:
+            # Clean captrured messages
+            del self.messages[:]
+
             # seq serializes to expected kvform
             actual = kvform.seqToKV(kv_data)
             self.failUnlessEqual(actual, result)
@@ -148,17 +157,3 @@ class GeneralTest(KVBaseTest):
         result = kvform.seqToKV([(1, 1)])
         self.failUnlessEqual(result, '1:1\n')
         self.checkWarnings(2)
-
-
-def pyUnitTests():
-    tests = [KVDictTest(*case) for case in kvdict_cases]
-    tests.extend([KVSeqTest(*case) for case in kvseq_cases])
-    tests.extend([KVExcTest(case) for case in kvexc_cases])
-    tests.append(unittest.defaultTestLoader.loadTestsFromTestCase(GeneralTest))
-    return unittest.TestSuite(tests)
-
-
-if __name__ == '__main__':
-    suite = pyUnitTests()
-    runner = unittest.TextTestRunner()
-    runner.run(suite)

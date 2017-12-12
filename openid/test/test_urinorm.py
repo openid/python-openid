@@ -3,7 +3,6 @@ import unittest
 
 import openid.urinorm
 
-
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'urinorm.txt')) as test_data_file:
     test_data = test_data_file.read()
 
@@ -29,27 +28,3 @@ class UrinormTest(unittest.TestCase):
         case = unicode(case, 'utf-8')
 
         return (desc, case, expected)
-
-
-def parseTests(test_data):
-    result = []
-
-    cases = test_data.split('\n\n')
-    for case in cases:
-        case = case.strip()
-
-        if case:
-            result.append(UrinormTest.parse(case))
-
-    return result
-
-
-def pyUnitTests():
-    here = os.path.dirname(os.path.abspath(__file__))
-    test_data_file_name = os.path.join(here, 'urinorm.txt')
-    test_data_file = file(test_data_file_name)
-    test_data = test_data_file.read()
-    test_data_file.close()
-
-    tests = parseTests(test_data)
-    return unittest.TestSuite(tests)

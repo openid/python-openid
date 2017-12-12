@@ -4,7 +4,6 @@ admin/builddiscover.py
 admin/fixperms
 admin/makechangelog
 admin/pythonsource
-admin/runtests
 admin/setversion
 admin/tagrelease
 EOF

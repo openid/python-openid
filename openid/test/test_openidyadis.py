@@ -154,10 +154,3 @@ class OpenIDYadisTest(unittest.TestCase):
 
             # Make sure we saw all URIs, and saw each one once
             self.failUnlessEqual(uris, seen_uris)
-
-
-def pyUnitTests():
-    cases = []
-    for args in data:
-        cases.append(OpenIDYadisTest(*args))
-    return unittest.TestSuite(cases)

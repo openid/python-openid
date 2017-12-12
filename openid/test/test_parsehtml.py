@@ -1,15 +1,14 @@
 import os.path
-import sys
 import unittest
 from HTMLParser import HTMLParseError
 
 from openid.yadis.parsehtml import ParseDone, YadisHTMLParser
 
 
-class _TestCase(unittest.TestCase):
+class TestParseHTML(unittest.TestCase):
     reserved_values = ['None', 'EOF']
 
-    def runTest(self):
+    def test(self):
         for expected, case in getCases():
             p = YadisHTMLParser()
             try:
@@ -41,19 +40,6 @@ def parseCases(data):
     return cases
 
 
-def pyUnitTests():
-    """Make a pyunit TestSuite from a file defining test cases."""
-    s = unittest.TestSuite()
-    for (filename, test_num, expected, case) in getCases():
-        s.addTest(_TestCase(filename, str(test_num), expected, case))
-    return s
-
-
-def test():
-    runner = unittest.TextTestRunner()
-    return runner.run(pyUnitTests())
-
-
 filenames = ['data/test1-parsehtml.txt']
 
 default_test_files = []
@@ -70,7 +56,3 @@ def getCases(test_files=default_test_files):
         for expected, case in parseCases(data):
             cases.append((expected, case))
     return cases
-
-
-if __name__ == '__main__':
-    sys.exit(not test().wasSuccessful())

@@ -196,23 +196,24 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
         self.rfile.close()
 
 
-def test():
-    import socket
-    host = socket.getfqdn('127.0.0.1')
-    # When I use port 0 here, it works for the first fetch and the
-    # next one gets connection refused.  Bummer.  So instead, pick a
-    # port that's *probably* not in use.
-    import os
-    port = (os.getpid() % 31000) + 1024
+class TestFetchers(unittest.TestCase):
+    def test(self):
+        import socket
+        host = socket.getfqdn('127.0.0.1')
+        # When I use port 0 here, it works for the first fetch and the
+        # next one gets connection refused.  Bummer.  So instead, pick a
+        # port that's *probably* not in use.
+        import os
+        port = (os.getpid() % 31000) + 1024
 
-    server = HTTPServer((host, port), FetcherTestHandler)
+        server = HTTPServer((host, port), FetcherTestHandler)
 
-    import threading
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.setDaemon(True)
-    server_thread.start()
+        import threading
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.setDaemon(True)
+        server_thread.start()
 
-    run_fetcher_tests(server)
+        run_fetcher_tests(server)
 
 
 class FakeFetcher(object):
@@ -356,10 +357,3 @@ class TestSilencedUrllib2Fetcher(TestUrllib2Fetcher):
 
     fetcher = fetchers.ExceptionWrappingFetcher(fetchers.Urllib2Fetcher())
     invalid_url_error = fetchers.HTTPFetchingError
-
-
-def pyUnitTests():
-    case1 = unittest.FunctionTestCase(test)
-    loadTests = unittest.defaultTestLoader.loadTestsFromTestCase
-    case2 = loadTests(DefaultFetcherTest)
-    return unittest.TestSuite([case1, case2, loadTests(TestUrllib2Fetcher), loadTests(TestSilencedUrllib2Fetcher)])

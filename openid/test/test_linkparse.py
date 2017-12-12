@@ -1,4 +1,4 @@
-import codecs
+"""Test `openid.consumer.html_parse` module."""
 import os.path
 import unittest
 
@@ -47,70 +47,42 @@ def parseTests(s):
         desc, markup, links = parseCase(case)
         tests.append((desc, markup, links, case))
 
+    assert len(tests) == num_tests, (len(tests), num_tests)
     return num_tests, tests
 
 
-class _LinkTest(unittest.TestCase):
-    def __init__(self, desc, case, expected, raw):
-        unittest.TestCase.__init__(self)
-        self.desc = desc
-        self.case = case
-        self.expected = expected
-        self.raw = raw
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'linkparse.txt')) as link_test_data_file:
+    link_test_data = link_test_data_file.read().decode('utf-8')
 
-    def shortDescription(self):
-        return self.desc
+
+class LinkTest(unittest.TestCase):
+    """Test `parseLinkAttrs` function."""
 
     def runTest(self):
-        actual = parseLinkAttrs(self.case)
-        i = 0
-        for optional, exp_link in self.expected:
-            if optional:
-                if i >= len(actual):
-                    continue
+        num_tests, test_cases = parseTests(link_test_data)
 
-            act_link = actual[i]
-            for k, (o, v) in exp_link.items():
-                if o:
-                    act_v = act_link.get(k)
-                    if act_v is None:
+        for desc, case, expected, raw in test_cases:
+            actual = parseLinkAttrs(case)
+            i = 0
+            for optional, exp_link in expected:
+                if optional:
+                    if i >= len(actual):
                         continue
+
+                act_link = actual[i]
+                for k, (o, v) in exp_link.items():
+                    if o:
+                        act_v = act_link.get(k)
+                        if act_v is None:
+                            continue
+                    else:
+                        act_v = act_link[k]
+
+                    if optional and v != act_v:
+                        break
+
+                    self.assertEqual(v, act_v)
                 else:
-                    act_v = act_link[k]
+                    i += 1
 
-                if optional and v != act_v:
-                    break
-
-                self.assertEqual(v, act_v)
-            else:
-                i += 1
-
-        assert i == len(actual)
-
-
-def pyUnitTests():
-    here = os.path.dirname(os.path.abspath(__file__))
-    test_data_file_name = os.path.join(here, 'linkparse.txt')
-    test_data_file = codecs.open(test_data_file_name, 'r', 'utf-8')
-    test_data = test_data_file.read()
-    test_data_file.close()
-
-    num_tests, test_cases = parseTests(test_data)
-
-    tests = [_LinkTest(*case) for case in test_cases]
-
-    def test_parseSucceeded():
-        assert len(test_cases) == num_tests, (len(test_cases), num_tests)
-
-    check_desc = 'Check that we parsed the correct number of test cases'
-    check = unittest.FunctionTestCase(
-        test_parseSucceeded, description=check_desc)
-    tests.insert(0, check)
-
-    return unittest.TestSuite(tests)
-
-
-if __name__ == '__main__':
-    suite = pyUnitTests()
-    runner = unittest.TextTestRunner()
-    runner.run(suite)
+            assert i == len(actual)

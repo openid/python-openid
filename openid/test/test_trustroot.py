@@ -3,51 +3,43 @@ import unittest
 
 from openid.server.trustroot import TrustRoot
 
-
-class _ParseTest(unittest.TestCase):
-    def __init__(self, sanity, desc, case):
-        unittest.TestCase.__init__(self)
-        self.desc = desc + ': ' + repr(case)
-        self.case = case
-        self.sanity = sanity
-
-    def shortDescription(self):
-        return self.desc
-
-    def runTest(self):
-        tr = TrustRoot.parse(self.case)
-        if self.sanity == 'sane':
-            assert tr.isSane(), self.case
-        elif self.sanity == 'insane':
-            assert not tr.isSane(), self.case
-        else:
-            assert tr is None, tr
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'trustroot.txt')) as test_data_file:
+    trustroot_test_data = test_data_file.read()
 
 
-class _MatchTest(unittest.TestCase):
-    def __init__(self, match, desc, line):
-        unittest.TestCase.__init__(self)
-        tr, rt = line.split()
-        self.desc = desc + ': ' + repr(tr) + ' ' + repr(rt)
-        self.tr = tr
-        self.rt = rt
-        self.match = match
+class ParseTest(unittest.TestCase):
 
-    def shortDescription(self):
-        return self.desc
+    def test(self):
+        ph, pdat, mh, mdat = parseTests(trustroot_test_data)
 
-    def runTest(self):
-        tr = TrustRoot.parse(self.tr)
-        self.failIf(tr is None, self.tr)
-
-        match = tr.validateURL(self.rt)
-        if self.match:
-            assert match
-        else:
-            assert not match
+        for sanity, desc, case in getTests(['bad', 'insane', 'sane'], ph, pdat):
+            tr = TrustRoot.parse(case)
+            if sanity == 'sane':
+                assert tr.isSane(), case
+            elif sanity == 'insane':
+                assert not tr.isSane(), case
+            else:
+                assert tr is None, tr
 
 
-def getTests(t, grps, head, dat):
+class MatchTest(unittest.TestCase):
+
+    def test(self):
+        ph, pdat, mh, mdat = parseTests(trustroot_test_data)
+
+        for expected_match, desc, line in getTests([1, 0], mh, mdat):
+            tr, rt = line.split()
+            tr = TrustRoot.parse(tr)
+            self.failIf(tr is None, tr)
+
+            match = tr.validateURL(rt)
+            if expected_match:
+                assert match
+            else:
+                assert not match
+
+
+def getTests(grps, head, dat):
     tests = []
     top = head.strip()
     gdat = map(str.strip, dat.split('-' * 40 + '\n'))
@@ -59,7 +51,7 @@ def getTests(t, grps, head, dat):
         cases = gdat[i + 1].split('\n')
         assert len(cases) == int(n)
         for case in cases:
-            tests.append(t(x, top + ' - ' + desc, case))
+            tests.append((x, top + ' - ' + desc, case))
         i += 2
     return tests
 
@@ -68,25 +60,4 @@ def parseTests(data):
     parts = map(str.strip, data.split('=' * 40 + '\n'))
     assert not parts[0]
     _, ph, pdat, mh, mdat = parts
-
-    tests = []
-    tests.extend(getTests(_ParseTest, ['bad', 'insane', 'sane'], ph, pdat))
-    tests.extend(getTests(_MatchTest, [1, 0], mh, mdat))
-    return tests
-
-
-def pyUnitTests():
-    here = os.path.dirname(os.path.abspath(__file__))
-    test_data_file_name = os.path.join(here, 'data', 'trustroot.txt')
-    test_data_file = file(test_data_file_name)
-    test_data = test_data_file.read()
-    test_data_file.close()
-
-    tests = parseTests(test_data)
-    return unittest.TestSuite(tests)
-
-
-if __name__ == '__main__':
-    suite = pyUnitTests()
-    runner = unittest.TextTestRunner()
-    runner.run(suite)
+    return ph, pdat, mh, mdat

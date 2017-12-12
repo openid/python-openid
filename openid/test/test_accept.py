@@ -1,3 +1,4 @@
+"""Test `openid.yadis.accept` module."""
 import os.path
 import unittest
 
@@ -112,39 +113,3 @@ class MatchAcceptTest(unittest.TestCase):
             accepted = accept.parseAcceptHeader(accept_header)
             actual = accept.matchTypes(accepted, available)
             self.failUnlessEqual(expected, actual)
-
-
-def pyUnitTests():
-    lines = getTestData()
-    chunks = chunk(lines)
-    data_sets = map(parseLines, chunks)
-    cases = []
-    for data in data_sets:
-        lnos = []
-        lno, header = data['accept']
-        lnos.append(lno)
-        lno, avail_data = data['available']
-        lnos.append(lno)
-        try:
-            available = parseAvailable(avail_data)
-        except Exception:
-            print 'On line', lno
-            raise
-
-        lno, exp_data = data['expected']
-        lnos.append(lno)
-        try:
-            expected = parseExpected(exp_data)
-        except Exception:
-            print 'On line', lno
-            raise
-
-        descr = 'MatchAcceptTest for lines %r' % (lnos,)
-        case = MatchAcceptTest(descr, header, available, expected)
-        cases.append(case)
-    return unittest.TestSuite(cases)
-
-
-if __name__ == '__main__':
-    runner = unittest.TextTestRunner()
-    runner.run(pyUnitTests())
