@@ -7,12 +7,31 @@ import time
 import unittest
 from cStringIO import StringIO
 
-import twill.commands
-import twill.parse
-import twill.unit
+from mock import Mock
 
 from openid.consumer.consumer import AuthRequest
 from openid.consumer.discover import OPENID_1_1_TYPE, OpenIDServiceEndpoint
+
+
+class FakeTestInfo(object):
+    """Twill TestInfo placeholder."""
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+
+try:
+    import twill.commands
+    import twill.parse
+    import twill.unit
+except ImportError:
+    twill = Mock()
+    twill.unit.TestInfo = FakeTestInfo
+
+
+def setUpModule():
+    if twill.unit.TestInfo == FakeTestInfo:
+        unittest.skip("Skipping examples, twill is not available.")
 
 
 class TwillTest(twill.unit.TestInfo):

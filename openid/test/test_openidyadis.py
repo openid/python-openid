@@ -106,59 +106,54 @@ data = [
 
 
 class OpenIDYadisTest(unittest.TestCase):
-    def __init__(self, uris, type_uris, local_id):
-        unittest.TestCase.__init__(self)
-        self.uris = uris
-        self.type_uris = type_uris
-        self.local_id = local_id
+
+    yadis_url = 'http://unit.test/'
 
     def shortDescription(self):
         # XXX:
         return 'Successful OpenID Yadis parsing case'
 
-    def setUp(self):
-        self.yadis_url = 'http://unit.test/'
-
+    def make_xrds(self, uris, type_uris, local_id):
         # Create an XRDS document to parse
-        services = mkService(uris=self.uris,
-                             type_uris=self.type_uris,
-                             local_id=self.local_id)
-        self.xrds = mkXRDS(services)
+        services = mkService(uris=uris,
+                             type_uris=type_uris,
+                             local_id=local_id)
+        return mkXRDS(services)
 
     def runTest(self):
-        # Parse into endpoint objects that we will check
-        endpoints = applyFilter(
-            self.yadis_url, self.xrds, OpenIDServiceEndpoint)
+        for uris, type_uris, local_id in data:
+            # Parse into endpoint objects that we will check
+            endpoints = applyFilter(self.yadis_url, self.make_xrds(uris, type_uris, local_id), OpenIDServiceEndpoint)
 
-        # make sure there are the same number of endpoints as
-        # URIs. This assumes that the type_uris contains at least one
-        # OpenID type.
-        self.failUnlessEqual(len(self.uris), len(endpoints))
+            # make sure there are the same number of endpoints as
+            # URIs. This assumes that the type_uris contains at least one
+            # OpenID type.
+            self.failUnlessEqual(len(uris), len(endpoints))
 
-        # So that we can check equality on the endpoint types
-        type_uris = sorted(self.type_uris)
+            # So that we can check equality on the endpoint types
+            type_uris = sorted(type_uris)
 
-        seen_uris = []
-        for endpoint in endpoints:
-            seen_uris.append(endpoint.server_url)
+            seen_uris = []
+            for endpoint in endpoints:
+                seen_uris.append(endpoint.server_url)
 
-            # All endpoints will have same yadis_url
-            self.failUnlessEqual(self.yadis_url, endpoint.claimed_id)
+                # All endpoints will have same yadis_url
+                self.failUnlessEqual(self.yadis_url, endpoint.claimed_id)
 
-            # and local_id
-            self.failUnlessEqual(self.local_id, endpoint.local_id)
+                # and local_id
+                self.failUnlessEqual(local_id, endpoint.local_id)
 
-            # and types
-            actual_types = sorted(endpoint.type_uris)
-            self.failUnlessEqual(actual_types, type_uris)
+                # and types
+                actual_types = sorted(endpoint.type_uris)
+                self.failUnlessEqual(actual_types, type_uris)
 
-        # So that they will compare equal, because we don't care what
-        # order they are in
-        seen_uris.sort()
-        uris = sorted(self.uris)
+            # So that they will compare equal, because we don't care what
+            # order they are in
+            seen_uris.sort()
+            uris = sorted(uris)
 
-        # Make sure we saw all URIs, and saw each one once
-        self.failUnlessEqual(uris, seen_uris)
+            # Make sure we saw all URIs, and saw each one once
+            self.failUnlessEqual(uris, seen_uris)
 
 
 def pyUnitTests():

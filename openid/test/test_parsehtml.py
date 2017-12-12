@@ -9,40 +9,28 @@ from openid.yadis.parsehtml import ParseDone, YadisHTMLParser
 class _TestCase(unittest.TestCase):
     reserved_values = ['None', 'EOF']
 
-    def __init__(self, filename, testname, expected, case):
-        self.filename = filename
-        self.testname = testname
-        self.expected = expected
-        self.case = case
-        unittest.TestCase.__init__(self)
-
     def runTest(self):
-        p = YadisHTMLParser()
-        try:
-            p.feed(self.case)
-        except ParseDone as why:
-            found = why[0]
+        for expected, case in getCases():
+            p = YadisHTMLParser()
+            try:
+                p.feed(case)
+            except ParseDone as why:
+                found = why[0]
 
-            # make sure we protect outselves against accidental bogus
-            # test cases
-            assert found not in self.reserved_values
+                # make sure we protect outselves against accidental bogus
+                # test cases
+                assert found not in self.reserved_values
 
-            # convert to a string
-            if found is None:
-                found = 'None'
+                # convert to a string
+                if found is None:
+                    found = 'None'
 
-            msg = "%r != %r for case %s" % (found, self.expected, self.case)
-            self.failUnlessEqual(found, self.expected, msg)
-        except HTMLParseError:
-            self.failUnless(self.expected == 'None', (self.case, self.expected))
-        else:
-            self.failUnless(self.expected == 'EOF', (self.case, self.expected))
-
-    def shortDescription(self):
-        return "%s (%s<%s>)" % (
-            self.testname,
-            self.__class__.__module__,
-            os.path.basename(self.filename))
+                msg = "%r != %r for case %s" % (found, expected, case)
+                self.failUnlessEqual(found, expected, msg)
+            except HTMLParseError:
+                self.failUnless(expected == 'None', (case, expected))
+            else:
+                self.failUnless(expected == 'EOF', (case, expected))
 
 
 def parseCases(data):
@@ -78,11 +66,9 @@ for filename in filenames:
 def getCases(test_files=default_test_files):
     cases = []
     for filename in test_files:
-        test_num = 0
         data = file(filename).read()
         for expected, case in parseCases(data):
-            test_num += 1
-            cases.append((filename, test_num, expected, case))
+            cases.append((expected, case))
     return cases
 
 

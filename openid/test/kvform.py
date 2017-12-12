@@ -5,8 +5,6 @@ from openid.test.support import CatchLogs
 
 
 class KVBaseTest(unittest.TestCase, CatchLogs):
-    def shortDescription(self):
-        return '%s test for %r' % (self.__class__.__name__, self.kvform)
 
     def checkWarnings(self, num_warnings):
         self.failUnlessEqual(num_warnings, len(self.messages), repr(self.messages))
@@ -19,35 +17,26 @@ class KVBaseTest(unittest.TestCase, CatchLogs):
 
 
 class KVDictTest(KVBaseTest):
-    def __init__(self, kv, dct, warnings):
-        unittest.TestCase.__init__(self)
-        self.kvform = kv
-        self.dict = dct
-        self.expected_warnings = warnings
 
     def runTest(self):
-        # Convert KVForm to dict
-        d = kvform.kvToDict(self.kvform)
+        for kv_data, result, expected_warnings in kvdict_cases:
+            # Convert KVForm to dict
+            d = kvform.kvToDict(kv_data)
 
-        # make sure it parses to expected dict
-        self.failUnlessEqual(self.dict, d)
+            # make sure it parses to expected dict
+            self.failUnlessEqual(d, result)
 
-        # Check to make sure we got the expected number of warnings
-        self.checkWarnings(self.expected_warnings)
+            # Check to make sure we got the expected number of warnings
+            self.checkWarnings(expected_warnings)
 
-        # Convert back to KVForm and round-trip back to dict to make
-        # sure that *** dict -> kv -> dict is identity. ***
-        kv = kvform.dictToKV(d)
-        d2 = kvform.kvToDict(kv)
-        self.failUnlessEqual(d, d2)
+            # Convert back to KVForm and round-trip back to dict to make
+            # sure that *** dict -> kv -> dict is identity. ***
+            kv = kvform.dictToKV(d)
+            d2 = kvform.kvToDict(kv)
+            self.failUnlessEqual(d, d2)
 
 
 class KVSeqTest(KVBaseTest):
-    def __init__(self, seq, kv, expected_warnings):
-        unittest.TestCase.__init__(self)
-        self.kvform = kv
-        self.seq = seq
-        self.expected_warnings = expected_warnings
 
     def cleanSeq(self, seq):
         """Create a new sequence by stripping whitespace from start
@@ -62,19 +51,20 @@ class KVSeqTest(KVBaseTest):
         return clean
 
     def runTest(self):
-        # seq serializes to expected kvform
-        actual = kvform.seqToKV(self.seq)
-        self.failUnlessEqual(self.kvform, actual)
-        self.assertIsInstance(actual, str)
+        for kv_data, result, expected_warnings in kvseq_cases:
+            # seq serializes to expected kvform
+            actual = kvform.seqToKV(kv_data)
+            self.failUnlessEqual(actual, result)
+            self.assertIsInstance(actual, str)
 
-        # Parse back to sequence. Expected to be unchanged, except
-        # stripping whitespace from start and end of values
-        # (i. e. ordering, case, and internal whitespace is preserved)
-        seq = kvform.kvToSeq(actual)
-        clean_seq = self.cleanSeq(seq)
+            # Parse back to sequence. Expected to be unchanged, except
+            # stripping whitespace from start and end of values
+            # (i. e. ordering, case, and internal whitespace is preserved)
+            seq = kvform.kvToSeq(actual)
+            clean_seq = self.cleanSeq(seq)
 
-        self.failUnlessEqual(seq, clean_seq)
-        self.checkWarnings(self.expected_warnings)
+            self.failUnlessEqual(seq, clean_seq)
+            self.checkWarnings(expected_warnings)
 
 
 kvdict_cases = [
@@ -145,15 +135,10 @@ kvexc_cases = [
 
 
 class KVExcTest(unittest.TestCase):
-    def __init__(self, seq):
-        unittest.TestCase.__init__(self)
-        self.seq = seq
-
-    def shortDescription(self):
-        return 'KVExcTest for %r' % (self.seq,)
 
     def runTest(self):
-        self.failUnlessRaises(ValueError, kvform.seqToKV, self.seq)
+        for kv_data in kvexc_cases:
+            self.failUnlessRaises(ValueError, kvform.seqToKV, kv_data)
 
 
 class GeneralTest(KVBaseTest):

@@ -1,13 +1,15 @@
 .PHONY: test coverage isort check-all check-isort check-flake8
 
 test:
-	python admin/runtests
+	# TODO: Ignore djopenid tests for the time being
+	python -m unittest discover --start openid/test -t .
 
 coverage:
-	python-coverage erase
+	python -m coverage erase
 	-rm -r htmlcov
-	python-coverage run --branch --source="." admin/runtests
-	python-coverage html --directory=htmlcov
+	# TODO: Ignore djopenid tests for the time being
+	python -m coverage run --branch --source="." openid/test/__init__.py discover --start openid/test -t .
+	python -m coverage html --directory=htmlcov
 
 isort:
 	isort --recursive .
