@@ -1,14 +1,12 @@
 .PHONY: test coverage isort check-all check-isort check-flake8
 
 test:
-	# TODO: Ignore djopenid tests for the time being
-	python -m unittest discover --start openid/test -t .
+	PYTHONPATH="examples" DJANGO_SETTINGS_MODULE="djopenid.settings" python -m unittest discover
 
 coverage:
 	python -m coverage erase
 	-rm -r htmlcov
-	# TODO: Ignore djopenid tests for the time being
-	python -m coverage run --branch --source="." openid/test/__init__.py discover --start openid/test -t .
+	PYTHONPATH="examples" DJANGO_SETTINGS_MODULE="djopenid.settings" python -m coverage run --branch --source="." openid/test/__init__.py discover
 	python -m coverage html --directory=htmlcov
 
 isort:

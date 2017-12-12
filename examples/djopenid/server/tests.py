@@ -1,7 +1,9 @@
+from urlparse import urljoin
 
-from django.contrib.sessions.middleware import SessionWrapper
+import django
 from django.http import HttpRequest
 from django.test.testcases import TestCase
+from django.urls import reverse
 
 from openid.message import Message
 from openid.server.server import CheckIDRequest
@@ -11,11 +13,14 @@ from openid.yadis.services import applyFilter
 from .. import util
 from ..server import views
 
+# Allow django tests to run through discover
+django.setup()
+
 
 def dummyRequest():
     request = HttpRequest()
-    request.session = SessionWrapper("test")
-    request.META['HTTP_HOST'] = 'example.invalid'
+    request.session = {}
+    request.META['HTTP_HOST'] = 'example.cz'
     request.META['SERVER_PROTOCOL'] = 'HTTP'
     return request
 
@@ -24,7 +29,7 @@ class TestProcessTrustResult(TestCase):
     def setUp(self):
         self.request = dummyRequest()
 
-        id_url = util.getViewURL(self.request, views.idPage)
+        id_url = urljoin('http://example.cz/', reverse('server:local_id'))
 
         # Set up the OpenID request we're responding to.
         op_endpoint = 'http://127.0.0.1:8080/endpoint'
@@ -65,7 +70,7 @@ class TestShowDecidePage(TestCase):
     def test_unreachableRealm(self):
         self.request = dummyRequest()
 
-        id_url = util.getViewURL(self.request, views.idPage)
+        id_url = urljoin('http://example.cz/', reverse('server:local_id'))
 
         # Set up the OpenID request we're responding to.
         op_endpoint = 'http://127.0.0.1:8080/endpoint'
