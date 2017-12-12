@@ -11,8 +11,6 @@ from openid.yadis import xrires
 from openid.yadis.discover import DiscoveryFailure
 from openid.yadis.xri import XRI
 
-from . import datadriven
-
 # Tests for conditions that trigger DiscoveryFailure
 
 
@@ -27,7 +25,7 @@ class SimpleMockFetcher(object):
         return response
 
 
-class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
+class TestDiscoveryFailure(unittest.TestCase):
     cases = [
         [HTTPResponse('http://network.error/', None)],
         [HTTPResponse('http://not.found/', 404)],
@@ -38,26 +36,23 @@ class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
          HTTPResponse('http://xrds.missing/', 404)],
     ]
 
-    def __init__(self, responses):
-        self.url = responses[0].final_url
-        datadriven.DataDrivenTestCase.__init__(self, self.url)
-        self.responses = responses
-
-    def setUp(self):
-        fetcher = SimpleMockFetcher(self.responses)
-        fetchers.setDefaultFetcher(fetcher)
-
-    def tearDown(self):
-        fetchers.setDefaultFetcher(None)
-
-    def runOneTest(self):
-        expected_status = self.responses[-1].status
+    def runOneTest(self, url, expected_status):
         try:
-            discover.discover(self.url)
+            discover.discover(url)
         except DiscoveryFailure as why:
             self.failUnlessEqual(why.http_response.status, expected_status)
         else:
             self.fail('Did not raise DiscoveryFailure')
+
+    def test(self):
+        for responses in self.cases:
+            url = responses[0].final_url
+            status = responses[-1].status
+
+            fetcher = SimpleMockFetcher(responses)
+            fetchers.setDefaultFetcher(fetcher)
+            self.runOneTest(url, status)
+            fetchers.setDefaultFetcher(None)
 
 
 # Tests for raising/catching exceptions from the fetcher through the
@@ -77,7 +72,7 @@ class DidFetch(Exception):
     """Custom exception just to make sure it's not handled differently"""
 
 
-class TestFetchException(datadriven.DataDrivenTestCase):
+class TestFetchException(unittest.TestCase):
     """Make sure exceptions get passed through discover function from
     fetcher."""
 
@@ -88,29 +83,25 @@ class TestFetchException(datadriven.DataDrivenTestCase):
         RuntimeError(),
     ]
 
-    def __init__(self, exc):
-        datadriven.DataDrivenTestCase.__init__(self, repr(exc))
-        self.exc = exc
-
-    def setUp(self):
-        fetcher = ErrorRaisingFetcher(self.exc)
-        fetchers.setDefaultFetcher(fetcher, wrap_exceptions=False)
-
-    def tearDown(self):
-        fetchers.setDefaultFetcher(None)
-
-    def runOneTest(self):
+    def runOneTest(self, exc):
         try:
             discover.discover('http://doesnt.matter/')
         except Exception:
             exc = sys.exc_info()[1]
             if exc is None:
                 # str exception
-                self.failUnless(self.exc is sys.exc_info()[0])
+                self.failUnless(exc is sys.exc_info()[0])
             else:
-                self.failUnless(self.exc is exc, exc)
+                self.failUnless(exc is exc, exc)
         else:
-            self.fail('Expected %r', self.exc)
+            self.fail('Expected %r', exc)
+
+    def test(self):
+        for exc in self.cases:
+            fetcher = ErrorRaisingFetcher(exc)
+            fetchers.setDefaultFetcher(fetcher, wrap_exceptions=False)
+            self.runOneTest(exc)
+            fetchers.setDefaultFetcher(None)
 
 
 # Tests for openid.consumer.discover.discover
@@ -621,18 +612,14 @@ class TestXRIDiscoveryIDP(BaseTestDiscovery):
                              "http://www.livejournal.com/openid/server.bml")
 
 
-class TestPreferredNamespace(datadriven.DataDrivenTestCase):
-    def __init__(self, expected_ns, type_uris):
-        datadriven.DataDrivenTestCase.__init__(
-            self, 'Expecting %s from %s' % (expected_ns, type_uris))
-        self.expected_ns = expected_ns
-        self.type_uris = type_uris
+class TestPreferredNamespace(unittest.TestCase):
 
-    def runOneTest(self):
-        endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.type_uris = self.type_uris
-        actual_ns = endpoint.preferredNamespace()
-        self.failUnlessEqual(actual_ns, self.expected_ns)
+    def test(self):
+        for expected_ns, type_uris in self.cases:
+            endpoint = discover.OpenIDServiceEndpoint()
+            endpoint.type_uris = type_uris
+            actual_ns = endpoint.preferredNamespace()
+            self.failUnlessEqual(actual_ns, expected_ns)
 
     cases = [
         (message.OPENID1_NS, []),
@@ -797,13 +784,3 @@ class TestEndpointDisplayIdentifier(unittest.TestCase):
         endpoint = discover.OpenIDServiceEndpoint()
         endpoint.claimed_id = 'http://recycled.invalid/#123'
         self.failUnlessEqual('http://recycled.invalid/', endpoint.getDisplayIdentifier())
-
-
-def pyUnitTests():
-    return datadriven.loadTests(__name__)
-
-
-if __name__ == '__main__':
-    suite = pyUnitTests()
-    runner = unittest.TextTestRunner()
-    runner.run(suite)
