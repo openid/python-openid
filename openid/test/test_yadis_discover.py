@@ -96,90 +96,51 @@ class TestSecondGet(unittest.TestCase):
         self.failUnlessRaises(DiscoveryFailure, discover, uri)
 
 
-class _TestCase(unittest.TestCase):
+class TestDiscover(unittest.TestCase):
     base_url = 'http://invalid.unittest/'
-
-    def __init__(self, input_name, id_name, result_name, success):
-        self.input_name = input_name
-        self.id_name = id_name
-        self.result_name = result_name
-        self.success = success
-        # Still not quite sure how to best construct these custom tests.
-        # Between python2.3 and python2.4, a patch attached to pyunit.sf.net
-        # bug #469444 got applied which breaks loadTestsFromModule on this
-        # class if it has test_ or runTest methods.  So, kludge to change
-        # the method name.
-        unittest.TestCase.__init__(self, methodName='runCustomTest')
 
     def setUp(self):
         fetchers.setDefaultFetcher(TestFetcher(self.base_url),
                                    wrap_exceptions=False)
 
-        self.input_url, self.expected = discoverdata.generateResult(
-            self.base_url,
-            self.input_name,
-            self.id_name,
-            self.result_name,
-            self.success)
-
     def tearDown(self):
         fetchers.setDefaultFetcher(None)
 
-    def runCustomTest(self):
-        if self.expected is DiscoveryFailure:
-            self.failUnlessRaises(DiscoveryFailure,
-                                  discover, self.input_url)
-        else:
-            result = discover(self.input_url)
-            self.failUnlessEqual(self.input_url, result.request_uri)
+    def test(self):
+        for success, input_name, id_name, result_name in discoverdata.testlist:
+            input_url, expected = discoverdata.generateResult(
+                self.base_url,
+                input_name,
+                id_name,
+                result_name,
+                success)
 
-            msg = 'Identity URL mismatch: actual = %r, expected = %r' % (
-                result.normalized_uri, self.expected.normalized_uri)
-            self.failUnlessEqual(
-                self.expected.normalized_uri, result.normalized_uri, msg)
+            if expected is DiscoveryFailure:
+                self.failUnlessRaises(DiscoveryFailure,
+                                      discover, input_url)
+            else:
+                result = discover(input_url)
+                self.failUnlessEqual(input_url, result.request_uri)
 
-            msg = 'Content mismatch: actual = %r, expected = %r' % (
-                result.response_text, self.expected.response_text)
-            self.failUnlessEqual(
-                self.expected.response_text, result.response_text, msg)
+                msg = 'Identity URL mismatch: actual = %r, expected = %r' % (
+                    result.normalized_uri, expected.normalized_uri)
+                self.failUnlessEqual(
+                    expected.normalized_uri, result.normalized_uri, msg)
 
-            expected_keys = sorted(dir(self.expected))
-            actual_keys = sorted(dir(result))
-            self.failUnlessEqual(actual_keys, expected_keys)
+                msg = 'Content mismatch: actual = %r, expected = %r' % (
+                    result.response_text, expected.response_text)
+                self.failUnlessEqual(
+                    expected.response_text, result.response_text, msg)
 
-            for k in dir(self.expected):
-                if k.startswith('__') and k.endswith('__'):
-                    continue
-                exp_v = getattr(self.expected, k)
-                if isinstance(exp_v, types.MethodType):
-                    continue
-                act_v = getattr(result, k)
-                assert act_v == exp_v, (k, exp_v, act_v)
+                expected_keys = sorted(dir(expected))
+                actual_keys = sorted(dir(result))
+                self.failUnlessEqual(actual_keys, expected_keys)
 
-    def shortDescription(self):
-        try:
-            n = self.input_url
-        except AttributeError:
-            # run before setUp, or if setUp did not complete successfully.
-            n = self.input_name
-        return "%s (%s)" % (
-            n,
-            self.__class__.__module__)
-
-
-def pyUnitTests():
-    s = unittest.TestSuite()
-    for success, input_name, id_name, result_name in discoverdata.testlist:
-        test = _TestCase(input_name, id_name, result_name, success)
-        s.addTest(test)
-
-    return s
-
-
-def test():
-    runner = unittest.TextTestRunner()
-    return runner.run(pyUnitTests())
-
-
-if __name__ == '__main__':
-    test()
+                for k in dir(expected):
+                    if k.startswith('__') and k.endswith('__'):
+                        continue
+                    exp_v = getattr(expected, k)
+                    if isinstance(exp_v, types.MethodType):
+                        continue
+                    act_v = getattr(result, k)
+                    assert act_v == exp_v, (k, exp_v, act_v)

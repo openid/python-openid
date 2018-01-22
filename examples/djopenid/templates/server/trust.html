@@ -39,7 +39,7 @@
 
 <div>
 <form method="post"
-      action="{{ trust_handler_url }}">
+      action="{% url 'server:process-confirmation' %}">
   Verify your identity to the relying party?
 
   <br/>

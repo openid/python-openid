@@ -2,7 +2,6 @@ import re
 import unittest
 
 from openid.store.nonce import checkTimestamp, mkNonce, split as splitNonce
-from openid.test import datadriven
 
 nonce_re = re.compile(r'\A\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ')
 
@@ -36,7 +35,7 @@ class NonceTest(unittest.TestCase):
         self.failUnlessEqual(et, t)
 
 
-class BadSplitTest(datadriven.DataDrivenTestCase):
+class BadSplitTest(unittest.TestCase):
     cases = [
         '',
         '1970-01-01T00:00:00+1:00',
@@ -47,15 +46,12 @@ class BadSplitTest(datadriven.DataDrivenTestCase):
         'monkeys',
     ]
 
-    def __init__(self, nonce_str):
-        datadriven.DataDrivenTestCase.__init__(self, nonce_str)
-        self.nonce_str = nonce_str
-
-    def runOneTest(self):
-        self.failUnlessRaises(ValueError, splitNonce, self.nonce_str)
+    def test(self):
+        for nonce_str in self.cases:
+            self.failUnlessRaises(ValueError, splitNonce, nonce_str)
 
 
-class CheckTimestampTest(datadriven.DataDrivenTestCase):
+class CheckTimestampTest(unittest.TestCase):
     cases = [
         # exact, no allowed skew
         ('1970-01-01T00:00:00Z', 0, 0, True),
@@ -82,24 +78,7 @@ class CheckTimestampTest(datadriven.DataDrivenTestCase):
         ('monkeys', 0, 0, False),
     ]
 
-    def __init__(self, nonce_string, allowed_skew, now, expected):
-        datadriven.DataDrivenTestCase.__init__(
-            self, repr((nonce_string, allowed_skew, now)))
-        self.nonce_string = nonce_string
-        self.allowed_skew = allowed_skew
-        self.now = now
-        self.expected = expected
-
-    def runOneTest(self):
-        actual = checkTimestamp(self.nonce_string, self.allowed_skew, self.now)
-        self.failUnlessEqual(bool(self.expected), bool(actual))
-
-
-def pyUnitTests():
-    return datadriven.loadTests(__name__)
-
-
-if __name__ == '__main__':
-    suite = pyUnitTests()
-    runner = unittest.TextTestRunner()
-    runner.run(suite)
+    def test(self):
+        for nonce_string, allowed_skew, now, expected in self.cases:
+            actual = checkTimestamp(nonce_string, allowed_skew, now)
+            self.failUnlessEqual(bool(expected), bool(actual))

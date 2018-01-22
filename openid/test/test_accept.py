@@ -1,3 +1,4 @@
+"""Test `openid.yadis.accept` module."""
 import os.path
 import unittest
 
@@ -84,53 +85,31 @@ def parseExpected(expected_text):
 
 
 class MatchAcceptTest(unittest.TestCase):
-    def __init__(self, descr, accept_header, available, expected):
-        unittest.TestCase.__init__(self)
-        self.accept_header = accept_header
-        self.available = available
-        self.expected = expected
-        self.descr = descr
-
-    def shortDescription(self):
-        return self.descr
 
     def runTest(self):
-        accepted = accept.parseAcceptHeader(self.accept_header)
-        actual = accept.matchTypes(accepted, self.available)
-        self.failUnlessEqual(self.expected, actual)
+        lines = getTestData()
+        chunks = chunk(lines)
+        data_sets = map(parseLines, chunks)
+        for data in data_sets:
+            lnos = []
+            lno, accept_header = data['accept']
+            lnos.append(lno)
+            lno, avail_data = data['available']
+            lnos.append(lno)
+            try:
+                available = parseAvailable(avail_data)
+            except Exception:
+                print 'On line', lno
+                raise
 
+            lno, exp_data = data['expected']
+            lnos.append(lno)
+            try:
+                expected = parseExpected(exp_data)
+            except Exception:
+                print 'On line', lno
+                raise
 
-def pyUnitTests():
-    lines = getTestData()
-    chunks = chunk(lines)
-    data_sets = map(parseLines, chunks)
-    cases = []
-    for data in data_sets:
-        lnos = []
-        lno, header = data['accept']
-        lnos.append(lno)
-        lno, avail_data = data['available']
-        lnos.append(lno)
-        try:
-            available = parseAvailable(avail_data)
-        except Exception:
-            print 'On line', lno
-            raise
-
-        lno, exp_data = data['expected']
-        lnos.append(lno)
-        try:
-            expected = parseExpected(exp_data)
-        except Exception:
-            print 'On line', lno
-            raise
-
-        descr = 'MatchAcceptTest for lines %r' % (lnos,)
-        case = MatchAcceptTest(descr, header, available, expected)
-        cases.append(case)
-    return unittest.TestSuite(cases)
-
-
-if __name__ == '__main__':
-    runner = unittest.TextTestRunner()
-    runner.run(pyUnitTests())
+            accepted = accept.parseAcceptHeader(accept_header)
+            actual = accept.matchTypes(accepted, available)
+            self.failUnlessEqual(expected, actual)

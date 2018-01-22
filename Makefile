@@ -1,13 +1,13 @@
 .PHONY: test coverage isort check-all check-isort check-flake8
 
 test:
-	python admin/runtests
+	PYTHONPATH="examples" DJANGO_SETTINGS_MODULE="djopenid.settings" python -m unittest discover
 
 coverage:
-	python-coverage erase
+	python -m coverage erase
 	-rm -r htmlcov
-	python-coverage run --branch --source="." admin/runtests
-	python-coverage html --directory=htmlcov
+	PYTHONPATH="examples" DJANGO_SETTINGS_MODULE="djopenid.settings" python -m coverage run --branch --source="." openid/test/__init__.py discover
+	python -m coverage html --directory=htmlcov
 
 isort:
 	isort --recursive .

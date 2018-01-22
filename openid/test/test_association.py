@@ -6,7 +6,6 @@ from openid.consumer.consumer import DiffieHellmanSHA1ConsumerSession, PlainText
 from openid.dh import DiffieHellman
 from openid.message import BARE_NS, OPENID2_NS, OPENID_NS, Message
 from openid.server.server import DiffieHellmanSHA1ServerSession, PlainTextServerSession
-from openid.test import datadriven
 
 
 class AssociationSerializationTest(unittest.TestCase):
@@ -29,7 +28,7 @@ def createNonstandardConsumerDH():
     return DiffieHellmanSHA1ConsumerSession(nonstandard_dh)
 
 
-class DiffieHellmanSessionTest(datadriven.DataDrivenTestCase):
+class DiffieHellmanSessionTest(unittest.TestCase):
     secrets = [
         '\x00' * 20,
         '\xff' * 20,
@@ -43,26 +42,15 @@ class DiffieHellmanSessionTest(datadriven.DataDrivenTestCase):
         (PlainTextConsumerSession, PlainTextServerSession),
     ]
 
-    def generateCases(cls):
-        return [(c, s, sec)
-                for c, s in cls.session_factories
-                for sec in cls.secrets]
-
-    generateCases = classmethod(generateCases)
-
-    def __init__(self, csess_fact, ssess_fact, secret):
-        datadriven.DataDrivenTestCase.__init__(self, csess_fact.__name__)
-        self.secret = secret
-        self.csess_fact = csess_fact
-        self.ssess_fact = ssess_fact
-
-    def runOneTest(self):
-        csess = self.csess_fact()
-        msg = Message.fromOpenIDArgs(csess.getRequest())
-        ssess = self.ssess_fact.fromMessage(msg)
-        check_secret = csess.extractSecret(
-            Message.fromOpenIDArgs(ssess.answer(self.secret)))
-        self.failUnlessEqual(self.secret, check_secret)
+    def test(self):
+        for csess_fact, ssess_fact in self.session_factories:
+            for secret in self.secrets:
+                csess = csess_fact()
+                msg = Message.fromOpenIDArgs(csess.getRequest())
+                ssess = ssess_fact.fromMessage(msg)
+                check_secret = csess.extractSecret(
+                    Message.fromOpenIDArgs(ssess.answer(secret)))
+                self.failUnlessEqual(secret, check_secret)
 
 
 class TestMakePairs(unittest.TestCase):
@@ -155,13 +143,3 @@ class TestCheckMessageSignature(unittest.TestCase):
         assoc = association.Association.fromExpiresIn(
             3600, '{sha1}', 'very_secret', "HMAC-SHA1")
         self.failUnlessRaises(ValueError, assoc.checkMessageSignature, m)
-
-
-def pyUnitTests():
-    return datadriven.loadTests(__name__)
-
-
-if __name__ == '__main__':
-    suite = pyUnitTests()
-    runner = unittest.TextTestRunner()
-    runner.run(suite)

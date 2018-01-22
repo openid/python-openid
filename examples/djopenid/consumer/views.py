@@ -1,5 +1,6 @@
 from django.http import HttpResponseRedirect
-from django.views.generic.simple import direct_to_template
+from django.shortcuts import render
+from django.urls import reverse
 
 from openid.consumer import consumer
 from openid.consumer.discover import DiscoveryFailure
@@ -36,12 +37,11 @@ def getConsumer(request):
 
 
 def renderIndexPage(request, **template_args):
-    template_args['consumer_url'] = util.getViewURL(request, startOpenID)
+    template_args['consumer_url'] = request.build_absolute_uri(reverse('consumer:index'))
     template_args['pape_policies'] = POLICY_PAIRS
 
-    response = direct_to_template(
-        request, 'consumer/index.html', template_args)
-    response[YADIS_HEADER_NAME] = util.getViewURL(request, rpXRDS)
+    response = render(request, 'consumer/index.html', template_args)
+    response[YADIS_HEADER_NAME] = request.build_absolute_uri(reverse('consumer:xrds'))
     return response
 
 
@@ -114,8 +114,8 @@ def startOpenID(request):
 
         # Compute the trust root and return URL values to build the
         # redirect information.
-        trust_root = util.getViewURL(request, startOpenID)
-        return_to = util.getViewURL(request, finishOpenID)
+        trust_root = util.request.build_absolute_uri(reverse('consumer:index'))
+        return_to = util.request.build_absolute_uri(reverse('consumer:return_to'))
 
         # Send the browser to the server either by sending a redirect
         # URL or by generating a POST form.
@@ -130,8 +130,7 @@ def startOpenID(request):
             form_id = 'openid_message'
             form_html = auth_request.formMarkup(trust_root, return_to,
                                                 False, {'id': form_id})
-            return direct_to_template(
-                request, 'consumer/request_form.html', {'html': form_html})
+            return render(request, 'consumer/request_form.html', {'html': form_html})
 
     return renderIndexPage(request)
 
@@ -159,7 +158,7 @@ def finishOpenID(request):
 
         # Get a response object indicating the result of the OpenID
         # protocol.
-        return_to = util.getViewURL(request, finishOpenID)
+        return_to = request.build_absolute_uri(reverse('consumer:return_to'))
         response = c.complete(request_args, return_to)
 
         # Get a Simple Registration response object if response
@@ -218,7 +217,5 @@ def rpXRDS(request):
     """
     Return a relying party verification XRDS document
     """
-    return util.renderXRDS(
-        request,
-        [RP_RETURN_TO_URL_TYPE],
-        [util.getViewURL(request, finishOpenID)])
+    return_to = request.build_absolute_uri(reverse('consumer:return_to'))
+    return util.renderXRDS(request, [RP_RETURN_TO_URL_TYPE], [return_to])

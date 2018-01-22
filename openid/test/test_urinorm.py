@@ -3,53 +3,28 @@ import unittest
 
 import openid.urinorm
 
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'urinorm.txt')) as test_data_file:
+    test_data = test_data_file.read()
+
 
 class UrinormTest(unittest.TestCase):
-    def __init__(self, desc, case, expected):
-        unittest.TestCase.__init__(self)
-        self.desc = desc
-        self.case = case
-        self.expected = expected
-
-    def shortDescription(self):
-        return self.desc
 
     def runTest(self):
-        try:
-            actual = openid.urinorm.urinorm(self.case)
-        except ValueError as why:
-            self.assertEqual(self.expected, 'fail', why)
-        else:
-            self.assertEqual(actual, self.expected)
+        for case in test_data.split('\n\n'):
+            case = case.strip()
+            if not case:
+                continue
 
-    def parse(cls, full_case):
+            desc, raw, expected = self.parse(case)
+            try:
+                actual = openid.urinorm.urinorm(raw)
+            except ValueError as why:
+                self.assertEqual(expected, 'fail', why)
+            else:
+                self.assertEqual(actual, expected, desc)
+
+    def parse(self, full_case):
         desc, case, expected = full_case.split('\n')
         case = unicode(case, 'utf-8')
 
-        return cls(desc, case, expected)
-
-    parse = classmethod(parse)
-
-
-def parseTests(test_data):
-    result = []
-
-    cases = test_data.split('\n\n')
-    for case in cases:
-        case = case.strip()
-
-        if case:
-            result.append(UrinormTest.parse(case))
-
-    return result
-
-
-def pyUnitTests():
-    here = os.path.dirname(os.path.abspath(__file__))
-    test_data_file_name = os.path.join(here, 'urinorm.txt')
-    test_data_file = file(test_data_file_name)
-    test_data = test_data_file.read()
-    test_data_file.close()
-
-    tests = parseTests(test_data)
-    return unittest.TestSuite(tests)
+        return (desc, case, expected)
