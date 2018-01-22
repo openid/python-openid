@@ -4,5 +4,7 @@
 .tox
 # Created in tests
 /.coverage
+/.eggs
 /htmlcov
+/python_openid.egg-info
 /sstore

@@ -1,9 +1,18 @@
-.PHONY: test coverage isort check-all check-isort check-flake8
+.PHONY: test test-openid test-djopenid coverage isort check-all check-isort check-flake8
 
 SOURCES = openid setup.py admin contrib
 
-test:
-	PYTHONPATH="examples" DJANGO_SETTINGS_MODULE="djopenid.settings" python -m unittest discover
+# Run tests by default
+all: test
+
+test-openid:
+	python -m unittest discover --start=openid
+
+# Run tests for djopenid example
+test-djopenid:
+	DJANGO_SETTINGS_MODULE="djopenid.settings" python -m unittest discover --start=examples
+
+test: test-openid test-djopenid
 
 coverage:
 	python -m coverage erase

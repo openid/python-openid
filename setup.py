@@ -1,15 +1,21 @@
 import os
 import sys
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup
 
 if 'sdist' in sys.argv:
     os.system('./admin/makedoc')
 
 version = '[library version:2.2.5]'[17:-1]
+EXTRAS_REQUIRE = {
+    'quality': ('flake8', 'isort'),
+    'tests': ('mock', ),
+    # Optional dependencies for fetchers
+    'httplib2': ('httplib2', ),
+    'pycurl': ('pycurl', ),
+    # Dependencies for Django example
+    'djopenid': ('django<1.11.99', ),
+}
 
 setup(
     name='python-openid',
@@ -29,6 +35,7 @@ and support for a variety of storage back-ends.''',
               'openid.extensions',
               'openid.extensions.draft',
               ],
+    extras_require=EXTRAS_REQUIRE,
     # license specified by classifier.
     # license=getLicense(),
     author='JanRain',
