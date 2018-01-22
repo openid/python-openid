@@ -20,7 +20,6 @@ import cgi
 from django import http
 from django.shortcuts import render
 from django.urls import reverse
-
 from openid.consumer.discover import OPENID_IDP_2_0_TYPE
 from openid.extensions import pape, sreg
 from openid.fetchers import HTTPFetchingError
