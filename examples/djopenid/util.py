@@ -5,7 +5,6 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.shortcuts import render
-
 from openid.store import sqlstore
 from openid.store.filestore import FileOpenIDStore
 from openid.yadis.constants import YADIS_CONTENT_TYPE

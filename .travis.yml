@@ -1,11 +1,19 @@
 language: python
 
-python:
-  - 2.7
+sudo: false
 
-before_install: pip install 'Django<=1.11.99' pycrypto lxml isort flake8
-install: python setup.py install
+python:
+  - "2.7"
+  - "pypy"
+
+addons:
+  apt:
+    packages:
+    # Dependencies for pycurl compilation
+    - libcurl4-openssl-dev
+    - libssl-dev
+
+install:
+  - pip install tox-travis
 script:
-  - make check-isort
-  - make check-flake8
-  - make test
+  - tox
