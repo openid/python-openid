@@ -40,9 +40,7 @@ class PapeRequestTestCase(unittest.TestCase):
         self.req.addAuthLevel('http://example.com/', 'example')
         self.assertEqual(self.req.preferred_auth_level_types, ['http://example.com/', 'http://example.com/1'])
 
-        self.failUnlessRaises(KeyError,
-                              self.req.addAuthLevel,
-                              'http://example.com/2', 'example')
+        self.assertRaises(KeyError, self.req.addAuthLevel, 'http://example.com/2', 'example')
 
         # alias is None; we expect a new one to be generated.
         uri = 'http://another.example.com/'
@@ -131,9 +129,7 @@ class PapeRequestTestCase(unittest.TestCase):
         self.assertEqual(self.req.preferred_auth_level_types, [])
 
         self.req = pape.Request()
-        self.failUnlessRaises(ValueError,
-                              self.req.parseExtensionArgs,
-                              request_args, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.req.parseExtensionArgs, request_args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_ignoreBadAuthLevels(self):
         request_args = {'preferred_auth_level_types': 'monkeys'}
@@ -142,8 +138,7 @@ class PapeRequestTestCase(unittest.TestCase):
 
     def test_parseExtensionArgs_strictBadAuthLevels(self):
         request_args = {'preferred_auth_level_types': 'monkeys'}
-        self.failUnlessRaises(ValueError, self.req.parseExtensionArgs,
-                              request_args, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.req.parseExtensionArgs, request_args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs(self):
         args = {'preferred_auth_policies': 'http://foo http://bar',
@@ -155,8 +150,7 @@ class PapeRequestTestCase(unittest.TestCase):
 
     def test_parseExtensionArgs_strict_bad_auth_age(self):
         args = {'max_auth_age': 'not an int'}
-        self.assertRaises(ValueError, self.req.parseExtensionArgs, args,
-                          is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.req.parseExtensionArgs, args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_empty(self):
         self.req.parseExtensionArgs({}, False)
@@ -233,8 +227,7 @@ class PapeResponseTestCase(unittest.TestCase):
         self.resp.addPolicyURI(pape.AUTH_MULTI_FACTOR)
         self.assertEqual(self.resp.auth_policies, [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT])
 
-        self.failUnlessRaises(RuntimeError, self.resp.addPolicyURI,
-                              pape.AUTH_NONE)
+        self.assertRaises(RuntimeError, self.resp.addPolicyURI, pape.AUTH_NONE)
 
     def test_getExtensionArgs(self):
         self.assertEqual(self.resp.getExtensionArgs(), {'auth_policies': pape.AUTH_NONE})
@@ -252,7 +245,7 @@ class PapeResponseTestCase(unittest.TestCase):
 
     def test_getExtensionArgs_error_auth_age(self):
         self.resp.auth_time = "long ago"
-        self.failUnlessRaises(ValueError, self.resp.getExtensionArgs)
+        self.assertRaises(ValueError, self.resp.getExtensionArgs)
 
     def test_parseExtensionArgs(self):
         args = {'auth_policies': 'http://foo http://bar',
@@ -273,9 +266,7 @@ class PapeResponseTestCase(unittest.TestCase):
 
     def test_parseExtensionArgs_old_none_strict(self):
         args = {'auth_policies': 'none'}
-        self.failUnlessRaises(
-            ValueError,
-            self.resp.parseExtensionArgs, args, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.resp.parseExtensionArgs, args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_empty(self):
         self.resp.parseExtensionArgs({}, is_openid1=False)
@@ -283,9 +274,7 @@ class PapeResponseTestCase(unittest.TestCase):
         self.assertEqual(self.resp.auth_policies, [])
 
     def test_parseExtensionArgs_empty_strict(self):
-        self.failUnlessRaises(
-            ValueError,
-            self.resp.parseExtensionArgs, {}, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.resp.parseExtensionArgs, {}, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_ignore_superfluous_none(self):
         policies = [pape.AUTH_NONE, pape.AUTH_MULTI_FACTOR_PHYSICAL]
@@ -305,14 +294,12 @@ class PapeResponseTestCase(unittest.TestCase):
             'auth_policies': ' '.join(policies),
         }
 
-        self.failUnlessRaises(ValueError, self.resp.parseExtensionArgs,
-                              args, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.resp.parseExtensionArgs, args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_strict_bogus1(self):
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': 'yesterday'}
-        self.failUnlessRaises(ValueError, self.resp.parseExtensionArgs,
-                              args, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.resp.parseExtensionArgs, args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_openid1_strict(self):
         args = {'auth_level.nist': '0',
@@ -328,8 +315,7 @@ class PapeResponseTestCase(unittest.TestCase):
         args = {'auth_policies': pape.AUTH_NONE,
                 'auth_level.nist': '0',
                 }
-        self.failUnlessRaises(ValueError, self.resp.parseExtensionArgs,
-                              args, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.resp.parseExtensionArgs, args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_nostrict_no_namespace_decl_openid2(self):
         # Test the case where the namespace is not declared for an
@@ -340,8 +326,7 @@ class PapeResponseTestCase(unittest.TestCase):
         self.resp.parseExtensionArgs(args, is_openid1=False, strict=False)
 
         # There is no namespace declaration for this auth level.
-        self.failUnlessRaises(KeyError, self.resp.getAuthLevel,
-                              pape.LEVELS_NIST)
+        self.assertRaises(KeyError, self.resp.getAuthLevel, pape.LEVELS_NIST)
 
     def test_parseExtensionArgs_strict_good(self):
         args = {'auth_policies': 'http://foo http://bar',

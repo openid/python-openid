@@ -74,8 +74,7 @@ def mkExtractAssocMissingTest(keys):
     def test(self):
         msg = mkAssocResponse(*keys)
 
-        self.failUnlessRaises(KeyError,
-                              self.consumer._extractAssociation, msg, None)
+        self.assertRaises(KeyError, self.consumer._extractAssociation, msg, None)
 
     return test
 

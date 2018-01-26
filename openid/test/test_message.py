@@ -13,8 +13,7 @@ def mkGetArgTest(ns, key, expected=None):
         self.assertEqual(self.msg.getArg(ns, key), expected)
         if expected is None:
             self.assertEqual(self.msg.getArg(ns, key, a_default), a_default)
-            self.failUnlessRaises(
-                KeyError, self.msg.getArg, ns, key, message.no_default)
+            self.assertRaises(KeyError, self.msg.getArg, ns, key, message.no_default)
         else:
             self.assertEqual(self.msg.getArg(ns, key, a_default), expected)
             self.assertEqual(self.msg.getArg(ns, key, message.no_default), expected)
@@ -50,8 +49,7 @@ class EmptyMessageTest(unittest.TestCase):
         # exception. I'm not sure which one is more right, since this
         # case should only happen when you're building a message from
         # scratch and so have no default namespace.
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.getKey, message.OPENID_NS, 'foo')
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.getKey, message.OPENID_NS, 'foo')
 
     def test_getKeyBARE(self):
         self.assertEqual(self.msg.getKey(message.BARE_NS, 'foo'), 'foo')
@@ -70,8 +68,7 @@ class EmptyMessageTest(unittest.TestCase):
         # exception. I'm not sure which one is more right, since this
         # case should only happen when you're building a message from
         # scratch and so have no default namespace.
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.hasKey, message.OPENID_NS, 'foo')
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.hasKey, message.OPENID_NS, 'foo')
 
     def test_hasKeyBARE(self):
         self.assertFalse(self.msg.hasKey(message.BARE_NS, 'foo'))
@@ -93,16 +90,14 @@ class EmptyMessageTest(unittest.TestCase):
 
     def test_getAliasedArgFailure(self):
         msg = message.Message.fromPostArgs({'openid.test.flub': 'bogus'})
-        self.assertRaises(KeyError,
-                          msg.getAliasedArg, 'ns.test', message.no_default)
+        self.assertRaises(KeyError, msg.getAliasedArg, 'ns.test', message.no_default)
 
     def test_getArg(self):
         # Could reasonably return None instead of raising an
         # exception. I'm not sure which one is more right, since this
         # case should only happen when you're building a message from
         # scratch and so have no default namespace.
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.getArg, message.OPENID_NS, 'foo')
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.getArg, message.OPENID_NS, 'foo')
 
     test_getArgBARE = mkGetArgTest(message.BARE_NS, 'foo')
     test_getArgNS1 = mkGetArgTest(message.OPENID1_NS, 'foo')
@@ -114,8 +109,7 @@ class EmptyMessageTest(unittest.TestCase):
         # exception. I'm not sure which one is more right, since this
         # case should only happen when you're building a message from
         # scratch and so have no default namespace.
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.getArgs, message.OPENID_NS)
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.getArgs, message.OPENID_NS)
 
     def test_getArgsBARE(self):
         self.assertEqual(self.msg.getArgs(message.BARE_NS), {})
@@ -130,9 +124,8 @@ class EmptyMessageTest(unittest.TestCase):
         self.assertEqual(self.msg.getArgs('urn:nothing-significant'), {})
 
     def test_updateArgs(self):
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.updateArgs, message.OPENID_NS,
-                              {'does not': 'matter'})
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.updateArgs, message.OPENID_NS,
+                          {'does not': 'matter'})
 
     def _test_updateArgsNS(self, ns):
         update_args = {
@@ -157,9 +150,7 @@ class EmptyMessageTest(unittest.TestCase):
         self._test_updateArgsNS('urn:nothing-significant')
 
     def test_setArg(self):
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.setArg, message.OPENID_NS,
-                              'does not', 'matter')
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.setArg, message.OPENID_NS, 'does not', 'matter')
 
     def _test_setArgNS(self, ns):
         key = 'Camper van Beethoven'
@@ -181,8 +172,7 @@ class EmptyMessageTest(unittest.TestCase):
         self._test_setArgNS('urn:nothing-significant')
 
     def test_setArgToNone(self):
-        self.failUnlessRaises(AssertionError, self.msg.setArg,
-                              message.OPENID1_NS, 'op_endpoint', None)
+        self.assertRaises(AssertionError, self.msg.setArg, message.OPENID1_NS, 'op_endpoint', None)
 
     def test_delArg(self):
         # Could reasonably raise KeyError instead of raising
@@ -190,12 +180,11 @@ class EmptyMessageTest(unittest.TestCase):
         # right, since this case should only happen when you're
         # building a message from scratch and so have no default
         # namespace.
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.delArg, message.OPENID_NS, 'key')
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.delArg, message.OPENID_NS, 'key')
 
     def _test_delArgNS(self, ns):
         key = 'Camper van Beethoven'
-        self.failUnlessRaises(KeyError, self.msg.delArg, ns, key)
+        self.assertRaises(KeyError, self.msg.delArg, ns, key)
 
     def test_delArgBARE(self):
         self._test_delArgNS(message.BARE_NS)
@@ -354,7 +343,7 @@ class OpenID1MessageTest(unittest.TestCase):
         key = 'Camper van Beethoven'
         value = 'David Lowery'
 
-        self.failUnlessRaises(KeyError, self.msg.delArg, ns, key)
+        self.assertRaises(KeyError, self.msg.delArg, ns, key)
         self.msg.setArg(ns, key, value)
         self.assertEqual(self.msg.getArg(ns, key), value)
         self.msg.delArg(ns, key)
@@ -586,8 +575,7 @@ class OpenID2MessageTest(unittest.TestCase):
             # .fromPostArgs covers .fromPostArgs, .fromOpenIDArgs,
             # ._fromOpenIDArgs, and .fromOpenIDArgs (since it calls
             # .fromPostArgs).
-            self.failUnlessRaises(AssertionError, self.msg.fromPostArgs,
-                                  args)
+            self.assertRaises(AssertionError, self.msg.fromPostArgs, args)
 
     def test_mysterious_missing_namespace_bug(self):
         """A failing test for bug #112"""
@@ -665,7 +653,7 @@ class OpenID2MessageTest(unittest.TestCase):
             'openid.pape.auth_time': '2008-01-28T20:42:36Z',
             'openid.pape.nist_auth_level': '0',
         }
-        self.failUnlessRaises(message.InvalidNamespace, message.Message.fromPostArgs, args)
+        self.assertRaises(message.InvalidNamespace, message.Message.fromPostArgs, args)
 
     def test_implicit_sreg_ns(self):
         openid_args = {'sreg.email': 'a@b.com'}
@@ -680,7 +668,7 @@ class OpenID2MessageTest(unittest.TestCase):
         key = 'Camper van Beethoven'
         value = 'David Lowery'
 
-        self.failUnlessRaises(KeyError, self.msg.delArg, ns, key)
+        self.assertRaises(KeyError, self.msg.delArg, ns, key)
         self.msg.setArg(ns, key, value)
         self.assertEqual(self.msg.getArg(ns, key), value)
         self.msg.delArg(ns, key)
@@ -713,8 +701,7 @@ class OpenID2MessageTest(unittest.TestCase):
         self.failUnless(self.msg.getArg(ns, key) == value_2)
 
     def test_argList(self):
-        self.failUnlessRaises(TypeError, self.msg.fromPostArgs,
-                              {'arg': [1, 2, 3]})
+        self.assertRaises(TypeError, self.msg.fromPostArgs, {'arg': [1, 2, 3]})
 
     def test_isOpenID1(self):
         self.failIf(self.msg.isOpenID1())
@@ -883,8 +870,7 @@ class MessageTest(unittest.TestCase):
         ]
 
         for x in invalid_things:
-            self.failUnlessRaises(message.InvalidOpenIDNamespace,
-                                  m.setOpenIDNamespace, x, False)
+            self.assertRaises(message.InvalidOpenIDNamespace, m.setOpenIDNamespace, x, False)
 
     def test_isOpenID1(self):
         v1_namespaces = [

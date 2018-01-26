@@ -59,9 +59,7 @@ class ToTypeURIsTest(unittest.TestCase):
             self.assertEqual(uris, [])
 
     def test_undefined(self):
-        self.failUnlessRaises(
-            KeyError,
-            ax.toTypeURIs, self.aliases, 'http://janrain.com/')
+        self.assertRaises(KeyError, ax.toTypeURIs, self.aliases, 'http://janrain.com/')
 
     def test_one(self):
         uri = 'http://janrain.com/'
@@ -88,7 +86,7 @@ class ParseAXValuesTest(unittest.TestCase):
 
     def failUnlessAXKeyError(self, ax_args):
         msg = ax.AXKeyValueMessage()
-        self.failUnlessRaises(KeyError, msg.parseExtensionArgs, ax_args)
+        self.assertRaises(KeyError, msg.parseExtensionArgs, ax_args)
 
     def failUnlessAXValues(self, ax_args, expected_args):
         """Fail unless parseExtensionArgs(ax_args) == expected_args."""
@@ -108,10 +106,7 @@ class ParseAXValuesTest(unittest.TestCase):
 
     def test_invalidCountValue(self):
         msg = ax.FetchRequest()
-        self.failUnlessRaises(ax.AXError,
-                              msg.parseExtensionArgs,
-                              {'type.foo': 'urn:foo',
-                               'count.foo': 'bogus'})
+        self.assertRaises(ax.AXError, msg.parseExtensionArgs, {'type.foo': 'urn:foo', 'count.foo': 'bogus'})
 
     def test_requestUnlimitedValues(self):
         msg = ax.FetchRequest()
@@ -156,8 +151,7 @@ class ParseAXValuesTest(unittest.TestCase):
         for typ in types:
             for input in inputs:
                 msg = typ()
-                self.failUnlessRaises(ax.AXError, msg.parseExtensionArgs,
-                                      input)
+                self.assertRaises(ax.AXError, msg.parseExtensionArgs, input)
 
     def test_countPresentAndIsZero(self):
         self.failUnlessAXValues(
@@ -228,7 +222,7 @@ class FetchRequestTest(unittest.TestCase):
 
         attr = ax.AttrInfo(uri)
         self.msg.add(attr)
-        self.failUnlessRaises(KeyError, self.msg.add, attr)
+        self.assertRaises(KeyError, self.msg.add, attr)
 
     def test_getExtensionArgs_empty(self):
         expected_args = {
@@ -298,8 +292,7 @@ class FetchRequestTest(unittest.TestCase):
             'mode': 'fetch_request',
             'type.' + self.alias_a: self.type_a,
         }
-        self.failUnlessRaises(ValueError,
-                              self.msg.parseExtensionArgs, extension_args)
+        self.assertRaises(ValueError, self.msg.parseExtensionArgs, extension_args)
 
     def test_parseExtensionArgs(self):
         extension_args = {
@@ -361,9 +354,7 @@ class FetchRequestTest(unittest.TestCase):
             'ax.update_url': 'http://different.site/path',
             'ax.mode': 'fetch_request',
         })
-        self.failUnlessRaises(ax.AXError,
-                              ax.FetchRequest.fromOpenIDRequest,
-                              DummyRequest(openid_req_msg))
+        self.assertRaises(ax.AXError, ax.FetchRequest.fromOpenIDRequest, DummyRequest(openid_req_msg))
 
     def test_openidUpdateURLVerificationError(self):
         openid_req_msg = Message.fromOpenIDArgs({
@@ -375,9 +366,7 @@ class FetchRequestTest(unittest.TestCase):
             'ax.mode': 'fetch_request',
         })
 
-        self.failUnlessRaises(ax.AXError,
-                              ax.FetchRequest.fromOpenIDRequest,
-                              DummyRequest(openid_req_msg))
+        self.assertRaises(ax.AXError, ax.FetchRequest.fromOpenIDRequest, DummyRequest(openid_req_msg))
 
     def test_openidUpdateURLVerificationSuccess(self):
         openid_req_msg = Message.fromOpenIDArgs({
@@ -500,7 +489,7 @@ class FetchResponseTest(unittest.TestCase):
         req = ax.FetchRequest()
         msg = ax.FetchResponse(request=req)
         msg.addValue(self.type_a, self.value_a)
-        self.failUnlessRaises(KeyError, msg.getExtensionArgs)
+        self.assertRaises(KeyError, msg.getExtensionArgs)
 
     def test_getSingle_success(self):
         self.msg.addValue(self.type_a, self.value_a)
@@ -511,10 +500,10 @@ class FetchResponseTest(unittest.TestCase):
 
     def test_getSingle_extra(self):
         self.msg.setValues(self.type_a, ['x', 'y'])
-        self.failUnlessRaises(ax.AXError, self.msg.getSingle, self.type_a)
+        self.assertRaises(ax.AXError, self.msg.getSingle, self.type_a)
 
     def test_get(self):
-        self.failUnlessRaises(KeyError, self.msg.get, self.type_a)
+        self.assertRaises(KeyError, self.msg.get, self.type_a)
 
     def test_fromSuccessResponseWithoutExtension(self):
         """return None for SuccessResponse with no AX paramaters."""

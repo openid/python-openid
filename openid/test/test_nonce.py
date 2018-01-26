@@ -48,7 +48,7 @@ class BadSplitTest(unittest.TestCase):
 
     def test(self):
         for nonce_str in self.cases:
-            self.failUnlessRaises(ValueError, splitNonce, nonce_str)
+            self.assertRaises(ValueError, splitNonce, nonce_str)
 
 
 class CheckTimestampTest(unittest.TestCase):

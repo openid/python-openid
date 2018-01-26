@@ -93,7 +93,7 @@ class TestSecondGet(unittest.TestCase):
 
     def test_404(self):
         uri = "http://something.unittest/"
-        self.failUnlessRaises(DiscoveryFailure, discover, uri)
+        self.assertRaises(DiscoveryFailure, discover, uri)
 
 
 class TestDiscover(unittest.TestCase):
@@ -116,8 +116,7 @@ class TestDiscover(unittest.TestCase):
                 success)
 
             if expected is DiscoveryFailure:
-                self.failUnlessRaises(DiscoveryFailure,
-                                      discover, input_url)
+                self.assertRaises(DiscoveryFailure, discover, input_url)
             else:
                 result = discover(input_url)
                 self.assertEqual(result.request_uri, input_url)

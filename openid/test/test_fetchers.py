@@ -252,8 +252,7 @@ class DefaultFetcherTest(unittest.TestCase):
                                    fetchers.ExceptionWrappingFetcher),
                         default_fetcher)
 
-        self.failUnlessRaises(fetchers.HTTPFetchingError,
-                              fetchers.fetch, 'http://invalid.janrain.com/')
+        self.assertRaises(fetchers.HTTPFetchingError, fetchers.fetch, 'http://invalid.janrain.com/')
 
     def test_notWrapped(self):
         """Make sure that if we set a non-wrapped fetcher as default,

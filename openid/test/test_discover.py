@@ -229,8 +229,7 @@ class TestDiscovery(BaseTestDiscovery):
         return services
 
     def test_404(self):
-        self.failUnlessRaises(DiscoveryFailure,
-                              discover.discover, self.id_url + '/404')
+        self.assertRaises(DiscoveryFailure, discover.discover, self.id_url + '/404')
 
     def test_unicode(self):
         """
@@ -246,7 +245,7 @@ class TestDiscovery(BaseTestDiscovery):
         Check page with unicode and HTML entities that can not be decoded
         """
         data = readDataFile('unicode2.html')
-        self.failUnlessRaises(UnicodeDecodeError, data.decode, 'utf-8')
+        self.assertRaises(UnicodeDecodeError, data.decode, 'utf-8')
         self._discover(content_type='text/html;charset=utf-8', data=data, expected_services=0)
 
     def test_unicode_undecodable_html2(self):
@@ -258,7 +257,7 @@ class TestDiscovery(BaseTestDiscovery):
             'application/xrds+xml', readDataFile('yadis_idp.xml'))
 
         data = readDataFile('unicode3.html')
-        self.failUnlessRaises(UnicodeDecodeError, data.decode, 'utf-8')
+        self.assertRaises(UnicodeDecodeError, data.decode, 'utf-8')
         self._discover(content_type='text/html;charset=utf-8', data=data, expected_services=1)
 
     def test_noOpenID(self):
@@ -462,10 +461,8 @@ class TestDiscovery(BaseTestDiscovery):
         )
 
     def test_yadis2BadLocalID(self):
-        self.failUnlessRaises(DiscoveryFailure, self._discover,
-                              content_type='application/xrds+xml',
-                              data=readDataFile('yadis_2_bad_local_id.xml'),
-                              expected_services=1)
+        self.assertRaises(DiscoveryFailure, self._discover, content_type='application/xrds+xml',
+                          data=readDataFile('yadis_2_bad_local_id.xml'), expected_services=1)
 
     def test_yadis1And2(self):
         services = self._discover(
@@ -485,10 +482,8 @@ class TestDiscovery(BaseTestDiscovery):
         )
 
     def test_yadis1And2BadLocalID(self):
-        self.failUnlessRaises(DiscoveryFailure, self._discover,
-                              content_type='application/xrds+xml',
-                              data=readDataFile('openid_1_and_2_xrds_bad_delegate.xml'),
-                              expected_services=1)
+        self.assertRaises(DiscoveryFailure, self._discover, content_type='application/xrds+xml',
+                          data=readDataFile('openid_1_and_2_xrds_bad_delegate.xml'), expected_services=1)
 
 
 class MockFetcherForXRIProxy(object):

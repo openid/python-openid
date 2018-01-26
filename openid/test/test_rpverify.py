@@ -73,8 +73,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
 
     def failUnlessDiscoveryFailure(self, text):
         self.data = text
-        self.failUnlessRaises(
-            DiscoveryFailure, trustroot.getAllowedReturnURLs, self.disco_url)
+        self.assertRaises(DiscoveryFailure, trustroot.getAllowedReturnURLs, self.disco_url)
 
     def test_empty(self):
         self.failUnlessDiscoveryFailure('')

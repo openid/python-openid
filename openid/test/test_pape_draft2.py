@@ -131,15 +131,15 @@ class PapeResponseTestCase(unittest.TestCase):
 
     def test_getExtensionArgs_error_auth_age(self):
         self.req.auth_time = "long ago"
-        self.failUnlessRaises(ValueError, self.req.getExtensionArgs)
+        self.assertRaises(ValueError, self.req.getExtensionArgs)
 
     def test_getExtensionArgs_error_nist_auth_level(self):
         self.req.nist_auth_level = "high as a kite"
-        self.failUnlessRaises(ValueError, self.req.getExtensionArgs)
+        self.assertRaises(ValueError, self.req.getExtensionArgs)
         self.req.nist_auth_level = 5
-        self.failUnlessRaises(ValueError, self.req.getExtensionArgs)
+        self.assertRaises(ValueError, self.req.getExtensionArgs)
         self.req.nist_auth_level = -1
-        self.failUnlessRaises(ValueError, self.req.getExtensionArgs)
+        self.assertRaises(ValueError, self.req.getExtensionArgs)
 
     def test_parseExtensionArgs(self):
         args = {'auth_policies': 'http://foo http://bar',
@@ -156,15 +156,13 @@ class PapeResponseTestCase(unittest.TestCase):
     def test_parseExtensionArgs_strict_bogus1(self):
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': 'yesterday'}
-        self.failUnlessRaises(ValueError, self.req.parseExtensionArgs,
-                              args, True)
+        self.assertRaises(ValueError, self.req.parseExtensionArgs, args, True)
 
     def test_parseExtensionArgs_strict_bogus2(self):
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': '1970-01-01T00:00:00Z',
                 'nist_auth_level': 'some'}
-        self.failUnlessRaises(ValueError, self.req.parseExtensionArgs,
-                              args, True)
+        self.assertRaises(ValueError, self.req.parseExtensionArgs, args, True)
 
     def test_parseExtensionArgs_strict_good(self):
         args = {'auth_policies': 'http://foo http://bar',

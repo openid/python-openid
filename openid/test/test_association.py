@@ -138,4 +138,4 @@ class TestCheckMessageSignature(unittest.TestCase):
         m.updateArgs(BARE_NS, {'xey': 'value'})
         assoc = association.Association.fromExpiresIn(
             3600, '{sha1}', 'very_secret', "HMAC-SHA1")
-        self.failUnlessRaises(ValueError, assoc.checkMessageSignature, m)
+        self.assertRaises(ValueError, assoc.checkMessageSignature, m)

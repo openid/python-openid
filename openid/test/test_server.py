@@ -146,14 +146,14 @@ class TestDecode(unittest.TestCase):
             'pony': 'spotted',
             'sreg.mutant_power': 'decaffinator',
         }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        self.assertRaises(server.ProtocolError, self.decode, args)
 
     def test_bad(self):
         args = {
             'openid.mode': 'twos-compliment',
             'openid.pants': 'zippered',
         }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        self.assertRaises(server.ProtocolError, self.decode, args)
 
     def test_dictOfLists(self):
         args = {
@@ -233,7 +233,7 @@ class TestDecode(unittest.TestCase):
             'openid.return_to': self.rt_url,
             'openid.realm': self.tr_url,
         }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        self.assertRaises(server.ProtocolError, self.decode, args)
 
     def test_checkidSetupNoIdentityOpenID2(self):
         args = {
@@ -261,7 +261,7 @@ class TestDecode(unittest.TestCase):
             'openid.assoc_handle': self.assoc_handle,
             'openid.trust_root': self.tr_url,
         }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        self.assertRaises(server.ProtocolError, self.decode, args)
 
     def test_checkidSetupNoReturnOpenID2(self):
         """Make sure an OpenID 2 request with no return_to can be
@@ -294,7 +294,7 @@ class TestDecode(unittest.TestCase):
             'openid.identity': self.id_url,
             'openid.assoc_handle': self.assoc_handle,
         }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        self.assertRaises(server.ProtocolError, self.decode, args)
 
     def test_checkidSetupBadReturn(self):
         args = {
@@ -352,7 +352,7 @@ class TestDecode(unittest.TestCase):
             'openid.bar': 'signedval2',
             'openid.baz': 'unsigned',
         }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        self.assertRaises(server.ProtocolError, self.decode, args)
 
     def test_checkAuthAndInvalidate(self):
         args = {
@@ -390,7 +390,7 @@ class TestDecode(unittest.TestCase):
             'openid.session_type': 'DH-SHA1',
         }
         # Using DH-SHA1 without supplying dh_consumer_public is an error.
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        self.assertRaises(server.ProtocolError, self.decode, args)
 
     def test_associateDHpubKeyNotB64(self):
         args = {
@@ -398,7 +398,7 @@ class TestDecode(unittest.TestCase):
             'openid.session_type': 'DH-SHA1',
             'openid.dh_consumer_public': "donkeydonkeydonkey",
         }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        self.assertRaises(server.ProtocolError, self.decode, args)
 
     def test_associateDHModGen(self):
         # test dh with non-default but valid values for dh_modulus and dh_gen
@@ -427,7 +427,7 @@ class TestDecode(unittest.TestCase):
             'openid.dh_modulus': 'pizza',
             'openid.dh_gen': 'gnocchi',
         }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        self.assertRaises(server.ProtocolError, self.decode, args)
 
     def test_associateDHMissingModGen(self):
         # test dh with non-default but valid values for dh_modulus and dh_gen
@@ -437,7 +437,7 @@ class TestDecode(unittest.TestCase):
             'openid.dh_consumer_public': "Rzup9265tw==",
             'openid.dh_modulus': 'pizza',
         }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        self.assertRaises(server.ProtocolError, self.decode, args)
 
 
 #     def test_associateDHInvalidModGen(self):
@@ -450,7 +450,7 @@ class TestDecode(unittest.TestCase):
 #             'openid.dh_modulus': cryptutil.longToBase64(9),
 #             'openid.dh_gen': cryptutil.longToBase64(27) ,
 #             }
-#         self.failUnlessRaises(server.ProtocolError, self.decode, args)
+#         self.assertRaises(server.ProtocolError, self.decode, args)
 #     test_associateDHInvalidModGen.todo = "low-priority feature"
 
     def test_associateWeirdSession(self):
@@ -459,7 +459,7 @@ class TestDecode(unittest.TestCase):
             'openid.session_type': 'FLCL6',
             'openid.dh_consumer_public': "YQ==\n",
         }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        self.assertRaises(server.ProtocolError, self.decode, args)
 
     def test_associatePlain(self):
         args = {
@@ -476,7 +476,7 @@ class TestDecode(unittest.TestCase):
             'openid.session_type': 'DH-SHA1',
             'openid.dh_consumer_public': "my public keeey",
         }
-        self.failUnlessRaises(server.ProtocolError, self.decode, args)
+        self.assertRaises(server.ProtocolError, self.decode, args)
 
     def test_invalidns(self):
         args = {'openid.ns': 'Tuesday',
@@ -730,7 +730,7 @@ is_valid:true
             'openid.identity': 'http://limu.unittest/',
         })
         e = server.ProtocolError(args, "wet paint")
-        self.failUnlessRaises(server.EncodingError, self.encode, e)
+        self.assertRaises(server.EncodingError, self.encode, e)
 
     def test_encodableError(self):
         args = Message.fromPostArgs({
@@ -798,7 +798,7 @@ class TestSigningEncode(unittest.TestCase):
 
     def test_forgotStore(self):
         self.encoder.signatory = None
-        self.failUnlessRaises(ValueError, self.encode, self.response)
+        self.assertRaises(ValueError, self.encode, self.response)
 
     def test_cancel(self):
         request = server.CheckIDRequest(
@@ -834,7 +834,7 @@ class TestSigningEncode(unittest.TestCase):
 
     def test_alreadySigned(self):
         self.response.fields.setArg(OPENID_NS, 'sig', 'priorSig==')
-        self.failUnlessRaises(server.AlreadySigned, self.encode, self.response)
+        self.assertRaises(server.AlreadySigned, self.encode, self.response)
 
 
 class TestCheckID(unittest.TestCase):
@@ -976,8 +976,7 @@ class TestCheckID(unittest.TestCase):
     def test_answerAllowAnonymousFail(self):
         self.request.identity = None
         # XXX - Check on this, I think this behavior is legal in OpenID 2.0?
-        self.failUnlessRaises(
-            ValueError, self.request.answer, True, identity="=V")
+        self.assertRaises(ValueError, self.request.answer, True, identity="=V")
 
     def test_answerAllowWithIdentity(self):
         self.request.identity = IDENTIFIER_SELECT
@@ -1004,15 +1003,11 @@ class TestCheckID(unittest.TestCase):
         self.request.identity = IDENTIFIER_SELECT
         selected_id = 'http://anon.unittest/9861'
         claimed_id = 'http://monkeyhat.unittest/'
-        self.failUnlessRaises(server.VersionError,
-                              self.request.answer, True,
-                              identity=selected_id,
-                              claimed_id=claimed_id)
+        self.assertRaises(server.VersionError, self.request.answer, True, identity=selected_id, claimed_id=claimed_id)
 
     def test_answerAllowWithAnotherIdentity(self):
         # XXX - Check on this, I think this behavior is legal in OpenID 2.0?
-        self.failUnlessRaises(ValueError, self.request.answer, True,
-                              identity="http://pebbles.unittest/")
+        self.assertRaises(ValueError, self.request.answer, True, identity="http://pebbles.unittest/")
 
     def test_answerAllowWithIdentityNormalization(self):
         # The RP has sent us a non-normalized value for openid.identity,
@@ -1034,12 +1029,11 @@ class TestCheckID(unittest.TestCase):
     def test_answerAllowNoIdentityOpenID1(self):
         self.request.message = Message(OPENID1_NS)
         self.request.identity = None
-        self.failUnlessRaises(ValueError, self.request.answer, True,
-                              identity=None)
+        self.assertRaises(ValueError, self.request.answer, True, identity=None)
 
     def test_answerAllowForgotEndpoint(self):
         self.request.op_endpoint = None
-        self.failUnlessRaises(RuntimeError, self.request.answer, True)
+        self.assertRaises(RuntimeError, self.request.answer, True)
 
     def test_checkIDWithNoIdentityOpenID1(self):
         msg = Message(OPENID1_NS)
@@ -1048,9 +1042,7 @@ class TestCheckID(unittest.TestCase):
         msg.setArg(OPENID_NS, 'mode', 'checkid_setup')
         msg.setArg(OPENID_NS, 'assoc_handle', 'bogus')
 
-        self.failUnlessRaises(server.ProtocolError,
-                              server.CheckIDRequest.fromMessage,
-                              msg, self.server)
+        self.assertRaises(server.ProtocolError, server.CheckIDRequest.fromMessage, msg, self.server)
 
     def test_fromMessageClaimedIDWithoutIdentityOpenID2(self):
         name = 'https://example.myopenid.com'
@@ -1060,9 +1052,7 @@ class TestCheckID(unittest.TestCase):
         msg.setArg(OPENID_NS, 'return_to', 'http://invalid:8000/rt')
         msg.setArg(OPENID_NS, 'claimed_id', name)
 
-        self.failUnlessRaises(server.ProtocolError,
-                              server.CheckIDRequest.fromMessage,
-                              msg, self.server)
+        self.assertRaises(server.ProtocolError, server.CheckIDRequest.fromMessage, msg, self.server)
 
     def test_fromMessageIdentityWithoutClaimedIDOpenID2(self):
         name = 'https://example.myopenid.com'
@@ -1072,9 +1062,7 @@ class TestCheckID(unittest.TestCase):
         msg.setArg(OPENID_NS, 'return_to', 'http://invalid:8000/rt')
         msg.setArg(OPENID_NS, 'identity', name)
 
-        self.failUnlessRaises(server.ProtocolError,
-                              server.CheckIDRequest.fromMessage,
-                              msg, self.server)
+        self.assertRaises(server.ProtocolError, server.CheckIDRequest.fromMessage, msg, self.server)
 
     def test_trustRootOpenID1(self):
         """Ignore openid.realm in OpenID 1"""
@@ -1145,9 +1133,7 @@ class TestCheckID(unittest.TestCase):
         msg.setArg(OPENID_NS, 'identity', 'george')
         msg.setArg(OPENID_NS, 'claimed_id', 'george')
 
-        self.failUnlessRaises(server.ProtocolError,
-                              server.CheckIDRequest.fromMessage,
-                              msg, self.server.op_endpoint)
+        self.assertRaises(server.ProtocolError, server.CheckIDRequest.fromMessage, msg, self.server.op_endpoint)
 
     def test_answerAllowNoEndpointOpenID1(self):
         """Test .allow() with an OpenID 1.x Message on a CheckIDRequest
@@ -1246,7 +1232,7 @@ class TestCheckID(unittest.TestCase):
     def test_getCancelURLimmed(self):
         self.request.mode = 'checkid_immediate'
         self.request.immediate = True
-        self.failUnlessRaises(ValueError, self.request.getCancelURL)
+        self.assertRaises(ValueError, self.request.getCancelURL)
 
 
 class TestCheckIDExtension(unittest.TestCase):
@@ -1437,9 +1423,7 @@ class TestAssociate(unittest.TestCase):
 
         for request_args in bad_request_argss:
             message = Message.fromPostArgs(request_args)
-            self.failUnlessRaises(server.ProtocolError,
-                                  server.AssociateRequest.fromMessage,
-                                  message)
+            self.assertRaises(server.ProtocolError, server.AssociateRequest.fromMessage, message)
 
     def test_protoError(self):
         from openid.consumer.consumer import DiffieHellmanSHA1ConsumerSession
@@ -1460,9 +1444,7 @@ class TestAssociate(unittest.TestCase):
 
         for request_args in bad_request_argss:
             message = Message.fromPostArgs(request_args)
-            self.failUnlessRaises(server.ProtocolError,
-                                  server.AssociateRequest.fromMessage,
-                                  message)
+            self.assertRaises(server.ProtocolError, server.AssociateRequest.fromMessage, message)
 
     def test_protoErrorFields(self):
 
@@ -1717,8 +1699,7 @@ class TestServer(unittest.TestCase, CatchLogs):
             'openid.ns': OPENID2_NS,
         })
 
-        self.assertRaises(server.ProtocolError,
-                          server.AssociateRequest.fromMessage, msg)
+        self.assertRaises(server.ProtocolError, server.AssociateRequest.fromMessage, msg)
 
     def test_missingAssocTypeOpenID2(self):
         """Make sure assoc_type is required in OpenID 2"""
@@ -1727,8 +1708,7 @@ class TestServer(unittest.TestCase, CatchLogs):
             'openid.session_type': 'no-encryption',
         })
 
-        self.assertRaises(server.ProtocolError,
-                          server.AssociateRequest.fromMessage, msg)
+        self.assertRaises(server.ProtocolError, server.AssociateRequest.fromMessage, msg)
 
     def test_checkAuth(self):
         request = server.CheckAuthRequest('arrrrrf', '0x3999', [])

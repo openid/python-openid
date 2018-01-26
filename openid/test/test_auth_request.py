@@ -173,7 +173,7 @@ class TestAuthRequestOpenID1(AuthRequestTestMixin, unittest.TestCase):
     def test_setAnonymousFailsForOpenID1(self):
         """OpenID 1 requests MUST NOT be able to set anonymous to True"""
         self.failUnless(self.authreq.message.isOpenID1())
-        self.failUnlessRaises(ValueError, self.authreq.setAnonymous, True)
+        self.assertRaises(ValueError, self.authreq.setAnonymous, True)
         self.authreq.setAnonymous(False)
 
     def test_identifierSelect(self):

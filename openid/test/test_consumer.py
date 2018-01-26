@@ -259,7 +259,7 @@ class TestConstruct(unittest.TestCase):
         self.failUnless(oidc.store is self.store_sentinel)
 
     def test_nostore(self):
-        self.failUnlessRaises(TypeError, GenericConsumer)
+        self.assertRaises(TypeError, GenericConsumer)
 
 
 class TestIdRes(unittest.TestCase, CatchLogs):
@@ -318,9 +318,7 @@ class TestIdResCheckSignature(TestIdRes):
 
     def test_signFailsWithBadSig(self):
         self.message.setArg(OPENID_NS, 'sig', 'BAD SIGNATURE')
-        self.failUnlessRaises(
-            ProtocolError, self.consumer._idResCheckSignature,
-            self.message, self.endpoint.server_url)
+        self.assertRaises(ProtocolError, self.consumer._idResCheckSignature, self.message, self.endpoint.server_url)
 
     def test_stateless(self):
         # assoc_handle missing assoc, consumer._checkAuth returns goodthings
@@ -335,9 +333,7 @@ class TestIdResCheckSignature(TestIdRes):
         # assoc_handle missing assoc, consumer._checkAuth returns goodthings
         self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
         self.consumer._checkAuth = lambda unused1, unused2: False
-        self.failUnlessRaises(
-            ProtocolError, self.consumer._idResCheckSignature,
-            self.message, self.endpoint.server_url)
+        self.assertRaises(ProtocolError, self.consumer._idResCheckSignature, self.message, self.endpoint.server_url)
 
     def test_stateless_noStore(self):
         # assoc_handle missing assoc, consumer._checkAuth returns goodthings
@@ -354,9 +350,7 @@ class TestIdResCheckSignature(TestIdRes):
         self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
         self.consumer._checkAuth = lambda unused1, unused2: False
         self.consumer.store = None
-        self.failUnlessRaises(
-            ProtocolError, self.consumer._idResCheckSignature,
-            self.message, self.endpoint.server_url)
+        self.assertRaises(ProtocolError, self.consumer._idResCheckSignature, self.message, self.endpoint.server_url)
 
 
 class TestQueryFormat(TestIdRes):
@@ -452,8 +446,7 @@ class TestComplete(TestIdRes):
         # is supposed to test for.  status in FAILURE, but it's because
         # *check_auth* failed, not because it's missing an arg, exactly.
         message = Message.fromPostArgs({'openid.mode': 'id_res'})
-        self.failUnlessRaises(ProtocolError, self.consumer._doIdRes,
-                              message, self.endpoint, None)
+        self.assertRaises(ProtocolError, self.consumer._doIdRes, message, self.endpoint, None)
 
     def test_idResURLMismatch(self):
         class VerifiedError(Exception):
@@ -475,9 +468,7 @@ class TestComplete(TestIdRes):
              })
         self.consumer.store = GoodAssocStore()
 
-        self.failUnlessRaises(VerifiedError,
-                              self.consumer.complete,
-                              message, self.endpoint)
+        self.assertRaises(VerifiedError, self.consumer.complete, message, self.endpoint)
 
         self.failUnlessLogMatches('Error attempting to use stored',
                                   'Attempting discovery')
@@ -864,8 +855,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         self.return_to = 'http://rt.unittest/?nonce=%s' % (mkNonce(),)
         self.response = Message.fromOpenIDArgs(
             {'return_to': self.return_to, 'ns': OPENID2_NS})
-        self.failUnlessRaises(ProtocolError, self.consumer._idResCheckNonce,
-                              self.response, self.endpoint)
+        self.assertRaises(ProtocolError, self.consumer._idResCheckNonce, self.response, self.endpoint)
         self.failUnlessLogEmpty()
 
     def test_serverNonce(self):
@@ -878,8 +868,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         """OpenID 1 does not use server-generated nonce"""
         self.response = Message.fromOpenIDArgs(
             {'ns': OPENID1_NS, 'return_to': 'http://return.to/', 'response_nonce': mkNonce()})
-        self.failUnlessRaises(ProtocolError, self.consumer._idResCheckNonce,
-                              self.response, self.endpoint)
+        self.assertRaises(ProtocolError, self.consumer._idResCheckNonce, self.response, self.endpoint)
         self.failUnlessLogEmpty()
 
     def test_badNonce(self):
@@ -897,8 +886,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         stamp, salt = splitNonce(nonce)
         self.store.useNonce(self.server_url, stamp, salt)
         self.response = Message.fromOpenIDArgs({'response_nonce': nonce, 'ns': OPENID2_NS})
-        self.failUnlessRaises(ProtocolError, self.consumer._idResCheckNonce,
-                              self.response, self.endpoint)
+        self.assertRaises(ProtocolError, self.consumer._idResCheckNonce, self.response, self.endpoint)
 
     def test_successWithNoStore(self):
         """When there is no store, checking the nonce succeeds"""
@@ -910,15 +898,13 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
     def test_tamperedNonce(self):
         """Malformed nonce"""
         self.response = Message.fromOpenIDArgs({'ns': OPENID2_NS, 'response_nonce': 'malformed'})
-        self.failUnlessRaises(ProtocolError, self.consumer._idResCheckNonce,
-                              self.response, self.endpoint)
+        self.assertRaises(ProtocolError, self.consumer._idResCheckNonce, self.response, self.endpoint)
 
     def test_missingNonce(self):
         """no nonce parameter on the return_to"""
         self.response = Message.fromOpenIDArgs(
             {'return_to': self.return_to})
-        self.failUnlessRaises(ProtocolError, self.consumer._idResCheckNonce,
-                              self.response, self.endpoint)
+        self.assertRaises(ProtocolError, self.consumer._idResCheckNonce, self.response, self.endpoint)
 
 
 class CheckAuthDetectingConsumer(GenericConsumer):
@@ -998,8 +984,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.signed': 'identity,return_to',
         })
         self.disableReturnToChecking()
-        self.failUnlessRaises(ProtocolError, self.consumer._doIdRes,
-                              message, self.endpoint, None)
+        self.assertRaises(ProtocolError, self.consumer._doIdRes, message, self.endpoint, None)
 
     def test_newerAssoc(self):
         lifetime = 1000
@@ -1077,8 +1062,7 @@ class TestReturnToArgs(unittest.TestCase):
             'foo': 'bar',
         }
         # no return value, success is assumed if there are no exceptions.
-        self.failUnlessRaises(ProtocolError,
-                              self.consumer._verifyReturnToArgs, query)
+        self.assertRaises(ProtocolError, self.consumer._verifyReturnToArgs, query)
 
     def test_returnToMismatch(self):
         query = {
@@ -1086,18 +1070,15 @@ class TestReturnToArgs(unittest.TestCase):
             'openid.return_to': 'http://example.com/?foo=bar',
         }
         # fail, query has no key 'foo'.
-        self.failUnlessRaises(ValueError,
-                              self.consumer._verifyReturnToArgs, query)
+        self.assertRaises(ValueError, self.consumer._verifyReturnToArgs, query)
 
         query['foo'] = 'baz'
         # fail, values for 'foo' do not match.
-        self.failUnlessRaises(ValueError,
-                              self.consumer._verifyReturnToArgs, query)
+        self.assertRaises(ValueError, self.consumer._verifyReturnToArgs, query)
 
     def test_noReturnTo(self):
         query = {'openid.mode': 'id_res'}
-        self.failUnlessRaises(ValueError,
-                              self.consumer._verifyReturnToArgs, query)
+        self.assertRaises(ValueError, self.consumer._verifyReturnToArgs, query)
 
     def test_completeBadReturnTo(self):
         """Test GenericConsumer.complete()'s handling of bad return_to
@@ -1282,11 +1263,8 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         """404 from a kv post raises HTTPFetchingError"""
         self.fetcher.response = HTTPResponse(
             "http://some_url", 404, {'Hea': 'der'}, 'blah:blah\n')
-        self.failUnlessRaises(
-            fetchers.HTTPFetchingError,
-            self.consumer._makeKVPost,
-            Message.fromPostArgs({'mode': 'associate'}),
-            "http://server_url")
+        self.assertRaises(fetchers.HTTPFetchingError, self.consumer._makeKVPost,
+                          Message.fromPostArgs({'mode': 'associate'}), "http://server_url")
 
     def test_error_exception_unwrapped(self):
         """Ensure that exceptions are bubbled through from fetchers
@@ -1294,21 +1272,16 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         """
         self.fetcher = ExceptionRaisingMockFetcher()
         fetchers.setDefaultFetcher(self.fetcher, wrap_exceptions=False)
-        self.failUnlessRaises(self.fetcher.MyException,
-                              self.consumer._makeKVPost,
-                              Message.fromPostArgs({'mode': 'associate'}),
-                              "http://server_url")
+        self.assertRaises(self.fetcher.MyException, self.consumer._makeKVPost,
+                          Message.fromPostArgs({'mode': 'associate'}), "http://server_url")
 
         # exception fetching returns no association
         e = OpenIDServiceEndpoint()
         e.server_url = 'some://url'
-        self.failUnlessRaises(self.fetcher.MyException,
-                              self.consumer._getAssociation, e)
+        self.assertRaises(self.fetcher.MyException, self.consumer._getAssociation, e)
 
-        self.failUnlessRaises(self.fetcher.MyException,
-                              self.consumer._checkAuth,
-                              Message.fromPostArgs({'openid.signed': ''}),
-                              'some://url')
+        self.assertRaises(self.fetcher.MyException, self.consumer._checkAuth,
+                          Message.fromPostArgs({'openid.signed': ''}), 'some://url')
 
     def test_error_exception_wrapped(self):
         """Ensure that openid.fetchers.HTTPFetchingError is caught by
@@ -1317,10 +1290,8 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         self.fetcher = ExceptionRaisingMockFetcher()
         # This will wrap exceptions!
         fetchers.setDefaultFetcher(self.fetcher)
-        self.failUnlessRaises(fetchers.HTTPFetchingError,
-                              self.consumer._makeKVPost,
-                              Message.fromOpenIDArgs({'mode': 'associate'}),
-                              "http://server_url")
+        self.assertRaises(fetchers.HTTPFetchingError, self.consumer._makeKVPost,
+                          Message.fromOpenIDArgs({'mode': 'associate'}), "http://server_url")
 
         # exception fetching returns no association
         e = OpenIDServiceEndpoint()
@@ -1686,8 +1657,7 @@ class IDPDrivenTest(unittest.TestCase):
             raise DiscoveryFailure("PHREAK!", None)
         self.consumer._verifyDiscoveryResults = verifyDiscoveryResults
         self.consumer._checkReturnTo = lambda unused1, unused2: True
-        self.failUnlessRaises(DiscoveryFailure, self.consumer._doIdRes,
-                              message, self.endpoint, None)
+        self.assertRaises(DiscoveryFailure, self.consumer._doIdRes, message, self.endpoint, None)
 
     def failUnlessSuccess(self, response):
         if response.status != SUCCESS:
@@ -1777,9 +1747,7 @@ class TestDiscoveryVerification(unittest.TestCase):
     def test_nothingDiscovered(self):
         # a set of no things.
         self.services = []
-        self.failUnlessRaises(DiscoveryFailure,
-                              self.consumer._verifyDiscoveryResults,
-                              self.message, self.endpoint)
+        self.assertRaises(DiscoveryFailure, self.consumer._verifyDiscoveryResults, self.message, self.endpoint)
 
     def discoveryFunc(self, identifier):
         return identifier, self.services
@@ -1885,24 +1853,24 @@ class TestDiffieHellmanResponseParameters(object):
     def testAbsentServerPublic(self):
         self.msg.setArg(OPENID_NS, 'enc_mac_key', self.enc_mac_key)
 
-        self.failUnlessRaises(KeyError, self.consumer_session.extractSecret, self.msg)
+        self.assertRaises(KeyError, self.consumer_session.extractSecret, self.msg)
 
     def testAbsentMacKey(self):
         self.msg.setArg(OPENID_NS, 'dh_server_public', self.dh_server_public)
 
-        self.failUnlessRaises(KeyError, self.consumer_session.extractSecret, self.msg)
+        self.assertRaises(KeyError, self.consumer_session.extractSecret, self.msg)
 
     def testInvalidBase64Public(self):
         self.msg.setArg(OPENID_NS, 'dh_server_public', 'n o t b a s e 6 4.')
         self.msg.setArg(OPENID_NS, 'enc_mac_key', self.enc_mac_key)
 
-        self.failUnlessRaises(ValueError, self.consumer_session.extractSecret, self.msg)
+        self.assertRaises(ValueError, self.consumer_session.extractSecret, self.msg)
 
     def testInvalidBase64MacKey(self):
         self.msg.setArg(OPENID_NS, 'dh_server_public', self.dh_server_public)
         self.msg.setArg(OPENID_NS, 'enc_mac_key', 'n o t base 64')
 
-        self.failUnlessRaises(ValueError, self.consumer_session.extractSecret, self.msg)
+        self.assertRaises(ValueError, self.consumer_session.extractSecret, self.msg)
 
 
 class TestOpenID1SHA1(TestDiffieHellmanResponseParameters, unittest.TestCase):
@@ -1955,9 +1923,7 @@ class TestConsumerAnonymous(unittest.TestCase):
         def bogusBegin(unused):
             return NonAnonymousAuthRequest()
         consumer.consumer.begin = bogusBegin
-        self.failUnlessRaises(
-            ProtocolError,
-            consumer.beginWithoutDiscovery, None)
+        self.assertRaises(ProtocolError, consumer.beginWithoutDiscovery, None)
 
 
 class TestDiscoverAndVerify(unittest.TestCase):
@@ -1971,11 +1937,7 @@ class TestDiscoverAndVerify(unittest.TestCase):
         self.to_match = OpenIDServiceEndpoint()
 
     def failUnlessDiscoveryFailure(self):
-        self.failUnlessRaises(
-            DiscoveryFailure,
-            self.consumer._discoverAndVerify,
-            'http://claimed-id.com/',
-            [self.to_match])
+        self.assertRaises(DiscoveryFailure, self.consumer._discoverAndVerify, 'http://claimed-id.com/', [self.to_match])
 
     def test_noServices(self):
         """Discovery returning no results results in a
@@ -2058,9 +2020,7 @@ class TestKVPost(unittest.TestCase):
         response = HTTPResponse()
         response.status = 500
         response.body = "foo:bar\nbaz:quux\n"
-        self.failUnlessRaises(fetchers.HTTPFetchingError,
-                              _httpResponseToMessage, response,
-                              self.server_url)
+        self.assertRaises(fetchers.HTTPFetchingError, _httpResponseToMessage, response, self.server_url)
 
 
 if __name__ == '__main__':

@@ -103,25 +103,19 @@ class TestServiceParser(unittest.TestCase):
         """Make sure that we get an exception when an XRDS element is
         not present"""
         self.xmldoc = file(NOXRDS_FILE).read()
-        self.failUnlessRaises(
-            etxrd.XRDSError,
-            services.applyFilter, self.yadis_url, self.xmldoc, None)
+        self.assertRaises(etxrd.XRDSError, services.applyFilter, self.yadis_url, self.xmldoc, None)
 
     def testEmpty(self):
         """Make sure that we get an exception when an XRDS element is
         not present"""
         self.xmldoc = ''
-        self.failUnlessRaises(
-            etxrd.XRDSError,
-            services.applyFilter, self.yadis_url, self.xmldoc, None)
+        self.assertRaises(etxrd.XRDSError, services.applyFilter, self.yadis_url, self.xmldoc, None)
 
     def testNoXRD(self):
         """Make sure that we get an exception when there is no XRD
         element present."""
         self.xmldoc = file(NOXRD_FILE).read()
-        self.failUnlessRaises(
-            etxrd.XRDSError,
-            services.applyFilter, self.yadis_url, self.xmldoc, None)
+        self.assertRaises(etxrd.XRDSError, services.applyFilter, self.yadis_url, self.xmldoc, None)
 
 
 class TestCanonicalID(unittest.TestCase):
@@ -186,8 +180,7 @@ class TestCanonicalID(unittest.TestCase):
             cid = etxrd.getCanonicalID(iname, xrds)
             self.assertEqual(cid, expectedID and xri.XRI(expectedID))
         elif issubclass(expectedID, etxrd.XRDSError):
-            self.failUnlessRaises(expectedID, etxrd.getCanonicalID,
-                                  iname, xrds)
+            self.assertRaises(expectedID, etxrd.getCanonicalID, iname, xrds)
         else:
             self.fail("Don't know how to test for expected value %r"
                       % (expectedID,))

@@ -147,7 +147,7 @@ class KVExcTest(unittest.TestCase):
 
     def runTest(self):
         for kv_data in kvexc_cases:
-            self.failUnlessRaises(ValueError, kvform.seqToKV, kv_data)
+            self.assertRaises(ValueError, kvform.seqToKV, kv_data)
 
 
 class GeneralTest(KVBaseTest):

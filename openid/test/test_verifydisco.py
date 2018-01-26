@@ -39,14 +39,12 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
 
     def test_openID1NoEndpoint(self):
         msg = message.Message.fromOpenIDArgs({'identity': 'snakes on a plane'})
-        self.failUnlessRaises(RuntimeError,
-                              self.consumer._verifyDiscoveryResults, msg)
+        self.assertRaises(RuntimeError, self.consumer._verifyDiscoveryResults, msg)
         self.failUnlessLogEmpty()
 
     def test_openID2NoOPEndpointArg(self):
         msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS})
-        self.failUnlessRaises(KeyError,
-                              self.consumer._verifyDiscoveryResults, msg)
+        self.assertRaises(KeyError, self.consumer._verifyDiscoveryResults, msg)
         self.failUnlessLogEmpty()
 
     def test_openID2LocalIDNoClaimed(self):
@@ -193,9 +191,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
             {'ns': message.OPENID1_NS,
              'identity': endpoint.local_id})
 
-        self.failUnlessRaises(
-            VerifiedError,
-            self.consumer._verifyDiscoveryResults, msg, endpoint)
+        self.assertRaises(VerifiedError, self.consumer._verifyDiscoveryResults, msg, endpoint)
 
         self.failUnlessLogMatches('Error attempting to use stored',
                                   'Attempting discovery')

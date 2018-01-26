@@ -16,10 +16,10 @@ class CheckFieldNameTest(unittest.TestCase):
             sreg.checkFieldName(field_name)
 
     def test_badNameFails(self):
-        self.failUnlessRaises(ValueError, sreg.checkFieldName, 'INVALID')
+        self.assertRaises(ValueError, sreg.checkFieldName, 'INVALID')
 
     def test_badTypeFails(self):
-        self.failUnlessRaises(ValueError, sreg.checkFieldName, None)
+        self.assertRaises(ValueError, sreg.checkFieldName, None)
 
 # For supportsSReg test
 
@@ -96,14 +96,12 @@ class GetNSTest(unittest.TestCase):
     def test_openID1DefinedBadly(self):
         self.msg.openid1 = True
         self.msg.namespaces.addAlias('http://invalid/', 'sreg')
-        self.failUnlessRaises(sreg.SRegNamespaceError,
-                              sreg.getSRegNS, self.msg)
+        self.assertRaises(sreg.SRegNamespaceError, sreg.getSRegNS, self.msg)
 
     def test_openID2DefinedBadly(self):
         self.msg.openid1 = False
         self.msg.namespaces.addAlias('http://invalid/', 'sreg')
-        self.failUnlessRaises(sreg.SRegNamespaceError,
-                              sreg.getSRegNS, self.msg)
+        self.assertRaises(sreg.SRegNamespaceError, sreg.getSRegNS, self.msg)
 
     def test_openID2Defined_1_0(self):
         self.msg.namespaces.add(sreg.ns_uri_1_0)
@@ -142,9 +140,7 @@ class SRegRequestTest(unittest.TestCase):
         self.assertEqual(req.ns_uri, 'http://sreg.ns_uri')
 
     def test_constructBadFields(self):
-        self.failUnlessRaises(
-            ValueError,
-            sreg.SRegRequest, ['elvis'])
+        self.assertRaises(ValueError, sreg.SRegRequest, ['elvis'])
 
     def test_fromOpenIDRequest(self):
         ns_sentinel = object()
@@ -196,9 +192,7 @@ class SRegRequestTest(unittest.TestCase):
 
     def test_parseExtensionArgs_strict(self):
         req = sreg.SRegRequest()
-        self.failUnlessRaises(
-            ValueError,
-            req.parseExtensionArgs, {'required': 'beans'}, strict=True)
+        self.assertRaises(ValueError, req.parseExtensionArgs, {'required': 'beans'}, strict=True)
 
     def test_parseExtensionArgs_policy(self):
         req = sreg.SRegRequest()
@@ -232,10 +226,7 @@ class SRegRequestTest(unittest.TestCase):
 
     def test_parseExtensionArgs_optionalListBadStrict(self):
         req = sreg.SRegRequest()
-        self.failUnlessRaises(
-            ValueError,
-            req.parseExtensionArgs, {'optional': 'nickname,email,beer'},
-            strict=True)
+        self.assertRaises(ValueError, req.parseExtensionArgs, {'optional': 'nickname,email,beer'}, strict=True)
 
     def test_parseExtensionArgs_bothNonStrict(self):
         req = sreg.SRegRequest()
@@ -246,12 +237,8 @@ class SRegRequestTest(unittest.TestCase):
 
     def test_parseExtensionArgs_bothStrict(self):
         req = sreg.SRegRequest()
-        self.failUnlessRaises(
-            ValueError,
-            req.parseExtensionArgs,
-            {'optional': 'nickname',
-             'required': 'nickname'},
-            strict=True)
+        self.assertRaises(ValueError, req.parseExtensionArgs, {'optional': 'nickname', 'required': 'nickname'},
+                          strict=True)
 
     def test_parseExtensionArgs_bothList(self):
         req = sreg.SRegRequest()
@@ -291,13 +278,9 @@ class SRegRequestTest(unittest.TestCase):
 
     def test_requestField_bogus(self):
         req = sreg.SRegRequest()
-        self.failUnlessRaises(
-            ValueError,
-            req.requestField, 'something else')
+        self.assertRaises(ValueError, req.requestField, 'something else')
 
-        self.failUnlessRaises(
-            ValueError,
-            req.requestField, 'something else', strict=True)
+        self.assertRaises(ValueError, req.requestField, 'something else', strict=True)
 
     def test_requestField(self):
         # Add all of the fields, one at a time
@@ -339,7 +322,7 @@ class SRegRequestTest(unittest.TestCase):
 
     def test_requestFields_type(self):
         req = sreg.SRegRequest()
-        self.failUnlessRaises(TypeError, req.requestFields, 'nickname')
+        self.assertRaises(TypeError, req.requestFields, 'nickname')
 
     def test_requestFields(self):
         # Add all of the fields
