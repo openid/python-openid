@@ -45,7 +45,7 @@ class AttrInfoTest(unittest.TestCase):
 
         self.assertEqual(ainfo.type_uri, type_uri)
         self.assertEqual(ainfo.count, 1)
-        self.failIf(ainfo.required)
+        self.assertFalse(ainfo.required)
         self.assertIsNone(ainfo.alias)
 
 
@@ -209,7 +209,7 @@ class FetchRequestTest(unittest.TestCase):
         uri = 'mud://puddle'
 
         # Not yet added:
-        self.failIf(uri in self.msg)
+        self.assertNotIn(uri, self.msg)
 
         attr = ax.AttrInfo(uri)
         self.msg.add(attr)
@@ -305,7 +305,7 @@ class FetchRequestTest(unittest.TestCase):
         self.assertEqual(list(self.msg), [self.type_a])
         attr_info = self.msg.requested_attributes.get(self.type_a)
         self.assertIsNotNone(attr_info)
-        self.failIf(attr_info.required)
+        self.assertFalse(attr_info.required)
         self.assertEqual(attr_info.type_uri, self.type_a)
         self.assertEqual(attr_info.alias, self.alias_a)
         self.assertEqual(list(self.msg.iterAttrs()), [attr_info])
@@ -318,7 +318,7 @@ class FetchRequestTest(unittest.TestCase):
         }
         self.msg.parseExtensionArgs(extension_args)
         self.assertEqual(self.msg.getExtensionArgs(), extension_args)
-        self.failIf(self.msg.requested_attributes[self.type_a].required)
+        self.assertFalse(self.msg.requested_attributes[self.type_a].required)
 
     def test_extensionArgs_idempotent_count_required(self):
         extension_args = {
@@ -602,18 +602,18 @@ class StoreResponseTest(unittest.TestCase):
     def test_success(self):
         msg = ax.StoreResponse()
         self.assertTrue(msg.succeeded())
-        self.failIf(msg.error_message)
+        self.assertFalse(msg.error_message)
         self.assertEqual(msg.getExtensionArgs(), {'mode': 'store_response_success'})
 
     def test_fail_nomsg(self):
         msg = ax.StoreResponse(False)
-        self.failIf(msg.succeeded())
-        self.failIf(msg.error_message)
+        self.assertFalse(msg.succeeded())
+        self.assertFalse(msg.error_message)
         self.assertEqual(msg.getExtensionArgs(), {'mode': 'store_response_failure'})
 
     def test_fail_msg(self):
         reason = 'no reason, really'
         msg = ax.StoreResponse(False, reason)
-        self.failIf(msg.succeeded())
+        self.assertFalse(msg.succeeded())
         self.assertEqual(msg.error_message, reason)
         self.assertEqual(msg.getExtensionArgs(), {'mode': 'store_response_failure', 'error': reason})

@@ -167,7 +167,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
 
 class TestReturnToMatches(unittest.TestCase):
     def test_noEntries(self):
-        self.failIf(trustroot.returnToMatches([], 'anything'))
+        self.assertFalse(trustroot.returnToMatches([], 'anything'))
 
     def test_exactMatch(self):
         r = 'http://example.com/return.to'
@@ -183,15 +183,11 @@ class TestReturnToMatches(unittest.TestCase):
         self.assertTrue(trustroot.returnToMatches([r], 'http://example.com/return.to/user:joe'))
 
     def test_wildcard(self):
-        self.failIf(trustroot.returnToMatches(
-            ['http://*.example.com/return.to'],
-            'http://example.com/return.to'))
+        self.assertFalse(trustroot.returnToMatches(['http://*.example.com/return.to'], 'http://example.com/return.to'))
 
     def test_noMatch(self):
         r = 'http://example.com/return.to'
-        self.failIf(trustroot.returnToMatches(
-            [r],
-            'http://example.com/xss_exploit'))
+        self.assertFalse(trustroot.returnToMatches([r], 'http://example.com/xss_exploit'))
 
 
 class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
@@ -203,7 +199,7 @@ class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
         CatchLogs.tearDown(self)
 
     def test_bogusRealm(self):
-        self.failIf(trustroot.verifyReturnTo('', 'http://example.com/'))
+        self.assertFalse(trustroot.verifyReturnTo('', 'http://example.com/'))
 
     def test_verifyWithDiscoveryCalled(self):
         realm = 'http://*.example.com/'
@@ -224,8 +220,7 @@ class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
             self.assertEqual(disco_url, 'http://www.example.com/')
             return ['http://something-else.invalid/']
 
-        self.failIf(
-            trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
+        self.assertFalse(trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
         self.failUnlessLogMatches("Failed to validate return_to")
 
     def test_verifyFailIfDiscoveryRedirects(self):
@@ -236,8 +231,7 @@ class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
             raise trustroot.RealmVerificationRedirected(
                 disco_url, "http://redirected.invalid")
 
-        self.failIf(
-            trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
+        self.assertFalse(trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
         self.failUnlessLogMatches("Attempting to verify")
 
 

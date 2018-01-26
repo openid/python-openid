@@ -259,8 +259,7 @@ class DefaultFetcherTest(unittest.TestCase):
         fetcher = fetchers.Urllib2Fetcher()
         fetchers.setDefaultFetcher(fetcher, wrap_exceptions=False)
 
-        self.failIf(isinstance(fetchers.getDefaultFetcher(),
-                               fetchers.ExceptionWrappingFetcher))
+        self.assertNotIsInstance(fetchers.getDefaultFetcher(), fetchers.ExceptionWrappingFetcher)
 
         with self.assertRaises(urllib2.URLError):
             fetchers.fetch('http://invalid.janrain.com/')

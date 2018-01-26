@@ -32,7 +32,7 @@ class OpenIDTestMixin(object):
 
         actual = msg.getArg(ns, key)
         error_message = 'openid.%s unexpectedly present: %s' % (key, actual)
-        self.failIf(actual is not None, error_message)
+        self.assertIsNone(actual, error_message)
 
 
 class CatchLogs(object):

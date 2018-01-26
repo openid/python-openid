@@ -20,12 +20,12 @@ class SymbolTest(unittest.TestCase):
 
     def test_selfInequality(self):
         x = oidutil.Symbol('xxx')
-        self.failIf(x != x)
+        self.assertFalse(x != x)
 
     def test_otherInequality(self):
         x = oidutil.Symbol('xxx')
         y = oidutil.Symbol('xxx')
-        self.failIf(x != y)
+        self.assertFalse(x != y)
 
     def test_ne_inequality(self):
         x = oidutil.Symbol('xxx')

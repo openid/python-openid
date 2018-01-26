@@ -154,12 +154,12 @@ class BaseTestDiscovery(unittest.TestCase):
                       ):
         self.assertEqual(s.server_url, server_url)
         if types == ['2.0 OP']:
-            self.failIf(claimed_id)
-            self.failIf(local_id)
-            self.failIf(s.claimed_id)
-            self.failIf(s.local_id)
-            self.failIf(s.getLocalID())
-            self.failIf(s.compatibilityMode())
+            self.assertIsNone(claimed_id)
+            self.assertIsNone(local_id)
+            self.assertIsNone(s.claimed_id)
+            self.assertIsNone(s.local_id)
+            self.assertIsNone(s.getLocalID())
+            self.assertFalse(s.compatibilityMode())
             self.assertTrue(s.isOPIdentifier())
             self.assertEqual(s.preferredNamespace(), discover.OPENID_2_0_MESSAGE_NS)
         else:
@@ -169,8 +169,7 @@ class BaseTestDiscovery(unittest.TestCase):
         if used_yadis:
             self.assertTrue(s.used_yadis, "Expected to use Yadis")
         else:
-            self.failIf(s.used_yadis,
-                        "Expected to use old-style discovery")
+            self.assertFalse(s.used_yadis, "Expected to use old-style discovery")
 
         openid_types = {
             '1.1': discover.OPENID_1_1_TYPE,
@@ -570,7 +569,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
 
     def test_xriNoCanonicalID(self):
         user_xri, services = discover.discoverXRI('=smoker*bad')
-        self.failIf(services)
+        self.assertFalse(services)
 
     def test_useCanonicalID(self):
         """When there is no delegate, the CanonicalID should be used with XRI.
@@ -621,19 +620,19 @@ class TestIsOPIdentifier(unittest.TestCase):
         self.endpoint = discover.OpenIDServiceEndpoint()
 
     def test_none(self):
-        self.failIf(self.endpoint.isOPIdentifier())
+        self.assertFalse(self.endpoint.isOPIdentifier())
 
     def test_openid1_0(self):
         self.endpoint.type_uris = [discover.OPENID_1_0_TYPE]
-        self.failIf(self.endpoint.isOPIdentifier())
+        self.assertFalse(self.endpoint.isOPIdentifier())
 
     def test_openid1_1(self):
         self.endpoint.type_uris = [discover.OPENID_1_1_TYPE]
-        self.failIf(self.endpoint.isOPIdentifier())
+        self.assertFalse(self.endpoint.isOPIdentifier())
 
     def test_openid2(self):
         self.endpoint.type_uris = [discover.OPENID_2_0_TYPE]
-        self.failIf(self.endpoint.isOPIdentifier())
+        self.assertFalse(self.endpoint.isOPIdentifier())
 
     def test_openid2OP(self):
         self.endpoint.type_uris = [discover.OPENID_IDP_2_0_TYPE]
@@ -642,7 +641,7 @@ class TestIsOPIdentifier(unittest.TestCase):
     def test_multipleMissing(self):
         self.endpoint.type_uris = [discover.OPENID_2_0_TYPE,
                                    discover.OPENID_1_0_TYPE]
-        self.failIf(self.endpoint.isOPIdentifier())
+        self.assertFalse(self.endpoint.isOPIdentifier())
 
     def test_multiplePresent(self):
         self.endpoint.type_uris = [discover.OPENID_2_0_TYPE,
@@ -665,7 +664,7 @@ class TestFromOPEndpointURL(unittest.TestCase):
         self.assertIsNone(self.endpoint.claimed_id)
 
     def test_compatibility(self):
-        self.failIf(self.endpoint.compatibilityMode())
+        self.assertFalse(self.endpoint.compatibilityMode())
 
     def test_canonicalID(self):
         self.assertIsNone(self.endpoint.canonicalID)
@@ -720,8 +719,7 @@ class TestEndpointSupportsType(unittest.TestCase):
             if t in types:
                 self.assertTrue(self.endpoint.supportsType(t), "Must support %r" % t)
             else:
-                self.failIf(self.endpoint.supportsType(t),
-                            "Shouldn't support %r" % (t,))
+                self.assertFalse(self.endpoint.supportsType(t), "Shouldn't support %r" % (t,))
 
     def test_supportsNothing(self):
         self.failUnlessSupportsOnly()

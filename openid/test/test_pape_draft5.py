@@ -17,7 +17,7 @@ class PapeRequestTestCase(unittest.TestCase):
         self.assertEqual(self.req.preferred_auth_policies, [])
         self.assertIsNone(self.req.max_auth_age)
         self.assertEqual(self.req.ns_alias, 'pape')
-        self.failIf(self.req.preferred_auth_level_types)
+        self.assertFalse(self.req.preferred_auth_level_types)
 
         bogus_levels = ['http://janrain.com/our_levels']
         req2 = pape.Request(

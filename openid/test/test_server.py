@@ -110,7 +110,7 @@ class TestProtocolError(unittest.TestCase):
             'openid.identity': 'http://wagu.unittest/',
         })
         e = server.ProtocolError(args, "waffles")
-        self.failIf(e.hasReturnTo())
+        self.assertFalse(e.hasReturnTo())
         expected = """error:waffles
 mode:error
 """
@@ -118,7 +118,7 @@ mode:error
 
     def test_noMessage(self):
         e = server.ProtocolError(None, "no moar pancakes")
-        self.failIf(e.hasReturnTo())
+        self.assertFalse(e.hasReturnTo())
         self.assertIsNone(e.whichEncoding())
 
 
@@ -505,7 +505,7 @@ class TestEncode(unittest.TestCase):
             'return_to': request.return_to,
         })
 
-        self.failIf(response.renderAsForm())
+        self.assertFalse(response.renderAsForm())
         self.assertEqual(response.whichEncoding(), server.ENCODE_URL)
         webresponse = self.encode(response)
         self.assertIn('location', webresponse.headers)
@@ -606,7 +606,7 @@ class TestEncode(unittest.TestCase):
             'return_to': 'x' * OPENID1_URL_LIMIT,
         })
 
-        self.failIf(response.renderAsForm())
+        self.assertFalse(response.renderAsForm())
         self.assertGreater(len(response.encodeToURL()), OPENID1_URL_LIMIT)
         self.assertEqual(response.whichEncoding(), server.ENCODE_URL)
         webresponse = self.encode(response)
@@ -795,7 +795,7 @@ class TestSigningEncode(unittest.TestCase):
         self.assertIn('location', webresponse.headers)
         location = webresponse.headers['location']
         query = cgi.parse_qs(urlparse(location)[4])
-        self.failIf('openid.sig' in query, response.fields.toPostArgs())
+        self.assertNotIn('openid.sig', query, response.fields.toPostArgs())
 
     def test_assocReply(self):
         msg = Message(OPENID2_NS)
@@ -833,7 +833,7 @@ class TestCheckID(unittest.TestCase):
     def test_trustRootInvalid(self):
         self.request.trust_root = "http://foo.unittest/17"
         self.request.return_to = "http://foo.unittest/39"
-        self.failIf(self.request.trustRootValid())
+        self.assertFalse(self.request.trustRootValid())
 
     def test_trustRootValid(self):
         self.request.trust_root = "http://foo.unittest/"
@@ -1345,7 +1345,7 @@ class TestAssociate(unittest.TestCase):
         rfg = partial(response.fields.getArg, OPENID_NS)
         self.assertEqual(rfg("assoc_type"), "HMAC-SHA1")
         self.assertEqual(rfg("assoc_handle"), self.assoc.handle)
-        self.failIf(rfg("mac_key"))
+        self.assertFalse(rfg("mac_key"))
         self.assertEqual(rfg("session_type"), "DH-SHA1")
         self.assertTrue(rfg("enc_mac_key"))
         self.assertTrue(rfg("dh_server_public"))
@@ -1370,7 +1370,7 @@ class TestAssociate(unittest.TestCase):
         rfg = partial(response.fields.getArg, OPENID_NS)
         self.assertEqual(rfg("assoc_type"), "HMAC-SHA256")
         self.assertEqual(rfg("assoc_handle"), self.assoc.handle)
-        self.failIf(rfg("mac_key"))
+        self.assertFalse(rfg("mac_key"))
         self.assertEqual(rfg("session_type"), "DH-SHA256")
         self.assertTrue(rfg("enc_mac_key"))
         self.assertTrue(rfg("dh_server_public"))
@@ -1478,9 +1478,9 @@ class TestAssociate(unittest.TestCase):
             response.fields, self.signatory.SECRET_LIFETIME)
 
         self.assertEqual(rfg("mac_key"), oidutil.toBase64(self.assoc.secret))
-        self.failIf(rfg("session_type"))
-        self.failIf(rfg("enc_mac_key"))
-        self.failIf(rfg("dh_server_public"))
+        self.assertFalse(rfg("session_type"))
+        self.assertFalse(rfg("enc_mac_key"))
+        self.assertFalse(rfg("dh_server_public"))
 
     def test_plaintext_v2(self):
         # The main difference between this and the v1 test is that
@@ -1494,7 +1494,7 @@ class TestAssociate(unittest.TestCase):
         self.request = server.AssociateRequest.fromMessage(
             Message.fromPostArgs(args))
 
-        self.failIf(self.request.message.isOpenID1())
+        self.assertFalse(self.request.message.isOpenID1())
 
         self.assoc = self.signatory.createAssociation(
             dumb=False, assoc_type='HMAC-SHA1')
@@ -1511,8 +1511,8 @@ class TestAssociate(unittest.TestCase):
         self.assertEqual(rfg("mac_key"), oidutil.toBase64(self.assoc.secret))
 
         self.assertEqual(rfg("session_type"), "no-encryption")
-        self.failIf(rfg("enc_mac_key"))
-        self.failIf(rfg("dh_server_public"))
+        self.assertFalse(rfg("enc_mac_key"))
+        self.assertFalse(rfg("dh_server_public"))
 
     def test_plaintext256(self):
         self.assoc = self.signatory.createAssociation(dumb=False, assoc_type='HMAC-SHA256')
@@ -1527,9 +1527,9 @@ class TestAssociate(unittest.TestCase):
             response.fields, self.signatory.SECRET_LIFETIME)
 
         self.assertEqual(rfg("mac_key"), oidutil.toBase64(self.assoc.secret))
-        self.failIf(rfg("session_type"))
-        self.failIf(rfg("enc_mac_key"))
-        self.failIf(rfg("dh_server_public"))
+        self.assertFalse(rfg("session_type"))
+        self.assertFalse(rfg("enc_mac_key"))
+        self.assertFalse(rfg("dh_server_public"))
 
     def test_unsupportedPrefer(self):
         allowed_assoc = 'COLD-PET-RAT'
@@ -1622,9 +1622,9 @@ class TestServer(unittest.TestCase, CatchLogs):
         response = self.server.openid_associate(request)
         self.assertTrue(response.fields.hasKey(OPENID_NS, "error"))
         self.assertTrue(response.fields.hasKey(OPENID_NS, "error_code"))
-        self.failIf(response.fields.hasKey(OPENID_NS, "assoc_handle"))
-        self.failIf(response.fields.hasKey(OPENID_NS, "assoc_type"))
-        self.failIf(response.fields.hasKey(OPENID_NS, "session_type"))
+        self.assertFalse(response.fields.hasKey(OPENID_NS, "assoc_handle"))
+        self.assertFalse(response.fields.hasKey(OPENID_NS, "assoc_type"))
+        self.assertFalse(response.fields.hasKey(OPENID_NS, "session_type"))
 
     def test_associate3(self):
         """Request an assoc type that is not supported when there are
@@ -1645,7 +1645,7 @@ class TestServer(unittest.TestCase, CatchLogs):
 
         self.assertTrue(response.fields.hasKey(OPENID_NS, "error"))
         self.assertTrue(response.fields.hasKey(OPENID_NS, "error_code"))
-        self.failIf(response.fields.hasKey(OPENID_NS, "assoc_handle"))
+        self.assertFalse(response.fields.hasKey(OPENID_NS, "assoc_handle"))
         self.assertEqual(response.fields.getArg(OPENID_NS, "assoc_type"), 'HMAC-SHA256')
         self.assertEqual(response.fields.getArg(OPENID_NS, "session_type"), 'DH-SHA256')
 
@@ -1716,7 +1716,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.assertEqual(sresponse.fields.getArg(OPENID_NS, 'assoc_handle'), assoc_handle)
         self.assertEqual(sresponse.fields.getArg(OPENID_NS, 'signed'), 'assoc_handle,azu,bar,foo,signed')
         self.assertTrue(sresponse.fields.getArg(OPENID_NS, 'sig'))
-        self.failIf(self.messages, self.messages)
+        self.assertFalse(self.messages)
 
     def test_signDumb(self):
         request = server.OpenIDRequest()
@@ -1736,7 +1736,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.assertTrue(assoc)
         self.assertEqual(sresponse.fields.getArg(OPENID_NS, 'signed'), 'assoc_handle,azu,bar,foo,ns,signed')
         self.assertTrue(sresponse.fields.getArg(OPENID_NS, 'sig'))
-        self.failIf(self.messages, self.messages)
+        self.assertFalse(self.messages)
 
     def test_signExpired(self):
         """Sign a response to a message with an expired handle (using invalidate_handle).
@@ -1781,12 +1781,12 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.assertTrue(sresponse.fields.getArg(OPENID_NS, 'sig'))
 
         # make sure the expired association is gone
-        self.failIf(self.store.getAssociation(self._normal_key, assoc_handle),
-                    "expired association is still retrievable.")
+        self.assertFalse(self.store.getAssociation(self._normal_key, assoc_handle),
+                         "expired association is still retrievable.")
 
         # make sure the new key is a dumb mode association
         self.assertTrue(self.store.getAssociation(self._dumb_key, new_assoc_handle))
-        self.failIf(self.store.getAssociation(self._normal_key, new_assoc_handle))
+        self.assertFalse(self.store.getAssociation(self._normal_key, new_assoc_handle))
         self.assertTrue(self.messages)
 
     def test_signInvalidHandle(self):
@@ -1815,8 +1815,8 @@ class TestSignatory(unittest.TestCase, CatchLogs):
 
         # make sure the new key is a dumb mode association
         self.assertTrue(self.store.getAssociation(self._dumb_key, new_assoc_handle))
-        self.failIf(self.store.getAssociation(self._normal_key, new_assoc_handle))
-        self.failIf(self.messages, self.messages)
+        self.assertFalse(self.store.getAssociation(self._normal_key, new_assoc_handle))
+        self.assertFalse(self.messages)
 
     def test_verify(self):
         assoc_handle = '{vroom}{zoom}'
@@ -1834,7 +1834,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         })
 
         verified = self.signatory.verify(assoc_handle, signed)
-        self.failIf(self.messages, self.messages)
+        self.assertFalse(self.messages)
         self.assertTrue(verified)
 
     def test_verifyBadSig(self):
@@ -1853,8 +1853,8 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         })
 
         verified = self.signatory.verify(assoc_handle, signed)
-        self.failIf(self.messages, self.messages)
-        self.failIf(verified)
+        self.assertFalse(self.messages)
+        self.assertFalse(verified)
 
     def test_verifyBadHandle(self):
         assoc_handle = '{vroom}{zoom}'
@@ -1865,7 +1865,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         })
 
         verified = self.signatory.verify(assoc_handle, signed)
-        self.failIf(verified)
+        self.assertFalse(verified)
         self.assertTrue(self.messages)
 
     def test_verifyAssocMismatch(self):
@@ -1883,7 +1883,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         })
 
         verified = self.signatory.verify(assoc_handle, signed)
-        self.failIf(verified)
+        self.assertFalse(verified)
         self.assertTrue(self.messages)
 
     def test_getAssoc(self):
@@ -1891,24 +1891,24 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         assoc = self.signatory.getAssociation(assoc_handle, True)
         self.assertTrue(assoc)
         self.assertEqual(assoc.handle, assoc_handle)
-        self.failIf(self.messages, self.messages)
+        self.assertFalse(self.messages)
 
     def test_getAssocExpired(self):
         assoc_handle = self.makeAssoc(dumb=True, lifetime=-10)
         assoc = self.signatory.getAssociation(assoc_handle, True)
-        self.failIf(assoc, assoc)
+        self.assertFalse(assoc)
         self.assertTrue(self.messages)
 
     def test_getAssocInvalid(self):
         ah = 'no-such-handle'
         self.assertIsNone(self.signatory.getAssociation(ah, dumb=False))
-        self.failIf(self.messages, self.messages)
+        self.assertFalse(self.messages)
 
     def test_getAssocDumbVsNormal(self):
         """getAssociation(dumb=False) cannot get a dumb assoc"""
         assoc_handle = self.makeAssoc(dumb=True)
         self.assertIsNone(self.signatory.getAssociation(assoc_handle, dumb=False))
-        self.failIf(self.messages, self.messages)
+        self.assertFalse(self.messages)
 
     def test_getAssocNormalVsDumb(self):
         """getAssociation(dumb=True) cannot get a shared assoc
@@ -1920,12 +1920,12 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         """
         assoc_handle = self.makeAssoc(dumb=False)
         self.assertIsNone(self.signatory.getAssociation(assoc_handle, dumb=True))
-        self.failIf(self.messages, self.messages)
+        self.assertFalse(self.messages)
 
     def test_createAssociation(self):
         assoc = self.signatory.createAssociation(dumb=False)
         self.assertTrue(self.signatory.getAssociation(assoc.handle, dumb=False))
-        self.failIf(self.messages, self.messages)
+        self.assertFalse(self.messages)
 
     def makeAssoc(self, dumb, lifetime=60):
         assoc_handle = '{bling}'
@@ -1947,8 +1947,8 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.assertTrue(assoc)
         self.signatory.invalidate(assoc_handle, dumb=True)
         assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
-        self.failIf(assoc)
-        self.failIf(self.messages, self.messages)
+        self.assertFalse(assoc)
+        self.assertFalse(self.messages)
 
 
 if __name__ == '__main__':

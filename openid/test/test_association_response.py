@@ -317,7 +317,7 @@ class TestExtractAssociationDiffieHellman(BaseAssocTest):
     def test_success(self):
         sess, server_resp = self._setUpDH()
         ret = self.consumer._extractAssociation(server_resp, sess)
-        self.failIf(ret is None)
+        self.assertIsNotNone(ret)
         self.assertEqual(ret.assoc_type, 'HMAC-SHA1')
         self.assertEqual(ret.secret, self.secret)
         self.assertEqual(ret.handle, 'handle')

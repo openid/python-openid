@@ -570,13 +570,13 @@ class TestCheckAuthResponse(TestIdRes, CatchLogs):
         """check_authentication returns false when the server sends no answer"""
         response = Message.fromOpenIDArgs({})
         r = self.consumer._processCheckAuthResponse(response, self.server_url)
-        self.failIf(r)
+        self.assertFalse(r)
 
     def test_badResponse(self):
         """check_authentication returns false when is_valid is false"""
         response = Message.fromOpenIDArgs({'is_valid': 'false'})
         r = self.consumer._processCheckAuthResponse(response, self.server_url)
-        self.failIf(r)
+        self.assertFalse(r)
 
     def test_badResponseInvalidate(self):
         """Make sure that the handle is invalidated when is_valid is false
@@ -593,7 +593,7 @@ class TestCheckAuthResponse(TestIdRes, CatchLogs):
             'invalidate_handle': 'handle',
         })
         r = self.consumer._processCheckAuthResponse(response, self.server_url)
-        self.failIf(r)
+        self.assertFalse(r)
         self.assertIsNone(self.consumer.store.getAssociation(self.server_url))
 
     def test_invalidateMissing(self):
@@ -1095,7 +1095,7 @@ class TestReturnToArgs(unittest.TestCase):
 
         for bad in bad_return_tos:
             m.setArg(OPENID_NS, 'return_to', bad)
-            self.failIf(self.consumer._checkReturnTo(m, return_to))
+            self.assertFalse(self.consumer._checkReturnTo(m, return_to))
 
     def test_completeGoodReturnTo(self):
         """Test GenericConsumer.complete()'s handling of good
@@ -1180,7 +1180,7 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
                  'openid.stuff': 'a value'}
         r = self.consumer._checkAuth(Message.fromPostArgs(query),
                                      http_server_url)
-        self.failIf(r)
+        self.assertFalse(r)
         self.assertTrue(self.messages)
 
     def test_bad_args(self):
@@ -1286,7 +1286,7 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         self.assertIsNone(self.consumer._getAssociation(e))
 
         msg = Message.fromPostArgs({'openid.signed': ''})
-        self.failIf(self.consumer._checkAuth(msg, 'some://url'))
+        self.assertFalse(self.consumer._checkAuth(msg, 'some://url'))
 
 
 class TestSuccessResponse(unittest.TestCase):
@@ -1482,7 +1482,7 @@ class ConsumerTest(unittest.TestCase):
         if self.endpoint.claimed_id != IDENTIFIER_SELECT:
             self.assertEqual(resp.identity_url, self.identity_url)
 
-        self.failIf(self.consumer._token_key in self.session)
+        self.assertNotIn(self.consumer._token_key, self.session)
 
         # Expected status response
         self.assertEqual(resp.status, exp_resp.status)
@@ -1494,7 +1494,7 @@ class ConsumerTest(unittest.TestCase):
         auth_req = self.consumer.beginWithoutDiscovery(self.endpoint)
         resp = self._doResp(auth_req, exp_resp)
         # There should be nothing left in the session once we have completed.
-        self.failIf(self.session)
+        self.assertFalse(self.session)
         return resp
 
     def test_noDiscoCompleteSuccessWithToken(self):
@@ -1522,11 +1522,10 @@ class ConsumerTest(unittest.TestCase):
         auth_req = self.consumer.begin(self.identity_url)
         resp = self._doResp(auth_req, exp_resp)
 
-        manager = self.discovery.getManager()
         if is_clean:
             self.assertIsNone(self.discovery.getManager())
         else:
-            self.failIf(self.discovery.getManager() is None, manager)
+            self.assertIsNotNone(self.discovery.getManager())
 
         return resp
 

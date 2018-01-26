@@ -62,8 +62,8 @@ class TestProcessTrustResult(TestCase):
         self.assertEqual(response.status_code, HTTP_REDIRECT)
         finalURL = response['location']
         self.assertIn('openid.mode=cancel', finalURL)
-        self.failIf('openid.identity=' in finalURL, finalURL)
-        self.failIf('openid.sreg.postcode=12345' in finalURL, finalURL)
+        self.assertNotIn('openid.identity=', finalURL)
+        self.assertNotIn('openid.sreg.postcode=12345', finalURL)
 
 
 class TestShowDecidePage(TestCase):

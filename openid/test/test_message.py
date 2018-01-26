@@ -199,10 +199,10 @@ class EmptyMessageTest(unittest.TestCase):
         self._test_delArgNS('urn:nothing-significant')
 
     def test_isOpenID1(self):
-        self.failIf(self.msg.isOpenID1())
+        self.assertFalse(self.msg.isOpenID1())
 
     def test_isOpenID2(self):
-        self.failIf(self.msg.isOpenID2())
+        self.assertFalse(self.msg.isOpenID2())
 
 
 class OpenID1MessageTest(unittest.TestCase):
@@ -368,7 +368,7 @@ class OpenID1MessageTest(unittest.TestCase):
         self.assertTrue(self.msg.isOpenID1())
 
     def test_isOpenID2(self):
-        self.failIf(self.msg.isOpenID2())
+        self.assertFalse(self.msg.isOpenID2())
 
 
 class OpenID1ExplicitMessageTest(unittest.TestCase):
@@ -702,7 +702,7 @@ class OpenID2MessageTest(unittest.TestCase):
         self.assertRaises(TypeError, self.msg.fromPostArgs, {'arg': [1, 2, 3]})
 
     def test_isOpenID1(self):
-        self.failIf(self.msg.isOpenID1())
+        self.assertFalse(self.msg.isOpenID1())
 
     def test_isOpenID2(self):
         self.assertTrue(self.msg.isOpenID2())
@@ -821,10 +821,10 @@ class MessageTest(unittest.TestCase):
         # encoded strings to be converted to XML character references,
         # "ünicöde_key" becomes "&#195;&#188;nic&#195;&#182;de_key" and
         # "ünicöde_välüe" becomes "&#195;&#188;nic&#195;&#182;de_v&#195;&#164;l&#195;&#188;e"
-        self.failIf('&#195;&#188;nic&#195;&#182;de_key' in html,
-                    'UTF-8 bytes should not convert to XML character references')
-        self.failIf('&#195;&#188;nic&#195;&#182;de_v&#195;&#164;l&#195;&#188;e' in html,
-                    'UTF-8 bytes should not convert to XML character references')
+        self.assertNotIn('&#195;&#188;nic&#195;&#182;de_key', html,
+                         'UTF-8 bytes should not convert to XML character references')
+        self.assertNotIn('&#195;&#188;nic&#195;&#182;de_v&#195;&#164;l&#195;&#188;e', html,
+                         'UTF-8 bytes should not convert to XML character references')
 
     def test_overrideMethod(self):
         """Be sure that caller cannot change form method to GET."""
@@ -887,13 +887,13 @@ class MessageTest(unittest.TestCase):
         ns = 'http://specs.openid.net/auth/2.0'
         m = message.Message(ns)
         self.assertTrue(m.isOpenID2())
-        self.failIf(m.namespaces.isImplicit(message.NULL_NAMESPACE))
+        self.assertFalse(m.namespaces.isImplicit(message.NULL_NAMESPACE))
         self.assertEqual(m.getOpenIDNamespace(), ns)
 
     def test_setOpenIDNamespace_explicit(self):
         m = message.Message()
         m.setOpenIDNamespace(message.THE_OTHER_OPENID1_NS, False)
-        self.failIf(m.namespaces.isImplicit(message.THE_OTHER_OPENID1_NS))
+        self.assertFalse(m.namespaces.isImplicit(message.THE_OTHER_OPENID1_NS))
 
     def test_setOpenIDNamespace_implicit(self):
         m = message.Message()

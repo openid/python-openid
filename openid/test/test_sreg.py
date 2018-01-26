@@ -37,7 +37,7 @@ class FakeEndpoint(object):
 class SupportsSRegTest(unittest.TestCase):
     def test_unsupported(self):
         endpoint = FakeEndpoint([])
-        self.failIf(sreg.supportsSReg(endpoint))
+        self.assertFalse(sreg.supportsSReg(endpoint))
         self.assertEqual(endpoint.checked_uris, [sreg.ns_uri_1_1, sreg.ns_uri_1_0])
 
     def test_supported_1_1(self):
@@ -258,23 +258,23 @@ class SRegRequestTest(unittest.TestCase):
 
     def test_wereFieldsRequested(self):
         req = sreg.SRegRequest()
-        self.failIf(req.wereFieldsRequested())
+        self.assertFalse(req.wereFieldsRequested())
         req.requestField('gender')
         self.assertTrue(req.wereFieldsRequested())
 
     def test_contains(self):
         req = sreg.SRegRequest()
         for field_name in sreg.data_fields:
-            self.failIf(field_name in req)
+            self.assertNotIn(field_name, req)
 
-        self.failIf('something else' in req)
+        self.assertNotIn('something else', req)
 
         req.requestField('nickname')
         for field_name in sreg.data_fields:
             if field_name == 'nickname':
                 self.assertIn(field_name, req)
             else:
-                self.failIf(field_name in req)
+                self.assertNotIn(field_name, req)
 
     def test_requestField_bogus(self):
         req = sreg.SRegRequest()
@@ -409,7 +409,7 @@ class SRegResponseTest(unittest.TestCase):
         self.assertTrue(resp)
 
         empty_resp = sreg.SRegResponse({})
-        self.failIf(empty_resp)
+        self.assertFalse(empty_resp)
 
         # XXX: finish this test
 
@@ -419,7 +419,7 @@ class SRegResponseTest(unittest.TestCase):
         })
         success_resp = DummySuccessResponse(message, {})
         sreg_resp = sreg.SRegResponse.fromSuccessResponse(success_resp)
-        self.failIf(sreg_resp)
+        self.assertFalse(sreg_resp)
 
     def test_fromSuccessResponse_unsigned(self):
         message = Message.fromOpenIDArgs({
