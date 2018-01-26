@@ -153,7 +153,7 @@ class TestSymbol(unittest.TestCase):
         self.assertIn(s, d_prime, "%r isn't in %r" % (s, d_prime))
 
         t = oidutil.Symbol("Bar")
-        self.failIfEqual(hash(s), hash(t))
+        self.assertNotEqual(hash(s), hash(t))
 
 
 # XXX: there are more functions that could benefit from being better

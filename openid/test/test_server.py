@@ -1772,7 +1772,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
 
         new_assoc_handle = sresponse.fields.getArg(OPENID_NS, 'assoc_handle')
         self.assertTrue(new_assoc_handle)
-        self.failIfEqual(new_assoc_handle, assoc_handle)
+        self.assertNotEqual(new_assoc_handle, assoc_handle)
 
         self.assertEqual(sresponse.fields.getArg(OPENID_NS, 'invalidate_handle'), assoc_handle)
 
@@ -1805,7 +1805,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
 
         new_assoc_handle = sresponse.fields.getArg(OPENID_NS, 'assoc_handle')
         self.assertTrue(new_assoc_handle)
-        self.failIfEqual(new_assoc_handle, assoc_handle)
+        self.assertNotEqual(new_assoc_handle, assoc_handle)
 
         self.assertEqual(sresponse.fields.getArg(OPENID_NS, 'invalidate_handle'), assoc_handle)
 

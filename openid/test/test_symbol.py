@@ -16,7 +16,7 @@ class SymbolTest(unittest.TestCase):
     def test_inequality(self):
         x = oidutil.Symbol('xxx')
         y = oidutil.Symbol('yyy')
-        self.failIfEqual(x, y)
+        self.assertNotEqual(x, y)
 
     def test_selfInequality(self):
         x = oidutil.Symbol('xxx')
