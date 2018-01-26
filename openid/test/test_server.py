@@ -1,9 +1,8 @@
 """Tests for openid.server.
 """
-import cgi
 import unittest
 from functools import partial
-from urlparse import urlparse
+from urlparse import parse_qs, parse_qsl, urlparse
 
 from testfixtures import LogCapture, StringComparison
 
@@ -43,7 +42,7 @@ class TestProtocolError(unittest.TestCase):
         }
 
         rt_base, result_args = e.encodeToURL().split('?', 1)
-        result_args = cgi.parse_qs(result_args)
+        result_args = parse_qs(result_args)
         self.assertEqual(result_args, expected_args)
 
     def test_browserWithReturnTo_OpenID2_GET(self):
@@ -65,7 +64,7 @@ class TestProtocolError(unittest.TestCase):
         }
 
         rt_base, result_args = e.encodeToURL().split('?', 1)
-        result_args = cgi.parse_qs(result_args)
+        result_args = parse_qs(result_args)
         self.assertEqual(result_args, expected_args)
 
     def test_browserWithReturnTo_OpenID2_POST(self):
@@ -101,7 +100,7 @@ class TestProtocolError(unittest.TestCase):
         self.assertEqual(e.whichEncoding(), server.ENCODE_URL)
 
         rt_base, result_args = e.encodeToURL().split('?', 1)
-        result_args = cgi.parse_qs(result_args)
+        result_args = parse_qs(result_args)
         self.assertEqual(result_args, expected_args)
 
     def test_noReturnTo(self):
@@ -636,7 +635,7 @@ class TestEncode(unittest.TestCase):
         self.assertTrue(location.startswith(request.return_to),
                         "%s does not start with %s" % (location, request.return_to))
         # argh.
-        q2 = dict(cgi.parse_qsl(urlparse(location)[4]))
+        q2 = dict(parse_qsl(urlparse(location)[4]))
         expected = response.fields.toPostArgs()
         self.assertEqual(q2, expected)
 
@@ -760,7 +759,7 @@ class TestSigningEncode(unittest.TestCase):
         self.assertIn('location', webresponse.headers)
 
         location = webresponse.headers['location']
-        query = cgi.parse_qs(urlparse(location)[4])
+        query = parse_qs(urlparse(location)[4])
         self.assertIn('openid.sig', query)
         self.assertIn('openid.assoc_handle', query)
         self.assertIn('openid.signed', query)
@@ -771,7 +770,7 @@ class TestSigningEncode(unittest.TestCase):
         self.assertIn('location', webresponse.headers)
 
         location = webresponse.headers['location']
-        query = cgi.parse_qs(urlparse(location)[4])
+        query = parse_qs(urlparse(location)[4])
         self.assertIn('openid.sig', query)
         self.assertIn('openid.assoc_handle', query)
         self.assertIn('openid.signed', query)
@@ -795,7 +794,7 @@ class TestSigningEncode(unittest.TestCase):
         self.assertEqual(webresponse.code, server.HTTP_REDIRECT)
         self.assertIn('location', webresponse.headers)
         location = webresponse.headers['location']
-        query = cgi.parse_qs(urlparse(location)[4])
+        query = parse_qs(urlparse(location)[4])
         self.assertNotIn('openid.sig', query, response.fields.toPostArgs())
 
     def test_assocReply(self):
@@ -1188,7 +1187,7 @@ class TestCheckID(unittest.TestCase):
 
         # How to check?  How about a round-trip test.
         base, result_args = result.split('?', 1)
-        result_args = dict(cgi.parse_qsl(result_args))
+        result_args = dict(parse_qsl(result_args))
         message = Message.fromPostArgs(result_args)
         rebuilt_request = server.CheckIDRequest.fromMessage(message,
                                                             self.server.op_endpoint)
@@ -1200,7 +1199,7 @@ class TestCheckID(unittest.TestCase):
         url = self.request.getCancelURL()
         rt, query_string = url.split('?')
         self.assertEqual(self.request.return_to, rt)
-        query = dict(cgi.parse_qsl(query_string))
+        query = dict(parse_qsl(query_string))
         self.assertEqual(query, {'openid.mode': 'cancel', 'openid.ns': OPENID2_NS})
 
     def test_getCancelURLimmed(self):

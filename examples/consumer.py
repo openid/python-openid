@@ -133,7 +133,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         try:
             self.parsed_uri = urlparse.urlparse(self.path)
             self.query = {}
-            for k, v in cgi.parse_qsl(self.parsed_uri[4]):
+            for k, v in urlparse.parse_qsl(self.parsed_uri[4]):
                 self.query[k] = v.decode('utf-8')
 
             path = self.parsed_uri[2]

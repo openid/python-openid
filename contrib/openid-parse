@@ -8,8 +8,7 @@ Requires the 'xsel' program to get the contents of the clipboard.
 """
 
 from pprint import pformat
-from urlparse import urlsplit, urlunsplit
-import cgi
+from urlparse import urlsplit, urlunsplit, parse_qs
 import re
 import subprocess
 import sys
@@ -63,7 +62,7 @@ def main():
 
 def queryFromURL(url):
     split_url = urlsplit(url)
-    query = cgi.parse_qs(split_url[3])
+    query = parse_qs(split_url[3])
 
     if not query:
         raise NoQuery(url)
@@ -124,7 +123,7 @@ def unlistify(d):
 def queriesFromLogs(s):
     qre = re.compile(r'GET (/.*)?\?(.+) HTTP')
 
-    return [(match.group(1), cgi.parse_qs(match.group(2)))
+    return [(match.group(1), parse_qs(match.group(2)))
             for match in qre.finditer(s)]
 
 
@@ -135,7 +134,7 @@ def queriesFromPostdata(s):
     qre = re.compile(r'(?:^Host=(?P<host>.+?)$.*?)?^POSTDATA=(?P<query>.*)$',
                      re.DOTALL | re.MULTILINE)
     return [(match.group('host') or 'POSTDATA',
-             cgi.parse_qs(match.group('query'))) for match in qre.finditer(s)]
+             parse_qs(match.group('query'))) for match in qre.finditer(s)]
 
 
 def find_urls(s):

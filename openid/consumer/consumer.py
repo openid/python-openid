@@ -187,10 +187,9 @@ USING THIS LIBRARY
     objects.
 """
 
-import cgi
 import copy
 import logging
-from urlparse import urldefrag, urlparse
+from urlparse import parse_qsl, urldefrag, urlparse
 
 from openid import cryptutil, fetchers, oidutil, urinorm
 from openid.association import Association, SessionNegotiator, default_negotiator
@@ -845,7 +844,7 @@ class GenericConsumer(object):
 
         parsed_url = urlparse(return_to)
         rt_query = parsed_url[4]
-        parsed_args = cgi.parse_qsl(rt_query, keep_blank_values=True)
+        parsed_args = parse_qsl(rt_query, keep_blank_values=True)
 
         for rt_key, rt_value in parsed_args:
             try:

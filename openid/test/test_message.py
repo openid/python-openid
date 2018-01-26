@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-import cgi
 import unittest
 import urllib
+from urlparse import parse_qs
 
 from openid import message, oidutil
 from openid.extensions import sreg
@@ -229,7 +229,7 @@ class OpenID1MessageTest(unittest.TestCase):
         self.assertEqual(actual_base, base_url)
         self.assertEqual(actual[len(base_url)], '?')
         query = actual[len(base_url) + 1:]
-        parsed = cgi.parse_qs(query)
+        parsed = parse_qs(query)
         self.assertEqual(parsed, {'openid.mode': ['error'], 'openid.error': ['unit test']})
 
     def test_getOpenID(self):
@@ -399,7 +399,7 @@ class OpenID1ExplicitMessageTest(unittest.TestCase):
         self.assertEqual(actual_base, base_url)
         self.assertEqual(actual[len(base_url)], '?')
         query = actual[len(base_url) + 1:]
-        parsed = cgi.parse_qs(query)
+        parsed = parse_qs(query)
         self.assertEqual(parsed,
                          {'openid.mode': ['error'], 'openid.error': ['unit test'], 'openid.ns': [message.OPENID1_NS]})
 

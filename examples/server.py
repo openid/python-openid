@@ -9,7 +9,7 @@ import optparse
 import sys
 import time
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from urlparse import urlparse
+from urlparse import parse_qsl, urlparse
 
 
 def quoteattr(s):
@@ -69,7 +69,7 @@ class ServerHandler(BaseHTTPRequestHandler):
         try:
             self.parsed_uri = urlparse(self.path)
             self.query = {}
-            for k, v in cgi.parse_qsl(self.parsed_uri[4]):
+            for k, v in parse_qsl(self.parsed_uri[4]):
                 self.query[k] = v
 
             self.setUser()
@@ -110,7 +110,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
 
             self.query = {}
-            for k, v in cgi.parse_qsl(post_data):
+            for k, v in parse_qsl(post_data):
                 self.query[k] = v
 
             path = self.parsed_uri[2]

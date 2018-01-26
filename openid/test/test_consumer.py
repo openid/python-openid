@@ -1,4 +1,3 @@
-import cgi
 import time
 import unittest
 import urlparse
@@ -37,7 +36,7 @@ def mkSuccess(endpoint, q):
 
 def parseQuery(qs):
     q = {}
-    for (k, v) in cgi.parse_qsl(qs):
+    for (k, v) in urlparse.parse_qsl(qs):
         assert k not in q
         q[k] = v
     return q
