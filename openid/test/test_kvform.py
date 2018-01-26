@@ -10,7 +10,7 @@ class KVBaseTest(unittest.TestCase, CatchLogs):
         full_msg = 'Invalid number of warnings {} != {}'.format(num_warnings, len(self.messages))
         if msg is not None:
             full_msg = full_msg + ' ' + msg
-        self.failUnlessEqual(num_warnings, len(self.messages), full_msg)
+        self.assertEqual(num_warnings, len(self.messages), full_msg)
 
     def setUp(self):
         CatchLogs.setUp(self)
@@ -30,7 +30,7 @@ class KVDictTest(KVBaseTest):
             d = kvform.kvToDict(kv_data)
 
             # make sure it parses to expected dict
-            self.failUnlessEqual(d, result)
+            self.assertEqual(d, result)
 
             # Check to make sure we got the expected number of warnings
             self.checkWarnings(expected_warnings, msg='kvToDict({!r})'.format(kv_data))
@@ -39,7 +39,7 @@ class KVDictTest(KVBaseTest):
             # sure that *** dict -> kv -> dict is identity. ***
             kv = kvform.dictToKV(d)
             d2 = kvform.kvToDict(kv)
-            self.failUnlessEqual(d, d2)
+            self.assertEqual(d, d2)
 
 
 class KVSeqTest(KVBaseTest):
@@ -63,7 +63,7 @@ class KVSeqTest(KVBaseTest):
 
             # seq serializes to expected kvform
             actual = kvform.seqToKV(kv_data)
-            self.failUnlessEqual(actual, result)
+            self.assertEqual(actual, result)
             self.assertIsInstance(actual, str)
 
             # Parse back to sequence. Expected to be unchanged, except
@@ -72,7 +72,7 @@ class KVSeqTest(KVBaseTest):
             seq = kvform.kvToSeq(actual)
             clean_seq = self.cleanSeq(seq)
 
-            self.failUnlessEqual(seq, clean_seq)
+            self.assertEqual(seq, clean_seq)
             self.checkWarnings(expected_warnings)
 
 
@@ -155,5 +155,5 @@ class GeneralTest(KVBaseTest):
 
     def test_convert(self):
         result = kvform.seqToKV([(1, 1)])
-        self.failUnlessEqual(result, '1:1\n')
+        self.assertEqual(result, '1:1\n')
         self.checkWarnings(2)

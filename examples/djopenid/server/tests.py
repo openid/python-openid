@@ -6,7 +6,7 @@ from django.test.testcases import TestCase
 from django.urls import reverse
 
 from openid.message import Message
-from openid.server.server import CheckIDRequest
+from openid.server.server import CheckIDRequest, HTTP_REDIRECT
 from openid.yadis.constants import YADIS_CONTENT_TYPE
 from openid.yadis.services import applyFilter
 
@@ -48,7 +48,7 @@ class TestProcessTrustResult(TestCase):
 
         response = views.processTrustResult(self.request)
 
-        self.failUnlessEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, HTTP_REDIRECT)
         finalURL = response['location']
         self.failUnless('openid.mode=id_res' in finalURL, finalURL)
         self.failUnless('openid.identity=' in finalURL, finalURL)
@@ -59,7 +59,7 @@ class TestProcessTrustResult(TestCase):
 
         response = views.processTrustResult(self.request)
 
-        self.failUnlessEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, HTTP_REDIRECT)
         finalURL = response['location']
         self.failUnless('openid.mode=cancel' in finalURL, finalURL)
         self.failIf('openid.identity=' in finalURL, finalURL)
@@ -102,6 +102,6 @@ class TestGenericXRDS(TestCase):
         requested_url = 'http://requested.invalid/'
         (endpoint,) = applyFilter(requested_url, response.content)
 
-        self.failUnlessEqual(YADIS_CONTENT_TYPE, response['Content-Type'])
-        self.failUnlessEqual(type_uris, endpoint.type_uris)
-        self.failUnlessEqual(endpoint_url, endpoint.uri)
+        self.assertEqual(response['Content-Type'], YADIS_CONTENT_TYPE)
+        self.assertEqual(endpoint.type_uris, type_uris)
+        self.assertEqual(endpoint.uri, endpoint_url)

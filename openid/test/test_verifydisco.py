@@ -73,8 +73,8 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
                                               'op_endpoint': op_endpoint})
         result_endpoint = self.consumer._verifyDiscoveryResults(msg)
         self.failUnless(result_endpoint.isOPIdentifier())
-        self.failUnlessEqual(op_endpoint, result_endpoint.server_url)
-        self.failUnlessEqual(None, result_endpoint.claimed_id)
+        self.assertEqual(result_endpoint.server_url, op_endpoint)
+        self.assertIsNone(result_endpoint.claimed_id)
         self.failUnlessLogEmpty()
 
     def test_openID2NoEndpointDoesDisco(self):
@@ -88,7 +88,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
              'claimed_id': 'monkeysoft',
              'op_endpoint': op_endpoint})
         result = self.consumer._verifyDiscoveryResults(msg)
-        self.failUnlessEqual(sentinel, result)
+        self.assertEqual(result, sentinel)
         self.failUnlessLogMatches('No pre-discovered')
 
     def test_openID2MismatchedDoesDisco(self):
@@ -106,7 +106,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
              'claimed_id': 'monkeysoft',
              'op_endpoint': op_endpoint})
         result = self.consumer._verifyDiscoveryResults(msg, mismatched)
-        self.failUnlessEqual(sentinel, result)
+        self.assertEqual(result, sentinel)
         self.failUnlessLogMatches('Error attempting to use stored',
                                   'Attempting discovery')
 
@@ -136,9 +136,9 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         endpoint.type_uris = [discover.OPENID_1_1_TYPE]
 
         def discoverAndVerify(claimed_id, to_match_endpoints):
-            self.failUnlessEqual(claimed_id, endpoint.claimed_id)
+            self.assertEqual(claimed_id, endpoint.claimed_id)
             for to_match in to_match_endpoints:
-                self.failUnlessEqual(claimed_id, to_match.claimed_id)
+                self.assertEqual(claimed_id, to_match.claimed_id)
             raise consumer.ProtocolError(text)
 
         self.consumer._discoverAndVerify = discoverAndVerify
@@ -216,11 +216,11 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
              'op_endpoint': endpoint.server_url})
         result = self.consumer._verifyDiscoveryResults(msg, endpoint)
 
-        self.failUnlessEqual(result.local_id, endpoint.local_id)
-        self.failUnlessEqual(result.server_url, endpoint.server_url)
-        self.failUnlessEqual(result.type_uris, endpoint.type_uris)
+        self.assertEqual(result.local_id, endpoint.local_id)
+        self.assertEqual(result.server_url, endpoint.server_url)
+        self.assertEqual(result.type_uris, endpoint.type_uris)
 
-        self.failUnlessEqual(result.claimed_id, claimed_id_frag)
+        self.assertEqual(result.claimed_id, claimed_id_frag)
 
         self.failUnlessLogEmpty()
 
@@ -266,7 +266,7 @@ class TestVerifyDiscoverySingle(TestIdRes):
         to_match.local_id = "http://localhost:8000/id/id-jo"
         result = self.consumer._verifyDiscoverySingle(endpoint, to_match)
         # result should always be None, raises exception on failure.
-        self.failUnlessEqual(result, None)
+        self.assertIsNone(result)
         self.failUnlessLogEmpty()
 
 

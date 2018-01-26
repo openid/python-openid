@@ -112,4 +112,4 @@ class MatchAcceptTest(unittest.TestCase):
 
             accepted = accept.parseAcceptHeader(accept_header)
             actual = accept.matchTypes(accepted, available)
-            self.failUnlessEqual(expected, actual)
+            self.assertEqual(actual, expected)

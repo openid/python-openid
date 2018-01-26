@@ -22,7 +22,7 @@ class TestBuildDiscoveryURL(unittest.TestCase):
         """
         realm_obj = trustroot.TrustRoot.parse(realm)
         actual_discovery_url = realm_obj.buildDiscoveryURL()
-        self.failUnlessEqual(expected_discovery_url, actual_discovery_url)
+        self.assertEqual(actual_discovery_url, expected_discovery_url)
 
     def test_trivial(self):
         """There is no wildcard and the realm is the same as the return_to URL
@@ -69,7 +69,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
         actual_return_urls = list(trustroot.getAllowedReturnURLs(
             self.disco_url))
 
-        self.failUnlessEqual(expected_return_urls, actual_return_urls)
+        self.assertEqual(actual_return_urls, expected_return_urls)
 
     def failUnlessDiscoveryFailure(self, text):
         self.data = text
@@ -216,7 +216,7 @@ class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
         return_to = 'http://www.example.com/foo'
 
         def vrfy(disco_url):
-            self.failUnlessEqual('http://www.example.com/', disco_url)
+            self.assertEqual(disco_url, 'http://www.example.com/')
             return [return_to]
 
         self.failUnless(
@@ -228,7 +228,7 @@ class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
         return_to = 'http://www.example.com/foo'
 
         def vrfy(disco_url):
-            self.failUnlessEqual('http://www.example.com/', disco_url)
+            self.assertEqual(disco_url, 'http://www.example.com/')
             return ['http://something-else.invalid/']
 
         self.failIf(

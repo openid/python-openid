@@ -120,21 +120,19 @@ class TestDiscover(unittest.TestCase):
                                       discover, input_url)
             else:
                 result = discover(input_url)
-                self.failUnlessEqual(input_url, result.request_uri)
+                self.assertEqual(result.request_uri, input_url)
 
                 msg = 'Identity URL mismatch: actual = %r, expected = %r' % (
                     result.normalized_uri, expected.normalized_uri)
-                self.failUnlessEqual(
-                    expected.normalized_uri, result.normalized_uri, msg)
+                self.assertEqual(result.normalized_uri, expected.normalized_uri, msg)
 
                 msg = 'Content mismatch: actual = %r, expected = %r' % (
                     result.response_text, expected.response_text)
-                self.failUnlessEqual(
-                    expected.response_text, result.response_text, msg)
+                self.assertEqual(result.response_text, expected.response_text, msg)
 
                 expected_keys = sorted(dir(expected))
                 actual_keys = sorted(dir(result))
-                self.failUnlessEqual(actual_keys, expected_keys)
+                self.assertEqual(actual_keys, expected_keys)
 
                 for k in dir(expected):
                     if k.startswith('__') and k.endswith('__'):

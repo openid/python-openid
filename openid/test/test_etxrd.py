@@ -58,8 +58,8 @@ class TestServiceParser(unittest.TestCase):
         it = iter(services)
         for (server_url, delegate) in expectedServices:
             for (actual_url, actual_delegate) in it:
-                self.failUnlessEqual(server_url, actual_url)
-                self.failUnlessEqual(delegate, actual_delegate)
+                self.assertEqual(actual_url, server_url)
+                self.assertEqual(actual_delegate, delegate)
                 break
             else:
                 self.fail('Not enough services found')
@@ -71,7 +71,7 @@ class TestServiceParser(unittest.TestCase):
         for (type_uri, uri) in expectedServices:
             for service in it:
                 if type_uri in service.type_uris:
-                    self.failUnlessEqual(service.uri, uri)
+                    self.assertEqual(service.uri, uri)
                     break
             else:
                 self.fail('Did not find %r service' % (type_uri,))
@@ -184,7 +184,7 @@ class TestCanonicalID(unittest.TestCase):
     def _getCanonicalID(self, iname, xrds, expectedID):
         if isinstance(expectedID, (str, unicode, type(None))):
             cid = etxrd.getCanonicalID(iname, xrds)
-            self.failUnlessEqual(cid, expectedID and xri.XRI(expectedID))
+            self.assertEqual(cid, expectedID and xri.XRI(expectedID))
         elif issubclass(expectedID, etxrd.XRDSError):
             self.failUnlessRaises(expectedID, etxrd.getCanonicalID,
                                   iname, xrds)

@@ -144,7 +144,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         self.consumer.return_messages = [msg,
                                          Message(self.endpoint.preferredNamespace())]
 
-        self.failUnlessEqual(self.consumer._negotiateAssociation(self.endpoint), None)
+        self.assertIsNone(self.consumer._negotiateAssociation(self.endpoint))
 
         self.failUnlessLogMatches('Unsupported association type',
                                   'Server %s refused' % (self.endpoint.server_url))

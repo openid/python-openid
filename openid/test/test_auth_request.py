@@ -49,11 +49,8 @@ class AuthRequestTestMixin(support.OpenIDTestMixin):
             self.failIfOpenIDKeyExists(msg, key)
 
     def failUnlessHasRequiredFields(self, msg):
-        self.failUnlessEqual(self.preferred_namespace,
-                             self.authreq.message.getOpenIDNamespace())
-
-        self.failUnlessEqual(self.preferred_namespace,
-                             msg.getOpenIDNamespace())
+        self.assertEqual(self.authreq.message.getOpenIDNamespace(), self.preferred_namespace)
+        self.assertEqual(msg.getOpenIDNamespace(), self.preferred_namespace)
 
         self.failUnlessOpenIDValueEquals(msg, 'mode',
                                          self.expected_mode)
@@ -82,10 +79,8 @@ class AuthRequestTestMixin(support.OpenIDTestMixin):
     def test_addExtensionArg(self):
         self.authreq.addExtensionArg('bag:', 'color', 'brown')
         self.authreq.addExtensionArg('bag:', 'material', 'paper')
-        self.failUnless('bag:' in self.authreq.message.namespaces)
-        self.failUnlessEqual(self.authreq.message.getArgs('bag:'),
-                             {'color': 'brown',
-                              'material': 'paper'})
+        self.assertIn('bag:', self.authreq.message.namespaces)
+        self.assertEqual(self.authreq.message.getArgs('bag:'), {'color': 'brown', 'material': 'paper'})
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
 
@@ -93,8 +88,8 @@ class AuthRequestTestMixin(support.OpenIDTestMixin):
         # namespaces. Really it doesn't care that it has alias "0",
         # but that is tested anyway
         post_args = msg.toPostArgs()
-        self.failUnlessEqual('brown', post_args['openid.ext0.color'])
-        self.failUnlessEqual('paper', post_args['openid.ext0.material'])
+        self.assertEqual(post_args['openid.ext0.color'], 'brown')
+        self.assertEqual(post_args['openid.ext0.material'], 'paper')
 
     def test_standard(self):
         msg = self.authreq.getMessage(self.realm, self.return_to,
@@ -117,7 +112,7 @@ class TestAuthRequestOpenID2(AuthRequestTestMixin, unittest.TestCase):
         identity_present = msg.hasKey(message.OPENID_NS, 'identity')
         claimed_present = msg.hasKey(message.OPENID_NS, 'claimed_id')
 
-        self.failUnlessEqual(claimed_present, identity_present)
+        self.assertEqual(claimed_present, identity_present)
 
     def failUnlessHasIdentifiers(self, msg, op_specific_id, claimed_id):
         self.failUnlessOpenIDValueEquals(msg, 'identity', op_specific_id)
@@ -191,8 +186,7 @@ class TestAuthRequestOpenID1(AuthRequestTestMixin, unittest.TestCase):
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
         self.failUnlessHasRequiredFields(msg)
-        self.failUnlessEqual(message.IDENTIFIER_SELECT,
-                             msg.getArg(message.OPENID1_NS, 'identity'))
+        self.assertEqual(msg.getArg(message.OPENID1_NS, 'identity'), message.IDENTIFIER_SELECT)
 
 
 class TestAuthRequestOpenID1Immediate(TestAuthRequestOpenID1):

@@ -6,12 +6,12 @@ from openid import oidutil
 class SymbolTest(unittest.TestCase):
     def test_selfEquality(self):
         s = oidutil.Symbol('xxx')
-        self.failUnlessEqual(s, s)
+        self.assertEqual(s, s)
 
     def test_otherEquality(self):
         x = oidutil.Symbol('xxx')
         y = oidutil.Symbol('xxx')
-        self.failUnlessEqual(x, y)
+        self.assertEqual(x, y)
 
     def test_inequality(self):
         x = oidutil.Symbol('xxx')

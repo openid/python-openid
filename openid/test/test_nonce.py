@@ -23,16 +23,16 @@ class NonceTest(unittest.TestCase):
         expected_t = 0
         expected_salt = ''
         actual_t, actual_salt = splitNonce(s)
-        self.failUnlessEqual(expected_t, actual_t)
-        self.failUnlessEqual(expected_salt, actual_salt)
+        self.assertEqual(actual_t, expected_t)
+        self.assertEqual(actual_salt, expected_salt)
 
     def test_mkSplit(self):
         t = 42
         nonce_str = mkNonce(t)
         self.failUnless(nonce_re.match(nonce_str))
         et, salt = splitNonce(nonce_str)
-        self.failUnlessEqual(len(salt), 6)
-        self.failUnlessEqual(et, t)
+        self.assertEqual(len(salt), 6)
+        self.assertEqual(et, t)
 
 
 class BadSplitTest(unittest.TestCase):
@@ -81,4 +81,4 @@ class CheckTimestampTest(unittest.TestCase):
     def test(self):
         for nonce_string, allowed_skew, now, expected in self.cases:
             actual = checkTimestamp(nonce_string, allowed_skew, now)
-            self.failUnlessEqual(bool(expected), bool(actual))
+            self.assertEqual(bool(actual), bool(expected))

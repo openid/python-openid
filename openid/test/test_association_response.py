@@ -201,8 +201,7 @@ class TestOpenID1AssociationResponseSessionType(BaseAssocTest):
                          'to yield session type %r, but yielded %r' %
                          (session_type_value, expected_session_type,
                           actual_session_type))
-        self.failUnlessEqual(
-            expected_session_type, actual_session_type, error_message)
+        self.assertEqual(expected_session_type, actual_session_type, error_message)
 
     test_none = mkTest(
         session_type_value=None,
@@ -281,10 +280,10 @@ class TestInvalidFields(BaseAssocTest):
         assoc = self.consumer._extractAssociation(
             self.assoc_response, self.assoc_session)
         self.failUnless(self.assoc_session.extract_secret_called)
-        self.failUnlessEqual(self.assoc_session.secret, assoc.secret)
-        self.failUnlessEqual(1000, assoc.lifetime)
-        self.failUnlessEqual(self.assoc_handle, assoc.handle)
-        self.failUnlessEqual(self.assoc_type, assoc.assoc_type)
+        self.assertEqual(assoc.secret, self.assoc_session.secret)
+        self.assertEqual(assoc.lifetime, 1000)
+        self.assertEqual(assoc.handle, self.assoc_handle)
+        self.assertEqual(assoc.assoc_type, self.assoc_type)
 
     def test_badAssocType(self):
         # Make sure that the assoc type in the response is not valid
@@ -311,8 +310,7 @@ class TestExtractAssociationDiffieHellman(BaseAssocTest):
             self.endpoint, 'HMAC-SHA1', 'DH-SHA1')
 
         # XXX: this is testing _createAssociateRequest
-        self.failUnlessEqual(self.endpoint.compatibilityMode(),
-                             message.isOpenID1())
+        self.assertEqual(self.endpoint.compatibilityMode(), message.isOpenID1())
 
         server_sess = DiffieHellmanSHA1ServerSession.fromMessage(message)
         server_resp = server_sess.answer(self.secret)
@@ -326,10 +324,10 @@ class TestExtractAssociationDiffieHellman(BaseAssocTest):
         sess, server_resp = self._setUpDH()
         ret = self.consumer._extractAssociation(server_resp, sess)
         self.failIf(ret is None)
-        self.failUnlessEqual(ret.assoc_type, 'HMAC-SHA1')
-        self.failUnlessEqual(ret.secret, self.secret)
-        self.failUnlessEqual(ret.handle, 'handle')
-        self.failUnlessEqual(ret.lifetime, 1000)
+        self.assertEqual(ret.assoc_type, 'HMAC-SHA1')
+        self.assertEqual(ret.secret, self.secret)
+        self.assertEqual(ret.handle, 'handle')
+        self.assertEqual(ret.lifetime, 1000)
 
     def test_openid2success(self):
         # Use openid 2 type in endpoint so _setUpDH checks

@@ -24,7 +24,7 @@ class OpenIDTestMixin(object):
         actual = msg.getArg(ns, key)
         error_format = 'Wrong value for openid.%s: expected=%s, actual=%s'
         error_message = error_format % (key, expected, actual)
-        self.failUnlessEqual(expected, actual, error_message)
+        self.assertEqual(actual, expected, error_message)
 
     def failIfOpenIDKeyExists(self, msg, key, ns=None):
         if ns is None:
