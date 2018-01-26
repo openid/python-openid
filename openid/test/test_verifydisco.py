@@ -1,5 +1,7 @@
 import unittest
 
+from testfixtures import LogCapture, StringComparison
+
 from openid import message
 from openid.consumer import consumer, discover
 from openid.test.support import OpenIDTestMixin
@@ -25,48 +27,51 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         endpoint.claimed_id = 'bogus'
 
         msg = message.Message.fromOpenIDArgs({})
-        self.failUnlessProtocolError(
-            'Missing required field openid.identity',
-            self.consumer._verifyDiscoveryResults, msg, endpoint)
-        self.failUnlessLogEmpty()
+        with LogCapture() as logbook:
+            self.failUnlessProtocolError('Missing required field openid.identity',
+                                         self.consumer._verifyDiscoveryResults, msg, endpoint)
+        self.assertEqual(logbook.records, [])
 
     def test_openID1NoEndpoint(self):
         msg = message.Message.fromOpenIDArgs({'identity': 'snakes on a plane'})
-        self.assertRaises(RuntimeError, self.consumer._verifyDiscoveryResults, msg)
-        self.failUnlessLogEmpty()
+        with LogCapture() as logbook:
+            self.assertRaises(RuntimeError, self.consumer._verifyDiscoveryResults, msg)
+        self.assertEqual(logbook.records, [])
 
     def test_openID2NoOPEndpointArg(self):
         msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS})
-        self.assertRaises(KeyError, self.consumer._verifyDiscoveryResults, msg)
-        self.failUnlessLogEmpty()
+        with LogCapture() as logbook:
+            self.assertRaises(KeyError, self.consumer._verifyDiscoveryResults, msg)
+        self.assertEqual(logbook.records, [])
 
     def test_openID2LocalIDNoClaimed(self):
         msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS,
                                               'op_endpoint': 'Phone Home',
                                               'identity': 'Jose Lius Borges'})
-        self.failUnlessProtocolError(
-            'openid.identity is present without',
-            self.consumer._verifyDiscoveryResults, msg)
-        self.failUnlessLogEmpty()
+        with LogCapture() as logbook:
+            self.failUnlessProtocolError('openid.identity is present without',
+                                         self.consumer._verifyDiscoveryResults, msg)
+        self.assertEqual(logbook.records, [])
 
     def test_openID2NoLocalIDClaimed(self):
         msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS,
                                               'op_endpoint': 'Phone Home',
                                               'claimed_id': 'Manuel Noriega'})
-        self.failUnlessProtocolError(
-            'openid.claimed_id is present without',
-            self.consumer._verifyDiscoveryResults, msg)
-        self.failUnlessLogEmpty()
+        with LogCapture() as logbook:
+            self.failUnlessProtocolError('openid.claimed_id is present without',
+                                         self.consumer._verifyDiscoveryResults, msg)
+        self.assertEqual(logbook.records, [])
 
     def test_openID2NoIdentifiers(self):
         op_endpoint = 'Phone Home'
         msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS,
                                               'op_endpoint': op_endpoint})
-        result_endpoint = self.consumer._verifyDiscoveryResults(msg)
+        with LogCapture() as logbook:
+            result_endpoint = self.consumer._verifyDiscoveryResults(msg)
         self.assertTrue(result_endpoint.isOPIdentifier())
         self.assertEqual(result_endpoint.server_url, op_endpoint)
         self.assertIsNone(result_endpoint.claimed_id)
-        self.failUnlessLogEmpty()
+        self.assertEqual(logbook.records, [])
 
     def test_openID2NoEndpointDoesDisco(self):
         op_endpoint = 'Phone Home'
@@ -78,9 +83,10 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
              'identity': 'sour grapes',
              'claimed_id': 'monkeysoft',
              'op_endpoint': op_endpoint})
-        result = self.consumer._verifyDiscoveryResults(msg)
+        with LogCapture() as logbook:
+            result = self.consumer._verifyDiscoveryResults(msg)
         self.assertEqual(result, sentinel)
-        self.failUnlessLogMatches('No pre-discovered')
+        logbook.check(('openid.consumer.consumer', 'INFO', 'No pre-discovered information supplied.'))
 
     def test_openID2MismatchedDoesDisco(self):
         mismatched = discover.OpenIDServiceEndpoint()
@@ -96,10 +102,11 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
              'identity': 'sour grapes',
              'claimed_id': 'monkeysoft',
              'op_endpoint': op_endpoint})
-        result = self.consumer._verifyDiscoveryResults(msg, mismatched)
+        with LogCapture() as logbook:
+            result = self.consumer._verifyDiscoveryResults(msg, mismatched)
         self.assertEqual(result, sentinel)
-        self.failUnlessLogMatches('Error attempting to use stored',
-                                  'Attempting discovery')
+        logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Error attempting to use .*')),
+                      ('openid.consumer.consumer', 'INFO', 'Attempting discovery to verify endpoint'))
 
     def test_openid2UsePreDiscovered(self):
         endpoint = discover.OpenIDServiceEndpoint()
@@ -113,9 +120,10 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
              'identity': endpoint.local_id,
              'claimed_id': endpoint.claimed_id,
              'op_endpoint': endpoint.server_url})
-        result = self.consumer._verifyDiscoveryResults(msg, endpoint)
+        with LogCapture() as logbook:
+            result = self.consumer._verifyDiscoveryResults(msg, endpoint)
         self.assertEqual(result, endpoint)
-        self.failUnlessLogEmpty()
+        self.assertEqual(logbook.records, [])
 
     def test_openid2UsePreDiscoveredWrongType(self):
         text = "verify failed"
@@ -140,11 +148,12 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
              'claimed_id': endpoint.claimed_id,
              'op_endpoint': endpoint.server_url})
 
-        with self.assertRaisesRegexp(consumer.ProtocolError, text):
-            self.consumer._verifyDiscoveryResults(msg, endpoint)
+        with LogCapture() as logbook:
+            with self.assertRaisesRegexp(consumer.ProtocolError, text):
+                self.consumer._verifyDiscoveryResults(msg, endpoint)
 
-        self.failUnlessLogMatches('Error attempting to use stored',
-                                  'Attempting discovery')
+        logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Error attempting to use .*')),
+                      ('openid.consumer.consumer', 'INFO', 'Attempting discovery to verify endpoint'))
 
     def test_openid1UsePreDiscovered(self):
         endpoint = discover.OpenIDServiceEndpoint()
@@ -156,9 +165,10 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         msg = message.Message.fromOpenIDArgs(
             {'ns': message.OPENID1_NS,
              'identity': endpoint.local_id})
-        result = self.consumer._verifyDiscoveryResults(msg, endpoint)
+        with LogCapture() as logbook:
+            result = self.consumer._verifyDiscoveryResults(msg, endpoint)
         self.assertEqual(result, endpoint)
-        self.failUnlessLogEmpty()
+        self.assertEqual(logbook.records, [])
 
     def test_openid1UsePreDiscoveredWrongType(self):
         class VerifiedError(Exception):
@@ -179,10 +189,10 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
             {'ns': message.OPENID1_NS,
              'identity': endpoint.local_id})
 
-        self.assertRaises(VerifiedError, self.consumer._verifyDiscoveryResults, msg, endpoint)
-
-        self.failUnlessLogMatches('Error attempting to use stored',
-                                  'Attempting discovery')
+        with LogCapture() as logbook:
+            self.assertRaises(VerifiedError, self.consumer._verifyDiscoveryResults, msg, endpoint)
+        logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Error attempting to use .*')),
+                      ('openid.consumer.consumer', 'INFO', 'Attempting discovery to verify endpoint'))
 
     def test_openid2Fragment(self):
         claimed_id = "http://unittest.invalid/"
@@ -198,15 +208,15 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
              'identity': endpoint.local_id,
              'claimed_id': claimed_id_frag,
              'op_endpoint': endpoint.server_url})
-        result = self.consumer._verifyDiscoveryResults(msg, endpoint)
+        with LogCapture() as logbook:
+            result = self.consumer._verifyDiscoveryResults(msg, endpoint)
 
         self.assertEqual(result.local_id, endpoint.local_id)
         self.assertEqual(result.server_url, endpoint.server_url)
         self.assertEqual(result.type_uris, endpoint.type_uris)
-
         self.assertEqual(result.claimed_id, claimed_id_frag)
 
-        self.failUnlessLogEmpty()
+        self.assertEqual(logbook.records, [])
 
     def test_openid1Fallback1_0(self):
         claimed_id = 'http://claimed.id/'
@@ -248,10 +258,11 @@ class TestVerifyDiscoverySingle(TestIdRes):
         to_match.server_url = "http://localhost:8000/openidserver"
         to_match.claimed_id = "http://localhost:8000/id/id-jo"
         to_match.local_id = "http://localhost:8000/id/id-jo"
-        result = self.consumer._verifyDiscoverySingle(endpoint, to_match)
+        with LogCapture() as logbook:
+            result = self.consumer._verifyDiscoverySingle(endpoint, to_match)
         # result should always be None, raises exception on failure.
         self.assertIsNone(result)
-        self.failUnlessLogEmpty()
+        self.assertEqual(logbook.records, [])
 
 
 if __name__ == '__main__':

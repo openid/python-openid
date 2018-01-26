@@ -5,8 +5,9 @@ __all__ = ['TestBuildDiscoveryURL']
 
 import unittest
 
+from testfixtures import LogCapture, StringComparison
+
 from openid.server import trustroot
-from openid.test.support import CatchLogs
 from openid.yadis import services
 from openid.yadis.discover import DiscoveryFailure, DiscoveryResult
 
@@ -190,13 +191,7 @@ class TestReturnToMatches(unittest.TestCase):
         self.assertFalse(trustroot.returnToMatches([r], 'http://example.com/xss_exploit'))
 
 
-class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
-
-    def setUp(self):
-        CatchLogs.setUp(self)
-
-    def tearDown(self):
-        CatchLogs.tearDown(self)
+class TestVerifyReturnTo(unittest.TestCase):
 
     def test_bogusRealm(self):
         self.assertFalse(trustroot.verifyReturnTo('', 'http://example.com/'))
@@ -209,8 +204,9 @@ class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
             self.assertEqual(disco_url, 'http://www.example.com/')
             return [return_to]
 
-        self.assertTrue(trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
-        self.failUnlessLogEmpty()
+        with LogCapture() as logbook:
+            self.assertTrue(trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
+        self.assertEqual(logbook.records, [])
 
     def test_verifyFailWithDiscoveryCalled(self):
         realm = 'http://*.example.com/'
@@ -220,8 +216,9 @@ class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
             self.assertEqual(disco_url, 'http://www.example.com/')
             return ['http://something-else.invalid/']
 
-        self.assertFalse(trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
-        self.failUnlessLogMatches("Failed to validate return_to")
+        with LogCapture() as logbook:
+            self.assertFalse(trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
+        logbook.check(('openid.server.trustroot', 'ERROR', StringComparison('Failed to validate return_to .*')))
 
     def test_verifyFailIfDiscoveryRedirects(self):
         realm = 'http://*.example.com/'
@@ -231,8 +228,9 @@ class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
             raise trustroot.RealmVerificationRedirected(
                 disco_url, "http://redirected.invalid")
 
-        self.assertFalse(trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
-        self.failUnlessLogMatches("Attempting to verify")
+        with LogCapture() as logbook:
+            self.assertFalse(trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
+        logbook.check(('openid.server.trustroot', 'ERROR', StringComparison('Attempting to verify .*')))
 
 
 if __name__ == '__main__':

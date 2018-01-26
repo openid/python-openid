@@ -3,6 +3,8 @@ import time
 import unittest
 import urlparse
 
+from testfixtures import LogCapture, StringComparison
+
 from openid import association, cryptutil, fetchers, kvform, oidutil
 from openid.consumer.consumer import (CANCEL, FAILURE, SETUP_NEEDED, SUCCESS, AuthRequest, CancelResponse, Consumer,
                                       DiffieHellmanSHA1ConsumerSession, DiffieHellmanSHA256ConsumerSession,
@@ -19,8 +21,6 @@ from openid.store import memstore
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.yadis.discover import DiscoveryFailure
 from openid.yadis.manager import Discovery
-
-from .support import CatchLogs
 
 assocs = [
     ('another 20-byte key.', 'Snarky'),
@@ -212,22 +212,18 @@ consumer_url = 'http://consumer.example.com/'
 https_server_url = 'https://server.example.com/'
 
 
-class TestSuccess(unittest.TestCase, CatchLogs):
+class TestSuccess(unittest.TestCase):
     server_url = http_server_url
     user_url = 'http://www.example.com/user.html'
     delegate_url = 'http://consumer.example.com/user'
 
     def setUp(self):
-        CatchLogs.setUp(self)
         self.links = '<link rel="openid.server" href="%s" />' % (
             self.server_url,)
 
         self.delegate_links = ('<link rel="openid.server" href="%s" />'
                                '<link rel="openid.delegate" href="%s" />') % (
             self.server_url, self.delegate_url)
-
-    def tearDown(self):
-        CatchLogs.tearDown(self)
 
     def test_nodelegate(self):
         _test_success(self.server_url, self.user_url,
@@ -262,12 +258,10 @@ class TestConstruct(unittest.TestCase):
         self.assertRaises(TypeError, GenericConsumer)
 
 
-class TestIdRes(unittest.TestCase, CatchLogs):
+class TestIdRes(unittest.TestCase):
     consumer_class = GenericConsumer
 
     def setUp(self):
-        CatchLogs.setUp(self)
-
         self.store = memstore.MemoryStore()
         self.consumer = self.consumer_class(self.store)
         self.return_to = "nonny"
@@ -464,19 +458,18 @@ class TestComplete(TestIdRes):
              })
         self.consumer.store = GoodAssocStore()
 
-        self.assertRaises(VerifiedError, self.consumer.complete, message, self.endpoint)
+        with LogCapture() as logbook:
+            self.assertRaises(VerifiedError, self.consumer.complete, message, self.endpoint)
+        logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Error attempting to use .*')),
+                      ('openid.consumer.consumer', 'INFO', 'Attempting discovery to verify endpoint'))
 
-        self.failUnlessLogMatches('Error attempting to use stored',
-                                  'Attempting discovery')
 
-
-class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
+class TestCompleteMissingSig(unittest.TestCase):
 
     def setUp(self):
         self.store = GoodAssocStore()
         self.consumer = GenericConsumer(self.store)
         self.server_url = "http://idp.unittest/"
-        CatchLogs.setUp(self)
 
         claimed_id = 'bogus.claimed'
 
@@ -497,9 +490,6 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
         self.endpoint.server_url = self.server_url
         self.endpoint.claimed_id = claimed_id
         self.consumer._checkReturnTo = lambda unused1, unused2: True
-
-    def tearDown(self):
-        CatchLogs.tearDown(self)
 
     def test_idResMissingNoSigs(self):
         def _vrfy(resp_msg, endpoint=None):
@@ -542,13 +532,9 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
             self.fail("Non-successful response: %s" % (response,))
 
 
-class TestCheckAuthResponse(TestIdRes, CatchLogs):
+class TestCheckAuthResponse(TestIdRes):
     def setUp(self):
-        CatchLogs.setUp(self)
         TestIdRes.setUp(self)
-
-    def tearDown(self):
-        CatchLogs.tearDown(self)
 
     def _createAssoc(self):
         issued = time.time()
@@ -602,11 +588,10 @@ class TestCheckAuthResponse(TestIdRes, CatchLogs):
             'is_valid': 'true',
             'invalidate_handle': 'missing',
         })
-        r = self.consumer._processCheckAuthResponse(response, self.server_url)
+        with LogCapture() as logbook:
+            r = self.consumer._processCheckAuthResponse(response, self.server_url)
         self.assertTrue(r)
-        self.failUnlessLogMatches(
-            'Received "invalidate_handle"'
-        )
+        logbook.check(('openid.consumer.consumer', 'INFO', StringComparison('Received "invalidate_handle" from .*')))
 
     def test_invalidateMissing_noStore(self):
         """invalidate_handle with a handle that is not present"""
@@ -615,11 +600,11 @@ class TestCheckAuthResponse(TestIdRes, CatchLogs):
             'invalidate_handle': 'missing',
         })
         self.consumer.store = None
-        r = self.consumer._processCheckAuthResponse(response, self.server_url)
+        with LogCapture() as logbook:
+            r = self.consumer._processCheckAuthResponse(response, self.server_url)
         self.assertTrue(r)
-        self.failUnlessLogMatches(
-            'Received "invalidate_handle"',
-            'Unexpectedly got invalidate_handle without a store')
+        logbook.check(('openid.consumer.consumer', 'INFO', StringComparison('Received "invalidate_handle" from .*')),
+                      ('openid.consumer.consumer', 'ERROR', 'Unexpectedly got invalidate_handle without a store!'))
 
     def test_invalidatePresent(self):
         """invalidate_handle with a handle that exists
@@ -813,14 +798,10 @@ class CheckAuthHappened(Exception):
     pass
 
 
-class CheckNonceVerifyTest(TestIdRes, CatchLogs):
+class CheckNonceVerifyTest(TestIdRes):
     def setUp(self):
-        CatchLogs.setUp(self)
         TestIdRes.setUp(self)
         self.consumer.openid1_nonce_query_arg_name = 'nonce'
-
-    def tearDown(self):
-        CatchLogs.tearDown(self)
 
     def test_openid1Success(self):
         """use consumer-generated nonce"""
@@ -828,36 +809,41 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         self.return_to = 'http://rt.unittest/?nonce=%s' % (nonce_value,)
         self.response = Message.fromOpenIDArgs({'return_to': self.return_to})
         self.response.setArg(BARE_NS, 'nonce', nonce_value)
-        self.consumer._idResCheckNonce(self.response, self.endpoint)
-        self.failUnlessLogEmpty()
+        with LogCapture() as logbook:
+            self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.assertEqual(logbook.records, [])
 
     def test_openid1Missing(self):
         """use consumer-generated nonce"""
         self.response = Message.fromOpenIDArgs({})
-        n = self.consumer._idResGetNonceOpenID1(self.response, self.endpoint)
+        with LogCapture() as logbook:
+            n = self.consumer._idResGetNonceOpenID1(self.response, self.endpoint)
         self.assertIsNone(n)
-        self.failUnlessLogEmpty()
+        self.assertEqual(logbook.records, [])
 
     def test_consumerNonceOpenID2(self):
         """OpenID 2 does not use consumer-generated nonce"""
         self.return_to = 'http://rt.unittest/?nonce=%s' % (mkNonce(),)
         self.response = Message.fromOpenIDArgs(
             {'return_to': self.return_to, 'ns': OPENID2_NS})
-        self.assertRaises(ProtocolError, self.consumer._idResCheckNonce, self.response, self.endpoint)
-        self.failUnlessLogEmpty()
+        with LogCapture() as logbook:
+            self.assertRaises(ProtocolError, self.consumer._idResCheckNonce, self.response, self.endpoint)
+        self.assertEqual(logbook.records, [])
 
     def test_serverNonce(self):
         """use server-generated nonce"""
         self.response = Message.fromOpenIDArgs({'ns': OPENID2_NS, 'response_nonce': mkNonce()})
-        self.consumer._idResCheckNonce(self.response, self.endpoint)
-        self.failUnlessLogEmpty()
+        with LogCapture() as logbook:
+            self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.assertEqual(logbook.records, [])
 
     def test_serverNonceOpenID1(self):
         """OpenID 1 does not use server-generated nonce"""
         self.response = Message.fromOpenIDArgs(
             {'ns': OPENID1_NS, 'return_to': 'http://return.to/', 'response_nonce': mkNonce()})
-        self.assertRaises(ProtocolError, self.consumer._idResCheckNonce, self.response, self.endpoint)
-        self.failUnlessLogEmpty()
+        with LogCapture() as logbook:
+            self.assertRaises(ProtocolError, self.consumer._idResCheckNonce, self.response, self.endpoint)
+        self.assertEqual(logbook.records, [])
 
     def test_badNonce(self):
         """remove the nonce from the store
@@ -880,8 +866,9 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         """When there is no store, checking the nonce succeeds"""
         self.consumer.store = None
         self.response = Message.fromOpenIDArgs({'response_nonce': mkNonce(), 'ns': OPENID2_NS})
-        self.consumer._idResCheckNonce(self.response, self.endpoint)
-        self.failUnlessLogEmpty()
+        with LogCapture() as logbook:
+            self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.assertEqual(logbook.records, [])
 
     def test_tamperedNonce(self):
         """Malformed nonce"""
@@ -905,12 +892,11 @@ class CheckAuthDetectingConsumer(GenericConsumer):
         return True
 
 
-class TestCheckAuthTriggered(TestIdRes, CatchLogs):
+class TestCheckAuthTriggered(TestIdRes):
     consumer_class = CheckAuthDetectingConsumer
 
     def setUp(self):
         TestIdRes.setUp(self)
-        CatchLogs.setUp(self)
         self.disableDiscoveryVerification()
 
     def test_checkAuthTriggered(self):
@@ -1156,11 +1142,10 @@ class BadArgCheckingConsumer(GenericConsumer):
         return None
 
 
-class TestCheckAuth(unittest.TestCase, CatchLogs):
+class TestCheckAuth(unittest.TestCase):
     consumer_class = GenericConsumer
 
     def setUp(self):
-        CatchLogs.setUp(self)
         self.store = memstore.MemoryStore()
 
         self.consumer = self.consumer_class(self.store)
@@ -1170,7 +1155,6 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
         fetchers.setDefaultFetcher(self.fetcher)
 
     def tearDown(self):
-        CatchLogs.tearDown(self)
         fetchers.setDefaultFetcher(self._orig_fetcher, wrap_exceptions=False)
 
     def test_error(self):
@@ -1178,10 +1162,12 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
             "http://some_url", 404, {'Hea': 'der'}, 'blah:blah\n')
         query = {'openid.signed': 'stuff',
                  'openid.stuff': 'a value'}
-        r = self.consumer._checkAuth(Message.fromPostArgs(query),
-                                     http_server_url)
+        with LogCapture() as logbook:
+            r = self.consumer._checkAuth(Message.fromPostArgs(query), http_server_url)
         self.assertFalse(r)
-        self.assertTrue(self.messages)
+        logbook.check(('openid.consumer.consumer', 'INFO', 'Using OpenID check_authentication'),
+                      ('openid.consumer.consumer', 'INFO', 'stuff'),
+                      ('openid.consumer.consumer', 'ERROR', StringComparison('check_authentication failed: .*: 404')))
 
     def test_bad_args(self):
         query = {
@@ -1236,11 +1222,10 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
         self.assertEqual(car.toPostArgs(), expected_args)
 
 
-class TestFetchAssoc(unittest.TestCase, CatchLogs):
+class TestFetchAssoc(unittest.TestCase):
     consumer_class = GenericConsumer
 
     def setUp(self):
-        CatchLogs.setUp(self)
         self.store = memstore.MemoryStore()
         self.fetcher = MockFetcher()
         fetchers.setDefaultFetcher(self.fetcher)

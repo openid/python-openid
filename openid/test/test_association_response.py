@@ -5,12 +5,13 @@ this works for now.
 """
 import unittest
 
+from testfixtures import LogCapture
+
 from openid.consumer.consumer import GenericConsumer, ProtocolError
 from openid.consumer.discover import OPENID_1_1_TYPE, OPENID_2_0_TYPE, OpenIDServiceEndpoint
 from openid.message import OPENID2_NS, OPENID_NS, Message
 from openid.server.server import DiffieHellmanSHA1ServerSession
 from openid.store import memstore
-from openid.test.test_consumer import CatchLogs
 
 # Some values we can use for convenience (see mkAssocResponse)
 association_response_values = {
@@ -33,9 +34,8 @@ def mkAssocResponse(*keys):
     return Message.fromOpenIDArgs(args)
 
 
-class BaseAssocTest(CatchLogs, unittest.TestCase):
+class BaseAssocTest(unittest.TestCase):
     def setUp(self):
-        CatchLogs.setUp(self)
         self.store = memstore.MemoryStore()
         self.consumer = GenericConsumer(self.store)
         self.endpoint = OpenIDServiceEndpoint()
@@ -175,8 +175,9 @@ class TestOpenID1AssociationResponseSessionType(BaseAssocTest):
         """
 
         def test(self):
-            self._doTest(expected_session_type, session_type_value)
-            self.failUnlessLogEmpty()
+            with LogCapture() as logbook:
+                self._doTest(expected_session_type, session_type_value)
+            self.assertEqual(logbook.records, [])
 
         return test
 
@@ -209,11 +210,12 @@ class TestOpenID1AssociationResponseSessionType(BaseAssocTest):
 
     # This one's different because it expects log messages
     def test_explicitNoEncryption(self):
-        self._doTest(
-            session_type_value='no-encryption',
-            expected_session_type='no-encryption',
-        )
-        self.failUnlessLogMatches('OpenID server sent "no-encryption"')
+        with LogCapture() as logbook:
+            self._doTest(
+                session_type_value='no-encryption',
+                expected_session_type='no-encryption',
+            )
+        logbook.check(('openid.consumer.consumer', 'WARNING', 'OpenID server sent "no-encryption" for OpenID 1.X'))
 
     test_dhSHA1 = mkTest(
         session_type_value='DH-SHA1',

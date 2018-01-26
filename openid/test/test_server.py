@@ -5,12 +5,13 @@ import unittest
 from functools import partial
 from urlparse import urlparse
 
+from testfixtures import LogCapture, StringComparison
+
 from openid import association, cryptutil, oidutil
 from openid.consumer.consumer import DiffieHellmanSHA256ConsumerSession
 from openid.message import IDENTIFIER_SELECT, OPENID1_NS, OPENID1_URL_LIMIT, OPENID2_NS, OPENID_NS, Message, no_default
 from openid.server import server
 from openid.store import memstore
-from openid.test.support import CatchLogs
 
 # In general, if you edit or add tests here, try to move in the direction
 # of testing smaller units.  For testing the external interfaces, we'll be
@@ -1576,11 +1577,10 @@ class Counter(object):
         self.count += 1
 
 
-class TestServer(unittest.TestCase, CatchLogs):
+class TestServer(unittest.TestCase):
     def setUp(self):
         self.store = memstore.MemoryStore()
         self.server = server.Server(self.store, "http://server.unittest/endpt")
-        CatchLogs.setUp(self)
 
     def test_dispatch(self):
         monkeycalled = Counter()
@@ -1689,13 +1689,12 @@ class TestServer(unittest.TestCase, CatchLogs):
         self.assertTrue(response.fields.hasKey(OPENID_NS, "is_valid"))
 
 
-class TestSignatory(unittest.TestCase, CatchLogs):
+class TestSignatory(unittest.TestCase):
     def setUp(self):
         self.store = memstore.MemoryStore()
         self.signatory = server.Signatory(self.store)
         self._dumb_key = self.signatory._dumb_key
         self._normal_key = self.signatory._normal_key
-        CatchLogs.setUp(self)
 
     def test_sign(self):
         request = server.OpenIDRequest()
@@ -1712,11 +1711,12 @@ class TestSignatory(unittest.TestCase, CatchLogs):
             'bar': 'notsigned',
             'azu': 'alsosigned',
         })
-        sresponse = self.signatory.sign(response)
+        with LogCapture() as logbook:
+            sresponse = self.signatory.sign(response)
         self.assertEqual(sresponse.fields.getArg(OPENID_NS, 'assoc_handle'), assoc_handle)
         self.assertEqual(sresponse.fields.getArg(OPENID_NS, 'signed'), 'assoc_handle,azu,bar,foo,signed')
         self.assertTrue(sresponse.fields.getArg(OPENID_NS, 'sig'))
-        self.assertFalse(self.messages)
+        self.assertEqual(logbook.records, [])
 
     def test_signDumb(self):
         request = server.OpenIDRequest()
@@ -1729,14 +1729,15 @@ class TestSignatory(unittest.TestCase, CatchLogs):
             'azu': 'alsosigned',
             'ns': OPENID2_NS,
         })
-        sresponse = self.signatory.sign(response)
+        with LogCapture() as logbook:
+            sresponse = self.signatory.sign(response)
         assoc_handle = sresponse.fields.getArg(OPENID_NS, 'assoc_handle')
         self.assertTrue(assoc_handle)
         assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
         self.assertTrue(assoc)
         self.assertEqual(sresponse.fields.getArg(OPENID_NS, 'signed'), 'assoc_handle,azu,bar,foo,ns,signed')
         self.assertTrue(sresponse.fields.getArg(OPENID_NS, 'sig'))
-        self.assertFalse(self.messages)
+        self.assertEqual(logbook.records, [])
 
     def test_signExpired(self):
         """Sign a response to a message with an expired handle (using invalidate_handle).
@@ -1768,7 +1769,8 @@ class TestSignatory(unittest.TestCase, CatchLogs):
             'bar': 'notsigned',
             'azu': 'alsosigned',
         })
-        sresponse = self.signatory.sign(response)
+        with LogCapture() as logbook:
+            sresponse = self.signatory.sign(response)
 
         new_assoc_handle = sresponse.fields.getArg(OPENID_NS, 'assoc_handle')
         self.assertTrue(new_assoc_handle)
@@ -1787,7 +1789,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         # make sure the new key is a dumb mode association
         self.assertTrue(self.store.getAssociation(self._dumb_key, new_assoc_handle))
         self.assertFalse(self.store.getAssociation(self._normal_key, new_assoc_handle))
-        self.assertTrue(self.messages)
+        logbook.check(('openid.server.server', 'INFO', StringComparison('requested .* key .* is expired .*')))
 
     def test_signInvalidHandle(self):
         request = server.OpenIDRequest()
@@ -1801,7 +1803,8 @@ class TestSignatory(unittest.TestCase, CatchLogs):
             'bar': 'notsigned',
             'azu': 'alsosigned',
         })
-        sresponse = self.signatory.sign(response)
+        with LogCapture() as logbook:
+            sresponse = self.signatory.sign(response)
 
         new_assoc_handle = sresponse.fields.getArg(OPENID_NS, 'assoc_handle')
         self.assertTrue(new_assoc_handle)
@@ -1816,7 +1819,7 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         # make sure the new key is a dumb mode association
         self.assertTrue(self.store.getAssociation(self._dumb_key, new_assoc_handle))
         self.assertFalse(self.store.getAssociation(self._normal_key, new_assoc_handle))
-        self.assertFalse(self.messages)
+        self.assertEqual(logbook.records, [])
 
     def test_verify(self):
         assoc_handle = '{vroom}{zoom}'
@@ -1833,8 +1836,9 @@ class TestSignatory(unittest.TestCase, CatchLogs):
             'openid.sig': 'uXoT1qm62/BB09Xbj98TQ8mlBco=',
         })
 
-        verified = self.signatory.verify(assoc_handle, signed)
-        self.assertFalse(self.messages)
+        with LogCapture() as logbook:
+            verified = self.signatory.verify(assoc_handle, signed)
+        self.assertEqual(logbook.records, [])
         self.assertTrue(verified)
 
     def test_verifyBadSig(self):
@@ -1852,8 +1856,9 @@ class TestSignatory(unittest.TestCase, CatchLogs):
             'openid.sig': 'uXoT1qm62/BB09Xbj98TQ8mlBco='.encode('rot13'),
         })
 
-        verified = self.signatory.verify(assoc_handle, signed)
-        self.assertFalse(self.messages)
+        with LogCapture() as logbook:
+            verified = self.signatory.verify(assoc_handle, signed)
+        self.assertEqual(logbook.records, [])
         self.assertFalse(verified)
 
     def test_verifyBadHandle(self):
@@ -1864,9 +1869,10 @@ class TestSignatory(unittest.TestCase, CatchLogs):
             'openid.sig': "Ylu0KcIR7PvNegB/K41KpnRgJl0=",
         })
 
-        verified = self.signatory.verify(assoc_handle, signed)
+        with LogCapture() as logbook:
+            verified = self.signatory.verify(assoc_handle, signed)
         self.assertFalse(verified)
-        self.assertTrue(self.messages)
+        logbook.check(('openid.server.server', 'ERROR', StringComparison('failed to get assoc with handle .*')))
 
     def test_verifyAssocMismatch(self):
         """Attempt to validate sign-all message with a signed-list assoc."""
@@ -1882,33 +1888,38 @@ class TestSignatory(unittest.TestCase, CatchLogs):
             'openid.sig': "d71xlHtqnq98DonoSgoK/nD+QRM=",
         })
 
-        verified = self.signatory.verify(assoc_handle, signed)
+        with LogCapture() as logbook:
+            verified = self.signatory.verify(assoc_handle, signed)
         self.assertFalse(verified)
-        self.assertTrue(self.messages)
+        logbook.check(('openid.server.server', 'ERROR', StringComparison('Error in verifying .*')))
 
     def test_getAssoc(self):
         assoc_handle = self.makeAssoc(dumb=True)
-        assoc = self.signatory.getAssociation(assoc_handle, True)
+        with LogCapture() as logbook:
+            assoc = self.signatory.getAssociation(assoc_handle, True)
         self.assertTrue(assoc)
         self.assertEqual(assoc.handle, assoc_handle)
-        self.assertFalse(self.messages)
+        self.assertEqual(logbook.records, [])
 
     def test_getAssocExpired(self):
         assoc_handle = self.makeAssoc(dumb=True, lifetime=-10)
-        assoc = self.signatory.getAssociation(assoc_handle, True)
+        with LogCapture() as logbook:
+            assoc = self.signatory.getAssociation(assoc_handle, True)
         self.assertFalse(assoc)
-        self.assertTrue(self.messages)
+        logbook.check(('openid.server.server', 'INFO', StringComparison('requested .* key .* is expired .*')))
 
     def test_getAssocInvalid(self):
         ah = 'no-such-handle'
-        self.assertIsNone(self.signatory.getAssociation(ah, dumb=False))
-        self.assertFalse(self.messages)
+        with LogCapture() as logbook:
+            self.assertIsNone(self.signatory.getAssociation(ah, dumb=False))
+        self.assertEqual(logbook.records, [])
 
     def test_getAssocDumbVsNormal(self):
         """getAssociation(dumb=False) cannot get a dumb assoc"""
         assoc_handle = self.makeAssoc(dumb=True)
-        self.assertIsNone(self.signatory.getAssociation(assoc_handle, dumb=False))
-        self.assertFalse(self.messages)
+        with LogCapture() as logbook:
+            self.assertIsNone(self.signatory.getAssociation(assoc_handle, dumb=False))
+        self.assertEqual(logbook.records, [])
 
     def test_getAssocNormalVsDumb(self):
         """getAssociation(dumb=True) cannot get a shared assoc
@@ -1919,13 +1930,15 @@ class TestSignatory(unittest.TestCase, CatchLogs):
             MAC keys.
         """
         assoc_handle = self.makeAssoc(dumb=False)
-        self.assertIsNone(self.signatory.getAssociation(assoc_handle, dumb=True))
-        self.assertFalse(self.messages)
+        with LogCapture() as logbook:
+            self.assertIsNone(self.signatory.getAssociation(assoc_handle, dumb=True))
+        self.assertEqual(logbook.records, [])
 
     def test_createAssociation(self):
-        assoc = self.signatory.createAssociation(dumb=False)
+        with LogCapture() as logbook:
+            assoc = self.signatory.createAssociation(dumb=False)
         self.assertTrue(self.signatory.getAssociation(assoc.handle, dumb=False))
-        self.assertFalse(self.messages)
+        self.assertEqual(logbook.records, [])
 
     def makeAssoc(self, dumb, lifetime=60):
         assoc_handle = '{bling}'
@@ -1945,10 +1958,11 @@ class TestSignatory(unittest.TestCase, CatchLogs):
         self.assertTrue(assoc)
         assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
         self.assertTrue(assoc)
-        self.signatory.invalidate(assoc_handle, dumb=True)
+        with LogCapture() as logbook:
+            self.signatory.invalidate(assoc_handle, dumb=True)
         assoc = self.signatory.getAssociation(assoc_handle, dumb=True)
         self.assertFalse(assoc)
-        self.assertFalse(self.messages)
+        self.assertEqual(logbook.records, [])
 
 
 if __name__ == '__main__':
