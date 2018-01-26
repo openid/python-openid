@@ -10,17 +10,13 @@ from openid.extensions import sreg
 def mkGetArgTest(ns, key, expected=None):
     def test(self):
         a_default = object()
-        self.failUnlessEqual(self.msg.getArg(ns, key), expected)
+        self.assertEqual(self.msg.getArg(ns, key), expected)
         if expected is None:
-            self.failUnlessEqual(
-                self.msg.getArg(ns, key, a_default), a_default)
-            self.failUnlessRaises(
-                KeyError, self.msg.getArg, ns, key, message.no_default)
+            self.assertEqual(self.msg.getArg(ns, key, a_default), a_default)
+            self.assertRaises(KeyError, self.msg.getArg, ns, key, message.no_default)
         else:
-            self.failUnlessEqual(
-                self.msg.getArg(ns, key, a_default), expected)
-            self.failUnlessEqual(
-                self.msg.getArg(ns, key, message.no_default), expected)
+            self.assertEqual(self.msg.getArg(ns, key, a_default), expected)
+            self.assertEqual(self.msg.getArg(ns, key, message.no_default), expected)
 
     return test
 
@@ -30,65 +26,61 @@ class EmptyMessageTest(unittest.TestCase):
         self.msg = message.Message()
 
     def test_toPostArgs(self):
-        self.failUnlessEqual(self.msg.toPostArgs(), {})
+        self.assertEqual(self.msg.toPostArgs(), {})
 
     def test_toArgs(self):
-        self.failUnlessEqual(self.msg.toArgs(), {})
+        self.assertEqual(self.msg.toArgs(), {})
 
     def test_toKVForm(self):
-        self.failUnlessEqual(self.msg.toKVForm(), '')
+        self.assertEqual(self.msg.toKVForm(), '')
 
     def test_toURLEncoded(self):
-        self.failUnlessEqual(self.msg.toURLEncoded(), '')
+        self.assertEqual(self.msg.toURLEncoded(), '')
 
     def test_toURL(self):
         base_url = 'http://base.url/'
-        self.failUnlessEqual(self.msg.toURL(base_url), base_url)
+        self.assertEqual(self.msg.toURL(base_url), base_url)
 
     def test_getOpenID(self):
-        self.failUnlessEqual(self.msg.getOpenIDNamespace(), None)
+        self.assertIsNone(self.msg.getOpenIDNamespace())
 
     def test_getKeyOpenID(self):
         # Could reasonably return None instead of raising an
         # exception. I'm not sure which one is more right, since this
         # case should only happen when you're building a message from
         # scratch and so have no default namespace.
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.getKey, message.OPENID_NS, 'foo')
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.getKey, message.OPENID_NS, 'foo')
 
     def test_getKeyBARE(self):
-        self.failUnlessEqual(self.msg.getKey(message.BARE_NS, 'foo'), 'foo')
+        self.assertEqual(self.msg.getKey(message.BARE_NS, 'foo'), 'foo')
 
     def test_getKeyNS1(self):
-        self.failUnlessEqual(self.msg.getKey(message.OPENID1_NS, 'foo'), None)
+        self.assertIsNone(self.msg.getKey(message.OPENID1_NS, 'foo'))
 
     def test_getKeyNS2(self):
-        self.failUnlessEqual(self.msg.getKey(message.OPENID2_NS, 'foo'), None)
+        self.assertIsNone(self.msg.getKey(message.OPENID2_NS, 'foo'))
 
     def test_getKeyNS3(self):
-        self.failUnlessEqual(self.msg.getKey('urn:nothing-significant', 'foo'),
-                             None)
+        self.assertIsNone(self.msg.getKey('urn:nothing-significant', 'foo'))
 
     def test_hasKey(self):
         # Could reasonably return False instead of raising an
         # exception. I'm not sure which one is more right, since this
         # case should only happen when you're building a message from
         # scratch and so have no default namespace.
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.hasKey, message.OPENID_NS, 'foo')
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.hasKey, message.OPENID_NS, 'foo')
 
     def test_hasKeyBARE(self):
-        self.failUnlessEqual(self.msg.hasKey(message.BARE_NS, 'foo'), False)
+        self.assertFalse(self.msg.hasKey(message.BARE_NS, 'foo'))
 
     def test_hasKeyNS1(self):
-        self.failUnlessEqual(self.msg.hasKey(message.OPENID1_NS, 'foo'), False)
+        self.assertFalse(self.msg.hasKey(message.OPENID1_NS, 'foo'))
 
     def test_hasKeyNS2(self):
-        self.failUnlessEqual(self.msg.hasKey(message.OPENID2_NS, 'foo'), False)
+        self.assertFalse(self.msg.hasKey(message.OPENID2_NS, 'foo'))
 
     def test_hasKeyNS3(self):
-        self.failUnlessEqual(self.msg.hasKey('urn:nothing-significant', 'foo'),
-                             False)
+        self.assertFalse(self.msg.hasKey('urn:nothing-significant', 'foo'))
 
     def test_getAliasedArgSuccess(self):
         msg = message.Message.fromPostArgs({'openid.ns.test': 'urn://foo',
@@ -98,16 +90,14 @@ class EmptyMessageTest(unittest.TestCase):
 
     def test_getAliasedArgFailure(self):
         msg = message.Message.fromPostArgs({'openid.test.flub': 'bogus'})
-        self.assertRaises(KeyError,
-                          msg.getAliasedArg, 'ns.test', message.no_default)
+        self.assertRaises(KeyError, msg.getAliasedArg, 'ns.test', message.no_default)
 
     def test_getArg(self):
         # Could reasonably return None instead of raising an
         # exception. I'm not sure which one is more right, since this
         # case should only happen when you're building a message from
         # scratch and so have no default namespace.
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.getArg, message.OPENID_NS, 'foo')
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.getArg, message.OPENID_NS, 'foo')
 
     test_getArgBARE = mkGetArgTest(message.BARE_NS, 'foo')
     test_getArgNS1 = mkGetArgTest(message.OPENID1_NS, 'foo')
@@ -119,25 +109,23 @@ class EmptyMessageTest(unittest.TestCase):
         # exception. I'm not sure which one is more right, since this
         # case should only happen when you're building a message from
         # scratch and so have no default namespace.
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.getArgs, message.OPENID_NS)
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.getArgs, message.OPENID_NS)
 
     def test_getArgsBARE(self):
-        self.failUnlessEqual(self.msg.getArgs(message.BARE_NS), {})
+        self.assertEqual(self.msg.getArgs(message.BARE_NS), {})
 
     def test_getArgsNS1(self):
-        self.failUnlessEqual(self.msg.getArgs(message.OPENID1_NS), {})
+        self.assertEqual(self.msg.getArgs(message.OPENID1_NS), {})
 
     def test_getArgsNS2(self):
-        self.failUnlessEqual(self.msg.getArgs(message.OPENID2_NS), {})
+        self.assertEqual(self.msg.getArgs(message.OPENID2_NS), {})
 
     def test_getArgsNS3(self):
-        self.failUnlessEqual(self.msg.getArgs('urn:nothing-significant'), {})
+        self.assertEqual(self.msg.getArgs('urn:nothing-significant'), {})
 
     def test_updateArgs(self):
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.updateArgs, message.OPENID_NS,
-                              {'does not': 'matter'})
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.updateArgs, message.OPENID_NS,
+                          {'does not': 'matter'})
 
     def _test_updateArgsNS(self, ns):
         update_args = {
@@ -145,9 +133,9 @@ class EmptyMessageTest(unittest.TestCase):
             'Magnolia Electric Co.': 'Jason Molina',
         }
 
-        self.failUnlessEqual(self.msg.getArgs(ns), {})
+        self.assertEqual(self.msg.getArgs(ns), {})
         self.msg.updateArgs(ns, update_args)
-        self.failUnlessEqual(self.msg.getArgs(ns), update_args)
+        self.assertEqual(self.msg.getArgs(ns), update_args)
 
     def test_updateArgsBARE(self):
         self._test_updateArgsNS(message.BARE_NS)
@@ -162,16 +150,14 @@ class EmptyMessageTest(unittest.TestCase):
         self._test_updateArgsNS('urn:nothing-significant')
 
     def test_setArg(self):
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.setArg, message.OPENID_NS,
-                              'does not', 'matter')
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.setArg, message.OPENID_NS, 'does not', 'matter')
 
     def _test_setArgNS(self, ns):
         key = 'Camper van Beethoven'
         value = 'David Lowery'
-        self.failUnlessEqual(self.msg.getArg(ns, key), None)
+        self.assertIsNone(self.msg.getArg(ns, key))
         self.msg.setArg(ns, key, value)
-        self.failUnlessEqual(self.msg.getArg(ns, key), value)
+        self.assertEqual(self.msg.getArg(ns, key), value)
 
     def test_setArgBARE(self):
         self._test_setArgNS(message.BARE_NS)
@@ -186,8 +172,7 @@ class EmptyMessageTest(unittest.TestCase):
         self._test_setArgNS('urn:nothing-significant')
 
     def test_setArgToNone(self):
-        self.failUnlessRaises(AssertionError, self.msg.setArg,
-                              message.OPENID1_NS, 'op_endpoint', None)
+        self.assertRaises(AssertionError, self.msg.setArg, message.OPENID1_NS, 'op_endpoint', None)
 
     def test_delArg(self):
         # Could reasonably raise KeyError instead of raising
@@ -195,12 +180,11 @@ class EmptyMessageTest(unittest.TestCase):
         # right, since this case should only happen when you're
         # building a message from scratch and so have no default
         # namespace.
-        self.failUnlessRaises(message.UndefinedOpenIDNamespace,
-                              self.msg.delArg, message.OPENID_NS, 'key')
+        self.assertRaises(message.UndefinedOpenIDNamespace, self.msg.delArg, message.OPENID_NS, 'key')
 
     def _test_delArgNS(self, ns):
         key = 'Camper van Beethoven'
-        self.failUnlessRaises(KeyError, self.msg.delArg, ns, key)
+        self.assertRaises(KeyError, self.msg.delArg, ns, key)
 
     def test_delArgBARE(self):
         self._test_delArgNS(message.BARE_NS)
@@ -215,10 +199,10 @@ class EmptyMessageTest(unittest.TestCase):
         self._test_delArgNS('urn:nothing-significant')
 
     def test_isOpenID1(self):
-        self.failIf(self.msg.isOpenID1())
+        self.assertFalse(self.msg.isOpenID1())
 
     def test_isOpenID2(self):
-        self.failIf(self.msg.isOpenID2())
+        self.assertFalse(self.msg.isOpenID2())
 
 
 class OpenID1MessageTest(unittest.TestCase):
@@ -227,70 +211,59 @@ class OpenID1MessageTest(unittest.TestCase):
                                                  'openid.error': 'unit test'})
 
     def test_toPostArgs(self):
-        self.failUnlessEqual(self.msg.toPostArgs(),
-                             {'openid.mode': 'error',
-                              'openid.error': 'unit test'})
+        self.assertEqual(self.msg.toPostArgs(), {'openid.mode': 'error', 'openid.error': 'unit test'})
 
     def test_toArgs(self):
-        self.failUnlessEqual(self.msg.toArgs(), {'mode': 'error',
-                                                 'error': 'unit test'})
+        self.assertEqual(self.msg.toArgs(), {'mode': 'error', 'error': 'unit test'})
 
     def test_toKVForm(self):
-        self.failUnlessEqual(self.msg.toKVForm(),
-                             'error:unit test\nmode:error\n')
+        self.assertEqual(self.msg.toKVForm(), 'error:unit test\nmode:error\n')
 
     def test_toURLEncoded(self):
-        self.failUnlessEqual(self.msg.toURLEncoded(),
-                             'openid.error=unit+test&openid.mode=error')
+        self.assertEqual(self.msg.toURLEncoded(), 'openid.error=unit+test&openid.mode=error')
 
     def test_toURL(self):
         base_url = 'http://base.url/'
         actual = self.msg.toURL(base_url)
         actual_base = actual[:len(base_url)]
-        self.failUnlessEqual(actual_base, base_url)
-        self.failUnlessEqual(actual[len(base_url)], '?')
+        self.assertEqual(actual_base, base_url)
+        self.assertEqual(actual[len(base_url)], '?')
         query = actual[len(base_url) + 1:]
         parsed = cgi.parse_qs(query)
-        self.failUnlessEqual(parsed, {'openid.mode': ['error'],
-                                      'openid.error': ['unit test']})
+        self.assertEqual(parsed, {'openid.mode': ['error'], 'openid.error': ['unit test']})
 
     def test_getOpenID(self):
-        self.failUnlessEqual(self.msg.getOpenIDNamespace(), message.OPENID1_NS)
+        self.assertEqual(self.msg.getOpenIDNamespace(), message.OPENID1_NS)
 
     def test_getKeyOpenID(self):
-        self.failUnlessEqual(self.msg.getKey(message.OPENID_NS, 'mode'),
-                             'openid.mode')
+        self.assertEqual(self.msg.getKey(message.OPENID_NS, 'mode'), 'openid.mode')
 
     def test_getKeyBARE(self):
-        self.failUnlessEqual(self.msg.getKey(message.BARE_NS, 'mode'), 'mode')
+        self.assertEqual(self.msg.getKey(message.BARE_NS, 'mode'), 'mode')
 
     def test_getKeyNS1(self):
-        self.failUnlessEqual(
-            self.msg.getKey(message.OPENID1_NS, 'mode'), 'openid.mode')
+        self.assertEqual(self.msg.getKey(message.OPENID1_NS, 'mode'), 'openid.mode')
 
     def test_getKeyNS2(self):
-        self.failUnlessEqual(self.msg.getKey(message.OPENID2_NS, 'mode'), None)
+        self.assertIsNone(self.msg.getKey(message.OPENID2_NS, 'mode'))
 
     def test_getKeyNS3(self):
-        self.failUnlessEqual(
-            self.msg.getKey('urn:nothing-significant', 'mode'), None)
+        self.assertIsNone(self.msg.getKey('urn:nothing-significant', 'mode'))
 
     def test_hasKey(self):
-        self.failUnlessEqual(self.msg.hasKey(message.OPENID_NS, 'mode'), True)
+        self.assertTrue(self.msg.hasKey(message.OPENID_NS, 'mode'))
 
     def test_hasKeyBARE(self):
-        self.failUnlessEqual(self.msg.hasKey(message.BARE_NS, 'mode'), False)
+        self.assertFalse(self.msg.hasKey(message.BARE_NS, 'mode'))
 
     def test_hasKeyNS1(self):
-        self.failUnlessEqual(self.msg.hasKey(message.OPENID1_NS, 'mode'), True)
+        self.assertTrue(self.msg.hasKey(message.OPENID1_NS, 'mode'))
 
     def test_hasKeyNS2(self):
-        self.failUnlessEqual(
-            self.msg.hasKey(message.OPENID2_NS, 'mode'), False)
+        self.assertFalse(self.msg.hasKey(message.OPENID2_NS, 'mode'))
 
     def test_hasKeyNS3(self):
-        self.failUnlessEqual(
-            self.msg.hasKey('urn:nothing-significant', 'mode'), False)
+        self.assertFalse(self.msg.hasKey('urn:nothing-significant', 'mode'))
 
     test_getArgBARE = mkGetArgTest(message.BARE_NS, 'mode')
     test_getArgNS = mkGetArgTest(message.OPENID_NS, 'mode', 'error')
@@ -299,21 +272,19 @@ class OpenID1MessageTest(unittest.TestCase):
     test_getArgNS3 = mkGetArgTest('urn:nothing-significant', 'mode')
 
     def test_getArgs(self):
-        self.failUnlessEqual(self.msg.getArgs(message.OPENID_NS),
-                             {'mode': 'error', 'error': 'unit test'})
+        self.assertEqual(self.msg.getArgs(message.OPENID_NS), {'mode': 'error', 'error': 'unit test'})
 
     def test_getArgsBARE(self):
-        self.failUnlessEqual(self.msg.getArgs(message.BARE_NS), {})
+        self.assertEqual(self.msg.getArgs(message.BARE_NS), {})
 
     def test_getArgsNS1(self):
-        self.failUnlessEqual(self.msg.getArgs(message.OPENID1_NS),
-                             {'mode': 'error', 'error': 'unit test'})
+        self.assertEqual(self.msg.getArgs(message.OPENID1_NS), {'mode': 'error', 'error': 'unit test'})
 
     def test_getArgsNS2(self):
-        self.failUnlessEqual(self.msg.getArgs(message.OPENID2_NS), {})
+        self.assertEqual(self.msg.getArgs(message.OPENID2_NS), {})
 
     def test_getArgsNS3(self):
-        self.failUnlessEqual(self.msg.getArgs('urn:nothing-significant'), {})
+        self.assertEqual(self.msg.getArgs('urn:nothing-significant'), {})
 
     def _test_updateArgsNS(self, ns, before=None):
         if before is None:
@@ -323,11 +294,11 @@ class OpenID1MessageTest(unittest.TestCase):
             'Magnolia Electric Co.': 'Jason Molina',
         }
 
-        self.failUnlessEqual(self.msg.getArgs(ns), before)
+        self.assertEqual(self.msg.getArgs(ns), before)
         self.msg.updateArgs(ns, update_args)
         after = dict(before)
         after.update(update_args)
-        self.failUnlessEqual(self.msg.getArgs(ns), after)
+        self.assertEqual(self.msg.getArgs(ns), after)
 
     def test_updateArgs(self):
         self._test_updateArgsNS(message.OPENID_NS,
@@ -349,9 +320,9 @@ class OpenID1MessageTest(unittest.TestCase):
     def _test_setArgNS(self, ns):
         key = 'Camper van Beethoven'
         value = 'David Lowery'
-        self.failUnlessEqual(self.msg.getArg(ns, key), None)
+        self.assertIsNone(self.msg.getArg(ns, key))
         self.msg.setArg(ns, key, value)
-        self.failUnlessEqual(self.msg.getArg(ns, key), value)
+        self.assertEqual(self.msg.getArg(ns, key), value)
 
     def test_setArg(self):
         self._test_setArgNS(message.OPENID_NS)
@@ -372,11 +343,11 @@ class OpenID1MessageTest(unittest.TestCase):
         key = 'Camper van Beethoven'
         value = 'David Lowery'
 
-        self.failUnlessRaises(KeyError, self.msg.delArg, ns, key)
+        self.assertRaises(KeyError, self.msg.delArg, ns, key)
         self.msg.setArg(ns, key, value)
-        self.failUnlessEqual(self.msg.getArg(ns, key), value)
+        self.assertEqual(self.msg.getArg(ns, key), value)
         self.msg.delArg(ns, key)
-        self.failUnlessEqual(self.msg.getArg(ns, key), None)
+        self.assertIsNone(self.msg.getArg(ns, key))
 
     def test_delArg(self):
         self._test_delArgNS(message.OPENID_NS)
@@ -394,10 +365,10 @@ class OpenID1MessageTest(unittest.TestCase):
         self._test_delArgNS('urn:nothing-significant')
 
     def test_isOpenID1(self):
-        self.failUnless(self.msg.isOpenID1())
+        self.assertTrue(self.msg.isOpenID1())
 
     def test_isOpenID2(self):
-        self.failIf(self.msg.isOpenID2())
+        self.assertFalse(self.msg.isOpenID2())
 
 
 class OpenID1ExplicitMessageTest(unittest.TestCase):
@@ -408,40 +379,32 @@ class OpenID1ExplicitMessageTest(unittest.TestCase):
                                                  })
 
     def test_toPostArgs(self):
-        self.failUnlessEqual(self.msg.toPostArgs(),
-                             {'openid.mode': 'error',
-                              'openid.error': 'unit test',
-                              'openid.ns': message.OPENID1_NS
-                              })
+        self.assertEqual(self.msg.toPostArgs(),
+                         {'openid.mode': 'error', 'openid.error': 'unit test', 'openid.ns': message.OPENID1_NS})
 
     def test_toArgs(self):
-        self.failUnlessEqual(self.msg.toArgs(), {'mode': 'error',
-                                                 'error': 'unit test',
-                                                 'ns': message.OPENID1_NS})
+        self.assertEqual(self.msg.toArgs(), {'mode': 'error', 'error': 'unit test', 'ns': message.OPENID1_NS})
 
     def test_toKVForm(self):
-        self.failUnlessEqual(self.msg.toKVForm(),
-                             'error:unit test\nmode:error\nns:%s\n' % message.OPENID1_NS)
+        self.assertEqual(self.msg.toKVForm(), 'error:unit test\nmode:error\nns:%s\n' % message.OPENID1_NS)
 
     def test_toURLEncoded(self):
-        self.failUnlessEqual(
-            self.msg.toURLEncoded(),
-            'openid.error=unit+test&openid.mode=error&openid.ns=http%3A%2F%2Fopenid.net%2Fsignon%2F1.0')
+        self.assertEqual(self.msg.toURLEncoded(),
+                         'openid.error=unit+test&openid.mode=error&openid.ns=http%3A%2F%2Fopenid.net%2Fsignon%2F1.0')
 
     def test_toURL(self):
         base_url = 'http://base.url/'
         actual = self.msg.toURL(base_url)
         actual_base = actual[:len(base_url)]
-        self.failUnlessEqual(actual_base, base_url)
-        self.failUnlessEqual(actual[len(base_url)], '?')
+        self.assertEqual(actual_base, base_url)
+        self.assertEqual(actual[len(base_url)], '?')
         query = actual[len(base_url) + 1:]
         parsed = cgi.parse_qs(query)
-        self.failUnlessEqual(
-            parsed,
-            {'openid.mode': ['error'], 'openid.error': ['unit test'], 'openid.ns': [message.OPENID1_NS]})
+        self.assertEqual(parsed,
+                         {'openid.mode': ['error'], 'openid.error': ['unit test'], 'openid.ns': [message.OPENID1_NS]})
 
     def test_isOpenID1(self):
-        self.failUnless(self.msg.isOpenID1())
+        self.assertTrue(self.msg.isOpenID1())
 
 
 class OpenID2MessageTest(unittest.TestCase):
@@ -452,12 +415,9 @@ class OpenID2MessageTest(unittest.TestCase):
         self.msg.setArg(message.BARE_NS, "xey", "value")
 
     def test_toPostArgs(self):
-        self.failUnlessEqual(self.msg.toPostArgs(),
-                             {'openid.mode': 'error',
-                              'openid.error': 'unit test',
-                              'openid.ns': message.OPENID2_NS,
-                              'xey': 'value',
-                              })
+        self.assertEqual(
+            self.msg.toPostArgs(),
+            {'openid.mode': 'error', 'openid.error': 'unit test', 'openid.ns': message.OPENID2_NS, 'xey': 'value'})
 
     def test_toPostArgs_bug_with_utf8_encoded_values(self):
         msg = message.Message.fromPostArgs({'openid.mode': 'error',
@@ -465,32 +425,24 @@ class OpenID2MessageTest(unittest.TestCase):
                                             'openid.ns': message.OPENID2_NS
                                             })
         msg.setArg(message.BARE_NS, 'ünicöde_key', 'ünicöde_välüe')
-        self.failUnlessEqual(msg.toPostArgs(),
-                             {'openid.mode': 'error',
-                              'openid.error': 'unit test',
-                              'openid.ns': message.OPENID2_NS,
-                              'ünicöde_key': 'ünicöde_välüe',
-                              })
+        post_args = {'openid.mode': 'error', 'openid.error': 'unit test', 'openid.ns': message.OPENID2_NS,
+                     'ünicöde_key': 'ünicöde_välüe'}
+        self.assertEqual(msg.toPostArgs(), post_args)
 
     def test_toArgs(self):
         # This method can't tolerate BARE_NS.
         self.msg.delArg(message.BARE_NS, "xey")
-        self.failUnlessEqual(self.msg.toArgs(), {'mode': 'error',
-                                                 'error': 'unit test',
-                                                 'ns': message.OPENID2_NS,
-                                                 })
+        self.assertEqual(self.msg.toArgs(), {'mode': 'error', 'error': 'unit test', 'ns': message.OPENID2_NS})
 
     def test_toKVForm(self):
         # Can't tolerate BARE_NS in kvform
         self.msg.delArg(message.BARE_NS, "xey")
-        self.failUnlessEqual(self.msg.toKVForm(),
-                             'error:unit test\nmode:error\nns:%s\n' %
-                             (message.OPENID2_NS,))
+        self.assertEqual(self.msg.toKVForm(), 'error:unit test\nmode:error\nns:%s\n' % message.OPENID2_NS)
 
     def _test_urlencoded(self, s):
         expected = ('openid.error=unit+test&openid.mode=error&openid.ns=%s&xey=value' %
                     urllib.quote(message.OPENID2_NS, ''))
-        self.failUnlessEqual(s, expected)
+        self.assertEqual(s, expected)
 
     def test_toURLEncoded(self):
         self._test_urlencoded(self.msg.toURLEncoded())
@@ -499,50 +451,43 @@ class OpenID2MessageTest(unittest.TestCase):
         base_url = 'http://base.url/'
         actual = self.msg.toURL(base_url)
         actual_base = actual[:len(base_url)]
-        self.failUnlessEqual(actual_base, base_url)
-        self.failUnlessEqual(actual[len(base_url)], '?')
+        self.assertEqual(actual_base, base_url)
+        self.assertEqual(actual[len(base_url)], '?')
         query = actual[len(base_url) + 1:]
         self._test_urlencoded(query)
 
     def test_getOpenID(self):
-        self.failUnlessEqual(self.msg.getOpenIDNamespace(), message.OPENID2_NS)
+        self.assertEqual(self.msg.getOpenIDNamespace(), message.OPENID2_NS)
 
     def test_getKeyOpenID(self):
-        self.failUnlessEqual(self.msg.getKey(message.OPENID_NS, 'mode'),
-                             'openid.mode')
+        self.assertEqual(self.msg.getKey(message.OPENID_NS, 'mode'), 'openid.mode')
 
     def test_getKeyBARE(self):
-        self.failUnlessEqual(self.msg.getKey(message.BARE_NS, 'mode'), 'mode')
+        self.assertEqual(self.msg.getKey(message.BARE_NS, 'mode'), 'mode')
 
     def test_getKeyNS1(self):
-        self.failUnlessEqual(
-            self.msg.getKey(message.OPENID1_NS, 'mode'), None)
+        self.assertIsNone(self.msg.getKey(message.OPENID1_NS, 'mode'))
 
     def test_getKeyNS2(self):
-        self.failUnlessEqual(
-            self.msg.getKey(message.OPENID2_NS, 'mode'), 'openid.mode')
+        self.assertEqual(self.msg.getKey(message.OPENID2_NS, 'mode'), 'openid.mode')
 
     def test_getKeyNS3(self):
-        self.failUnlessEqual(
-            self.msg.getKey('urn:nothing-significant', 'mode'), None)
+        self.assertIsNone(self.msg.getKey('urn:nothing-significant', 'mode'))
 
     def test_hasKeyOpenID(self):
-        self.failUnlessEqual(self.msg.hasKey(message.OPENID_NS, 'mode'), True)
+        self.assertTrue(self.msg.hasKey(message.OPENID_NS, 'mode'))
 
     def test_hasKeyBARE(self):
-        self.failUnlessEqual(self.msg.hasKey(message.BARE_NS, 'mode'), False)
+        self.assertFalse(self.msg.hasKey(message.BARE_NS, 'mode'))
 
     def test_hasKeyNS1(self):
-        self.failUnlessEqual(
-            self.msg.hasKey(message.OPENID1_NS, 'mode'), False)
+        self.assertFalse(self.msg.hasKey(message.OPENID1_NS, 'mode'))
 
     def test_hasKeyNS2(self):
-        self.failUnlessEqual(
-            self.msg.hasKey(message.OPENID2_NS, 'mode'), True)
+        self.assertTrue(self.msg.hasKey(message.OPENID2_NS, 'mode'))
 
     def test_hasKeyNS3(self):
-        self.failUnlessEqual(
-            self.msg.hasKey('urn:nothing-significant', 'mode'), False)
+        self.assertFalse(self.msg.hasKey('urn:nothing-significant', 'mode'))
 
     test_getArgBARE = mkGetArgTest(message.BARE_NS, 'mode')
     test_getArgNS = mkGetArgTest(message.OPENID_NS, 'mode', 'error')
@@ -551,22 +496,19 @@ class OpenID2MessageTest(unittest.TestCase):
     test_getArgNS3 = mkGetArgTest('urn:nothing-significant', 'mode')
 
     def test_getArgsOpenID(self):
-        self.failUnlessEqual(self.msg.getArgs(message.OPENID_NS),
-                             {'mode': 'error', 'error': 'unit test'})
+        self.assertEqual(self.msg.getArgs(message.OPENID_NS), {'mode': 'error', 'error': 'unit test'})
 
     def test_getArgsBARE(self):
-        self.failUnlessEqual(self.msg.getArgs(message.BARE_NS),
-                             {'xey': 'value'})
+        self.assertEqual(self.msg.getArgs(message.BARE_NS), {'xey': 'value'})
 
     def test_getArgsNS1(self):
-        self.failUnlessEqual(self.msg.getArgs(message.OPENID1_NS), {})
+        self.assertEqual(self.msg.getArgs(message.OPENID1_NS), {})
 
     def test_getArgsNS2(self):
-        self.failUnlessEqual(self.msg.getArgs(message.OPENID2_NS),
-                             {'mode': 'error', 'error': 'unit test'})
+        self.assertEqual(self.msg.getArgs(message.OPENID2_NS), {'mode': 'error', 'error': 'unit test'})
 
     def test_getArgsNS3(self):
-        self.failUnlessEqual(self.msg.getArgs('urn:nothing-significant'), {})
+        self.assertEqual(self.msg.getArgs('urn:nothing-significant'), {})
 
     def _test_updateArgsNS(self, ns, before=None):
         if before is None:
@@ -576,11 +518,11 @@ class OpenID2MessageTest(unittest.TestCase):
             'Magnolia Electric Co.': 'Jason Molina',
         }
 
-        self.failUnlessEqual(self.msg.getArgs(ns), before)
+        self.assertEqual(self.msg.getArgs(ns), before)
         self.msg.updateArgs(ns, update_args)
         after = dict(before)
         after.update(update_args)
-        self.failUnlessEqual(self.msg.getArgs(ns), after)
+        self.assertEqual(self.msg.getArgs(ns), after)
 
     def test_updateArgsOpenID(self):
         self._test_updateArgsNS(message.OPENID_NS,
@@ -603,9 +545,9 @@ class OpenID2MessageTest(unittest.TestCase):
     def _test_setArgNS(self, ns):
         key = 'Camper van Beethoven'
         value = 'David Lowery'
-        self.failUnlessEqual(self.msg.getArg(ns, key), None)
+        self.assertIsNone(self.msg.getArg(ns, key))
         self.msg.setArg(ns, key, value)
-        self.failUnlessEqual(self.msg.getArg(ns, key), value)
+        self.assertEqual(self.msg.getArg(ns, key), value)
 
     def test_setArgOpenID(self):
         self._test_setArgNS(message.OPENID_NS)
@@ -633,8 +575,7 @@ class OpenID2MessageTest(unittest.TestCase):
             # .fromPostArgs covers .fromPostArgs, .fromOpenIDArgs,
             # ._fromOpenIDArgs, and .fromOpenIDArgs (since it calls
             # .fromPostArgs).
-            self.failUnlessRaises(AssertionError, self.msg.fromPostArgs,
-                                  args)
+            self.assertRaises(AssertionError, self.msg.fromPostArgs, args)
 
     def test_mysterious_missing_namespace_bug(self):
         """A failing test for bug #112"""
@@ -655,15 +596,14 @@ class OpenID2MessageTest(unittest.TestCase):
             'sreg.email': 'a@b.com'}
         m = message.Message.fromOpenIDArgs(openid_args)
 
-        self.failUnless(('http://openid.net/extensions/sreg/1.1', 'sreg') in
-                        list(m.namespaces.iteritems()))
+        self.assertEqual(m.namespaces.getAlias('http://openid.net/extensions/sreg/1.1'), 'sreg')
         missing = []
         for k in openid_args['signed'].split(','):
             if not ("openid." + k) in m.toPostArgs().keys():
                 missing.append(k)
-        self.assertEqual([], missing, missing)
-        self.assertEqual(openid_args, m.toArgs())
-        self.failUnless(m.isOpenID1())
+        self.assertEqual(missing, [])
+        self.assertEqual(m.toArgs(), openid_args)
+        self.assertTrue(m.isOpenID1())
 
     def test_112B(self):
         args = {
@@ -687,9 +627,9 @@ class OpenID2MessageTest(unittest.TestCase):
         for k in args['openid.signed'].split(','):
             if not ("openid." + k) in m.toPostArgs().keys():
                 missing.append(k)
-        self.assertEqual([], missing, missing)
-        self.assertEqual(args, m.toPostArgs())
-        self.failUnless(m.isOpenID2())
+        self.assertEqual(missing, [], missing)
+        self.assertEqual(m.toPostArgs(), args)
+        self.assertTrue(m.isOpenID2())
 
     def test_repetitive_namespaces(self):
         """
@@ -712,26 +652,25 @@ class OpenID2MessageTest(unittest.TestCase):
             'openid.pape.auth_time': '2008-01-28T20:42:36Z',
             'openid.pape.nist_auth_level': '0',
         }
-        self.failUnlessRaises(message.InvalidNamespace, message.Message.fromPostArgs, args)
+        self.assertRaises(message.InvalidNamespace, message.Message.fromPostArgs, args)
 
     def test_implicit_sreg_ns(self):
         openid_args = {'sreg.email': 'a@b.com'}
         m = message.Message.fromOpenIDArgs(openid_args)
-        self.failUnless((sreg.ns_uri, 'sreg') in
-                        list(m.namespaces.iteritems()))
-        self.assertEqual('a@b.com', m.getArg(sreg.ns_uri, 'email'))
-        self.assertEqual(openid_args, m.toArgs())
-        self.failUnless(m.isOpenID1())
+        self.assertEqual(m.namespaces.getAlias(sreg.ns_uri), 'sreg')
+        self.assertEqual(m.getArg(sreg.ns_uri, 'email'), 'a@b.com')
+        self.assertEqual(m.toArgs(), openid_args)
+        self.assertTrue(m.isOpenID1())
 
     def _test_delArgNS(self, ns):
         key = 'Camper van Beethoven'
         value = 'David Lowery'
 
-        self.failUnlessRaises(KeyError, self.msg.delArg, ns, key)
+        self.assertRaises(KeyError, self.msg.delArg, ns, key)
         self.msg.setArg(ns, key, value)
-        self.failUnlessEqual(self.msg.getArg(ns, key), value)
+        self.assertEqual(self.msg.getArg(ns, key), value)
         self.msg.delArg(ns, key)
-        self.failUnlessEqual(self.msg.getArg(ns, key), None)
+        self.assertIsNone(self.msg.getArg(ns, key))
 
     def test_delArgOpenID(self):
         self._test_delArgNS(message.OPENID_NS)
@@ -755,19 +694,18 @@ class OpenID2MessageTest(unittest.TestCase):
         value_2 = 'value_2'
 
         self.msg.setArg(ns, key, value_1)
-        self.failUnless(self.msg.getArg(ns, key) == value_1)
+        self.assertEqual(self.msg.getArg(ns, key), value_1)
         self.msg.setArg(ns, key, value_2)
-        self.failUnless(self.msg.getArg(ns, key) == value_2)
+        self.assertEqual(self.msg.getArg(ns, key), value_2)
 
     def test_argList(self):
-        self.failUnlessRaises(TypeError, self.msg.fromPostArgs,
-                              {'arg': [1, 2, 3]})
+        self.assertRaises(TypeError, self.msg.fromPostArgs, {'arg': [1, 2, 3]})
 
     def test_isOpenID1(self):
-        self.failIf(self.msg.isOpenID1())
+        self.assertFalse(self.msg.isOpenID1())
 
     def test_isOpenID2(self):
-        self.failUnless(self.msg.isOpenID2())
+        self.assertTrue(self.msg.isOpenID2())
 
 
 class MessageTest(unittest.TestCase):
@@ -883,10 +821,10 @@ class MessageTest(unittest.TestCase):
         # encoded strings to be converted to XML character references,
         # "ünicöde_key" becomes "&#195;&#188;nic&#195;&#182;de_key" and
         # "ünicöde_välüe" becomes "&#195;&#188;nic&#195;&#182;de_v&#195;&#164;l&#195;&#188;e"
-        self.failIf('&#195;&#188;nic&#195;&#182;de_key' in html,
-                    'UTF-8 bytes should not convert to XML character references')
-        self.failIf('&#195;&#188;nic&#195;&#182;de_v&#195;&#164;l&#195;&#188;e' in html,
-                    'UTF-8 bytes should not convert to XML character references')
+        self.assertNotIn('&#195;&#188;nic&#195;&#182;de_key', html,
+                         'UTF-8 bytes should not convert to XML character references')
+        self.assertNotIn('&#195;&#188;nic&#195;&#182;de_v&#195;&#164;l&#195;&#188;e', html,
+                         'UTF-8 bytes should not convert to XML character references')
 
     def test_overrideMethod(self):
         """Be sure that caller cannot change form method to GET."""
@@ -930,8 +868,7 @@ class MessageTest(unittest.TestCase):
         ]
 
         for x in invalid_things:
-            self.failUnlessRaises(message.InvalidOpenIDNamespace,
-                                  m.setOpenIDNamespace, x, False)
+            self.assertRaises(message.InvalidOpenIDNamespace, m.setOpenIDNamespace, x, False)
 
     def test_isOpenID1(self):
         v1_namespaces = [
@@ -942,36 +879,33 @@ class MessageTest(unittest.TestCase):
 
         for ns in v1_namespaces:
             m = message.Message(ns)
-            self.failUnless(m.isOpenID1(), "%r not recognized as OpenID 1" %
-                            (ns,))
-            self.failUnlessEqual(ns, m.getOpenIDNamespace())
-            self.failUnless(m.namespaces.isImplicit(ns),
-                            m.namespaces.getNamespaceURI(message.NULL_NAMESPACE))
+            self.assertTrue(m.isOpenID1(), "%r not recognized as OpenID 1" % ns)
+            self.assertEqual(m.getOpenIDNamespace(), ns)
+            self.assertTrue(m.namespaces.isImplicit(ns))
 
     def test_isOpenID2(self):
         ns = 'http://specs.openid.net/auth/2.0'
         m = message.Message(ns)
-        self.failUnless(m.isOpenID2())
-        self.failIf(m.namespaces.isImplicit(message.NULL_NAMESPACE))
-        self.failUnlessEqual(ns, m.getOpenIDNamespace())
+        self.assertTrue(m.isOpenID2())
+        self.assertFalse(m.namespaces.isImplicit(message.NULL_NAMESPACE))
+        self.assertEqual(m.getOpenIDNamespace(), ns)
 
     def test_setOpenIDNamespace_explicit(self):
         m = message.Message()
         m.setOpenIDNamespace(message.THE_OTHER_OPENID1_NS, False)
-        self.failIf(m.namespaces.isImplicit(message.THE_OTHER_OPENID1_NS))
+        self.assertFalse(m.namespaces.isImplicit(message.THE_OTHER_OPENID1_NS))
 
     def test_setOpenIDNamespace_implicit(self):
         m = message.Message()
         m.setOpenIDNamespace(message.THE_OTHER_OPENID1_NS, True)
-        self.failUnless(m.namespaces.isImplicit(message.THE_OTHER_OPENID1_NS))
+        self.assertTrue(m.namespaces.isImplicit(message.THE_OTHER_OPENID1_NS))
 
     def test_explicitOpenID11NSSerialzation(self):
         m = message.Message()
         m.setOpenIDNamespace(message.THE_OTHER_OPENID1_NS, implicit=False)
 
         post_args = m.toPostArgs()
-        self.failUnlessEqual(post_args,
-                             {'openid.ns': message.THE_OTHER_OPENID1_NS})
+        self.assertEqual(post_args, {'openid.ns': message.THE_OTHER_OPENID1_NS})
 
     def test_fromPostArgs_ns11(self):
         # An example of the stuff that some Drupal installations send us,
@@ -988,7 +922,7 @@ class MessageTest(unittest.TestCase):
             u'openid.trust_root': u'http://drupal.invalid',
         }
         m = message.Message.fromPostArgs(query)
-        self.failUnless(m.isOpenID1())
+        self.assertTrue(m.isOpenID1())
 
 
 class NamespaceMapTest(unittest.TestCase):
@@ -997,8 +931,8 @@ class NamespaceMapTest(unittest.TestCase):
         uri = 'http://example.com/foo'
         alias = "foo"
         nsm.addAlias(uri, alias)
-        self.failUnless(nsm.getNamespaceURI(alias) == uri)
-        self.failUnless(nsm.getAlias(uri) == alias)
+        self.assertEqual(nsm.getNamespaceURI(alias), uri)
+        self.assertEqual(nsm.getAlias(uri), alias)
 
     def test_iteration(self):
         nsm = message.NamespaceMap()
@@ -1006,12 +940,12 @@ class NamespaceMapTest(unittest.TestCase):
 
         nsm.add(uripat % 0)
         for n in range(1, 23):
-            self.failUnless(uripat % (n - 1) in nsm)
-            self.failUnless(nsm.isDefined(uripat % (n - 1)))
+            self.assertIn(uripat % (n - 1), nsm)
+            self.assertTrue(nsm.isDefined(uripat % (n - 1)))
             nsm.add(uripat % n)
 
         for (uri, alias) in nsm.iteritems():
-            self.failUnless(uri[22:] == alias[3:])
+            self.assertEqual(uri[22:], alias[3:])
 
         i = 0
         it = nsm.iterAliases()
@@ -1020,7 +954,7 @@ class NamespaceMapTest(unittest.TestCase):
                 it.next()
                 i += 1
         except StopIteration:
-            self.failUnless(i == 23)
+            self.assertEqual(i, 23)
 
         i = 0
         it = nsm.iterNamespaceURIs()
@@ -1029,7 +963,7 @@ class NamespaceMapTest(unittest.TestCase):
                 it.next()
                 i += 1
         except StopIteration:
-            self.failUnless(i == 23)
+            self.assertEqual(i, 23)
 
 
 if __name__ == '__main__':

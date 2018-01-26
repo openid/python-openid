@@ -14,41 +14,33 @@ class PapeRequestTestCase(unittest.TestCase):
         self.req = pape.Request()
 
     def test_construct(self):
-        self.failUnlessEqual([], self.req.preferred_auth_policies)
-        self.failUnlessEqual(None, self.req.max_auth_age)
-        self.failUnlessEqual('pape', self.req.ns_alias)
-        self.failIf(self.req.preferred_auth_level_types)
+        self.assertEqual(self.req.preferred_auth_policies, [])
+        self.assertIsNone(self.req.max_auth_age)
+        self.assertEqual(self.req.ns_alias, 'pape')
+        self.assertFalse(self.req.preferred_auth_level_types)
 
         bogus_levels = ['http://janrain.com/our_levels']
         req2 = pape.Request(
             [pape.AUTH_MULTI_FACTOR], 1000, bogus_levels)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR],
-                             req2.preferred_auth_policies)
-        self.failUnlessEqual(1000, req2.max_auth_age)
-        self.failUnlessEqual(bogus_levels, req2.preferred_auth_level_types)
+        self.assertEqual(req2.preferred_auth_policies, [pape.AUTH_MULTI_FACTOR])
+        self.assertEqual(req2.max_auth_age, 1000)
+        self.assertEqual(req2.preferred_auth_level_types, bogus_levels)
 
     def test_addAuthLevel(self):
         self.req.addAuthLevel('http://example.com/', 'example')
-        self.failUnlessEqual(['http://example.com/'],
-                             self.req.preferred_auth_level_types)
-        self.failUnlessEqual('http://example.com/',
-                             self.req.auth_level_aliases['example'])
+        self.assertEqual(self.req.preferred_auth_level_types, ['http://example.com/'])
+        self.assertEqual(self.req.auth_level_aliases['example'], 'http://example.com/')
 
         self.req.addAuthLevel('http://example.com/1', 'example1')
-        self.failUnlessEqual(['http://example.com/', 'http://example.com/1'],
-                             self.req.preferred_auth_level_types)
+        self.assertEqual(self.req.preferred_auth_level_types, ['http://example.com/', 'http://example.com/1'])
 
         self.req.addAuthLevel('http://example.com/', 'exmpl')
-        self.failUnlessEqual(['http://example.com/', 'http://example.com/1'],
-                             self.req.preferred_auth_level_types)
+        self.assertEqual(self.req.preferred_auth_level_types, ['http://example.com/', 'http://example.com/1'])
 
         self.req.addAuthLevel('http://example.com/', 'example')
-        self.failUnlessEqual(['http://example.com/', 'http://example.com/1'],
-                             self.req.preferred_auth_level_types)
+        self.assertEqual(self.req.preferred_auth_level_types, ['http://example.com/', 'http://example.com/1'])
 
-        self.failUnlessRaises(KeyError,
-                              self.req.addAuthLevel,
-                              'http://example.com/2', 'example')
+        self.assertRaises(KeyError, self.req.addAuthLevel, 'http://example.com/2', 'example')
 
         # alias is None; we expect a new one to be generated.
         uri = 'http://another.example.com/'
@@ -60,41 +52,28 @@ class PapeRequestTestCase(unittest.TestCase):
         before_aliases = self.req.auth_level_aliases.keys()
         self.req.addAuthLevel(uri)
         after_aliases = self.req.auth_level_aliases.keys()
-        self.assertEqual(before_aliases, after_aliases)
+        self.assertEqual(after_aliases, before_aliases)
 
     def test_add_policy_uri(self):
-        self.failUnlessEqual([], self.req.preferred_auth_policies)
+        self.assertEqual(self.req.preferred_auth_policies, [])
         self.req.addPolicyURI(pape.AUTH_MULTI_FACTOR)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR],
-                             self.req.preferred_auth_policies)
+        self.assertEqual(self.req.preferred_auth_policies, [pape.AUTH_MULTI_FACTOR])
         self.req.addPolicyURI(pape.AUTH_MULTI_FACTOR)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR],
-                             self.req.preferred_auth_policies)
+        self.assertEqual(self.req.preferred_auth_policies, [pape.AUTH_MULTI_FACTOR])
         self.req.addPolicyURI(pape.AUTH_PHISHING_RESISTANT)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR,
-                              pape.AUTH_PHISHING_RESISTANT],
-                             self.req.preferred_auth_policies)
+        self.assertEqual(self.req.preferred_auth_policies, [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT])
         self.req.addPolicyURI(pape.AUTH_MULTI_FACTOR)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR,
-                              pape.AUTH_PHISHING_RESISTANT],
-                             self.req.preferred_auth_policies)
+        self.assertEqual(self.req.preferred_auth_policies, [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT])
 
     def test_getExtensionArgs(self):
-        self.failUnlessEqual({'preferred_auth_policies': ''},
-                             self.req.getExtensionArgs())
+        self.assertEqual(self.req.getExtensionArgs(), {'preferred_auth_policies': ''})
         self.req.addPolicyURI('http://uri')
-        self.failUnlessEqual(
-            {'preferred_auth_policies': 'http://uri'},
-            self.req.getExtensionArgs())
+        self.assertEqual(self.req.getExtensionArgs(), {'preferred_auth_policies': 'http://uri'})
         self.req.addPolicyURI('http://zig')
-        self.failUnlessEqual(
-            {'preferred_auth_policies': 'http://uri http://zig'},
-            self.req.getExtensionArgs())
+        self.assertEqual(self.req.getExtensionArgs(), {'preferred_auth_policies': 'http://uri http://zig'})
         self.req.max_auth_age = 789
-        self.failUnlessEqual(
-            {'preferred_auth_policies': 'http://uri http://zig',
-             'max_auth_age': '789'},
-            self.req.getExtensionArgs())
+        self.assertEqual(self.req.getExtensionArgs(),
+                         {'preferred_auth_policies': 'http://uri http://zig', 'max_auth_age': '789'})
 
     def test_getExtensionArgsWithAuthLevels(self):
         uri = 'http://example.com/auth_level'
@@ -112,7 +91,7 @@ class PapeRequestTestCase(unittest.TestCase):
             'preferred_auth_policies': '',
         }
 
-        self.failUnlessEqual(expected_args, self.req.getExtensionArgs())
+        self.assertEqual(self.req.getExtensionArgs(), expected_args)
 
     def test_parseExtensionArgsWithAuthLevels(self):
         uri = 'http://example.com/auth_level'
@@ -133,10 +112,9 @@ class PapeRequestTestCase(unittest.TestCase):
 
         expected_auth_levels = [uri, uri2]
 
-        self.assertEqual(expected_auth_levels,
-                         self.req.preferred_auth_level_types)
-        self.assertEqual(uri, self.req.auth_level_aliases[alias])
-        self.assertEqual(uri2, self.req.auth_level_aliases[alias2])
+        self.assertEqual(self.req.preferred_auth_level_types, expected_auth_levels)
+        self.assertEqual(self.req.auth_level_aliases[alias], uri)
+        self.assertEqual(self.req.auth_level_aliases[alias2], uri2)
 
     def test_parseExtensionArgsWithAuthLevels_openID1(self):
         request_args = {
@@ -144,48 +122,41 @@ class PapeRequestTestCase(unittest.TestCase):
         }
         expected_auth_levels = [pape.LEVELS_NIST, pape.LEVELS_JISA]
         self.req.parseExtensionArgs(request_args, is_openid1=True)
-        self.assertEqual(expected_auth_levels,
-                         self.req.preferred_auth_level_types)
+        self.assertEqual(self.req.preferred_auth_level_types, expected_auth_levels)
 
         self.req = pape.Request()
         self.req.parseExtensionArgs(request_args, is_openid1=False)
-        self.assertEqual([],
-                         self.req.preferred_auth_level_types)
+        self.assertEqual(self.req.preferred_auth_level_types, [])
 
         self.req = pape.Request()
-        self.failUnlessRaises(ValueError,
-                              self.req.parseExtensionArgs,
-                              request_args, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.req.parseExtensionArgs, request_args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_ignoreBadAuthLevels(self):
         request_args = {'preferred_auth_level_types': 'monkeys'}
         self.req.parseExtensionArgs(request_args, False)
-        self.assertEqual([], self.req.preferred_auth_level_types)
+        self.assertEqual(self.req.preferred_auth_level_types, [])
 
     def test_parseExtensionArgs_strictBadAuthLevels(self):
         request_args = {'preferred_auth_level_types': 'monkeys'}
-        self.failUnlessRaises(ValueError, self.req.parseExtensionArgs,
-                              request_args, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.req.parseExtensionArgs, request_args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs(self):
         args = {'preferred_auth_policies': 'http://foo http://bar',
                 'max_auth_age': '9'}
         self.req.parseExtensionArgs(args, False)
-        self.failUnlessEqual(9, self.req.max_auth_age)
-        self.failUnlessEqual(['http://foo', 'http://bar'],
-                             self.req.preferred_auth_policies)
-        self.failUnlessEqual([], self.req.preferred_auth_level_types)
+        self.assertEqual(self.req.max_auth_age, 9)
+        self.assertEqual(self.req.preferred_auth_policies, ['http://foo', 'http://bar'])
+        self.assertEqual(self.req.preferred_auth_level_types, [])
 
     def test_parseExtensionArgs_strict_bad_auth_age(self):
         args = {'max_auth_age': 'not an int'}
-        self.assertRaises(ValueError, self.req.parseExtensionArgs, args,
-                          is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.req.parseExtensionArgs, args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_empty(self):
         self.req.parseExtensionArgs({}, False)
-        self.failUnlessEqual(None, self.req.max_auth_age)
-        self.failUnlessEqual([], self.req.preferred_auth_policies)
-        self.failUnlessEqual([], self.req.preferred_auth_level_types)
+        self.assertIsNone(self.req.max_auth_age)
+        self.assertEqual(self.req.preferred_auth_policies, [])
+        self.assertEqual(self.req.preferred_auth_level_types, [])
 
     def test_fromOpenIDRequest(self):
         policy_uris = [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]
@@ -199,8 +170,8 @@ class PapeRequestTestCase(unittest.TestCase):
         oid_req = server.OpenIDRequest()
         oid_req.message = openid_req_msg
         req = pape.Request.fromOpenIDRequest(oid_req)
-        self.failUnlessEqual(policy_uris, req.preferred_auth_policies)
-        self.failUnlessEqual(5476, req.max_auth_age)
+        self.assertEqual(req.preferred_auth_policies, policy_uris)
+        self.assertEqual(req.max_auth_age, 5476)
 
     def test_fromOpenIDRequest_no_pape(self):
         message = Message()
@@ -214,7 +185,7 @@ class PapeRequestTestCase(unittest.TestCase):
         self.req.addPolicyURI(pape.AUTH_MULTI_FACTOR)
         pt = self.req.preferredTypes([pape.AUTH_MULTI_FACTOR,
                                       pape.AUTH_MULTI_FACTOR_PHYSICAL])
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR], pt)
+        self.assertEqual(pt, [pape.AUTH_MULTI_FACTOR])
 
 
 class DummySuccessResponse:
@@ -234,94 +205,76 @@ class PapeResponseTestCase(unittest.TestCase):
         self.resp = pape.Response()
 
     def test_construct(self):
-        self.failUnlessEqual([], self.resp.auth_policies)
-        self.failUnlessEqual(None, self.resp.auth_time)
-        self.failUnlessEqual('pape', self.resp.ns_alias)
-        self.failUnlessEqual(None, self.resp.nist_auth_level)
+        self.assertEqual(self.resp.auth_policies, [])
+        self.assertIsNone(self.resp.auth_time)
+        self.assertEqual(self.resp.ns_alias, 'pape')
+        self.assertIsNone(self.resp.nist_auth_level)
 
         req2 = pape.Response([pape.AUTH_MULTI_FACTOR],
                              "2004-12-11T10:30:44Z", {pape.LEVELS_NIST: 3})
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR], req2.auth_policies)
-        self.failUnlessEqual("2004-12-11T10:30:44Z", req2.auth_time)
-        self.failUnlessEqual(3, req2.nist_auth_level)
+        self.assertEqual(req2.auth_policies, [pape.AUTH_MULTI_FACTOR])
+        self.assertEqual(req2.auth_time, "2004-12-11T10:30:44Z")
+        self.assertEqual(req2.nist_auth_level, 3)
 
     def test_add_policy_uri(self):
-        self.failUnlessEqual([], self.resp.auth_policies)
+        self.assertEqual(self.resp.auth_policies, [])
         self.resp.addPolicyURI(pape.AUTH_MULTI_FACTOR)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR], self.resp.auth_policies)
+        self.assertEqual(self.resp.auth_policies, [pape.AUTH_MULTI_FACTOR])
         self.resp.addPolicyURI(pape.AUTH_MULTI_FACTOR)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR], self.resp.auth_policies)
+        self.assertEqual(self.resp.auth_policies, [pape.AUTH_MULTI_FACTOR])
         self.resp.addPolicyURI(pape.AUTH_PHISHING_RESISTANT)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR,
-                              pape.AUTH_PHISHING_RESISTANT],
-                             self.resp.auth_policies)
+        self.assertEqual(self.resp.auth_policies, [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT])
         self.resp.addPolicyURI(pape.AUTH_MULTI_FACTOR)
-        self.failUnlessEqual([pape.AUTH_MULTI_FACTOR,
-                              pape.AUTH_PHISHING_RESISTANT],
-                             self.resp.auth_policies)
+        self.assertEqual(self.resp.auth_policies, [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT])
 
-        self.failUnlessRaises(RuntimeError, self.resp.addPolicyURI,
-                              pape.AUTH_NONE)
+        self.assertRaises(RuntimeError, self.resp.addPolicyURI, pape.AUTH_NONE)
 
     def test_getExtensionArgs(self):
-        self.failUnlessEqual({'auth_policies': pape.AUTH_NONE},
-                             self.resp.getExtensionArgs())
+        self.assertEqual(self.resp.getExtensionArgs(), {'auth_policies': pape.AUTH_NONE})
         self.resp.addPolicyURI('http://uri')
-        self.failUnlessEqual({'auth_policies': 'http://uri'},
-                             self.resp.getExtensionArgs())
+        self.assertEqual(self.resp.getExtensionArgs(), {'auth_policies': 'http://uri'})
         self.resp.addPolicyURI('http://zig')
-        self.failUnlessEqual({'auth_policies': 'http://uri http://zig'},
-                             self.resp.getExtensionArgs())
+        self.assertEqual(self.resp.getExtensionArgs(), {'auth_policies': 'http://uri http://zig'})
         self.resp.auth_time = "1776-07-04T14:43:12Z"
-        self.failUnlessEqual(
-            {'auth_policies': 'http://uri http://zig',
-             'auth_time': "1776-07-04T14:43:12Z"},
-            self.resp.getExtensionArgs())
+        self.assertEqual(self.resp.getExtensionArgs(),
+                         {'auth_policies': 'http://uri http://zig', 'auth_time': "1776-07-04T14:43:12Z"})
         self.resp.setAuthLevel(pape.LEVELS_NIST, '3')
-        self.failUnlessEqual(
-            {'auth_policies': 'http://uri http://zig',
-             'auth_time': "1776-07-04T14:43:12Z",
-             'auth_level.nist': '3',
-             'auth_level.ns.nist': pape.LEVELS_NIST},
-            self.resp.getExtensionArgs())
+        nist_args = {'auth_policies': 'http://uri http://zig', 'auth_time': "1776-07-04T14:43:12Z",
+                     'auth_level.nist': '3', 'auth_level.ns.nist': pape.LEVELS_NIST}
+        self.assertEqual(self.resp.getExtensionArgs(), nist_args)
 
     def test_getExtensionArgs_error_auth_age(self):
         self.resp.auth_time = "long ago"
-        self.failUnlessRaises(ValueError, self.resp.getExtensionArgs)
+        self.assertRaises(ValueError, self.resp.getExtensionArgs)
 
     def test_parseExtensionArgs(self):
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': '1970-01-01T00:00:00Z'}
         self.resp.parseExtensionArgs(args, is_openid1=False)
-        self.failUnlessEqual('1970-01-01T00:00:00Z', self.resp.auth_time)
-        self.failUnlessEqual(['http://foo', 'http://bar'],
-                             self.resp.auth_policies)
+        self.assertEqual(self.resp.auth_time, '1970-01-01T00:00:00Z')
+        self.assertEqual(self.resp.auth_policies, ['http://foo', 'http://bar'])
 
     def test_parseExtensionArgs_valid_none(self):
         args = {'auth_policies': pape.AUTH_NONE}
         self.resp.parseExtensionArgs(args, is_openid1=False)
-        self.failUnlessEqual([], self.resp.auth_policies)
+        self.assertEqual(self.resp.auth_policies, [])
 
     def test_parseExtensionArgs_old_none(self):
         args = {'auth_policies': 'none'}
         self.resp.parseExtensionArgs(args, is_openid1=False)
-        self.failUnlessEqual([], self.resp.auth_policies)
+        self.assertEqual(self.resp.auth_policies, [])
 
     def test_parseExtensionArgs_old_none_strict(self):
         args = {'auth_policies': 'none'}
-        self.failUnlessRaises(
-            ValueError,
-            self.resp.parseExtensionArgs, args, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.resp.parseExtensionArgs, args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_empty(self):
         self.resp.parseExtensionArgs({}, is_openid1=False)
-        self.failUnlessEqual(None, self.resp.auth_time)
-        self.failUnlessEqual([], self.resp.auth_policies)
+        self.assertIsNone(self.resp.auth_time)
+        self.assertEqual(self.resp.auth_policies, [])
 
     def test_parseExtensionArgs_empty_strict(self):
-        self.failUnlessRaises(
-            ValueError,
-            self.resp.parseExtensionArgs, {}, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.resp.parseExtensionArgs, {}, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_ignore_superfluous_none(self):
         policies = [pape.AUTH_NONE, pape.AUTH_MULTI_FACTOR_PHYSICAL]
@@ -332,8 +285,7 @@ class PapeResponseTestCase(unittest.TestCase):
 
         self.resp.parseExtensionArgs(args, is_openid1=False, strict=False)
 
-        self.assertEqual([pape.AUTH_MULTI_FACTOR_PHYSICAL],
-                         self.resp.auth_policies)
+        self.assertEqual(self.resp.auth_policies, [pape.AUTH_MULTI_FACTOR_PHYSICAL])
 
     def test_parseExtensionArgs_none_strict(self):
         policies = [pape.AUTH_NONE, pape.AUTH_MULTI_FACTOR_PHYSICAL]
@@ -342,22 +294,20 @@ class PapeResponseTestCase(unittest.TestCase):
             'auth_policies': ' '.join(policies),
         }
 
-        self.failUnlessRaises(ValueError, self.resp.parseExtensionArgs,
-                              args, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.resp.parseExtensionArgs, args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_strict_bogus1(self):
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': 'yesterday'}
-        self.failUnlessRaises(ValueError, self.resp.parseExtensionArgs,
-                              args, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.resp.parseExtensionArgs, args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_openid1_strict(self):
         args = {'auth_level.nist': '0',
                 'auth_policies': pape.AUTH_NONE,
                 }
         self.resp.parseExtensionArgs(args, strict=True, is_openid1=True)
-        self.failUnlessEqual('0', self.resp.getAuthLevel(pape.LEVELS_NIST))
-        self.failUnlessEqual([], self.resp.auth_policies)
+        self.assertEqual(self.resp.getAuthLevel(pape.LEVELS_NIST), '0')
+        self.assertEqual(self.resp.auth_policies, [])
 
     def test_parseExtensionArgs_strict_no_namespace_decl_openid2(self):
         # Test the case where the namespace is not declared for an
@@ -365,8 +315,7 @@ class PapeResponseTestCase(unittest.TestCase):
         args = {'auth_policies': pape.AUTH_NONE,
                 'auth_level.nist': '0',
                 }
-        self.failUnlessRaises(ValueError, self.resp.parseExtensionArgs,
-                              args, is_openid1=False, strict=True)
+        self.assertRaises(ValueError, self.resp.parseExtensionArgs, args, is_openid1=False, strict=True)
 
     def test_parseExtensionArgs_nostrict_no_namespace_decl_openid2(self):
         # Test the case where the namespace is not declared for an
@@ -377,8 +326,7 @@ class PapeResponseTestCase(unittest.TestCase):
         self.resp.parseExtensionArgs(args, is_openid1=False, strict=False)
 
         # There is no namespace declaration for this auth level.
-        self.failUnlessRaises(KeyError, self.resp.getAuthLevel,
-                              pape.LEVELS_NIST)
+        self.assertRaises(KeyError, self.resp.getAuthLevel, pape.LEVELS_NIST)
 
     def test_parseExtensionArgs_strict_good(self):
         args = {'auth_policies': 'http://foo http://bar',
@@ -386,20 +334,18 @@ class PapeResponseTestCase(unittest.TestCase):
                 'auth_level.nist': '0',
                 'auth_level.ns.nist': pape.LEVELS_NIST}
         self.resp.parseExtensionArgs(args, is_openid1=False, strict=True)
-        self.failUnlessEqual(['http://foo', 'http://bar'],
-                             self.resp.auth_policies)
-        self.failUnlessEqual('1970-01-01T00:00:00Z', self.resp.auth_time)
-        self.failUnlessEqual(0, self.resp.nist_auth_level)
+        self.assertEqual(self.resp.auth_policies, ['http://foo', 'http://bar'])
+        self.assertEqual(self.resp.auth_time, '1970-01-01T00:00:00Z')
+        self.assertEqual(self.resp.nist_auth_level, 0)
 
     def test_parseExtensionArgs_nostrict_bogus(self):
         args = {'auth_policies': 'http://foo http://bar',
                 'auth_time': 'when the cows come home',
                 'nist_auth_level': 'some'}
         self.resp.parseExtensionArgs(args, is_openid1=False)
-        self.failUnlessEqual(['http://foo', 'http://bar'],
-                             self.resp.auth_policies)
-        self.failUnlessEqual(None, self.resp.auth_time)
-        self.failUnlessEqual(None, self.resp.nist_auth_level)
+        self.assertEqual(self.resp.auth_policies, ['http://foo', 'http://bar'])
+        self.assertIsNone(self.resp.auth_time)
+        self.assertIsNone(self.resp.nist_auth_level)
 
     def test_fromSuccessResponse(self):
         policy_uris = [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]
@@ -416,8 +362,8 @@ class PapeResponseTestCase(unittest.TestCase):
         }
         oid_req = DummySuccessResponse(openid_req_msg, signed_stuff)
         req = pape.Response.fromSuccessResponse(oid_req)
-        self.failUnlessEqual(policy_uris, req.auth_policies)
-        self.failUnlessEqual('1970-01-01T00:00:00Z', req.auth_time)
+        self.assertEqual(req.auth_policies, policy_uris)
+        self.assertEqual(req.auth_time, '1970-01-01T00:00:00Z')
 
     def test_fromSuccessResponseNoSignedArgs(self):
         policy_uris = [pape.AUTH_MULTI_FACTOR, pape.AUTH_PHISHING_RESISTANT]
@@ -437,7 +383,7 @@ class PapeResponseTestCase(unittest.TestCase):
 
         oid_req = NoSigningDummyResponse(openid_req_msg, signed_stuff)
         resp = pape.Response.fromSuccessResponse(oid_req)
-        self.failUnless(resp is None)
+        self.assertIsNone(resp)
 
 
 if __name__ == '__main__':

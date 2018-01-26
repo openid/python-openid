@@ -30,7 +30,7 @@ class MatchTest(unittest.TestCase):
         for expected_match, desc, line in getTests([1, 0], mh, mdat):
             tr, rt = line.split()
             tr = TrustRoot.parse(tr)
-            self.failIf(tr is None, tr)
+            self.assertIsNotNone(tr)
 
             match = tr.validateURL(rt)
             if expected_match:

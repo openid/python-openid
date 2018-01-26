@@ -13,5 +13,4 @@ class BadLinksTestCase(unittest.TestCase):
     def test_from_html(self):
         for html in self.cases:
             actual = OpenIDServiceEndpoint.fromHTML('http://unused.url/', html)
-            expected = []
-            self.failUnlessEqual(expected, actual)
+            self.assertEqual(actual, [])

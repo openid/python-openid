@@ -1,48 +1,32 @@
 import unittest
 
+from testfixtures import LogCapture
+
 from openid import kvform
-from openid.test.support import CatchLogs
 
 
-class KVBaseTest(unittest.TestCase, CatchLogs):
-
-    def checkWarnings(self, num_warnings, msg=None):
-        full_msg = 'Invalid number of warnings {} != {}'.format(num_warnings, len(self.messages))
-        if msg is not None:
-            full_msg = full_msg + ' ' + msg
-        self.failUnlessEqual(num_warnings, len(self.messages), full_msg)
-
-    def setUp(self):
-        CatchLogs.setUp(self)
-
-    def tearDown(self):
-        CatchLogs.tearDown(self)
-
-
-class KVDictTest(KVBaseTest):
+class KVDictTest(unittest.TestCase):
 
     def runTest(self):
         for kv_data, result, expected_warnings in kvdict_cases:
-            # Clean captrured messages
-            del self.messages[:]
-
             # Convert KVForm to dict
-            d = kvform.kvToDict(kv_data)
+            with LogCapture() as logbook:
+                d = kvform.kvToDict(kv_data)
 
             # make sure it parses to expected dict
-            self.failUnlessEqual(d, result)
+            self.assertEqual(d, result)
 
             # Check to make sure we got the expected number of warnings
-            self.checkWarnings(expected_warnings, msg='kvToDict({!r})'.format(kv_data))
+            self.assertEqual(len(logbook.records), expected_warnings)
 
             # Convert back to KVForm and round-trip back to dict to make
             # sure that *** dict -> kv -> dict is identity. ***
             kv = kvform.dictToKV(d)
             d2 = kvform.kvToDict(kv)
-            self.failUnlessEqual(d, d2)
+            self.assertEqual(d, d2)
 
 
-class KVSeqTest(KVBaseTest):
+class KVSeqTest(unittest.TestCase):
 
     def cleanSeq(self, seq):
         """Create a new sequence by stripping whitespace from start
@@ -58,12 +42,10 @@ class KVSeqTest(KVBaseTest):
 
     def runTest(self):
         for kv_data, result, expected_warnings in kvseq_cases:
-            # Clean captrured messages
-            del self.messages[:]
-
             # seq serializes to expected kvform
-            actual = kvform.seqToKV(kv_data)
-            self.failUnlessEqual(actual, result)
+            with LogCapture() as logbook:
+                actual = kvform.seqToKV(kv_data)
+            self.assertEqual(actual, result)
             self.assertIsInstance(actual, str)
 
             # Parse back to sequence. Expected to be unchanged, except
@@ -72,8 +54,9 @@ class KVSeqTest(KVBaseTest):
             seq = kvform.kvToSeq(actual)
             clean_seq = self.cleanSeq(seq)
 
-            self.failUnlessEqual(seq, clean_seq)
-            self.checkWarnings(expected_warnings)
+            self.assertEqual(seq, clean_seq)
+            self.assertEqual(len(logbook.records), expected_warnings,
+                             "Invalid warnings for {}: {}".format(kv_data, [r.getMessage() for r in logbook.records]))
 
 
 kvdict_cases = [
@@ -119,16 +102,16 @@ kvseq_cases = [
     ([('openid', 'useful'), ('a', 'b')], 'openid:useful\na:b\n', 0),
 
     # Warnings about leading whitespace
-    ([(' openid', 'useful'), ('a', 'b')], ' openid:useful\na:b\n', 2),
+    ([(' openid', 'useful'), ('a', 'b')], ' openid:useful\na:b\n', 1),
 
     # Warnings about leading and trailing whitespace
     ([(' openid ', ' useful '),
-      (' a ', ' b ')], ' openid : useful \n a : b \n', 8),
+      (' a ', ' b ')], ' openid : useful \n a : b \n', 4),
 
     # warnings about leading and trailing whitespace, but not about
     # internal whitespace.
     ([(' open id ', ' use ful '),
-      (' a ', ' b ')], ' open id : use ful \n a : b \n', 8),
+      (' a ', ' b ')], ' open id : use ful \n a : b \n', 4),
 
     ([(u'foo', 'bar')], 'foo:bar\n', 0),
 ]
@@ -147,13 +130,14 @@ class KVExcTest(unittest.TestCase):
 
     def runTest(self):
         for kv_data in kvexc_cases:
-            self.failUnlessRaises(ValueError, kvform.seqToKV, kv_data)
+            self.assertRaises(ValueError, kvform.seqToKV, kv_data)
 
 
-class GeneralTest(KVBaseTest):
+class GeneralTest(unittest.TestCase):
     kvform = '<None>'
 
     def test_convert(self):
-        result = kvform.seqToKV([(1, 1)])
-        self.failUnlessEqual(result, '1:1\n')
-        self.checkWarnings(2)
+        with LogCapture() as logbook:
+            result = kvform.seqToKV([(1, 1)])
+        self.assertEqual(result, '1:1\n')
+        self.assertEqual(len(logbook.records), 2)

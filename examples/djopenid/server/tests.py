@@ -6,7 +6,7 @@ from django.test.testcases import TestCase
 from django.urls import reverse
 
 from openid.message import Message
-from openid.server.server import CheckIDRequest
+from openid.server.server import CheckIDRequest, HTTP_REDIRECT
 from openid.yadis.constants import YADIS_CONTENT_TYPE
 from openid.yadis.services import applyFilter
 
@@ -48,22 +48,22 @@ class TestProcessTrustResult(TestCase):
 
         response = views.processTrustResult(self.request)
 
-        self.failUnlessEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, HTTP_REDIRECT)
         finalURL = response['location']
-        self.failUnless('openid.mode=id_res' in finalURL, finalURL)
-        self.failUnless('openid.identity=' in finalURL, finalURL)
-        self.failUnless('openid.sreg.postcode=12345' in finalURL, finalURL)
+        self.assertIn('openid.mode=id_res', finalURL)
+        self.assertIn('openid.identity=', finalURL)
+        self.assertIn('openid.sreg.postcode=12345', finalURL)
 
     def test_cancel(self):
         self.request.POST['cancel'] = 'Yes'
 
         response = views.processTrustResult(self.request)
 
-        self.failUnlessEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, HTTP_REDIRECT)
         finalURL = response['location']
-        self.failUnless('openid.mode=cancel' in finalURL, finalURL)
-        self.failIf('openid.identity=' in finalURL, finalURL)
-        self.failIf('openid.sreg.postcode=12345' in finalURL, finalURL)
+        self.assertIn('openid.mode=cancel', finalURL)
+        self.assertNotIn('openid.identity=', finalURL)
+        self.assertNotIn('openid.sreg.postcode=12345', finalURL)
 
 
 class TestShowDecidePage(TestCase):
@@ -85,8 +85,7 @@ class TestShowDecidePage(TestCase):
         views.setRequest(self.request, self.openid_request)
 
         response = views.showDecidePage(self.request, self.openid_request)
-        self.failUnless('trust_root_valid is Unreachable' in response.content,
-                        response)
+        self.assertIn('trust_root_valid is Unreachable', response.content)
 
 
 class TestGenericXRDS(TestCase):
@@ -102,6 +101,6 @@ class TestGenericXRDS(TestCase):
         requested_url = 'http://requested.invalid/'
         (endpoint,) = applyFilter(requested_url, response.content)
 
-        self.failUnlessEqual(YADIS_CONTENT_TYPE, response['Content-Type'])
-        self.failUnlessEqual(type_uris, endpoint.type_uris)
-        self.failUnlessEqual(endpoint_url, endpoint.uri)
+        self.assertEqual(response['Content-Type'], YADIS_CONTENT_TYPE)
+        self.assertEqual(endpoint.type_uris, type_uris)
+        self.assertEqual(endpoint.uri, endpoint_url)

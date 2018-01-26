@@ -9,7 +9,7 @@ if 'sdist' in sys.argv:
 version = '[library version:2.2.5]'[17:-1]
 EXTRAS_REQUIRE = {
     'quality': ('flake8', 'isort'),
-    'tests': ('mock', ),
+    'tests': ('mock', 'testfixtures'),
     # Optional dependencies for fetchers
     'httplib2': ('httplib2', ),
     'pycurl': ('pycurl', ),

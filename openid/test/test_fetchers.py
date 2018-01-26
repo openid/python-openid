@@ -1,5 +1,4 @@
 import socket
-import sys
 import unittest
 import urllib2
 import warnings
@@ -14,7 +13,7 @@ from openid import fetchers
 # XXX: make these separate test cases
 
 
-def failUnlessResponseExpected(expected, actual):
+def assertResponse(expected, actual):
     assert expected.final_url == actual.final_url, (
         "%r != %r" % (expected.final_url, actual.final_url))
     assert expected.status == actual.status
@@ -64,7 +63,7 @@ def test_fetcher(fetcher, exc, server):
             print fetcher, fetch_url
             raise
         else:
-            failUnlessResponseExpected(expected, actual)
+            assertResponse(expected, actual)
 
     for err_url in [geturl('/closed'),
                     'http://invalid.janrain.com/',
@@ -226,34 +225,31 @@ class DefaultFetcherTest(unittest.TestCase):
 
     def test_getDefaultNotNone(self):
         """Make sure that None is never returned as a default fetcher"""
-        self.failUnless(fetchers.getDefaultFetcher() is not None)
+        self.assertIsNotNone(fetchers.getDefaultFetcher())
         fetchers.setDefaultFetcher(None)
-        self.failUnless(fetchers.getDefaultFetcher() is not None)
+        self.assertIsNotNone(fetchers.getDefaultFetcher())
 
     def test_setDefault(self):
         """Make sure the getDefaultFetcher returns the object set for
         setDefaultFetcher"""
         sentinel = object()
         fetchers.setDefaultFetcher(sentinel, wrap_exceptions=False)
-        self.failUnless(fetchers.getDefaultFetcher() is sentinel)
+        self.assertEqual(fetchers.getDefaultFetcher(), sentinel)
 
     def test_callFetch(self):
         """Make sure that fetchers.fetch() uses the default fetcher
         instance that was set."""
         fetchers.setDefaultFetcher(FakeFetcher())
         actual = fetchers.fetch('bad://url')
-        self.failUnless(actual is FakeFetcher.sentinel)
+        self.assertEqual(actual, FakeFetcher.sentinel)
 
     def test_wrappedByDefault(self):
         """Make sure that the default fetcher instance wraps
         exceptions by default"""
         default_fetcher = fetchers.getDefaultFetcher()
-        self.failUnless(isinstance(default_fetcher,
-                                   fetchers.ExceptionWrappingFetcher),
-                        default_fetcher)
+        self.assertIsInstance(default_fetcher, fetchers.ExceptionWrappingFetcher)
 
-        self.failUnlessRaises(fetchers.HTTPFetchingError,
-                              fetchers.fetch, 'http://invalid.janrain.com/')
+        self.assertRaises(fetchers.HTTPFetchingError, fetchers.fetch, 'http://invalid.janrain.com/')
 
     def test_notWrapped(self):
         """Make sure that if we set a non-wrapped fetcher as default,
@@ -263,19 +259,10 @@ class DefaultFetcherTest(unittest.TestCase):
         fetcher = fetchers.Urllib2Fetcher()
         fetchers.setDefaultFetcher(fetcher, wrap_exceptions=False)
 
-        self.failIf(isinstance(fetchers.getDefaultFetcher(),
-                               fetchers.ExceptionWrappingFetcher))
+        self.assertNotIsInstance(fetchers.getDefaultFetcher(), fetchers.ExceptionWrappingFetcher)
 
-        try:
+        with self.assertRaises(urllib2.URLError):
             fetchers.fetch('http://invalid.janrain.com/')
-        except fetchers.HTTPFetchingError:
-            self.fail('Should not be wrapping exception')
-        except Exception:
-            exc = sys.exc_info()[1]
-            self.failUnless(isinstance(exc, urllib2.URLError), exc)
-            pass
-        else:
-            self.fail('Should have raised an exception')
 
 
 class TestHandler(urllib2.BaseHandler):
@@ -315,21 +302,21 @@ class TestUrllib2Fetcher(unittest.TestCase):
         self.add_response('http://example.cz/success/', 200, {'Content-Type': 'text/plain'}, 'BODY')
         response = self.fetcher.fetch('http://example.cz/success/')
         expected = fetchers.HTTPResponse('http://example.cz/success/', 200, {'Content-Type': 'text/plain'}, 'BODY')
-        failUnlessResponseExpected(expected, response)
+        assertResponse(expected, response)
 
     def test_redirect(self):
         # Test redirect response - a final response comes from another URL.
         self.add_response('http://example.cz/success/', 200, {'Content-Type': 'text/plain'}, 'BODY')
         response = self.fetcher.fetch('http://example.cz/redirect/')
         expected = fetchers.HTTPResponse('http://example.cz/success/', 200, {'Content-Type': 'text/plain'}, 'BODY')
-        failUnlessResponseExpected(expected, response)
+        assertResponse(expected, response)
 
     def test_error(self):
         # Test error responses - returned as obtained
         self.add_response('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, 'BODY')
         response = self.fetcher.fetch('http://example.cz/error/')
         expected = fetchers.HTTPResponse('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, 'BODY')
-        failUnlessResponseExpected(expected, response)
+        assertResponse(expected, response)
 
     def test_invalid_url(self):
         with self.assertRaisesRegexp(self.invalid_url_error, 'Bad URL scheme:'):
@@ -341,7 +328,7 @@ class TestUrllib2Fetcher(unittest.TestCase):
                                                        {'Content-Type': 'text/plain'}, StringIO('BODY'))
         response = self.fetcher.fetch('http://example.cz/error/')
         expected = fetchers.HTTPResponse('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, 'BODY')
-        failUnlessResponseExpected(expected, response)
+        assertResponse(expected, response)
 
 
 class TestSilencedUrllib2Fetcher(TestUrllib2Fetcher):

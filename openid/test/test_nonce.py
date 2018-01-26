@@ -9,30 +9,30 @@ nonce_re = re.compile(r'\A\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ')
 class NonceTest(unittest.TestCase):
     def test_mkNonce(self):
         nonce = mkNonce()
-        self.failUnless(nonce_re.match(nonce))
-        self.failUnless(len(nonce) == 26)
+        self.assertIsNotNone(nonce_re.match(nonce))
+        self.assertEqual(len(nonce), 26)
 
     def test_mkNonce_when(self):
         nonce = mkNonce(0)
-        self.failUnless(nonce_re.match(nonce))
-        self.failUnless(nonce.startswith('1970-01-01T00:00:00Z'))
-        self.failUnless(len(nonce) == 26)
+        self.assertIsNotNone(nonce_re.match(nonce))
+        self.assertTrue(nonce.startswith('1970-01-01T00:00:00Z'))
+        self.assertEqual(len(nonce), 26)
 
     def test_splitNonce(self):
         s = '1970-01-01T00:00:00Z'
         expected_t = 0
         expected_salt = ''
         actual_t, actual_salt = splitNonce(s)
-        self.failUnlessEqual(expected_t, actual_t)
-        self.failUnlessEqual(expected_salt, actual_salt)
+        self.assertEqual(actual_t, expected_t)
+        self.assertEqual(actual_salt, expected_salt)
 
     def test_mkSplit(self):
         t = 42
         nonce_str = mkNonce(t)
-        self.failUnless(nonce_re.match(nonce_str))
+        self.assertIsNotNone(nonce_re.match(nonce_str))
         et, salt = splitNonce(nonce_str)
-        self.failUnlessEqual(len(salt), 6)
-        self.failUnlessEqual(et, t)
+        self.assertEqual(len(salt), 6)
+        self.assertEqual(et, t)
 
 
 class BadSplitTest(unittest.TestCase):
@@ -48,7 +48,7 @@ class BadSplitTest(unittest.TestCase):
 
     def test(self):
         for nonce_str in self.cases:
-            self.failUnlessRaises(ValueError, splitNonce, nonce_str)
+            self.assertRaises(ValueError, splitNonce, nonce_str)
 
 
 class CheckTimestampTest(unittest.TestCase):
@@ -81,4 +81,4 @@ class CheckTimestampTest(unittest.TestCase):
     def test(self):
         for nonce_string, allowed_skew, now, expected in self.cases:
             actual = checkTimestamp(nonce_string, allowed_skew, now)
-            self.failUnlessEqual(bool(expected), bool(actual))
+            self.assertEqual(bool(actual), bool(expected))
