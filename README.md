@@ -10,6 +10,7 @@ REQUIREMENTS
 ============
 
  - Python 2.7.
+ - lxml
 
 
 INSTALLATION

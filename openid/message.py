@@ -8,14 +8,9 @@ import copy
 import urllib
 import warnings
 
-from openid import kvform, oidutil
+from lxml import etree as ElementTree
 
-try:
-    ElementTree = oidutil.importElementTree()
-except ImportError:
-    # No elementtree found, so give up, but don't fail to import,
-    # since we have fallbacks.
-    ElementTree = None
+from openid import kvform, oidutil
 
 # This doesn't REALLY belong here, but where is better?
 IDENTIFIER_SELECT = 'http://specs.openid.net/auth/2.0/identifier_select'
@@ -349,9 +344,6 @@ class Message(object):
             encodes the values in this Message object.
         @rtype: str or unicode
         """
-        if ElementTree is None:
-            raise RuntimeError('This function requires ElementTree.')
-
         assert action_url is not None
 
         form = ElementTree.Element(u'form')

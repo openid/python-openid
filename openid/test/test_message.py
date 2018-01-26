@@ -4,9 +4,9 @@ import urllib
 import warnings
 from urlparse import parse_qs
 
+from lxml import etree as ElementTree
 from testfixtures import ShouldWarn
 
-from openid import oidutil
 from openid.extensions import sreg
 from openid.message import (BARE_NS, NULL_NAMESPACE, OPENID1_NS, OPENID2_NS, OPENID_NS, OPENID_PROTOCOL_FIELDS,
                             THE_OTHER_OPENID1_NS, InvalidNamespace, InvalidOpenIDNamespace, Message, NamespaceMap,
@@ -727,10 +727,8 @@ class MessageTest(unittest.TestCase):
 
     def _checkForm(self, html, message_, action_url,
                    form_tag_attrs, submit_text):
-        E = oidutil.importElementTree()
-
         # Build element tree from HTML source
-        input_tree = E.ElementTree(E.fromstring(html))
+        input_tree = ElementTree.ElementTree(ElementTree.fromstring(html))
 
         # Get root element
         form = input_tree.getroot()
@@ -803,14 +801,10 @@ class MessageTest(unittest.TestCase):
             'ünicöde_key': 'ünicöde_välüe',
         }
         m = Message.fromPostArgs(postargs)
-        # Calling m.toFormMarkup with lxml used for ElementTree will throw
-        # a ValueError.
         html = m.toFormMarkup(self.action_url, self.form_tag_attrs,
                               self.submit_text)
-        # Using the (c)ElementTree from stdlib will result in the UTF-8
-        # encoded strings to be converted to XML character references,
-        # "ünicöde_key" becomes "&#195;&#188;nic&#195;&#182;de_key" and
-        # "ünicöde_välüe" becomes "&#195;&#188;nic&#195;&#182;de_v&#195;&#164;l&#195;&#188;e"
+        self.assertIn('ünicöde_key', html)
+        self.assertIn('ünicöde_välüe', html)
         self.assertNotIn('&#195;&#188;nic&#195;&#182;de_key', html,
                          'UTF-8 bytes should not convert to XML character references')
         self.assertNotIn('&#195;&#188;nic&#195;&#182;de_v&#195;&#164;l&#195;&#188;e', html,

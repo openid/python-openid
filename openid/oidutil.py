@@ -13,14 +13,6 @@ from urllib import urlencode
 
 _LOGGER = logging.getLogger(__name__)
 
-elementtree_modules = [
-    'lxml.etree',
-    'xml.etree.cElementTree',
-    'xml.etree.ElementTree',
-    'cElementTree',
-    'elementtree.ElementTree',
-]
-
 
 def toUnicode(value):
     """Returns the given argument as a unicode object.
@@ -52,41 +44,6 @@ for (var i = 0; i < elements.length; i++) {
 </body>
 </html>
 """ % (title, form)
-
-
-def importElementTree(module_names=None):
-    """Find a working ElementTree implementation, trying the standard
-    places that such a thing might show up.
-
-    >>> ElementTree = importElementTree()
-
-    @param module_names: The names of modules to try to use as
-        ElementTree. Defaults to C{L{elementtree_modules}}
-
-    @returns: An ElementTree module
-    """
-    if module_names is None:
-        module_names = elementtree_modules
-
-    for mod_name in module_names:
-        try:
-            ElementTree = __import__(mod_name, None, None, ['unused'])
-        except ImportError:
-            pass
-        else:
-            # Make sure it can actually parse XML
-            try:
-                ElementTree.XML('<unused/>')
-            except Exception:
-                logging.exception('Not using ElementTree library %r because it failed to parse a trivial document: %s',
-                                  mod_name)
-            else:
-                return ElementTree
-    else:
-        raise ImportError('No ElementTree library found. '
-                          'You may need to install one. '
-                          'Tried importing %r' % (module_names,)
-                          )
 
 
 def log(message, level=0):
