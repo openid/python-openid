@@ -17,7 +17,7 @@ class ToMessageTest(unittest.TestCase):
         ext = DummyExtension()
         ext.toMessage(oid1_msg)
         namespaces = oid1_msg.namespaces
-        self.failUnless(namespaces.isImplicit(DummyExtension.ns_uri))
+        self.assertTrue(namespaces.isImplicit(DummyExtension.ns_uri))
         self.assertEqual(DummyExtension.ns_uri, namespaces.getNamespaceURI(DummyExtension.ns_alias))
         self.assertEqual(DummyExtension.ns_alias, namespaces.getAlias(DummyExtension.ns_uri))
 

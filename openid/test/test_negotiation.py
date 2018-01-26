@@ -126,7 +126,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
             'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
 
         self.consumer.return_messages = [msg, assoc]
-        self.failUnless(self.consumer._negotiateAssociation(self.endpoint) is assoc)
+        self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), assoc)
 
         self.failUnlessLogMatches('Unsupported association type')
 
@@ -158,7 +158,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
             'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
 
         self.consumer.return_messages = [assoc]
-        self.failUnless(self.consumer._negotiateAssociation(self.endpoint) is assoc)
+        self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), assoc)
         self.failUnlessLogEmpty()
 
 
@@ -238,7 +238,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
             'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
 
         self.consumer.return_messages = [msg, assoc]
-        self.failUnless(self.consumer._negotiateAssociation(self.endpoint) is None)
+        self.assertIsNone(self.consumer._negotiateAssociation(self.endpoint))
 
         self.failUnlessLogMatches('Server error when requesting an association')
 
@@ -247,7 +247,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
             'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
 
         self.consumer.return_messages = [assoc]
-        self.failUnless(self.consumer._negotiateAssociation(self.endpoint) is assoc)
+        self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), assoc)
         self.failUnlessLogEmpty()
 
 
@@ -268,10 +268,10 @@ class TestNegotiatorBehaviors(unittest.TestCase, CatchLogs):
 
     def testAddAllowedTypeContents(self):
         assoc_type = 'HMAC-SHA1'
-        self.failUnless(self.n.addAllowedType(assoc_type) is None)
+        self.assertIsNone(self.n.addAllowedType(assoc_type))
 
         for typ in association.getSessionTypes(assoc_type):
-            self.failUnless((assoc_type, typ) in self.n.allowed_types)
+            self.assertIn((assoc_type, typ), self.n.allowed_types)
 
 
 if __name__ == '__main__':

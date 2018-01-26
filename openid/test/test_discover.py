@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os.path
-import sys
 import unittest
 from urlparse import urlsplit
 
@@ -81,17 +80,9 @@ class TestFetchException(unittest.TestCase):
     ]
 
     def runOneTest(self, exc):
-        try:
+        with self.assertRaises(Exception) as catch:
             discover.discover('http://doesnt.matter/')
-        except Exception:
-            exc = sys.exc_info()[1]
-            if exc is None:
-                # str exception
-                self.failUnless(exc is sys.exc_info()[0])
-            else:
-                self.failUnless(exc is exc, exc)
-        else:
-            self.fail('Expected %r', exc)
+        self.assertEqual(catch.exception, exc)
 
     def test(self):
         for exc in self.cases:
@@ -169,14 +160,14 @@ class BaseTestDiscovery(unittest.TestCase):
             self.failIf(s.local_id)
             self.failIf(s.getLocalID())
             self.failIf(s.compatibilityMode())
-            self.failUnless(s.isOPIdentifier())
+            self.assertTrue(s.isOPIdentifier())
             self.assertEqual(s.preferredNamespace(), discover.OPENID_2_0_MESSAGE_NS)
         else:
             self.assertEqual(s.claimed_id, claimed_id)
             self.assertEqual(s.getLocalID(), local_id)
 
         if used_yadis:
-            self.failUnless(s.used_yadis, "Expected to use Yadis")
+            self.assertTrue(s.used_yadis, "Expected to use Yadis")
         else:
             self.failIf(s.used_yadis,
                         "Expected to use old-style discovery")
@@ -193,8 +184,8 @@ class BaseTestDiscovery(unittest.TestCase):
         self.assertEqual(s.canonicalID, canonical_id)
 
         if s.canonicalID:
-            self.failUnless(s.getDisplayIdentifier() != claimed_id)
-            self.failUnless(s.getDisplayIdentifier() is not None)
+            self.assertNotEqual(s.getDisplayIdentifier(), claimed_id)
+            self.assertIsNotNone(s.getDisplayIdentifier())
             self.assertEqual(s.getDisplayIdentifier(), display_identifier)
             self.assertEqual(s.canonicalID, s.claimed_id)
 
@@ -598,7 +589,7 @@ class TestXRIDiscoveryIDP(BaseTestDiscovery):
 
     def test_xri(self):
         user_xri, services = discover.discoverXRI('=smoker')
-        self.failUnless(services, "Expected services, got zero")
+        self.assertTrue(services, "Expected services, got zero")
         self.assertEqual(services[0].server_url, "http://www.livejournal.com/openid/server.bml")
 
 
@@ -646,7 +637,7 @@ class TestIsOPIdentifier(unittest.TestCase):
 
     def test_openid2OP(self):
         self.endpoint.type_uris = [discover.OPENID_IDP_2_0_TYPE]
-        self.failUnless(self.endpoint.isOPIdentifier())
+        self.assertTrue(self.endpoint.isOPIdentifier())
 
     def test_multipleMissing(self):
         self.endpoint.type_uris = [discover.OPENID_2_0_TYPE,
@@ -657,7 +648,7 @@ class TestIsOPIdentifier(unittest.TestCase):
         self.endpoint.type_uris = [discover.OPENID_2_0_TYPE,
                                    discover.OPENID_1_0_TYPE,
                                    discover.OPENID_IDP_2_0_TYPE]
-        self.failUnless(self.endpoint.isOPIdentifier())
+        self.assertTrue(self.endpoint.isOPIdentifier())
 
 
 class TestFromOPEndpointURL(unittest.TestCase):
@@ -667,7 +658,7 @@ class TestFromOPEndpointURL(unittest.TestCase):
             self.op_endpoint_url)
 
     def test_isOPEndpoint(self):
-        self.failUnless(self.endpoint.isOPIdentifier())
+        self.assertTrue(self.endpoint.isOPIdentifier())
 
     def test_noIdentifiers(self):
         self.assertIsNone(self.endpoint.getLocalID())
@@ -727,8 +718,7 @@ class TestEndpointSupportsType(unittest.TestCase):
             discover.OPENID_IDP_2_0_TYPE,
         ]:
             if t in types:
-                self.failUnless(self.endpoint.supportsType(t),
-                                "Must support %r" % (t,))
+                self.assertTrue(self.endpoint.supportsType(t), "Must support %r" % t)
             else:
                 self.failIf(self.endpoint.supportsType(t),
                             "Shouldn't support %r" % (t,))

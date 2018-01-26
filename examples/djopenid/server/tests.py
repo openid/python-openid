@@ -50,9 +50,9 @@ class TestProcessTrustResult(TestCase):
 
         self.assertEqual(response.status_code, HTTP_REDIRECT)
         finalURL = response['location']
-        self.failUnless('openid.mode=id_res' in finalURL, finalURL)
-        self.failUnless('openid.identity=' in finalURL, finalURL)
-        self.failUnless('openid.sreg.postcode=12345' in finalURL, finalURL)
+        self.assertIn('openid.mode=id_res', finalURL)
+        self.assertIn('openid.identity=', finalURL)
+        self.assertIn('openid.sreg.postcode=12345', finalURL)
 
     def test_cancel(self):
         self.request.POST['cancel'] = 'Yes'
@@ -61,7 +61,7 @@ class TestProcessTrustResult(TestCase):
 
         self.assertEqual(response.status_code, HTTP_REDIRECT)
         finalURL = response['location']
-        self.failUnless('openid.mode=cancel' in finalURL, finalURL)
+        self.assertIn('openid.mode=cancel', finalURL)
         self.failIf('openid.identity=' in finalURL, finalURL)
         self.failIf('openid.sreg.postcode=12345' in finalURL, finalURL)
 
@@ -85,8 +85,7 @@ class TestShowDecidePage(TestCase):
         views.setRequest(self.request, self.openid_request)
 
         response = views.showDecidePage(self.request, self.openid_request)
-        self.failUnless('trust_root_valid is Unreachable' in response.content,
-                        response)
+        self.assertIn('trust_root_valid is Unreachable', response.content)
 
 
 class TestGenericXRDS(TestCase):

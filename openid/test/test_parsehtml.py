@@ -27,9 +27,9 @@ class TestParseHTML(unittest.TestCase):
                 msg = "%r != %r for case %s" % (found, expected, case)
                 self.assertEqual(found, expected, msg)
             except HTMLParseError:
-                self.failUnless(expected == 'None', (case, expected))
+                self.assertEqual(expected, 'None', (case, expected))
             else:
-                self.failUnless(expected == 'EOF', (case, expected))
+                self.assertEqual(expected, 'EOF', (case, expected))
 
 
 def parseCases(data):

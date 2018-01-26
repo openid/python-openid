@@ -9,14 +9,14 @@ nonce_re = re.compile(r'\A\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ')
 class NonceTest(unittest.TestCase):
     def test_mkNonce(self):
         nonce = mkNonce()
-        self.failUnless(nonce_re.match(nonce))
-        self.failUnless(len(nonce) == 26)
+        self.assertIsNotNone(nonce_re.match(nonce))
+        self.assertEqual(len(nonce), 26)
 
     def test_mkNonce_when(self):
         nonce = mkNonce(0)
-        self.failUnless(nonce_re.match(nonce))
-        self.failUnless(nonce.startswith('1970-01-01T00:00:00Z'))
-        self.failUnless(len(nonce) == 26)
+        self.assertIsNotNone(nonce_re.match(nonce))
+        self.assertTrue(nonce.startswith('1970-01-01T00:00:00Z'))
+        self.assertEqual(len(nonce), 26)
 
     def test_splitNonce(self):
         s = '1970-01-01T00:00:00Z'
@@ -29,7 +29,7 @@ class NonceTest(unittest.TestCase):
     def test_mkSplit(self):
         t = 42
         nonce_str = mkNonce(t)
-        self.failUnless(nonce_re.match(nonce_str))
+        self.assertIsNotNone(nonce_re.match(nonce_str))
         et, salt = splitNonce(nonce_str)
         self.assertEqual(len(salt), 6)
         self.assertEqual(et, t)

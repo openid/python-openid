@@ -1,5 +1,4 @@
 import socket
-import sys
 import unittest
 import urllib2
 import warnings
@@ -226,31 +225,29 @@ class DefaultFetcherTest(unittest.TestCase):
 
     def test_getDefaultNotNone(self):
         """Make sure that None is never returned as a default fetcher"""
-        self.failUnless(fetchers.getDefaultFetcher() is not None)
+        self.assertIsNotNone(fetchers.getDefaultFetcher())
         fetchers.setDefaultFetcher(None)
-        self.failUnless(fetchers.getDefaultFetcher() is not None)
+        self.assertIsNotNone(fetchers.getDefaultFetcher())
 
     def test_setDefault(self):
         """Make sure the getDefaultFetcher returns the object set for
         setDefaultFetcher"""
         sentinel = object()
         fetchers.setDefaultFetcher(sentinel, wrap_exceptions=False)
-        self.failUnless(fetchers.getDefaultFetcher() is sentinel)
+        self.assertEqual(fetchers.getDefaultFetcher(), sentinel)
 
     def test_callFetch(self):
         """Make sure that fetchers.fetch() uses the default fetcher
         instance that was set."""
         fetchers.setDefaultFetcher(FakeFetcher())
         actual = fetchers.fetch('bad://url')
-        self.failUnless(actual is FakeFetcher.sentinel)
+        self.assertEqual(actual, FakeFetcher.sentinel)
 
     def test_wrappedByDefault(self):
         """Make sure that the default fetcher instance wraps
         exceptions by default"""
         default_fetcher = fetchers.getDefaultFetcher()
-        self.failUnless(isinstance(default_fetcher,
-                                   fetchers.ExceptionWrappingFetcher),
-                        default_fetcher)
+        self.assertIsInstance(default_fetcher, fetchers.ExceptionWrappingFetcher)
 
         self.assertRaises(fetchers.HTTPFetchingError, fetchers.fetch, 'http://invalid.janrain.com/')
 
@@ -265,16 +262,8 @@ class DefaultFetcherTest(unittest.TestCase):
         self.failIf(isinstance(fetchers.getDefaultFetcher(),
                                fetchers.ExceptionWrappingFetcher))
 
-        try:
+        with self.assertRaises(urllib2.URLError):
             fetchers.fetch('http://invalid.janrain.com/')
-        except fetchers.HTTPFetchingError:
-            self.fail('Should not be wrapping exception')
-        except Exception:
-            exc = sys.exc_info()[1]
-            self.failUnless(isinstance(exc, urllib2.URLError), exc)
-            pass
-        else:
-            self.fail('Should have raised an exception')
 
 
 class TestHandler(urllib2.BaseHandler):

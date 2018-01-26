@@ -216,4 +216,4 @@ class PapeResponseTestCase(unittest.TestCase):
 
         oid_req = NoSigningDummyResponse(openid_req_msg, signed_stuff)
         resp = pape.Response.fromSuccessResponse(oid_req)
-        self.failUnless(resp is None)
+        self.assertIsNone(resp)

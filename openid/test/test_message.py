@@ -365,7 +365,7 @@ class OpenID1MessageTest(unittest.TestCase):
         self._test_delArgNS('urn:nothing-significant')
 
     def test_isOpenID1(self):
-        self.failUnless(self.msg.isOpenID1())
+        self.assertTrue(self.msg.isOpenID1())
 
     def test_isOpenID2(self):
         self.failIf(self.msg.isOpenID2())
@@ -404,7 +404,7 @@ class OpenID1ExplicitMessageTest(unittest.TestCase):
                          {'openid.mode': ['error'], 'openid.error': ['unit test'], 'openid.ns': [message.OPENID1_NS]})
 
     def test_isOpenID1(self):
-        self.failUnless(self.msg.isOpenID1())
+        self.assertTrue(self.msg.isOpenID1())
 
 
 class OpenID2MessageTest(unittest.TestCase):
@@ -596,15 +596,14 @@ class OpenID2MessageTest(unittest.TestCase):
             'sreg.email': 'a@b.com'}
         m = message.Message.fromOpenIDArgs(openid_args)
 
-        self.failUnless(('http://openid.net/extensions/sreg/1.1', 'sreg') in
-                        list(m.namespaces.iteritems()))
+        self.assertEqual(m.namespaces.getAlias('http://openid.net/extensions/sreg/1.1'), 'sreg')
         missing = []
         for k in openid_args['signed'].split(','):
             if not ("openid." + k) in m.toPostArgs().keys():
                 missing.append(k)
         self.assertEqual(missing, [])
         self.assertEqual(m.toArgs(), openid_args)
-        self.failUnless(m.isOpenID1())
+        self.assertTrue(m.isOpenID1())
 
     def test_112B(self):
         args = {
@@ -630,7 +629,7 @@ class OpenID2MessageTest(unittest.TestCase):
                 missing.append(k)
         self.assertEqual(missing, [], missing)
         self.assertEqual(m.toPostArgs(), args)
-        self.failUnless(m.isOpenID2())
+        self.assertTrue(m.isOpenID2())
 
     def test_repetitive_namespaces(self):
         """
@@ -658,11 +657,10 @@ class OpenID2MessageTest(unittest.TestCase):
     def test_implicit_sreg_ns(self):
         openid_args = {'sreg.email': 'a@b.com'}
         m = message.Message.fromOpenIDArgs(openid_args)
-        self.failUnless((sreg.ns_uri, 'sreg') in
-                        list(m.namespaces.iteritems()))
+        self.assertEqual(m.namespaces.getAlias(sreg.ns_uri), 'sreg')
         self.assertEqual(m.getArg(sreg.ns_uri, 'email'), 'a@b.com')
         self.assertEqual(m.toArgs(), openid_args)
-        self.failUnless(m.isOpenID1())
+        self.assertTrue(m.isOpenID1())
 
     def _test_delArgNS(self, ns):
         key = 'Camper van Beethoven'
@@ -696,9 +694,9 @@ class OpenID2MessageTest(unittest.TestCase):
         value_2 = 'value_2'
 
         self.msg.setArg(ns, key, value_1)
-        self.failUnless(self.msg.getArg(ns, key) == value_1)
+        self.assertEqual(self.msg.getArg(ns, key), value_1)
         self.msg.setArg(ns, key, value_2)
-        self.failUnless(self.msg.getArg(ns, key) == value_2)
+        self.assertEqual(self.msg.getArg(ns, key), value_2)
 
     def test_argList(self):
         self.assertRaises(TypeError, self.msg.fromPostArgs, {'arg': [1, 2, 3]})
@@ -707,7 +705,7 @@ class OpenID2MessageTest(unittest.TestCase):
         self.failIf(self.msg.isOpenID1())
 
     def test_isOpenID2(self):
-        self.failUnless(self.msg.isOpenID2())
+        self.assertTrue(self.msg.isOpenID2())
 
 
 class MessageTest(unittest.TestCase):
@@ -881,16 +879,14 @@ class MessageTest(unittest.TestCase):
 
         for ns in v1_namespaces:
             m = message.Message(ns)
-            self.failUnless(m.isOpenID1(), "%r not recognized as OpenID 1" %
-                            (ns,))
+            self.assertTrue(m.isOpenID1(), "%r not recognized as OpenID 1" % ns)
             self.assertEqual(m.getOpenIDNamespace(), ns)
-            self.failUnless(m.namespaces.isImplicit(ns),
-                            m.namespaces.getNamespaceURI(message.NULL_NAMESPACE))
+            self.assertTrue(m.namespaces.isImplicit(ns))
 
     def test_isOpenID2(self):
         ns = 'http://specs.openid.net/auth/2.0'
         m = message.Message(ns)
-        self.failUnless(m.isOpenID2())
+        self.assertTrue(m.isOpenID2())
         self.failIf(m.namespaces.isImplicit(message.NULL_NAMESPACE))
         self.assertEqual(m.getOpenIDNamespace(), ns)
 
@@ -902,7 +898,7 @@ class MessageTest(unittest.TestCase):
     def test_setOpenIDNamespace_implicit(self):
         m = message.Message()
         m.setOpenIDNamespace(message.THE_OTHER_OPENID1_NS, True)
-        self.failUnless(m.namespaces.isImplicit(message.THE_OTHER_OPENID1_NS))
+        self.assertTrue(m.namespaces.isImplicit(message.THE_OTHER_OPENID1_NS))
 
     def test_explicitOpenID11NSSerialzation(self):
         m = message.Message()
@@ -926,7 +922,7 @@ class MessageTest(unittest.TestCase):
             u'openid.trust_root': u'http://drupal.invalid',
         }
         m = message.Message.fromPostArgs(query)
-        self.failUnless(m.isOpenID1())
+        self.assertTrue(m.isOpenID1())
 
 
 class NamespaceMapTest(unittest.TestCase):
@@ -935,8 +931,8 @@ class NamespaceMapTest(unittest.TestCase):
         uri = 'http://example.com/foo'
         alias = "foo"
         nsm.addAlias(uri, alias)
-        self.failUnless(nsm.getNamespaceURI(alias) == uri)
-        self.failUnless(nsm.getAlias(uri) == alias)
+        self.assertEqual(nsm.getNamespaceURI(alias), uri)
+        self.assertEqual(nsm.getAlias(uri), alias)
 
     def test_iteration(self):
         nsm = message.NamespaceMap()
@@ -944,12 +940,12 @@ class NamespaceMapTest(unittest.TestCase):
 
         nsm.add(uripat % 0)
         for n in range(1, 23):
-            self.failUnless(uripat % (n - 1) in nsm)
-            self.failUnless(nsm.isDefined(uripat % (n - 1)))
+            self.assertIn(uripat % (n - 1), nsm)
+            self.assertTrue(nsm.isDefined(uripat % (n - 1)))
             nsm.add(uripat % n)
 
         for (uri, alias) in nsm.iteritems():
-            self.failUnless(uri[22:] == alias[3:])
+            self.assertEqual(uri[22:], alias[3:])
 
         i = 0
         it = nsm.iterAliases()
@@ -958,7 +954,7 @@ class NamespaceMapTest(unittest.TestCase):
                 it.next()
                 i += 1
         except StopIteration:
-            self.failUnless(i == 23)
+            self.assertEqual(i, 23)
 
         i = 0
         it = nsm.iterNamespaceURIs()
@@ -967,7 +963,7 @@ class NamespaceMapTest(unittest.TestCase):
                 it.next()
                 i += 1
         except StopIteration:
-            self.failUnless(i == 23)
+            self.assertEqual(i, 23)
 
 
 if __name__ == '__main__':

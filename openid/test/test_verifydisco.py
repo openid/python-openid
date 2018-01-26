@@ -17,15 +17,8 @@ def const(result):
 
 class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
     def failUnlessProtocolError(self, prefix, callable, *args, **kwargs):
-        try:
-            result = callable(*args, **kwargs)
-        except consumer.ProtocolError as e:
-            self.failUnless(
-                e[0].startswith(prefix),
-                'Expected message prefix %r, got message %r' % (prefix, e[0]))
-        else:
-            self.fail('Expected ProtocolError with prefix %r, '
-                      'got successful return %r' % (prefix, result))
+        with self.assertRaisesRegexp(consumer.ProtocolError, prefix):
+            callable(*args, **kwargs)
 
     def test_openID1NoLocalID(self):
         endpoint = discover.OpenIDServiceEndpoint()
@@ -70,7 +63,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS,
                                               'op_endpoint': op_endpoint})
         result_endpoint = self.consumer._verifyDiscoveryResults(msg)
-        self.failUnless(result_endpoint.isOPIdentifier())
+        self.assertTrue(result_endpoint.isOPIdentifier())
         self.assertEqual(result_endpoint.server_url, op_endpoint)
         self.assertIsNone(result_endpoint.claimed_id)
         self.failUnlessLogEmpty()
@@ -121,7 +114,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
              'claimed_id': endpoint.claimed_id,
              'op_endpoint': endpoint.server_url})
         result = self.consumer._verifyDiscoveryResults(msg, endpoint)
-        self.failUnless(result is endpoint)
+        self.assertEqual(result, endpoint)
         self.failUnlessLogEmpty()
 
     def test_openid2UsePreDiscoveredWrongType(self):
@@ -147,13 +140,8 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
              'claimed_id': endpoint.claimed_id,
              'op_endpoint': endpoint.server_url})
 
-        try:
-            r = self.consumer._verifyDiscoveryResults(msg, endpoint)
-        except consumer.ProtocolError as e:
-            # Should we make more ProtocolError subclasses?
-            self.failUnless(str(e), text)
-        else:
-            self.fail("expected ProtocolError, %r returned." % (r,))
+        with self.assertRaisesRegexp(consumer.ProtocolError, text):
+            self.consumer._verifyDiscoveryResults(msg, endpoint)
 
         self.failUnlessLogMatches('Error attempting to use stored',
                                   'Attempting discovery')
@@ -169,7 +157,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
             {'ns': message.OPENID1_NS,
              'identity': endpoint.local_id})
         result = self.consumer._verifyDiscoveryResults(msg, endpoint)
-        self.failUnless(result is endpoint)
+        self.assertEqual(result, endpoint)
         self.failUnlessLogEmpty()
 
     def test_openid1UsePreDiscoveredWrongType(self):
@@ -243,7 +231,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
 
         actual_endpoint = self.consumer._verifyDiscoveryResults(
             resp_mesg, endpoint)
-        self.failUnless(actual_endpoint is expected_endpoint)
+        self.assertEqual(actual_endpoint, expected_endpoint)
 
 # XXX: test the implementation of _discoverAndVerify
 

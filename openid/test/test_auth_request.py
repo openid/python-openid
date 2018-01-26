@@ -122,7 +122,7 @@ class TestAuthRequestOpenID2(AuthRequestTestMixin, unittest.TestCase):
 
     def test_setAnonymousWorksForOpenID2(self):
         """OpenID AuthRequests should be able to set 'anonymous' to true."""
-        self.failUnless(self.authreq.message.isOpenID2())
+        self.assertTrue(self.authreq.message.isOpenID2())
         self.authreq.setAnonymous(True)
         self.authreq.setAnonymous(False)
 
@@ -160,7 +160,7 @@ class TestAuthRequestOpenID1(AuthRequestTestMixin, unittest.TestCase):
 
     def failUnlessIdentifiersPresent(self, msg):
         self.failIfOpenIDKeyExists(msg, 'claimed_id')
-        self.failUnless(msg.hasKey(message.OPENID_NS, 'identity'))
+        self.assertTrue(msg.hasKey(message.OPENID_NS, 'identity'))
 
     def failUnlessHasRealm(self, msg):
         # check presence of proper realm key and absence of the wrong
@@ -172,7 +172,7 @@ class TestAuthRequestOpenID1(AuthRequestTestMixin, unittest.TestCase):
 
     def test_setAnonymousFailsForOpenID1(self):
         """OpenID 1 requests MUST NOT be able to set anonymous to True"""
-        self.failUnless(self.authreq.message.isOpenID1())
+        self.assertTrue(self.authreq.message.isOpenID1())
         self.assertRaises(ValueError, self.authreq.setAnonymous, True)
         self.authreq.setAnonymous(False)
 

@@ -30,7 +30,7 @@ class SymbolTest(unittest.TestCase):
     def test_ne_inequality(self):
         x = oidutil.Symbol('xxx')
         y = oidutil.Symbol('yyy')
-        self.failUnless(x != y)
+        self.assertNotEqual(x, y)
 
 
 if __name__ == '__main__':

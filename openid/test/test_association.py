@@ -115,7 +115,7 @@ class TestMessageSigning(unittest.TestCase):
         assoc = association.Association.fromExpiresIn(
             3600, '{sha1}', 'very_secret', "HMAC-SHA1")
         signed = assoc.signMessage(self.message)
-        self.failUnless(signed.getArg(OPENID_NS, "sig"))
+        self.assertTrue(signed.getArg(OPENID_NS, "sig"))
         self.assertEqual(signed.getArg(OPENID_NS, "signed"), "assoc_handle,identifier,mode,ns,signed")
         self.assertEqual(signed.getArg(BARE_NS, "xey"), "value")
 
@@ -123,7 +123,7 @@ class TestMessageSigning(unittest.TestCase):
         assoc = association.Association.fromExpiresIn(
             3600, '{sha1}', 'very_secret', "HMAC-SHA256")
         signed = assoc.signMessage(self.message)
-        self.failUnless(signed.getArg(OPENID_NS, "sig"))
+        self.assertTrue(signed.getArg(OPENID_NS, "sig"))
         self.assertEqual(signed.getArg(OPENID_NS, "signed"), "assoc_handle,identifier,mode,ns,signed")
         self.assertEqual(signed.getArg(BARE_NS, "xey"), "value")
 

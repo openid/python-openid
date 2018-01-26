@@ -171,21 +171,16 @@ class TestReturnToMatches(unittest.TestCase):
 
     def test_exactMatch(self):
         r = 'http://example.com/return.to'
-        self.failUnless(trustroot.returnToMatches([r], r))
+        self.assertTrue(trustroot.returnToMatches([r], r))
 
     def test_garbageMatch(self):
         r = 'http://example.com/return.to'
-        self.failUnless(trustroot.returnToMatches(
-            ['This is not a URL at all. In fact, it has characters, '
-             'like "<" that are not allowed in URLs',
-             r],
-            r))
+        realm = 'This is not a URL at all. In fact, it has characters, like "<" that are not allowed in URLs'
+        self.assertTrue(trustroot.returnToMatches([realm, r], r))
 
     def test_descendant(self):
         r = 'http://example.com/return.to'
-        self.failUnless(trustroot.returnToMatches(
-            [r],
-            'http://example.com/return.to/user:joe'))
+        self.assertTrue(trustroot.returnToMatches([r], 'http://example.com/return.to/user:joe'))
 
     def test_wildcard(self):
         self.failIf(trustroot.returnToMatches(
@@ -218,8 +213,7 @@ class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
             self.assertEqual(disco_url, 'http://www.example.com/')
             return [return_to]
 
-        self.failUnless(
-            trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
+        self.assertTrue(trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
         self.failUnlessLogEmpty()
 
     def test_verifyFailWithDiscoveryCalled(self):

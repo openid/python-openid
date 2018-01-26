@@ -42,12 +42,12 @@ class SupportsSRegTest(unittest.TestCase):
 
     def test_supported_1_1(self):
         endpoint = FakeEndpoint([sreg.ns_uri_1_1])
-        self.failUnless(sreg.supportsSReg(endpoint))
+        self.assertTrue(sreg.supportsSReg(endpoint))
         self.assertEqual(endpoint.checked_uris, [sreg.ns_uri_1_1])
 
     def test_supported_1_0(self):
         endpoint = FakeEndpoint([sreg.ns_uri_1_0])
-        self.failUnless(sreg.supportsSReg(endpoint))
+        self.assertTrue(sreg.supportsSReg(endpoint))
         self.assertEqual(endpoint.checked_uris, [sreg.ns_uri_1_1, sreg.ns_uri_1_0])
 
 
@@ -116,8 +116,8 @@ class GetNSTest(unittest.TestCase):
 
         m = Message.fromOpenIDArgs(args)
 
-        self.failUnless(m.getArg(sreg.ns_uri_1_1, 'optional') == 'nickname')
-        self.failUnless(m.getArg(sreg.ns_uri_1_1, 'required') == 'dob')
+        self.assertEqual(m.getArg(sreg.ns_uri_1_1, 'optional'), 'nickname')
+        self.assertEqual(m.getArg(sreg.ns_uri_1_1, 'required'), 'dob')
 
 
 class SRegRequestTest(unittest.TestCase):
@@ -174,7 +174,7 @@ class SRegRequestTest(unittest.TestCase):
 
         req = TestingReq.fromOpenIDRequest(openid_req)
         self.assertIsInstance(req, TestingReq)
-        self.failUnless(msg.copied)
+        self.assertTrue(msg.copied)
 
     def test_parseExtensionArgs_empty(self):
         req = sreg.SRegRequest()
@@ -260,7 +260,7 @@ class SRegRequestTest(unittest.TestCase):
         req = sreg.SRegRequest()
         self.failIf(req.wereFieldsRequested())
         req.requestField('gender')
-        self.failUnless(req.wereFieldsRequested())
+        self.assertTrue(req.wereFieldsRequested())
 
     def test_contains(self):
         req = sreg.SRegRequest()
@@ -272,7 +272,7 @@ class SRegRequestTest(unittest.TestCase):
         req.requestField('nickname')
         for field_name in sreg.data_fields:
             if field_name == 'nickname':
-                self.failUnless(field_name in req)
+                self.assertIn(field_name, req)
             else:
                 self.failIf(field_name in req)
 
@@ -406,7 +406,7 @@ class SRegResponseTest(unittest.TestCase):
     def test_construct(self):
         resp = sreg.SRegResponse(data)
 
-        self.failUnless(resp)
+        self.assertTrue(resp)
 
         empty_resp = sreg.SRegResponse({})
         self.failIf(empty_resp)

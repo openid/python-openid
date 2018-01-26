@@ -120,8 +120,8 @@ class ParseAXValuesTest(unittest.TestCase):
         attrs = list(msg.iterAttrs())
         foo = attrs[0]
 
-        self.failUnless(foo.count == ax.UNLIMITED_VALUES)
-        self.failUnless(foo.wantsUnlimitedValues())
+        self.assertEqual(foo.count, ax.UNLIMITED_VALUES)
+        self.assertTrue(foo.wantsUnlimitedValues())
 
     def test_longAlias(self):
         # Spec minimum length is 32 characters.  This is a silly test
@@ -215,7 +215,7 @@ class FetchRequestTest(unittest.TestCase):
         self.msg.add(attr)
 
         # Present after adding
-        self.failUnless(uri in self.msg)
+        self.assertIn(uri, self.msg)
 
     def test_addTwice(self):
         uri = 'lightning://storm'
@@ -301,10 +301,10 @@ class FetchRequestTest(unittest.TestCase):
             'if_available': self.alias_a
         }
         self.msg.parseExtensionArgs(extension_args)
-        self.failUnless(self.type_a in self.msg)
+        self.assertIn(self.type_a, self.msg)
         self.assertEqual(list(self.msg), [self.type_a])
         attr_info = self.msg.requested_attributes.get(self.type_a)
-        self.failUnless(attr_info)
+        self.assertIsNotNone(attr_info)
         self.failIf(attr_info.required)
         self.assertEqual(attr_info.type_uri, self.type_a)
         self.assertEqual(attr_info.alias, self.alias_a)
@@ -329,7 +329,7 @@ class FetchRequestTest(unittest.TestCase):
         }
         self.msg.parseExtensionArgs(extension_args)
         self.assertEqual(self.msg.getExtensionArgs(), extension_args)
-        self.failUnless(self.msg.requested_attributes[self.type_a].required)
+        self.assertTrue(self.msg.requested_attributes[self.type_a].required)
 
     def test_extensionArgs_count1(self):
         extension_args = {
@@ -400,7 +400,7 @@ class FetchRequestTest(unittest.TestCase):
         })
         oreq = DummyRequest(openid_req_msg)
         r = ax.FetchRequest.fromOpenIDRequest(oreq)
-        self.failUnless(r is None, "%s is not None" % (r,))
+        self.assertIsNone(r)
 
     def test_fromOpenIDRequestWithoutData(self):
         """return something for SuccessResponse with AX paramaters,
@@ -414,7 +414,7 @@ class FetchRequestTest(unittest.TestCase):
         })
         oreq = DummyRequest(openid_req_msg)
         r = ax.FetchRequest.fromOpenIDRequest(oreq)
-        self.failUnless(r is not None)
+        self.assertIsNotNone(r)
 
 
 class FetchResponseTest(unittest.TestCase):
@@ -426,7 +426,7 @@ class FetchResponseTest(unittest.TestCase):
         self.request_update_url = 'http://update.bogus/'
 
     def test_construct(self):
-        self.failUnless(self.msg.update_url is None)
+        self.assertIsNone(self.msg.update_url)
         self.assertEqual(self.msg.data, {})
 
     def test_getExtensionArgs_empty(self):
@@ -519,7 +519,7 @@ class FetchResponseTest(unittest.TestCase):
 
         oreq = SuccessResponse(Endpoint(), msg, signed_fields=sf)
         r = ax.FetchResponse.fromSuccessResponse(oreq)
-        self.failUnless(r is None, "%s is not None" % (r,))
+        self.assertIsNone(r)
 
     def test_fromSuccessResponseWithoutData(self):
         """return something for SuccessResponse with AX paramaters,
@@ -538,7 +538,7 @@ class FetchResponseTest(unittest.TestCase):
 
         oreq = SuccessResponse(Endpoint(), msg, signed_fields=sf)
         r = ax.FetchResponse.fromSuccessResponse(oreq)
-        self.failUnless(r is not None)
+        self.assertIsNotNone(r)
 
     def test_fromSuccessResponseWithData(self):
         name = 'ext0'
@@ -601,7 +601,7 @@ class StoreRequestTest(unittest.TestCase):
 class StoreResponseTest(unittest.TestCase):
     def test_success(self):
         msg = ax.StoreResponse()
-        self.failUnless(msg.succeeded())
+        self.assertTrue(msg.succeeded())
         self.failIf(msg.error_message)
         self.assertEqual(msg.getExtensionArgs(), {'mode': 'store_response_success'})
 

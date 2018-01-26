@@ -41,13 +41,8 @@ class BaseAssocTest(CatchLogs, unittest.TestCase):
         self.endpoint = OpenIDServiceEndpoint()
 
     def failUnlessProtocolError(self, str_prefix, func, *args, **kwargs):
-        try:
-            result = func(*args, **kwargs)
-        except ProtocolError as e:
-            message = 'Expected prefix %r, got %r' % (str_prefix, e[0])
-            self.failUnless(e[0].startswith(str_prefix), message)
-        else:
-            self.fail('Expected ProtocolError, got %r' % (result,))
+        with self.assertRaisesRegexp(ProtocolError, str_prefix):
+            func(*args, **kwargs)
 
 
 def mkExtractAssocMissingTest(keys):
@@ -193,7 +188,7 @@ class TestOpenID1AssociationResponseSessionType(BaseAssocTest):
         if session_type_value is not None:
             args['session_type'] = session_type_value
         message = Message.fromOpenIDArgs(args)
-        self.failUnless(message.isOpenID1())
+        self.assertTrue(message.isOpenID1())
 
         actual_session_type = self.consumer._getOpenID1SessionType(message)
         error_message = ('Returned sesion type parameter %r was expected '
@@ -278,7 +273,7 @@ class TestInvalidFields(BaseAssocTest):
         """Handle a full successful association response"""
         assoc = self.consumer._extractAssociation(
             self.assoc_response, self.assoc_session)
-        self.failUnless(self.assoc_session.extract_secret_called)
+        self.assertTrue(self.assoc_session.extract_secret_called)
         self.assertEqual(assoc.secret, self.assoc_session.secret)
         self.assertEqual(assoc.lifetime, 1000)
         self.assertEqual(assoc.handle, self.assoc_handle)
