@@ -84,25 +84,22 @@ class ToTypeURIsTest(unittest.TestCase):
 class ParseAXValuesTest(unittest.TestCase):
     """Testing AXKeyValueMessage.parseExtensionArgs."""
 
-    def failUnlessAXKeyError(self, ax_args):
-        msg = ax.AXKeyValueMessage()
-        self.assertRaises(KeyError, msg.parseExtensionArgs, ax_args)
-
-    def failUnlessAXValues(self, ax_args, expected_args):
+    def assertAXValues(self, ax_args, expected_args):
         """Fail unless parseExtensionArgs(ax_args) == expected_args."""
         msg = ax.AXKeyValueMessage()
         msg.parseExtensionArgs(ax_args)
         self.assertEqual(msg.data, expected_args)
 
     def test_emptyIsValid(self):
-        self.failUnlessAXValues({}, {})
+        self.assertAXValues({}, {})
 
     def test_missingValueForAliasExplodes(self):
-        self.failUnlessAXKeyError({'type.foo': 'urn:foo'})
+        msg = ax.AXKeyValueMessage()
+        self.assertRaises(KeyError, msg.parseExtensionArgs, {'type.foo': 'urn:foo'})
 
     def test_countPresentButNotValue(self):
-        self.failUnlessAXKeyError({'type.foo': 'urn:foo',
-                                   'count.foo': '1'})
+        msg = ax.AXKeyValueMessage()
+        self.assertRaises(KeyError, msg.parseExtensionArgs, {'type.foo': 'urn:foo', 'count.foo': '1'})
 
     def test_invalidCountValue(self):
         msg = ax.FetchRequest()
@@ -154,38 +151,22 @@ class ParseAXValuesTest(unittest.TestCase):
                 self.assertRaises(ax.AXError, msg.parseExtensionArgs, input)
 
     def test_countPresentAndIsZero(self):
-        self.failUnlessAXValues(
-            {'type.foo': 'urn:foo',
-             'count.foo': '0',
-             }, {'urn:foo': []})
+        self.assertAXValues({'type.foo': 'urn:foo', 'count.foo': '0'}, {'urn:foo': []})
 
     def test_singletonEmpty(self):
-        self.failUnlessAXValues(
-            {'type.foo': 'urn:foo',
-             'value.foo': '',
-             }, {'urn:foo': []})
+        self.assertAXValues({'type.foo': 'urn:foo', 'value.foo': ''}, {'urn:foo': []})
 
     def test_doubleAlias(self):
-        self.failUnlessAXKeyError(
-            {'type.foo': 'urn:foo',
-             'value.foo': '',
-             'type.bar': 'urn:foo',
-             'value.bar': '',
-             })
+        msg = ax.AXKeyValueMessage()
+        self.assertRaises(KeyError, msg.parseExtensionArgs,
+                          {'type.foo': 'urn:foo', 'value.foo': '', 'type.bar': 'urn:foo', 'value.bar': ''})
 
     def test_doubleSingleton(self):
-        self.failUnlessAXValues(
-            {'type.foo': 'urn:foo',
-             'value.foo': '',
-             'type.bar': 'urn:bar',
-             'value.bar': '',
-             }, {'urn:foo': [], 'urn:bar': []})
+        self.assertAXValues({'type.foo': 'urn:foo', 'value.foo': '', 'type.bar': 'urn:bar', 'value.bar': ''},
+                            {'urn:foo': [], 'urn:bar': []})
 
     def test_singletonValue(self):
-        self.failUnlessAXValues(
-            {'type.foo': 'urn:foo',
-             'value.foo': 'Westfall',
-             }, {'urn:foo': ['Westfall']})
+        self.assertAXValues({'type.foo': 'urn:foo', 'value.foo': 'Westfall'}, {'urn:foo': ['Westfall']})
 
 
 class FetchRequestTest(unittest.TestCase):
@@ -243,10 +224,7 @@ class FetchRequestTest(unittest.TestCase):
         else:
             self.fail("Didn't find the type definition")
 
-        self.failUnlessExtensionArgs({
-            'type.' + alias: attr.type_uri,
-            'if_available': alias,
-        })
+        self.assertExtensionArgs({'type.' + alias: attr.type_uri, 'if_available': alias})
 
     def test_getExtensionArgs_alias_if_available(self):
         attr = ax.AttrInfo(
@@ -254,10 +232,7 @@ class FetchRequestTest(unittest.TestCase):
             alias='transport',
         )
         self.msg.add(attr)
-        self.failUnlessExtensionArgs({
-            'type.' + attr.alias: attr.type_uri,
-            'if_available': attr.alias,
-        })
+        self.assertExtensionArgs({'type.' + attr.alias: attr.type_uri, 'if_available': attr.alias})
 
     def test_getExtensionArgs_alias_req(self):
         attr = ax.AttrInfo(
@@ -266,12 +241,9 @@ class FetchRequestTest(unittest.TestCase):
             required=True,
         )
         self.msg.add(attr)
-        self.failUnlessExtensionArgs({
-            'type.' + attr.alias: attr.type_uri,
-            'required': attr.alias,
-        })
+        self.assertExtensionArgs({'type.' + attr.alias: attr.type_uri, 'required': attr.alias})
 
-    def failUnlessExtensionArgs(self, expected_args):
+    def assertExtensionArgs(self, expected_args):
         """Make sure that getExtensionArgs has the expected result
 
         This method will fill in the mode.

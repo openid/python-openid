@@ -2,7 +2,8 @@ import unittest
 
 from openid import message
 from openid.consumer import consumer
-from openid.test import support
+
+from .utils import OpenIDTestMixin
 
 
 class DummyEndpoint(object):
@@ -25,7 +26,7 @@ class DummyAssoc(object):
     handle = "assoc-handle"
 
 
-class AuthRequestTestMixin(support.OpenIDTestMixin):
+class AuthRequestTestMixin(OpenIDTestMixin):
     """Mixin for AuthRequest tests for OpenID 1 and 2; DON'T add
     unittest.TestCase as a base class here."""
 
@@ -44,21 +45,21 @@ class AuthRequestTestMixin(support.OpenIDTestMixin):
         self.assoc = DummyAssoc()
         self.authreq = consumer.AuthRequest(self.endpoint, self.assoc)
 
-    def failUnlessAnonymous(self, msg):
+    def assertAnonymous(self, msg):
         for key in ['claimed_id', 'identity']:
-            self.failIfOpenIDKeyExists(msg, key)
+            self.assertOpenIDKeyMissing(msg, key)
 
-    def failUnlessHasRequiredFields(self, msg):
+    def assertHasRequiredFields(self, msg):
         self.assertEqual(self.authreq.message.getOpenIDNamespace(), self.preferred_namespace)
         self.assertEqual(msg.getOpenIDNamespace(), self.preferred_namespace)
 
-        self.failUnlessOpenIDValueEquals(msg, 'mode',
+        self.assertOpenIDValueEqual(msg, 'mode',
                                          self.expected_mode)
 
         # Implement these in subclasses because they depend on
         # protocol differences!
-        self.failUnlessHasRealm(msg)
-        self.failUnlessIdentifiersPresent(msg)
+        self.assertHasRealm(msg)
+        self.assertIdentifiersPresent(msg)
 
     # TESTS
 
@@ -67,13 +68,13 @@ class AuthRequestTestMixin(support.OpenIDTestMixin):
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
 
-        self.failIfOpenIDKeyExists(msg, 'assoc_handle')
+        self.assertOpenIDKeyMissing(msg, 'assoc_handle')
 
     def test_checkWithAssocHandle(self):
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
 
-        self.failUnlessOpenIDValueEquals(msg, 'assoc_handle',
+        self.assertOpenIDValueEqual(msg, 'assoc_handle',
                                          self.assoc.handle)
 
     def test_addExtensionArg(self):
@@ -95,28 +96,27 @@ class AuthRequestTestMixin(support.OpenIDTestMixin):
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
 
-        self.failUnlessHasIdentifiers(
-            msg, self.endpoint.local_id, self.endpoint.claimed_id)
+        self.assertIdentifiers(msg, self.endpoint.local_id, self.endpoint.claimed_id)
 
 
 class TestAuthRequestOpenID2(AuthRequestTestMixin, unittest.TestCase):
     preferred_namespace = message.OPENID2_NS
 
-    def failUnlessHasRealm(self, msg):
+    def assertHasRealm(self, msg):
         # check presence of proper realm key and absence of the wrong
         # one.
-        self.failUnlessOpenIDValueEquals(msg, 'realm', self.realm)
-        self.failIfOpenIDKeyExists(msg, 'trust_root')
+        self.assertOpenIDValueEqual(msg, 'realm', self.realm)
+        self.assertOpenIDKeyMissing(msg, 'trust_root')
 
-    def failUnlessIdentifiersPresent(self, msg):
+    def assertIdentifiersPresent(self, msg):
         identity_present = msg.hasKey(message.OPENID_NS, 'identity')
         claimed_present = msg.hasKey(message.OPENID_NS, 'claimed_id')
 
         self.assertEqual(claimed_present, identity_present)
 
-    def failUnlessHasIdentifiers(self, msg, op_specific_id, claimed_id):
-        self.failUnlessOpenIDValueEquals(msg, 'identity', op_specific_id)
-        self.failUnlessOpenIDValueEquals(msg, 'claimed_id', claimed_id)
+    def assertIdentifiers(self, msg, op_specific_id, claimed_id):
+        self.assertOpenIDValueEqual(msg, 'identity', op_specific_id)
+        self.assertOpenIDValueEqual(msg, 'claimed_id', claimed_id)
 
     # TESTS
 
@@ -130,43 +130,42 @@ class TestAuthRequestOpenID2(AuthRequestTestMixin, unittest.TestCase):
         self.authreq.setAnonymous(True)
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
-        self.failUnlessHasRequiredFields(msg)
-        self.failUnlessAnonymous(msg)
+        self.assertHasRequiredFields(msg)
+        self.assertAnonymous(msg)
 
     def test_opAnonymousIgnoresIdentifier(self):
         self.endpoint.is_op_identifier = True
         self.authreq.setAnonymous(True)
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
-        self.failUnlessHasRequiredFields(msg)
-        self.failUnlessAnonymous(msg)
+        self.assertHasRequiredFields(msg)
+        self.assertAnonymous(msg)
 
     def test_opIdentifierSendsIdentifierSelect(self):
         self.endpoint.is_op_identifier = True
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
-        self.failUnlessHasRequiredFields(msg)
-        self.failUnlessHasIdentifiers(
-            msg, message.IDENTIFIER_SELECT, message.IDENTIFIER_SELECT)
+        self.assertHasRequiredFields(msg)
+        self.assertIdentifiers(msg, message.IDENTIFIER_SELECT, message.IDENTIFIER_SELECT)
 
 
 class TestAuthRequestOpenID1(AuthRequestTestMixin, unittest.TestCase):
     preferred_namespace = message.OPENID1_NS
 
-    def failUnlessHasIdentifiers(self, msg, op_specific_id, claimed_id):
+    def assertIdentifiers(self, msg, op_specific_id, claimed_id):
         """Make sure claimed_is is *absent* in request."""
-        self.failUnlessOpenIDValueEquals(msg, 'identity', op_specific_id)
-        self.failIfOpenIDKeyExists(msg, 'claimed_id')
+        self.assertOpenIDValueEqual(msg, 'identity', op_specific_id)
+        self.assertOpenIDKeyMissing(msg, 'claimed_id')
 
-    def failUnlessIdentifiersPresent(self, msg):
-        self.failIfOpenIDKeyExists(msg, 'claimed_id')
+    def assertIdentifiersPresent(self, msg):
+        self.assertOpenIDKeyMissing(msg, 'claimed_id')
         self.assertTrue(msg.hasKey(message.OPENID_NS, 'identity'))
 
-    def failUnlessHasRealm(self, msg):
+    def assertHasRealm(self, msg):
         # check presence of proper realm key and absence of the wrong
         # one.
-        self.failUnlessOpenIDValueEquals(msg, 'trust_root', self.realm)
-        self.failIfOpenIDKeyExists(msg, 'realm')
+        self.assertOpenIDValueEqual(msg, 'trust_root', self.realm)
+        self.assertOpenIDKeyMissing(msg, 'realm')
 
     # TESTS
 
@@ -185,7 +184,7 @@ class TestAuthRequestOpenID1(AuthRequestTestMixin, unittest.TestCase):
         self.endpoint.is_op_identifier = True
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
-        self.failUnlessHasRequiredFields(msg)
+        self.assertHasRequiredFields(msg)
         self.assertEqual(msg.getArg(message.OPENID1_NS, 'identity'), message.IDENTIFIER_SELECT)
 
 

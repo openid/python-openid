@@ -1,8 +1,12 @@
+"""Test utilities."""
 from openid import message
 
 
 class OpenIDTestMixin(object):
-    def failUnlessOpenIDValueEquals(self, msg, key, expected, ns=None):
+    """Mixin providing custom asserts."""
+
+    def assertOpenIDValueEqual(self, msg, key, expected, ns=None):
+        """Check OpenID message contains key with expected value."""
         if ns is None:
             ns = message.OPENID_NS
 
@@ -11,10 +15,9 @@ class OpenIDTestMixin(object):
         error_message = error_format % (key, expected, actual)
         self.assertEqual(actual, expected, error_message)
 
-    def failIfOpenIDKeyExists(self, msg, key, ns=None):
+    def assertOpenIDKeyMissing(self, msg, key, ns=None):
         if ns is None:
             ns = message.OPENID_NS
 
-        actual = msg.getArg(ns, key)
-        error_message = 'openid.%s unexpectedly present: %s' % (key, actual)
-        self.assertIsNone(actual, error_message)
+        error_message = 'openid.%s unexpectedly present' % key
+        self.assertFalse(msg.hasKey(ns, key), error_message)

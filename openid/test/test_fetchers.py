@@ -13,7 +13,7 @@ from openid import fetchers
 # XXX: make these separate test cases
 
 
-def failUnlessResponseExpected(expected, actual):
+def assertResponse(expected, actual):
     assert expected.final_url == actual.final_url, (
         "%r != %r" % (expected.final_url, actual.final_url))
     assert expected.status == actual.status
@@ -63,7 +63,7 @@ def test_fetcher(fetcher, exc, server):
             print fetcher, fetch_url
             raise
         else:
-            failUnlessResponseExpected(expected, actual)
+            assertResponse(expected, actual)
 
     for err_url in [geturl('/closed'),
                     'http://invalid.janrain.com/',
@@ -302,21 +302,21 @@ class TestUrllib2Fetcher(unittest.TestCase):
         self.add_response('http://example.cz/success/', 200, {'Content-Type': 'text/plain'}, 'BODY')
         response = self.fetcher.fetch('http://example.cz/success/')
         expected = fetchers.HTTPResponse('http://example.cz/success/', 200, {'Content-Type': 'text/plain'}, 'BODY')
-        failUnlessResponseExpected(expected, response)
+        assertResponse(expected, response)
 
     def test_redirect(self):
         # Test redirect response - a final response comes from another URL.
         self.add_response('http://example.cz/success/', 200, {'Content-Type': 'text/plain'}, 'BODY')
         response = self.fetcher.fetch('http://example.cz/redirect/')
         expected = fetchers.HTTPResponse('http://example.cz/success/', 200, {'Content-Type': 'text/plain'}, 'BODY')
-        failUnlessResponseExpected(expected, response)
+        assertResponse(expected, response)
 
     def test_error(self):
         # Test error responses - returned as obtained
         self.add_response('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, 'BODY')
         response = self.fetcher.fetch('http://example.cz/error/')
         expected = fetchers.HTTPResponse('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, 'BODY')
-        failUnlessResponseExpected(expected, response)
+        assertResponse(expected, response)
 
     def test_invalid_url(self):
         with self.assertRaisesRegexp(self.invalid_url_error, 'Bad URL scheme:'):
@@ -328,7 +328,7 @@ class TestUrllib2Fetcher(unittest.TestCase):
                                                        {'Content-Type': 'text/plain'}, StringIO('BODY'))
         response = self.fetcher.fetch('http://example.cz/error/')
         expected = fetchers.HTTPResponse('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, 'BODY')
-        failUnlessResponseExpected(expected, response)
+        assertResponse(expected, response)
 
 
 class TestSilencedUrllib2Fetcher(TestUrllib2Fetcher):

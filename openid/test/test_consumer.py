@@ -497,7 +497,7 @@ class TestCompleteMissingSig(unittest.TestCase):
 
         self.consumer._verifyDiscoveryResults = _vrfy
         r = self.consumer.complete(self.message, self.endpoint, None)
-        self.failUnlessSuccess(r)
+        self.assertEqual(r.status, SUCCESS)
 
     def test_idResNoIdentity(self):
         self.message.delArg(OPENID_NS, 'identity')
@@ -505,7 +505,7 @@ class TestCompleteMissingSig(unittest.TestCase):
         self.endpoint.claimed_id = None
         self.message.setArg(OPENID_NS, 'signed', 'return_to,response_nonce,assoc_handle,op_endpoint')
         r = self.consumer.complete(self.message, self.endpoint, None)
-        self.failUnlessSuccess(r)
+        self.assertEqual(r.status, SUCCESS)
 
     def test_idResMissingIdentitySig(self):
         self.message.setArg(OPENID_NS, 'signed', 'return_to,response_nonce,assoc_handle,claimed_id')
@@ -526,10 +526,6 @@ class TestCompleteMissingSig(unittest.TestCase):
         self.message.setArg(OPENID_NS, 'signed', 'identity,response_nonce,return_to,assoc_handle')
         r = self.consumer.complete(self.message, self.endpoint, None)
         self.assertEqual(r.status, FAILURE)
-
-    def failUnlessSuccess(self, response):
-        if response.status != SUCCESS:
-            self.fail("Non-successful response: %s" % (response,))
 
 
 class TestCheckAuthResponse(TestIdRes):
@@ -626,7 +622,8 @@ class TestCheckAuthResponse(TestIdRes):
 
 
 class TestSetupNeeded(TestIdRes):
-    def failUnlessSetupNeeded(self, expected_setup_url, message):
+
+    def assertSetupNeeded(self, expected_setup_url, message):
         with self.assertRaises(SetupNeededError) as catch:
             self.consumer._checkSetupNeeded(message)
         self.assertEqual(catch.exception.user_setup_url, expected_setup_url)
@@ -639,7 +636,7 @@ class TestSetupNeeded(TestIdRes):
             'openid.user_setup_url': setup_url,
         })
         self.assertTrue(message.isOpenID1())
-        self.failUnlessSetupNeeded(setup_url, message)
+        self.assertSetupNeeded(setup_url, message)
 
     def test_setupNeededOpenID1_extra(self):
         """Extra stuff along with setup_url still trigger Setup Needed"""
@@ -650,7 +647,7 @@ class TestSetupNeeded(TestIdRes):
             'openid.identity': 'bogus',
         })
         self.assertTrue(message.isOpenID1())
-        self.failUnlessSetupNeeded(setup_url, message)
+        self.assertSetupNeeded(setup_url, message)
 
     def test_noSetupNeededOpenID1(self):
         """When the user_setup_url is missing on an OpenID 1 message,
@@ -1599,7 +1596,7 @@ class IDPDrivenTest(unittest.TestCase):
         self.consumer._checkReturnTo = lambda unused1, unused2: True
         response = self.consumer._doIdRes(message, self.endpoint, None)
 
-        self.failUnlessSuccess(response)
+        self.assertEqual(response.status, SUCCESS)
         self.assertEqual(response.identity_url, "=directed_identifier")
 
         # assert that discovery attempt happens and returns good
@@ -1620,10 +1617,6 @@ class IDPDrivenTest(unittest.TestCase):
         self.consumer._verifyDiscoveryResults = verifyDiscoveryResults
         self.consumer._checkReturnTo = lambda unused1, unused2: True
         self.assertRaises(DiscoveryFailure, self.consumer._doIdRes, message, self.endpoint, None)
-
-    def failUnlessSuccess(self, response):
-        if response.status != SUCCESS:
-            self.fail("Non-successful response: %s" % (response,))
 
 
 class TestDiscoveryVerification(unittest.TestCase):
@@ -1893,14 +1886,11 @@ class TestDiscoverAndVerify(unittest.TestCase):
         self.consumer._discover = dummyDiscover
         self.to_match = OpenIDServiceEndpoint()
 
-    def failUnlessDiscoveryFailure(self):
-        self.assertRaises(DiscoveryFailure, self.consumer._discoverAndVerify, 'http://claimed-id.com/', [self.to_match])
-
     def test_noServices(self):
         """Discovery returning no results results in a
         DiscoveryFailure exception"""
         self.discovery_result = (None, [])
-        self.failUnlessDiscoveryFailure()
+        self.assertRaises(DiscoveryFailure, self.consumer._discoverAndVerify, 'http://claimed-id.com/', [self.to_match])
 
     def test_noMatches(self):
         """If no discovered endpoint matches the values from the
@@ -1911,7 +1901,7 @@ class TestDiscoverAndVerify(unittest.TestCase):
         def raiseProtocolError(unused1, unused2):
             raise ProtocolError('unit test')
         self.consumer._verifyDiscoverySingle = raiseProtocolError
-        self.failUnlessDiscoveryFailure()
+        self.assertRaises(DiscoveryFailure, self.consumer._discoverAndVerify, 'http://claimed-id.com/', [self.to_match])
 
     def test_matches(self):
         """If an endpoint matches, we return it

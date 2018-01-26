@@ -1452,7 +1452,7 @@ class TestAssociate(unittest.TestCase):
         self.assertEqual(reply.getArg(OPENID_NS, 'reference'), reference)
         self.assertEqual(reply.getArg(OPENID_NS, 'contact'), contact)
 
-    def failUnlessExpiresInMatches(self, msg, expected_expires_in):
+    def assertExpiresIn(self, msg, expected_expires_in):
         expires_in_str = msg.getArg(OPENID_NS, 'expires_in', no_default)
         expires_in = int(expires_in_str)
 
@@ -1475,8 +1475,7 @@ class TestAssociate(unittest.TestCase):
         self.assertEqual(rfg("assoc_type"), "HMAC-SHA1")
         self.assertEqual(rfg("assoc_handle"), self.assoc.handle)
 
-        self.failUnlessExpiresInMatches(
-            response.fields, self.signatory.SECRET_LIFETIME)
+        self.assertExpiresIn(response.fields, self.signatory.SECRET_LIFETIME)
 
         self.assertEqual(rfg("mac_key"), oidutil.toBase64(self.assoc.secret))
         self.assertFalse(rfg("session_type"))
@@ -1506,8 +1505,7 @@ class TestAssociate(unittest.TestCase):
         self.assertEqual(rfg("assoc_type"), "HMAC-SHA1")
         self.assertEqual(rfg("assoc_handle"), self.assoc.handle)
 
-        self.failUnlessExpiresInMatches(
-            response.fields, self.signatory.SECRET_LIFETIME)
+        self.assertExpiresIn(response.fields, self.signatory.SECRET_LIFETIME)
 
         self.assertEqual(rfg("mac_key"), oidutil.toBase64(self.assoc.secret))
 
@@ -1524,8 +1522,7 @@ class TestAssociate(unittest.TestCase):
         self.assertEqual(rfg("assoc_type"), "HMAC-SHA1")
         self.assertEqual(rfg("assoc_handle"), self.assoc.handle)
 
-        self.failUnlessExpiresInMatches(
-            response.fields, self.signatory.SECRET_LIFETIME)
+        self.assertExpiresIn(response.fields, self.signatory.SECRET_LIFETIME)
 
         self.assertEqual(rfg("mac_key"), oidutil.toBase64(self.assoc.secret))
         self.assertFalse(rfg("session_type"))

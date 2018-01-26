@@ -40,10 +40,6 @@ class BaseAssocTest(unittest.TestCase):
         self.consumer = GenericConsumer(self.store)
         self.endpoint = OpenIDServiceEndpoint()
 
-    def failUnlessProtocolError(self, str_prefix, func, *args, **kwargs):
-        with self.assertRaisesRegexp(ProtocolError, str_prefix):
-            func(*args, **kwargs)
-
 
 def mkExtractAssocMissingTest(keys):
     """Factory function for creating test methods for generating
@@ -124,7 +120,8 @@ class ExtractAssociationSessionTypeMismatch(BaseAssocTest):
                 keys.remove('ns')
             msg = mkAssocResponse(*keys)
             msg.setArg(OPENID_NS, 'session_type', response_session_type)
-            self.failUnlessProtocolError('Session type mismatch', self.consumer._extractAssociation, msg, assoc_session)
+            with self.assertRaisesRegexp(ProtocolError, 'Session type mismatch'):
+                self.consumer._extractAssociation(msg, assoc_session)
 
         return test
 
@@ -285,14 +282,14 @@ class TestInvalidFields(BaseAssocTest):
         # Make sure that the assoc type in the response is not valid
         # for the given session.
         self.assoc_session.allowed_assoc_types = []
-        self.failUnlessProtocolError('Unsupported assoc_type for session',
-                                     self.consumer._extractAssociation, self.assoc_response, self.assoc_session)
+        with self.assertRaisesRegexp(ProtocolError, 'Unsupported assoc_type for session'):
+            self.consumer._extractAssociation(self.assoc_response, self.assoc_session)
 
     def test_badExpiresIn(self):
         # Invalid value for expires_in should cause failure
         self.assoc_response.setArg(OPENID_NS, 'expires_in', 'forever')
-        self.failUnlessProtocolError('Invalid expires_in',
-                                     self.consumer._extractAssociation, self.assoc_response, self.assoc_session)
+        with self.assertRaisesRegexp(ProtocolError, 'Invalid expires_in'):
+            self.consumer._extractAssociation(self.assoc_response, self.assoc_session)
 
 
 # XXX: This is what causes most of the imports in this file. It is
@@ -334,4 +331,5 @@ class TestExtractAssociationDiffieHellman(BaseAssocTest):
     def test_badDHValues(self):
         sess, server_resp = self._setUpDH()
         server_resp.setArg(OPENID_NS, 'enc_mac_key', '\x00\x00\x00')
-        self.failUnlessProtocolError('Malformed response for', self.consumer._extractAssociation, server_resp, sess)
+        with self.assertRaisesRegexp(ProtocolError, 'Malformed response for'):
+            self.consumer._extractAssociation(server_resp, sess)

@@ -4,7 +4,6 @@ from testfixtures import LogCapture, StringComparison
 
 from openid import message
 from openid.consumer import consumer, discover
-from openid.test.support import OpenIDTestMixin
 from openid.test.test_consumer import TestIdRes
 
 
@@ -17,10 +16,7 @@ def const(result):
     return constResult
 
 
-class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
-    def failUnlessProtocolError(self, prefix, callable, *args, **kwargs):
-        with self.assertRaisesRegexp(consumer.ProtocolError, prefix):
-            callable(*args, **kwargs)
+class DiscoveryVerificationTest(TestIdRes):
 
     def test_openID1NoLocalID(self):
         endpoint = discover.OpenIDServiceEndpoint()
@@ -28,8 +24,8 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
 
         msg = message.Message.fromOpenIDArgs({})
         with LogCapture() as logbook:
-            self.failUnlessProtocolError('Missing required field openid.identity',
-                                         self.consumer._verifyDiscoveryResults, msg, endpoint)
+            with self.assertRaisesRegexp(consumer.ProtocolError, 'Missing required field openid.identity'):
+                self.consumer._verifyDiscoveryResults(msg, endpoint)
         self.assertEqual(logbook.records, [])
 
     def test_openID1NoEndpoint(self):
@@ -49,8 +45,8 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
                                               'op_endpoint': 'Phone Home',
                                               'identity': 'Jose Lius Borges'})
         with LogCapture() as logbook:
-            self.failUnlessProtocolError('openid.identity is present without',
-                                         self.consumer._verifyDiscoveryResults, msg)
+            with self.assertRaisesRegexp(consumer.ProtocolError, 'openid.identity is present without'):
+                self.consumer._verifyDiscoveryResults(msg)
         self.assertEqual(logbook.records, [])
 
     def test_openID2NoLocalIDClaimed(self):
@@ -58,8 +54,8 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
                                               'op_endpoint': 'Phone Home',
                                               'claimed_id': 'Manuel Noriega'})
         with LogCapture() as logbook:
-            self.failUnlessProtocolError('openid.claimed_id is present without',
-                                         self.consumer._verifyDiscoveryResults, msg)
+            with self.assertRaisesRegexp(consumer.ProtocolError, 'openid.claimed_id is present without'):
+                self.consumer._verifyDiscoveryResults(msg)
         self.assertEqual(logbook.records, [])
 
     def test_openID2NoIdentifiers(self):

@@ -17,7 +17,7 @@ class TestBuildDiscoveryURL(unittest.TestCase):
     return_to URL
     """
 
-    def failUnlessDiscoURL(self, realm, expected_discovery_url):
+    def assertDiscoveryURL(self, realm, expected_discovery_url):
         """Build a discovery URL out of the realm and a return_to and
         make sure that it matches the expected discovery URL
         """
@@ -28,20 +28,17 @@ class TestBuildDiscoveryURL(unittest.TestCase):
     def test_trivial(self):
         """There is no wildcard and the realm is the same as the return_to URL
         """
-        self.failUnlessDiscoURL('http://example.com/foo',
-                                'http://example.com/foo')
+        self.assertDiscoveryURL('http://example.com/foo', 'http://example.com/foo')
 
     def test_wildcard(self):
         """There is a wildcard
         """
-        self.failUnlessDiscoURL('http://*.example.com/foo',
-                                'http://www.example.com/foo')
+        self.assertDiscoveryURL('http://*.example.com/foo', 'http://www.example.com/foo')
 
     def test_wildcard_port(self):
         """There is a wildcard
         """
-        self.failUnlessDiscoURL('http://*.example.com:8001/foo',
-                                'http://www.example.com:8001/foo')
+        self.assertDiscoveryURL('http://*.example.com:8001/foo', 'http://www.example.com:8001/foo')
 
 
 class TestExtractReturnToURLs(unittest.TestCase):
@@ -61,29 +58,24 @@ class TestExtractReturnToURLs(unittest.TestCase):
         result.normalized_uri = uri
         return result
 
-    def failUnlessFileHasReturnURLs(self, filename, expected_return_urls):
-        self.failUnlessXRDSHasReturnURLs(file(filename).read(),
-                                         expected_return_urls)
-
-    def failUnlessXRDSHasReturnURLs(self, data, expected_return_urls):
+    def assertReturnURLs(self, data, expected_return_urls):
         self.data = data
-        actual_return_urls = list(trustroot.getAllowedReturnURLs(
-            self.disco_url))
+        actual_return_urls = trustroot.getAllowedReturnURLs(self.disco_url)
 
         self.assertEqual(actual_return_urls, expected_return_urls)
 
-    def failUnlessDiscoveryFailure(self, text):
+    def assertDiscoveryFailure(self, text):
         self.data = text
         self.assertRaises(DiscoveryFailure, trustroot.getAllowedReturnURLs, self.disco_url)
 
     def test_empty(self):
-        self.failUnlessDiscoveryFailure('')
+        self.assertDiscoveryFailure('')
 
     def test_badXML(self):
-        self.failUnlessDiscoveryFailure('>')
+        self.assertDiscoveryFailure('>')
 
     def test_noEntries(self):
-        self.failUnlessXRDSHasReturnURLs('''\
+        self.assertReturnURLs('''\
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
@@ -94,7 +86,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
 ''', [])
 
     def test_noReturnToEntries(self):
-        self.failUnlessXRDSHasReturnURLs('''\
+        self.assertReturnURLs('''\
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
@@ -109,7 +101,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
 ''', [])
 
     def test_oneEntry(self):
-        self.failUnlessXRDSHasReturnURLs('''\
+        self.assertReturnURLs('''\
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
@@ -124,7 +116,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
 ''', ['http://rp.example.com/return'])
 
     def test_twoEntries(self):
-        self.failUnlessXRDSHasReturnURLs('''\
+        self.assertReturnURLs('''\
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
@@ -143,7 +135,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
 ''', ['http://rp.example.com/return', 'http://other.rp.example.com/return'])
 
     def test_twoEntries_withOther(self):
-        self.failUnlessXRDSHasReturnURLs('''\
+        self.assertReturnURLs('''\
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
