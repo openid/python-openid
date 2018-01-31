@@ -61,6 +61,9 @@ OPENID_PROTOCOL_FIELDS = [
 class UndefinedOpenIDNamespace(ValueError):
     """Raised if the generic OpenID namespace is accessed when there
     is no OpenID namespace set for this message."""
+    def __init__(self, *args, **kwargs):
+        warnings.warn("UndefinedOpenIDNamespace exception is deprecated.", DeprecationWarning)
+        super(UndefinedOpenIDNamespace, self).__init__(*args, **kwargs)
 
 
 class InvalidOpenIDNamespace(ValueError):
@@ -144,11 +147,9 @@ class Message(object):
         """
         self.args = {}
         self.namespaces = NamespaceMap()
-        if openid_namespace is None:
-            self._openid_ns_uri = None
-        else:
+        if openid_namespace is not None:
             implicit = openid_namespace in OPENID1_NAMESPACES
-            self.setOpenIDNamespace(openid_namespace, implicit)
+            self._setOpenIDNamespace(openid_namespace, implicit)
 
     @classmethod
     def fromPostArgs(cls, args):
@@ -204,13 +205,13 @@ class Message(object):
                 self.namespaces.addAlias(value, ns_key)
             elif ns_alias == NULL_NAMESPACE and ns_key == 'ns':
                 # null namespace
-                self.setOpenIDNamespace(value, False)
+                self._setOpenIDNamespace(value, False)
             else:
                 ns_args.append((ns_alias, ns_key, value))
 
         # Implicitly set an OpenID namespace definition (OpenID 1)
         if not self.getOpenIDNamespace():
-            self.setOpenIDNamespace(OPENID1_NS, True)
+            self._setOpenIDNamespace(OPENID1_NS, True)
 
         # Actually put the pairs into the appropriate namespaces
         for (ns_alias, ns_key, value) in ns_args:
@@ -237,7 +238,7 @@ class Message(object):
         else:
             return None
 
-    def setOpenIDNamespace(self, openid_ns_uri, implicit):
+    def _setOpenIDNamespace(self, openid_ns_uri, implicit):
         """Set the OpenID namespace URI used in this message.
 
         @raises InvalidOpenIDNamespace: if the namespace is not in
@@ -247,10 +248,19 @@ class Message(object):
             raise InvalidOpenIDNamespace(openid_ns_uri)
 
         self.namespaces.addAlias(openid_ns_uri, NULL_NAMESPACE, implicit)
-        self._openid_ns_uri = openid_ns_uri
+
+    def setOpenIDNamespace(self, openid_ns_uri, implicit):
+        """Set the OpenID namespace URI used in this message.
+
+        @raises InvalidOpenIDNamespace: if the namespace is not in
+            L{Message.allowed_openid_namespaces}
+        """
+        warnings.warn("Method 'setOpenIDNamespace' is deprecated. Pass namespace to Message constructor instead.",
+                      DeprecationWarning)
+        self._setOpenIDNamespace(openid_ns_uri, implicit)
 
     def getOpenIDNamespace(self):
-        return self._openid_ns_uri
+        return self.namespaces.getNamespaceURI(NULL_NAMESPACE)
 
     def isOpenID1(self):
         return self.getOpenIDNamespace() in OPENID1_NAMESPACES
@@ -379,10 +389,9 @@ class Message(object):
         @type namespace: str or unicode or BARE_NS or OPENID_NS
         """
         if namespace == OPENID_NS:
-            if self._openid_ns_uri is None:
+            namespace = self.getOpenIDNamespace()
+            if namespace is None:
                 raise UndefinedOpenIDNamespace('OpenID namespace not set')
-            else:
-                namespace = self._openid_ns_uri
 
         if namespace != BARE_NS and type(namespace) not in [str, unicode]:
             raise TypeError(

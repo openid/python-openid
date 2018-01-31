@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import unittest
 import urllib
+import warnings
 from urlparse import parse_qs
+
+from testfixtures import ShouldWarn
 
 from openid import oidutil
 from openid.extensions import sreg
@@ -839,8 +842,15 @@ class MessageTest(unittest.TestCase):
         self._checkForm(html, m, self.action_url,
                         tag_attrs, self.submit_text)
 
-    def test_setOpenIDNamespace_invalid(self):
-        m = Message()
+    def test_setOpenIDNamespace_deprecated(self):
+        message = Message()
+        warning_msg = "Method 'setOpenIDNamespace' is deprecated. Pass namespace to Message constructor instead."
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            message.setOpenIDNamespace(OPENID2_NS, False)
+        self.assertEqual(message.getOpenIDNamespace(), OPENID2_NS)
+
+    def test_openid_namespace_invalid(self):
         invalid_things = [
             # Empty string is not okay here.
             '',
@@ -853,9 +863,15 @@ class MessageTest(unittest.TestCase):
             # This is a Type URI, not a openid.ns value.
             'http://specs.openid.net/auth/2.0/signon',
         ]
+        warning_msg = "Method 'setOpenIDNamespace' is deprecated. Pass namespace to Message constructor instead."
 
         for x in invalid_things:
-            self.assertRaises(InvalidOpenIDNamespace, m.setOpenIDNamespace, x, False)
+            self.assertRaises(InvalidOpenIDNamespace, Message, x, False)
+            # Test also deprecated setOpenIDNamespace
+            message = Message()
+            with ShouldWarn(DeprecationWarning(warning_msg)):
+                warnings.simplefilter('always')
+                self.assertRaises(InvalidOpenIDNamespace, message.setOpenIDNamespace, x, False)
 
     def test_isOpenID1(self):
         v1_namespaces = [
@@ -877,19 +893,16 @@ class MessageTest(unittest.TestCase):
         self.assertFalse(m.namespaces.isImplicit(NULL_NAMESPACE))
         self.assertEqual(m.getOpenIDNamespace(), ns)
 
-    def test_setOpenIDNamespace_explicit(self):
-        m = Message()
-        m.setOpenIDNamespace(THE_OTHER_OPENID1_NS, False)
+    def test_openid1_namespace_explicit(self):
+        m = Message(THE_OTHER_OPENID1_NS, False)
         self.assertFalse(m.namespaces.isImplicit(THE_OTHER_OPENID1_NS))
 
-    def test_setOpenIDNamespace_implicit(self):
-        m = Message()
-        m.setOpenIDNamespace(THE_OTHER_OPENID1_NS, True)
+    def test_openid1_namespace_implicit(self):
+        m = Message(THE_OTHER_OPENID1_NS, True)
         self.assertTrue(m.namespaces.isImplicit(THE_OTHER_OPENID1_NS))
 
     def test_explicitOpenID11NSSerialzation(self):
-        m = Message()
-        m.setOpenIDNamespace(THE_OTHER_OPENID1_NS, implicit=False)
+        m = Message(THE_OTHER_OPENID1_NS, False)
 
         post_args = m.toPostArgs()
         self.assertEqual(post_args, {'openid.ns': THE_OTHER_OPENID1_NS})
