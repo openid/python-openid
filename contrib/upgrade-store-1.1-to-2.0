@@ -14,8 +14,8 @@
 #    * test data for mysql and postgresql.
 #    * automated tests.
 
-import os
 import getpass
+import os
 import sys
 from optparse import OptionParser
 

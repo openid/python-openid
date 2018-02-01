@@ -4,7 +4,6 @@ import urlparse
 
 from openid.test import discoverdata
 
-
 manifest_header = """\
 # This file contains test cases for doing YADIS identity URL and
 # service discovery. For each case, there are three URLs. The first
