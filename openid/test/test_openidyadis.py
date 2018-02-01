@@ -3,7 +3,6 @@ import unittest
 from openid.consumer.discover import OPENID_1_0_TYPE, OPENID_1_1_TYPE, OpenIDServiceEndpoint
 from openid.yadis.services import applyFilter
 
-
 XRDS_BOILERPLATE = '''\
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"

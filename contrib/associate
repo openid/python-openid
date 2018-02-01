@@ -3,12 +3,11 @@
 and print the results."""
 
 import sys
+from datetime import datetime
 
-from openid.store.memstore import MemoryStore
 from openid.consumer import consumer
 from openid.consumer.discover import OpenIDServiceEndpoint
-
-from datetime import datetime
+from openid.store.memstore import MemoryStore
 
 
 def verboseAssociation(assoc):

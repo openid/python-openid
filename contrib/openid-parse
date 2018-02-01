@@ -7,11 +7,11 @@ with a pattern like 'GET /foo?bar=baz HTTP'.
 Requires the 'xsel' program to get the contents of the clipboard.
 """
 
-from pprint import pformat
-from urlparse import urlsplit, urlunsplit, parse_qs
 import re
 import subprocess
 import sys
+from pprint import pformat
+from urlparse import parse_qs, urlsplit, urlunsplit
 
 from openid import message
 
