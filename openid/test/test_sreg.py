@@ -439,9 +439,7 @@ class SendFieldsTest(unittest.TestCase):
         req_msg = Message()
         req_msg.updateArgs(sreg.ns_uri, sreg_req.getExtensionArgs())
 
-        req = OpenIDRequest()
-        req.message = req_msg
-        req.namespace = req_msg.getOpenIDNamespace()
+        req = OpenIDRequest(req_msg)
 
         # -> send checkid_* request
 
