@@ -21,10 +21,9 @@ class DiffieHellman(object):
 
     DEFAULT_GEN = 2
 
+    @classmethod
     def fromDefaults(cls):
         return cls(cls.DEFAULT_MOD, cls.DEFAULT_GEN)
-
-    fromDefaults = classmethod(fromDefaults)
 
     def __init__(self, modulus, generator):
         self.modulus = long(modulus)

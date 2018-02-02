@@ -48,6 +48,7 @@ class BasicServiceEndpoint(object):
         """
         return [uri for uri in type_uris if uri in self.type_uris]
 
+    @staticmethod
     def fromBasicServiceEndpoint(endpoint):
         """Trivial transform from a basic endpoint to itself. This
         method exists to allow BasicServiceEndpoint to be used as a
@@ -59,8 +60,6 @@ class BasicServiceEndpoint(object):
         @return: The object that was passed in, with no processing.
         """
         return endpoint
-
-    fromBasicServiceEndpoint = staticmethod(fromBasicServiceEndpoint)
 
 
 class IFilter(object):

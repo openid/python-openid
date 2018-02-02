@@ -119,6 +119,7 @@ class OpenIDServiceEndpoint(object):
         else:
             return self.local_id or self.canonicalID
 
+    @classmethod
     def fromBasicServiceEndpoint(cls, endpoint):
         """Create a new instance of this class from the endpoint
         object passed in.
@@ -140,8 +141,7 @@ class OpenIDServiceEndpoint(object):
 
         return openid_endpoint
 
-    fromBasicServiceEndpoint = classmethod(fromBasicServiceEndpoint)
-
+    @classmethod
     def fromHTML(cls, uri, html):
         """Parse the given document as HTML looking for an OpenID <link
         rel=...>
@@ -172,8 +172,7 @@ class OpenIDServiceEndpoint(object):
 
         return services
 
-    fromHTML = classmethod(fromHTML)
-
+    @classmethod
     def fromXRDS(cls, uri, xrds):
         """Parse the given document as XRDS looking for OpenID services.
 
@@ -185,8 +184,7 @@ class OpenIDServiceEndpoint(object):
         """
         return extractServices(uri, xrds, cls)
 
-    fromXRDS = classmethod(fromXRDS)
-
+    @classmethod
     def fromDiscoveryResult(cls, discoveryResult):
         """Create endpoints from a DiscoveryResult.
 
@@ -205,8 +203,7 @@ class OpenIDServiceEndpoint(object):
         return method(discoveryResult.normalized_uri,
                       discoveryResult.response_text)
 
-    fromDiscoveryResult = classmethod(fromDiscoveryResult)
-
+    @classmethod
     def fromOPEndpointURL(cls, op_endpoint_url):
         """Construct an OP-Identifier OpenIDServiceEndpoint object for
         a given OP Endpoint URL
@@ -218,8 +215,6 @@ class OpenIDServiceEndpoint(object):
         service.server_url = op_endpoint_url
         service.type_uris = [OPENID_IDP_2_0_TYPE]
         return service
-
-    fromOPEndpointURL = classmethod(fromOPEndpointURL)
 
     def __str__(self):
         return ("<%s.%s "

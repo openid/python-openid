@@ -259,6 +259,7 @@ class Association(object):
         'HMAC-SHA256': cryptutil.hmacSha256,
     }
 
+    @classmethod
     def fromExpiresIn(cls, expires_in, handle, secret, assoc_type):
         """
         This is an alternate constructor used by the OpenID consumer
@@ -296,8 +297,6 @@ class Association(object):
         issued = int(time.time())
         lifetime = expires_in
         return cls(handle, secret, issued, lifetime, assoc_type)
-
-    fromExpiresIn = classmethod(fromExpiresIn)
 
     def __init__(self, handle, secret, issued, lifetime, assoc_type):
         """
@@ -421,6 +420,7 @@ class Association(object):
 
         return kvform.seqToKV(pairs, strict=True)
 
+    @classmethod
     def deserialize(cls, assoc_s):
         """
         Parse an association as stored by serialize().
@@ -452,8 +452,6 @@ class Association(object):
         lifetime = int(lifetime)
         secret = oidutil.fromBase64(secret)
         return cls(handle, secret, issued, lifetime, assoc_type)
-
-    deserialize = classmethod(deserialize)
 
     def sign(self, pairs):
         """

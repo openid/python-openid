@@ -84,6 +84,7 @@ class Request(Extension):
 
         return ns_args
 
+    @classmethod
     def fromOpenIDRequest(cls, request):
         """Instantiate a Request object from the arguments in a
         C{checkid_*} OpenID message
@@ -96,8 +97,6 @@ class Request(Extension):
 
         self.parseExtensionArgs(args)
         return self
-
-    fromOpenIDRequest = classmethod(fromOpenIDRequest)
 
     def parseExtensionArgs(self, args):
         """Set the state of this request to be that expressed in these
@@ -184,6 +183,7 @@ class Response(Extension):
         if policy_uri not in self.auth_policies:
             self.auth_policies.append(policy_uri)
 
+    @classmethod
     def fromSuccessResponse(cls, success_response):
         """Create a C{L{Response}} object from a successful OpenID
         library response
@@ -248,8 +248,6 @@ class Response(Extension):
                 self.auth_time = auth_time
             elif strict:
                 raise ValueError("auth_time must be in RFC3339 format")
-
-    fromSuccessResponse = classmethod(fromSuccessResponse)
 
     def getExtensionArgs(self):
         """@see: C{L{Extension.getExtensionArgs}}

@@ -150,6 +150,7 @@ class Message(object):
             implicit = openid_namespace in OPENID1_NAMESPACES
             self.setOpenIDNamespace(openid_namespace, implicit)
 
+    @classmethod
     def fromPostArgs(cls, args):
         """Construct a Message containing a set of POST arguments.
 
@@ -177,8 +178,7 @@ class Message(object):
 
         return self
 
-    fromPostArgs = classmethod(fromPostArgs)
-
+    @classmethod
     def fromOpenIDArgs(cls, openid_args):
         """Construct a Message from a parsed KVForm message.
 
@@ -188,8 +188,6 @@ class Message(object):
         self = cls()
         self._fromOpenIDArgs(openid_args)
         return self
-
-    fromOpenIDArgs = classmethod(fromOpenIDArgs)
 
     def _fromOpenIDArgs(self, openid_args):
         ns_args = []
@@ -260,11 +258,10 @@ class Message(object):
     def isOpenID2(self):
         return self.getOpenIDNamespace() == OPENID2_NS
 
+    @classmethod
     def fromKVForm(cls, kvform_string):
         """Create a Message from a KVForm string"""
         return cls.fromOpenIDArgs(kvform.kvToDict(kvform_string))
-
-    fromKVForm = classmethod(fromKVForm)
 
     def copy(self):
         return copy.deepcopy(self)
