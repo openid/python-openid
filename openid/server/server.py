@@ -191,6 +191,7 @@ class CheckAuthRequest(OpenIDRequest):
         self.invalidate_handle = invalidate_handle
         self.namespace = OPENID2_NS
 
+    @classmethod
     def fromMessage(klass, message, op_endpoint=UNUSED):
         """Construct me from an OpenID Message.
 
@@ -222,8 +223,6 @@ class CheckAuthRequest(OpenIDRequest):
             self.signed.setArg(OPENID_NS, "mode", "id_res")
 
         return self
-
-    fromMessage = classmethod(fromMessage)
 
     def answer(self, signatory):
         """Respond to this request.
@@ -280,10 +279,9 @@ class PlainTextServerSession(object):
     session_type = 'no-encryption'
     allowed_assoc_types = ['HMAC-SHA1', 'HMAC-SHA256']
 
+    @classmethod
     def fromMessage(cls, unused_request):
         return cls()
-
-    fromMessage = classmethod(fromMessage)
 
     def answer(self, secret):
         return {'mac_key': oidutil.toBase64(secret)}
@@ -316,6 +314,7 @@ class DiffieHellmanSHA1ServerSession(object):
         self.dh = dh
         self.consumer_pubkey = consumer_pubkey
 
+    @classmethod
     def fromMessage(cls, message):
         """
         @param message: The associate request message
@@ -356,8 +355,6 @@ class DiffieHellmanSHA1ServerSession(object):
         consumer_pubkey = cryptutil.base64ToLong(consumer_pubkey)
 
         return cls(dh, consumer_pubkey)
-
-    fromMessage = classmethod(fromMessage)
 
     def answer(self, secret):
         mac_key = self.dh.xorSecret(self.consumer_pubkey,
@@ -411,6 +408,7 @@ class AssociateRequest(OpenIDRequest):
         self.assoc_type = assoc_type
         self.namespace = OPENID2_NS
 
+    @classmethod
     def fromMessage(klass, message, op_endpoint=UNUSED):
         """Construct me from an OpenID Message.
 
@@ -461,8 +459,6 @@ class AssociateRequest(OpenIDRequest):
         self.message = message
         self.namespace = message.getOpenIDNamespace()
         return self
-
-    fromMessage = classmethod(fromMessage)
 
     def answer(self, assoc):
         """Respond to this request with an X{association}.
@@ -578,14 +574,14 @@ class CheckIDRequest(OpenIDRequest):
             raise UntrustedReturnURL(None, self.return_to, self.trust_root)
         self.message = None
 
-    def _getNamespace(self):
+    @property
+    def namespace(self):
         warnings.warn('The "namespace" attribute of CheckIDRequest objects '
                       'is deprecated. Use "message.getOpenIDNamespace()" '
                       'instead', DeprecationWarning, stacklevel=2)
         return self.message.getOpenIDNamespace()
 
-    namespace = property(_getNamespace)
-
+    @classmethod
     def fromMessage(klass, message, op_endpoint):
         """Construct me from an OpenID message.
 
@@ -677,8 +673,6 @@ class CheckIDRequest(OpenIDRequest):
             raise UntrustedReturnURL(message, self.return_to, self.trust_root)
 
         return self
-
-    fromMessage = classmethod(fromMessage)
 
     def idSelect(self):
         """Is the identifier to be selected by the IDP?

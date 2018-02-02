@@ -273,6 +273,7 @@ class FetchRequest(AXMessage):
 
         return required
 
+    @classmethod
     def fromOpenIDRequest(cls, openid_request):
         """Extract a FetchRequest from an OpenID message
 
@@ -315,8 +316,6 @@ class FetchRequest(AXMessage):
                               (self.update_url, realm,))
 
         return self
-
-    fromOpenIDRequest = classmethod(fromOpenIDRequest)
 
     def parseExtensionArgs(self, ax_args):
         """Given attribute exchange arguments, populate this FetchRequest.
@@ -671,6 +670,7 @@ class FetchResponse(AXKeyValueMessage):
         super(FetchResponse, self).parseExtensionArgs(ax_args)
         self.update_url = ax_args.get('update_url')
 
+    @classmethod
     def fromSuccessResponse(cls, success_response, signed=True):
         """Construct a FetchResponse object from an OpenID library
         SuccessResponse object.
@@ -699,8 +699,6 @@ class FetchResponse(AXKeyValueMessage):
         else:
             return self
 
-    fromSuccessResponse = classmethod(fromSuccessResponse)
-
 
 class StoreRequest(AXKeyValueMessage):
     """A store request attribute exchange message representation
@@ -724,6 +722,7 @@ class StoreRequest(AXKeyValueMessage):
         ax_args.update(kv_args)
         return ax_args
 
+    @classmethod
     def fromOpenIDRequest(cls, openid_request):
         """Extract a StoreRequest from an OpenID message
 
@@ -751,8 +750,6 @@ class StoreRequest(AXKeyValueMessage):
             return None
 
         return self
-
-    fromOpenIDRequest = classmethod(fromOpenIDRequest)
 
 
 class StoreResponse(AXMessage):
@@ -787,6 +784,7 @@ class StoreResponse(AXMessage):
 
         return ax_args
 
+    @classmethod
     def fromSuccessResponse(cls, success_response, signed=True):
         """Construct a StoreResponse object from an OpenID library
         SuccessResponse object.
@@ -814,5 +812,3 @@ class StoreResponse(AXMessage):
             return None
         else:
             return self
-
-    fromSuccessResponse = classmethod(fromSuccessResponse)

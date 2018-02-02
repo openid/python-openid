@@ -539,6 +539,7 @@ class ServerError(Exception):
         self.error_code = error_code
         self.message = message
 
+    @classmethod
     def fromMessage(cls, message):
         """Generate a ServerError instance, extracting the error text
         and the error code from the message."""
@@ -546,8 +547,6 @@ class ServerError(Exception):
             OPENID_NS, 'error', '<no error message supplied>')
         error_code = message.getArg(OPENID_NS, 'error_code')
         return cls(error_text, error_code, message)
-
-    fromMessage = classmethod(fromMessage)
 
 
 class GenericConsumer(object):
@@ -832,6 +831,7 @@ class GenericConsumer(object):
             if message.hasKey(OPENID_NS, field) and field not in signed_list:
                 raise ProtocolError('"%s" not signed' % (field,))
 
+    @staticmethod
     def _verifyReturnToArgs(query):
         """Verify that the arguments in the return_to URL are present in this
         response.
@@ -863,8 +863,6 @@ class GenericConsumer(object):
         for pair in bare_args.iteritems():
             if pair not in parsed_args:
                 raise ProtocolError("Parameter %s not in return_to URL" % (pair[0],))
-
-    _verifyReturnToArgs = staticmethod(_verifyReturnToArgs)
 
     def _verifyDiscoveryResults(self, resp_msg, endpoint=None):
         """

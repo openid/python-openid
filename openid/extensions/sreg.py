@@ -203,6 +203,7 @@ class SRegRequest(Extension):
     # overridden for testing.
     _getSRegNS = staticmethod(getSRegNS)
 
+    @classmethod
     def fromOpenIDRequest(cls, request):
         """Create a simple registration request that contains the
         fields that were requested in the OpenID request with the
@@ -225,8 +226,6 @@ class SRegRequest(Extension):
         self.parseExtensionArgs(args)
 
         return self
-
-    fromOpenIDRequest = classmethod(fromOpenIDRequest)
 
     def parseExtensionArgs(self, args, strict=False):
         """Parse the unqualified simple registration request
@@ -404,6 +403,7 @@ class SRegResponse(Extension):
 
         self.ns_uri = sreg_ns_uri
 
+    @classmethod
     def extractResponse(cls, request, data):
         """Take a C{L{SRegRequest}} and a dictionary of simple
         registration values and create a C{L{SRegResponse}}
@@ -430,12 +430,11 @@ class SRegResponse(Extension):
                 self.data[field] = value
         return self
 
-    extractResponse = classmethod(extractResponse)
-
     # Assign getSRegArgs to a static method so that it can be
     # overridden for testing
     _getSRegNS = staticmethod(getSRegNS)
 
+    @classmethod
     def fromSuccessResponse(cls, success_response, signed_only=True):
         """Create a C{L{SRegResponse}} object from a successful OpenID
         library response
@@ -468,8 +467,6 @@ class SRegResponse(Extension):
                 self.data[field_name] = args[field_name]
 
         return self
-
-    fromSuccessResponse = classmethod(fromSuccessResponse)
 
     def getExtensionArgs(self):
         """Get the fields to put in the simple registration namespace

@@ -172,6 +172,7 @@ class Request(PAPEExtension):
 
         return ns_args
 
+    @classmethod
     def fromOpenIDRequest(cls, request):
         """Instantiate a Request object from the arguments in a
         C{checkid_*} OpenID message
@@ -185,8 +186,6 @@ class Request(PAPEExtension):
 
         self.parseExtensionArgs(args, is_openid1)
         return self
-
-    fromOpenIDRequest = classmethod(fromOpenIDRequest)
 
     def parseExtensionArgs(self, args, is_openid1, strict=False):
         """Set the state of this request to be that expressed in these
@@ -325,15 +324,13 @@ class Response(PAPEExtension):
         """
         return self.auth_levels[level_uri]
 
-    def _getNISTAuthLevel(self):
+    @property
+    def nist_auth_level(self):
+        """Backward-compatibility accessor for the NIST auth level."""
         try:
             return int(self.getAuthLevel(LEVELS_NIST))
         except KeyError:
             return None
-
-    nist_auth_level = property(
-        _getNISTAuthLevel,
-        doc="Backward-compatibility accessor for the NIST auth level")
 
     def addPolicyURI(self, policy_uri):
         """Add a authentication policy to this response
@@ -352,6 +349,7 @@ class Response(PAPEExtension):
         if policy_uri not in self.auth_policies:
             self.auth_policies.append(policy_uri)
 
+    @classmethod
     def fromSuccessResponse(cls, success_response):
         """Create a C{L{Response}} object from a successful OpenID
         library response
@@ -446,8 +444,6 @@ class Response(PAPEExtension):
                 self.auth_time = auth_time
             elif strict:
                 raise ValueError("auth_time must be in RFC3339 format")
-
-    fromSuccessResponse = classmethod(fromSuccessResponse)
 
     def getExtensionArgs(self):
         """@see: C{L{Extension.getExtensionArgs}}

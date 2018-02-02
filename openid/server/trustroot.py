@@ -246,6 +246,7 @@ class TrustRoot(object):
 
         return True
 
+    @classmethod
     def parse(cls, trust_root):
         """
         This method creates a C{L{TrustRoot}} instance from the given
@@ -298,8 +299,7 @@ class TrustRoot(object):
 
         return tr
 
-    parse = classmethod(parse)
-
+    @classmethod
     def checkSanity(cls, trust_root_string):
         """str -> bool
 
@@ -311,15 +311,12 @@ class TrustRoot(object):
         else:
             return trust_root.isSane()
 
-    checkSanity = classmethod(checkSanity)
-
+    @classmethod
     def checkURL(cls, trust_root, url):
         """quick func for validating a url against a trust root.  See the
         TrustRoot class if you need more control."""
         tr = cls.parse(trust_root)
         return tr is not None and tr.validateURL(url)
-
-    checkURL = classmethod(checkURL)
 
     def buildDiscoveryURL(self):
         """Return a discovery URL for this realm.
