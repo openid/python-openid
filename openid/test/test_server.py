@@ -1,10 +1,12 @@
 """Tests for openid.server.
 """
 import unittest
+import warnings
 from functools import partial
 from urlparse import parse_qs, parse_qsl, urlparse
 
-from testfixtures import LogCapture, StringComparison
+from mock import sentinel
+from testfixtures import LogCapture, ShouldWarn, StringComparison
 
 from openid import association, cryptutil, oidutil
 from openid.consumer.consumer import DiffieHellmanSHA256ConsumerSession
@@ -23,6 +25,39 @@ ALT_MODULUS = int('1423261515703355186607439952816216983770573549498844689430217
                   '9811846875730766487278261498262568348338476437200556998366087779709990807518291581860338635288400119'
                   '293970087')
 ALT_GEN = 5
+
+
+# Example values to be used in tests
+EXAMPLE_IDENTITY = 'http://id.example.cz/'
+EXAMPLE_CLAIMED_ID = 'http://claimed.example.cz/'
+
+
+def make_checkid_request(identity=EXAMPLE_IDENTITY, claimed_id=EXAMPLE_CLAIMED_ID,
+                         trust_root='http://realm.example.cz/', return_to='http://realm.example.cz/return_to/',
+                         op_endpoint='http://op.example.cz/', immediate=False, message=None):
+    """Create a simple CheckIDRequest."""
+    message = message or Message(OPENID2_NS)
+    return server.CheckIDRequest(identity=identity, claimed_id=claimed_id, trust_root=trust_root, return_to=return_to,
+                                 op_endpoint=op_endpoint, immediate=immediate, message=message)
+
+
+class TestOpenIDRequest(unittest.TestCase):
+    """Test OpenID request base class."""
+
+    def test_init_default_message(self):
+        # Test empty OpenID 2.0 message is create if not provided.
+        request = server.OpenIDRequest()
+        self.assertTrue(request.message)
+        self.assertEqual(request.message.getOpenIDNamespace(), OPENID2_NS)
+
+    def test_namespace(self):
+        # Test deprecated namespace property
+        request = server.OpenIDRequest()
+        warning_msg = ('The "namespace" attribute of OpenIDRequest objects is deprecated. Use '
+                       '"message.getOpenIDNamespace()" instead')
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            self.assertEqual(request.namespace, OPENID2_NS)
 
 
 class TestProtocolError(unittest.TestCase):
@@ -328,7 +363,7 @@ class TestDecode(unittest.TestCase):
         r = self.decode(args)
         self.assertIsInstance(r, server.CheckAuthRequest)
         self.assertEqual(r.mode, 'check_authentication')
-        self.assertEqual(r.sig, 'sigblob')
+        self.assertEqual(r.message.getArg(OPENID_NS, 'sig'), 'sigblob')
 
     def test_checkAuthMissingSignature(self):
         args = {
@@ -488,14 +523,7 @@ class TestEncode(unittest.TestCase):
         OpenID 1 message size, a GET response (i.e., redirect) is
         issued.
         """
-        request = server.CheckIDRequest(
-            identity='http://bombom.unittest/',
-            trust_root='http://burr.unittest/',
-            return_to='http://burr.unittest/999',
-            immediate=False,
-            op_endpoint=self.server.op_endpoint,
-        )
-        request.message = Message(OPENID2_NS)
+        request = make_checkid_request()
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'ns': OPENID2_NS,
@@ -516,14 +544,7 @@ class TestEncode(unittest.TestCase):
         message size, a POST response (i.e., an HTML form) is
         returned.
         """
-        request = server.CheckIDRequest(
-            identity='http://bombom.unittest/',
-            trust_root='http://burr.unittest/',
-            return_to='http://burr.unittest/999',
-            immediate=False,
-            op_endpoint=self.server.op_endpoint,
-        )
-        request.message = Message(OPENID2_NS)
+        request = make_checkid_request()
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'ns': OPENID2_NS,
@@ -540,14 +561,7 @@ class TestEncode(unittest.TestCase):
         self.assertIn(response.toFormMarkup(), webresponse.body)
 
     def test_toFormMarkup(self):
-        request = server.CheckIDRequest(
-            identity='http://bombom.unittest/',
-            trust_root='http://burr.unittest/',
-            return_to='http://burr.unittest/999',
-            immediate=False,
-            op_endpoint=self.server.op_endpoint,
-        )
-        request.message = Message(OPENID2_NS)
+        request = make_checkid_request()
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'ns': OPENID2_NS,
@@ -561,14 +575,7 @@ class TestEncode(unittest.TestCase):
         self.assertIn(' foo="bar"', form_markup)
 
     def test_toHTML(self):
-        request = server.CheckIDRequest(
-            identity='http://bombom.unittest/',
-            trust_root='http://burr.unittest/',
-            return_to='http://burr.unittest/999',
-            immediate=False,
-            op_endpoint=self.server.op_endpoint,
-        )
-        request.message = Message(OPENID2_NS)
+        request = make_checkid_request()
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'ns': OPENID2_NS,
@@ -582,7 +589,7 @@ class TestEncode(unittest.TestCase):
         self.assertIn('</html>', html)
         self.assertIn('<body onload=', html)
         self.assertIn('<form', html)
-        self.assertIn('http://bombom.unittest/', html)
+        self.assertIn(EXAMPLE_IDENTITY, html)
 
     def test_id_res_OpenID1_exceeds_limit(self):
         """
@@ -591,14 +598,7 @@ class TestEncode(unittest.TestCase):
         shouldn't be permitted by the library, but this test is in
         place to preserve the status quo for OpenID 1.
         """
-        request = server.CheckIDRequest(
-            identity='http://bombom.unittest/',
-            trust_root='http://burr.unittest/',
-            return_to='http://burr.unittest/999',
-            immediate=False,
-            op_endpoint=self.server.op_endpoint,
-        )
-        request.message = Message(OPENID2_NS)
+        request = make_checkid_request()
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'mode': 'id_res',
@@ -613,14 +613,7 @@ class TestEncode(unittest.TestCase):
         self.assertEqual(webresponse.headers['location'], response.encodeToURL())
 
     def test_id_res(self):
-        request = server.CheckIDRequest(
-            identity='http://bombom.unittest/',
-            trust_root='http://burr.unittest/',
-            return_to='http://burr.unittest/999',
-            immediate=False,
-            op_endpoint=self.server.op_endpoint,
-        )
-        request.message = Message(OPENID2_NS)
+        request = make_checkid_request()
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'mode': 'id_res',
@@ -640,14 +633,7 @@ class TestEncode(unittest.TestCase):
         self.assertEqual(q2, expected)
 
     def test_cancel(self):
-        request = server.CheckIDRequest(
-            identity='http://bombom.unittest/',
-            trust_root='http://burr.unittest/',
-            return_to='http://burr.unittest/999',
-            immediate=False,
-            op_endpoint=self.server.op_endpoint,
-        )
-        request.message = Message(OPENID2_NS)
+        request = make_checkid_request()
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'mode': 'cancel',
@@ -657,14 +643,7 @@ class TestEncode(unittest.TestCase):
         self.assertIn('location', webresponse.headers)
 
     def test_cancelToForm(self):
-        request = server.CheckIDRequest(
-            identity='http://bombom.unittest/',
-            trust_root='http://burr.unittest/',
-            return_to='http://burr.unittest/999',
-            immediate=False,
-            op_endpoint=self.server.op_endpoint,
-        )
-        request.message = Message(OPENID2_NS)
+        request = make_checkid_request()
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'mode': 'cancel',
@@ -729,14 +708,7 @@ class TestSigningEncode(unittest.TestCase):
         self._normal_key = server.Signatory._normal_key
         self.store = memstore.MemoryStore()
         self.server = server.Server(self.store, "http://signing.unittest/enc")
-        self.request = server.CheckIDRequest(
-            identity='http://bombom.unittest/',
-            trust_root='http://burr.unittest/',
-            return_to='http://burr.unittest/999',
-            immediate=False,
-            op_endpoint=self.server.op_endpoint,
-        )
-        self.request.message = Message(OPENID2_NS)
+        self.request = make_checkid_request()
         self.response = server.OpenIDResponse(self.request)
         self.response.fields = Message.fromOpenIDArgs({
             'mode': 'id_res',
@@ -780,14 +752,7 @@ class TestSigningEncode(unittest.TestCase):
         self.assertRaises(ValueError, self.encode, self.response)
 
     def test_cancel(self):
-        request = server.CheckIDRequest(
-            identity='http://bombom.unittest/',
-            trust_root='http://burr.unittest/',
-            return_to='http://burr.unittest/999',
-            immediate=False,
-            op_endpoint=self.server.op_endpoint,
-        )
-        request.message = Message(OPENID2_NS)
+        request = make_checkid_request()
         response = server.OpenIDResponse(request)
         response.fields.setArg(OPENID_NS, 'mode', 'cancel')
         webresponse = self.encode(response)
@@ -821,14 +786,12 @@ class TestCheckID(unittest.TestCase):
         self.op_endpoint = 'http://endpoint.unittest/'
         self.store = memstore.MemoryStore()
         self.server = server.Server(self.store, self.op_endpoint)
-        self.request = server.CheckIDRequest(
-            identity='http://bambam.unittest/',
-            trust_root='http://bar.unittest/',
-            return_to='http://bar.unittest/999',
-            immediate=False,
-            op_endpoint=self.server.op_endpoint,
-        )
-        self.request.message = Message(OPENID2_NS)
+        self.request = make_checkid_request(op_endpoint=self.op_endpoint)
+
+    def test_openid2_requires_provider(self):
+        with self.assertRaisesRegexp(ValueError, 'CheckIDRequest requires op_endpoint'):
+            server.CheckIDRequest(sentinel.identity, sentinel.return_to, claimed_id=sentinel.claimed_id,
+                                  message=Message(OPENID2_NS))
 
     def test_trustRootInvalid(self):
         self.request.trust_root = "http://foo.unittest/17"
@@ -852,6 +815,7 @@ class TestCheckID(unittest.TestCase):
     def test_trustRootValidNoReturnTo(self):
         request = server.CheckIDRequest(
             identity='http://bambam.unittest/',
+            claimed_id=EXAMPLE_CLAIMED_ID,
             trust_root='http://bar.unittest/',
             return_to=None,
             immediate=False,
@@ -925,7 +889,7 @@ class TestCheckID(unittest.TestCase):
         """
         answer = self.request.answer(True)
         self.assertEqual(answer.request, self.request)
-        self._expectAnswer(answer, self.request.identity)
+        self._expectAnswer(answer, self.request.identity, EXAMPLE_CLAIMED_ID)
 
     def test_answerAllowDelegatedIdentity(self):
         self.request.claimed_id = 'http://delegating.unittest/'
@@ -937,7 +901,7 @@ class TestCheckID(unittest.TestCase):
         # This time with the identity argument explicitly passed in to
         # answer()
         self.request.claimed_id = 'http://delegating.unittest/'
-        answer = self.request.answer(True, identity='http://bambam.unittest/')
+        answer = self.request.answer(True, identity=EXAMPLE_IDENTITY)
         self._expectAnswer(answer, self.request.identity,
                            self.request.claimed_id)
 
@@ -1071,7 +1035,7 @@ class TestCheckID(unittest.TestCase):
         self.request.trust_root = None
         answer = self.request.answer(True)
         self.assertEqual(answer.request, self.request)
-        self._expectAnswer(answer, self.request.identity)
+        self._expectAnswer(answer, self.request.identity, EXAMPLE_CLAIMED_ID)
 
     def test_fromMessageWithoutTrustRoot(self):
         msg = Message(OPENID2_NS)
@@ -1115,6 +1079,7 @@ class TestCheckID(unittest.TestCase):
         """
         identity = 'http://bambam.unittest/'
         reqmessage = Message.fromOpenIDArgs({
+            'mode': 'checkid_setup',
             'identity': identity,
             'trust_root': 'http://bar.unittest/',
             'return_to': 'http://bar.unittest/999',
@@ -1214,14 +1179,7 @@ class TestCheckIDExtension(unittest.TestCase):
         self.op_endpoint = 'http://endpoint.unittest/ext'
         self.store = memstore.MemoryStore()
         self.server = server.Server(self.store, self.op_endpoint)
-        self.request = server.CheckIDRequest(
-            identity='http://bambam.unittest/',
-            trust_root='http://bar.unittest/',
-            return_to='http://bar.unittest/999',
-            immediate=False,
-            op_endpoint=self.server.op_endpoint,
-        )
-        self.request.message = Message(OPENID2_NS)
+        self.request = make_checkid_request(op_endpoint=self.op_endpoint)
         self.response = server.OpenIDResponse(self.request)
         self.response.fields.setArg(OPENID_NS, 'mode', 'id_res')
         self.response.fields.setArg(OPENID_NS, 'blue', 'star')
@@ -1586,9 +1544,8 @@ class TestServer(unittest.TestCase):
             r = server.OpenIDResponse(request)
             return r
         self.server.openid_monkeymode = monkeyDo
-        request = server.OpenIDRequest()
+        request = server.OpenIDRequest(Message(OPENID1_NS))
         request.mode = "monkeymode"
-        request.namespace = OPENID1_NS
         self.server.handleRequest(request)
         self.assertEqual(monkeycalled.count, 1)
 
@@ -1693,14 +1650,13 @@ class TestSignatory(unittest.TestCase):
         self._normal_key = self.signatory._normal_key
 
     def test_sign(self):
-        request = server.OpenIDRequest()
+        request = server.OpenIDRequest(Message(OPENID1_NS))
         assoc_handle = '{assoc}{lookatme}'
         self.store.storeAssociation(
             self._normal_key,
             association.Association.fromExpiresIn(60, assoc_handle,
                                                   'sekrit', 'HMAC-SHA1'))
         request.assoc_handle = assoc_handle
-        request.namespace = OPENID1_NS
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'foo': 'amsigned',
@@ -1717,7 +1673,6 @@ class TestSignatory(unittest.TestCase):
     def test_signDumb(self):
         request = server.OpenIDRequest()
         request.assoc_handle = None
-        request.namespace = OPENID2_NS
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'foo': 'amsigned',
@@ -1750,7 +1705,6 @@ class TestSignatory(unittest.TestCase):
             Relying Party included with the original request.
         """
         request = server.OpenIDRequest()
-        request.namespace = OPENID2_NS
         assoc_handle = '{assoc}{lookatme}'
         self.store.storeAssociation(
             self._normal_key,
@@ -1789,7 +1743,6 @@ class TestSignatory(unittest.TestCase):
 
     def test_signInvalidHandle(self):
         request = server.OpenIDRequest()
-        request.namespace = OPENID2_NS
         assoc_handle = '{bogus-assoc}{notvalid}'
 
         request.assoc_handle = assoc_handle

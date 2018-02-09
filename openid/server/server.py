@@ -150,8 +150,25 @@ class OpenIDRequest(object):
 
     @cvar mode: the C{X{openid.mode}} of this request.
     @type mode: str
+
+    @ivar message: Original request message.
+    @type message: Message
     """
     mode = None
+
+    def __init__(self, message=None):
+        if message is not None:
+            self.message = message
+        else:
+            # If no message is defined, create an empty one.
+            self.message = Message(OPENID2_NS)
+
+    @property
+    def namespace(self):
+        """Return request namespace."""
+        msg = 'The "namespace" attribute of {} objects is deprecated. Use "message.getOpenIDNamespace()" instead'
+        warnings.warn(msg.format(type(self).__name__), DeprecationWarning, stacklevel=2)
+        return self.message.getOpenIDNamespace()
 
 
 class CheckAuthRequest(OpenIDRequest):
@@ -176,7 +193,7 @@ class CheckAuthRequest(OpenIDRequest):
 
     required_fields = ["identity", "return_to", "response_nonce"]
 
-    def __init__(self, assoc_handle, signed, invalidate_handle=None):
+    def __init__(self, assoc_handle, signed, invalidate_handle=None, message=None):
         """Construct me.
 
         These parameters are assigned directly as class attributes, see
@@ -186,10 +203,10 @@ class CheckAuthRequest(OpenIDRequest):
         @type signed: L{Message}
         @type invalidate_handle: str
         """
+        super(CheckAuthRequest, self).__init__(message=message)
         self.assoc_handle = assoc_handle
         self.signed = signed
         self.invalidate_handle = invalidate_handle
-        self.namespace = OPENID2_NS
 
     @classmethod
     def fromMessage(klass, message, op_endpoint=UNUSED):
@@ -200,28 +217,22 @@ class CheckAuthRequest(OpenIDRequest):
 
         @returntype: L{CheckAuthRequest}
         """
-        self = klass.__new__(klass)
-        self.message = message
-        self.namespace = message.getOpenIDNamespace()
-        self.assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
-        self.sig = message.getArg(OPENID_NS, 'sig')
-
-        if (self.assoc_handle is None or
-                self.sig is None):
+        assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
+        sig = message.getArg(OPENID_NS, 'sig')
+        invalidate_handle = message.getArg(OPENID_NS, 'invalidate_handle')
+        if (assoc_handle is None or sig is None):
             fmt = "%s request missing required parameter from message %s"
-            raise ProtocolError(
-                message, text=fmt % (self.mode, message))
+            raise ProtocolError(message, text=fmt % (klass.mode, message))
 
-        self.invalidate_handle = message.getArg(OPENID_NS, 'invalidate_handle')
-
-        self.signed = message.copy()
+        signed = message.copy()
         # openid.mode is currently check_authentication because
         # that's the mode of this request.  But the signature
         # was made on something with a different openid.mode.
         # http://article.gmane.org/gmane.comp.web.openid.general/537
-        if self.signed.hasKey(OPENID_NS, "mode"):
-            self.signed.setArg(OPENID_NS, "mode", "id_res")
+        if signed.hasKey(OPENID_NS, "mode"):
+            signed.setArg(OPENID_NS, "mode", "id_res")
 
+        self = klass(assoc_handle, signed, invalidate_handle, message)
         return self
 
     def answer(self, signatory):
@@ -257,9 +268,8 @@ class CheckAuthRequest(OpenIDRequest):
             ih = " invalidate? %r" % (self.invalidate_handle,)
         else:
             ih = ""
-        s = "<%s handle: %r sig: %r: signed: %r%s>" % (
-            self.__class__.__name__, self.assoc_handle,
-            self.sig, self.signed, ih)
+        sig = self.message.getArg(OPENID_NS, 'sig')
+        s = "<%s handle: %r sig: %r: signed: %r%s>" % (self.__class__.__name__, self.assoc_handle, sig, self.signed, ih)
         return s
 
 
@@ -397,16 +407,15 @@ class AssociateRequest(OpenIDRequest):
         'DH-SHA256': DiffieHellmanSHA256ServerSession,
     }
 
-    def __init__(self, session, assoc_type):
+    def __init__(self, session, assoc_type, message=None):
         """Construct me.
 
         The session is assigned directly as a class attribute. See my
         L{class documentation<AssociateRequest>} for its description.
         """
-        super(AssociateRequest, self).__init__()
+        super(AssociateRequest, self).__init__(message=message)
         self.session = session
         self.assoc_type = assoc_type
-        self.namespace = OPENID2_NS
 
     @classmethod
     def fromMessage(klass, message, op_endpoint=UNUSED):
@@ -455,9 +464,7 @@ class AssociateRequest(OpenIDRequest):
             fmt = 'Session type %s does not support association type %s'
             raise ProtocolError(message, fmt % (session_type, assoc_type))
 
-        self = klass(session, assoc_type)
-        self.message = message
-        self.namespace = message.getOpenIDNamespace()
+        self = klass(session, assoc_type, message=message)
         return self
 
     def answer(self, assoc):
@@ -527,7 +534,7 @@ class CheckIDRequest(OpenIDRequest):
 
     @ivar claimed_id: The claimed identifier.  Not present in OpenID 1.x
         messages.
-    @type claimed_id: str
+    @type claimed_id: str or None
 
     @ivar trust_root: "Are you Frank?" asks the checkid request.  "Who wants
         to know?"  C{trust_root}, that's who.  This URL identifies the party
@@ -546,7 +553,7 @@ class CheckIDRequest(OpenIDRequest):
     """
 
     def __init__(self, identity, return_to, trust_root=None, immediate=False,
-                 assoc_handle=None, op_endpoint=None, claimed_id=None):
+                 assoc_handle=None, op_endpoint=None, claimed_id=None, message=None):
         """Construct me.
 
         These parameters are assigned directly as class attributes, see
@@ -554,13 +561,33 @@ class CheckIDRequest(OpenIDRequest):
 
         @raises MalformedReturnURL: When the C{return_to} URL is not a URL.
         """
+        super(CheckIDRequest, self).__init__(message=message)
         self.assoc_handle = assoc_handle
+
+        # Check the identifier validity. In case of error, create protocol error from the message in the argument.
+        if self.message.isOpenID1():
+            if identity is None:
+                s = "OpenID 1 message did not contain openid.identity"
+                raise ProtocolError(message, text=s)
+        else:
+            if identity and not claimed_id:
+                s = ("OpenID 2.0 message contained openid.identity but not "
+                     "claimed_id")
+                raise ProtocolError(message, text=s)
+            elif claimed_id and not identity:
+                s = ("OpenID 2.0 message contained openid.claimed_id but not "
+                     "identity")
+                raise ProtocolError(message, text=s)
+
         self.identity = identity
-        self.claimed_id = claimed_id or identity
+        self.claimed_id = claimed_id
         self.return_to = return_to
         self.trust_root = trust_root or return_to
+
+        if self.message.isOpenID2() and op_endpoint is None:
+            raise ValueError("CheckIDRequest requires op_endpoint argument for OpenID 2.0 requests.")
         self.op_endpoint = op_endpoint
-        assert self.op_endpoint is not None
+
         if immediate:
             self.immediate = True
             self.mode = "checkid_immediate"
@@ -568,18 +595,22 @@ class CheckIDRequest(OpenIDRequest):
             self.immediate = False
             self.mode = "checkid_setup"
 
+        # Using TrustRoot.parse here is a bit misleading, as we're not
+        # parsing return_to as a trust root at all.  However, valid URLs
+        # are valid trust roots, so we can use this to get an idea if it
+        # is a valid URL.  Not all trust roots are valid return_to URLs,
+        # however (particularly ones with wildcards), so this is still a
+        # little sketchy.
         if self.return_to is not None and not TrustRoot.parse(self.return_to):
-            raise MalformedReturnURL(None, self.return_to)
-        if not self.trustRootValid():
-            raise UntrustedReturnURL(None, self.return_to, self.trust_root)
-        self.message = None
+            raise MalformedReturnURL(message, self.return_to)
 
-    @property
-    def namespace(self):
-        warnings.warn('The "namespace" attribute of CheckIDRequest objects '
-                      'is deprecated. Use "message.getOpenIDNamespace()" '
-                      'instead', DeprecationWarning, stacklevel=2)
-        return self.message.getOpenIDNamespace()
+        # I first thought that checking to see if the return_to is within
+        # the trust_root is premature here, a logic-not-decoding thing.  But
+        # it was argued that this is really part of data validation.  A
+        # request with an invalid trust_root/return_to is broken regardless of
+        # application, right?
+        if not self.trustRootValid():
+            raise UntrustedReturnURL(message, self.return_to, self.trust_root)
 
     @classmethod
     def fromMessage(klass, message, op_endpoint):
@@ -602,38 +633,17 @@ class CheckIDRequest(OpenIDRequest):
 
         @returntype: L{CheckIDRequest}
         """
-        self = klass.__new__(klass)
-        self.message = message
-        self.op_endpoint = op_endpoint
         mode = message.getArg(OPENID_NS, 'mode')
-        if mode == "checkid_immediate":
-            self.immediate = True
-            self.mode = "checkid_immediate"
-        else:
-            self.immediate = False
-            self.mode = "checkid_setup"
+        assert mode in ('checkid_immediate', 'checkid_setup')
+        immediate = bool(mode == 'checkid_immediate')
 
-        self.return_to = message.getArg(OPENID_NS, 'return_to')
-        if message.isOpenID1() and not self.return_to:
+        return_to = message.getArg(OPENID_NS, 'return_to')
+        if message.isOpenID1() and not return_to:
             fmt = "Missing required field 'return_to' from %r"
             raise ProtocolError(message, text=fmt % (message,))
 
-        self.identity = message.getArg(OPENID_NS, 'identity')
-        self.claimed_id = message.getArg(OPENID_NS, 'claimed_id')
-        if message.isOpenID1():
-            if self.identity is None:
-                s = "OpenID 1 message did not contain openid.identity"
-                raise ProtocolError(message, text=s)
-        else:
-            if self.identity and not self.claimed_id:
-                s = ("OpenID 2.0 message contained openid.identity but not "
-                     "claimed_id")
-                raise ProtocolError(message, text=s)
-            elif self.claimed_id and not self.identity:
-                s = ("OpenID 2.0 message contained openid.claimed_id but not "
-                     "identity")
-                raise ProtocolError(message, text=s)
-
+        identity = message.getArg(OPENID_NS, 'identity')
+        claimed_id = message.getArg(OPENID_NS, 'claimed_id')
         # There's a case for making self.trust_root be a TrustRoot
         # here.  But if TrustRoot isn't currently part of the "public" API,
         # I'm not sure it's worth doing.
@@ -646,32 +656,15 @@ class CheckIDRequest(OpenIDRequest):
         # Using 'or' here is slightly different than sending a default
         # argument to getArg, as it will treat no value and an empty
         # string as equivalent.
-        self.trust_root = (message.getArg(OPENID_NS, trust_root_param) or self.return_to)
+        trust_root = (message.getArg(OPENID_NS, trust_root_param) or return_to)
 
-        if not message.isOpenID1():
-            if self.return_to is self.trust_root is None:
-                raise ProtocolError(message, "openid.realm required when " +
-                                    "openid.return_to absent")
+        if not message.isOpenID1() and (return_to is trust_root is None):
+            raise ProtocolError(message, "openid.realm required when openid.return_to absent")
 
-        self.assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
+        assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
 
-        # Using TrustRoot.parse here is a bit misleading, as we're not
-        # parsing return_to as a trust root at all.  However, valid URLs
-        # are valid trust roots, so we can use this to get an idea if it
-        # is a valid URL.  Not all trust roots are valid return_to URLs,
-        # however (particularly ones with wildcards), so this is still a
-        # little sketchy.
-        if self.return_to is not None and not TrustRoot.parse(self.return_to):
-            raise MalformedReturnURL(message, self.return_to)
-
-        # I first thought that checking to see if the return_to is within
-        # the trust_root is premature here, a logic-not-decoding thing.  But
-        # it was argued that this is really part of data validation.  A
-        # request with an invalid trust_root/return_to is broken regardless of
-        # application, right?
-        if not self.trustRootValid():
-            raise UntrustedReturnURL(message, self.return_to, self.trust_root)
-
+        self = klass(identity, return_to, trust_root=trust_root, immediate=immediate, assoc_handle=assoc_handle,
+                     op_endpoint=op_endpoint, claimed_id=claimed_id, message=message)
         return self
 
     def idSelect(self):
@@ -773,8 +766,6 @@ class CheckIDRequest(OpenIDRequest):
 
         @raises NoReturnError: when I do not have a return_to.
         """
-        assert self.message is not None
-
         if not self.return_to:
             raise NoReturnToError
 
@@ -974,7 +965,7 @@ class OpenIDResponse(object):
         @type request: L{OpenIDRequest}
         """
         self.request = request
-        self.fields = Message(request.namespace)
+        self.fields = Message(request.message.getOpenIDNamespace())
 
     def __str__(self):
         return "%s for %s: %s" % (
