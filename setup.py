@@ -13,10 +13,11 @@ INSTALL_REQUIRES = [
 ]
 EXTRAS_REQUIRE = {
     'quality': ('flake8', 'isort'),
-    'tests': ('mock', 'testfixtures', 'coverage'),
+    'tests': ('mock', 'testfixtures', 'responses', 'coverage'),
     # Optional dependencies for fetchers
     'httplib2': ('httplib2', ),
     'pycurl': ('pycurl', ),
+    'requests': ('requests', ),
     # Dependencies for Django example
     'djopenid': ('django<1.11.99', ),
 }
