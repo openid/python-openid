@@ -146,7 +146,7 @@ class SQLStore(OpenIDStore):
                 return str(arg)
             else:
                 return arg
-        str_args = map(unicode_to_str, args)
+        str_args = [unicode_to_str(i) for i in args]
         self.cur.execute(sql, str_args)
 
     def __getattr__(self, attr):

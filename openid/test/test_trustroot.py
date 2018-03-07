@@ -42,7 +42,7 @@ class MatchTest(unittest.TestCase):
 def getTests(grps, head, dat):
     tests = []
     top = head.strip()
-    gdat = map(str.strip, dat.split('-' * 40 + '\n'))
+    gdat = [i.strip() for i in dat.split('-' * 40 + '\n')]
     assert not gdat[0]
     assert len(gdat) == (len(grps) * 2 + 1), (gdat, grps)
     i = 1
@@ -57,7 +57,7 @@ def getTests(grps, head, dat):
 
 
 def parseTests(data):
-    parts = map(str.strip, data.split('=' * 40 + '\n'))
+    parts = [i.strip() for i in data.split('=' * 40 + '\n')]
     assert not parts[0]
     _, ph, pdat, mh, mdat = parts
     return ph, pdat, mh, mdat

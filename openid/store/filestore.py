@@ -333,9 +333,7 @@ class FileOpenIDStore(OpenIDStore):
     def _allAssocs(self):
         all_associations = []
 
-        association_filenames = map(
-            lambda filename: os.path.join(self.association_dir, filename),
-            os.listdir(self.association_dir))
+        association_filenames = [os.path.join(self.association_dir, f) for f in os.listdir(self.association_dir)]
         for association_filename in association_filenames:
             try:
                 association_file = file(association_filename, 'rb')

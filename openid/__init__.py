@@ -45,7 +45,7 @@ __all__ = [
 
 # Parse the version info
 try:
-    version_info = map(int, __version__.split('.'))
+    version_info = tuple(int(i) for i in __version__.split('.'))
 except ValueError:
     version_info = (None, None, None)
 else:

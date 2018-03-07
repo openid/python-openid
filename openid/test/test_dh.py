@@ -31,8 +31,8 @@ class TestStrXor(unittest.TestCase):
             ('', 'a'),
             ('foo', 'ba'),
             (NUL * 3, NUL * 4),
-            (''.join(map(chr, xrange(256))),
-             ''.join(map(chr, xrange(128)))),
+            (''.join(chr(i) for i in range(256)),
+             ''.join(chr(i) for i in range(128))),
         ]
 
         for aa, bb in exc_cases:

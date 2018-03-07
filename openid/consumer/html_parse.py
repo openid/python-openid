@@ -249,7 +249,7 @@ def findLinksRel(link_attrs_list, target_rel):
     as a relationship."""
     # XXX: TESTME
     matchesTarget = partial(linkHasRel, target_rel=target_rel)
-    return filter(matchesTarget, link_attrs_list)
+    return [i for i in link_attrs_list if matchesTarget(i)]
 
 
 def findFirstHref(link_attrs_list, target_rel):

@@ -6,7 +6,6 @@
 """
 
 import re
-from functools import reduce
 
 XRI_AUTHORITIES = ['!', '=', '@', '+', '$', '(']
 
@@ -51,9 +50,7 @@ else:
     ]
 
 
-_escapeme_re = re.compile('[%s]' % (''.join(
-    map(lambda m_n: u'%s-%s' % (unichr(m_n[0]), unichr(m_n[1])),
-        UCSCHAR + IPRIVATE)),))
+_escapeme_re = re.compile('[%s]' % ''.join(u'%s-%s' % (unichr(m_n[0]), unichr(m_n[1])) for m_n in UCSCHAR + IPRIVATE))
 
 
 def identifierScheme(identifier):
@@ -147,7 +144,7 @@ def rootAuthority(xri):
     else:
         # IRI reference.  XXX: Can IRI authorities have segments?
         segments = authority.split('!')
-        segments = reduce(list.__add__, map(lambda s: s.split('*'), segments))
+        segments = [c for s in segments for c in s.split('*')]
         root = segments[0]
 
     return XRI(root)

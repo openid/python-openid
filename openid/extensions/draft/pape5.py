@@ -264,8 +264,7 @@ class Request(PAPEExtension):
 
         @returntype: [str]
         """
-        return filter(self.preferred_auth_policies.__contains__,
-                      supported_types)
+        return [i for i in supported_types if i in self.preferred_auth_policies]
 
 
 Request.ns_uri = ns_uri
