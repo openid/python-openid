@@ -10,7 +10,7 @@ def strxor(x, y):
     if len(x) != len(y):
         raise ValueError('Inputs to strxor must have the same length')
 
-    return "".join(map(_xor, zip(x, y)))
+    return "".join(_xor((a, b)) for a, b in zip(x, y))
 
 
 class DiffieHellman(object):

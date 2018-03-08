@@ -27,7 +27,7 @@ class TestBase64(unittest.TestCase):
             '\x00',
             '\x01',
             '\x00' * 100,
-            ''.join(map(chr, range(256))),
+            ''.join(chr(i) for i in range(256)),
         ]
 
         for s in cases:
@@ -39,7 +39,7 @@ class TestBase64(unittest.TestCase):
         # Randomized test
         for _ in xrange(50):
             n = random.randrange(2048)
-            s = ''.join(map(chr, map(lambda _: random.randrange(256), range(n))))
+            s = ''.join(chr(random.randrange(256)) for i in range(n))
             b64 = oidutil.toBase64(s)
             checkEncoded(b64)
             s_prime = oidutil.fromBase64(b64)

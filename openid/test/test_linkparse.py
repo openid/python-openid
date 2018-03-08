@@ -30,7 +30,7 @@ def parseCase(s):
     name = lines.pop(0)
     assert name.startswith('Name: ')
     desc = name[6:]
-    return desc, markup, map(parseLink, lines)
+    return desc, markup, [parseLink(l) for l in lines]
 
 
 def parseTests(s):

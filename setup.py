@@ -7,6 +7,10 @@ if 'sdist' in sys.argv:
     os.system('./admin/makedoc')
 
 version = '[library version:2.2.5]'[17:-1]
+INSTALL_REQUIRES = [
+    'lxml;platform_python_implementation=="CPython"',
+    'lxml <4.0;platform_python_implementation=="PyPy"',
+]
 EXTRAS_REQUIRE = {
     'quality': ('flake8', 'isort'),
     'tests': ('mock', 'testfixtures'),
@@ -35,6 +39,7 @@ and support for a variety of storage back-ends.''',
               'openid.extensions',
               'openid.extensions.draft',
               ],
+    install_requires=INSTALL_REQUIRES,
     extras_require=EXTRAS_REQUIRE,
     # license specified by classifier.
     # license=getLicense(),

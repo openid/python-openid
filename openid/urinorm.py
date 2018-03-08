@@ -75,9 +75,7 @@ _unreserved[ord('_')] = True
 _unreserved[ord('~')] = True
 
 
-_escapeme_re = re.compile('[%s]' % (''.join(
-    map(lambda m_n: u'%s-%s' % (unichr(m_n[0]), unichr(m_n[1])),
-        UCSCHAR + IPRIVATE)),))
+_escapeme_re = re.compile('[%s]' % ''.join(u'%s-%s' % (unichr(m_n[0]), unichr(m_n[1])) for m_n in UCSCHAR + IPRIVATE))
 
 
 def _pct_escape_unicode(char_match):
