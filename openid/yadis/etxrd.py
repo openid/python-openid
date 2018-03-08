@@ -22,7 +22,7 @@ import random
 from datetime import datetime
 from time import strptime
 
-from lxml import etree as ElementTree
+from lxml import etree
 
 from openid.yadis import xri
 
@@ -48,14 +48,15 @@ def parseXRDS(text):
     @raises XRDSError: When there is a parse error or the document does
         not contain an XRDS.
     """
+    parser = etree.XMLParser(resolve_entities=False)
     try:
-        element = ElementTree.XML(text)
-    except ElementTree.Error as why:
+        element = etree.XML(text, parser)
+    except etree.Error as why:
         exc = XRDSError('Error parsing document as XML')
         exc.reason = why
         raise exc
     else:
-        tree = ElementTree.ElementTree(element)
+        tree = etree.ElementTree(element)
         if not isXRDS(tree):
             raise XRDSError('Not an XRDS document')
 

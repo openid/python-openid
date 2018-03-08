@@ -1,5 +1,8 @@
 import os.path
+import tempfile
 import unittest
+
+from lxml import etree
 
 from openid.yadis import etxrd, services, xri
 
@@ -30,6 +33,53 @@ def simpleOpenIDTransformer(endpoint):
     assert len(delegates) == 1
     delegate = delegates[0].text
     return (endpoint.uri, delegate)
+
+
+class TestParseXRDS(unittest.TestCase):
+    """Test `parseXRDS` function."""
+
+    def assertXmlEqual(self, result, expected):
+        self.assertEqual(result.tag, expected.tag)
+        self.assertEqual(result.text, expected.text)
+        self.assertEqual(result.tail, expected.tail)
+        self.assertEqual(result.attrib, expected.attrib)
+        self.assertEqual(len(result), len(expected))
+        for child_r, child_e in zip(result, expected):
+            self.assertXmlEqual(child_r, child_e)
+
+    def test_minimal_xrds(self):
+        xml = '<xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)"></xrds:XRDS>'
+        tree = etxrd.parseXRDS(xml)
+        self.assertIsInstance(tree, type(etree.ElementTree()))
+        self.assertXmlEqual(tree.getroot(), etree.XML(xml))
+
+    def test_not_xrds(self):
+        xml = '<not_xrds />'
+        with self.assertRaisesRegexp(etxrd.XRDSError, 'Not an XRDS document'):
+            etxrd.parseXRDS(xml)
+
+    def test_invalid_xml(self):
+        xml = '<'
+        with self.assertRaisesRegexp(etxrd.XRDSError, 'Error parsing document as XML'):
+            etxrd.parseXRDS(xml)
+
+    def test_xxe(self):
+        xxe_content = 'XXE CONTENT'
+        _, tmp_file = tempfile.mkstemp()
+        try:
+            with open(tmp_file, 'w') as xxe_file:
+                xxe_file.write(xxe_content)
+            # XXE example from Testing for XML Injection (OTG-INPVAL-008)
+            # https://www.owasp.org/index.php/Testing_for_XML_Injection_(OTG-INPVAL-008)
+            xml = ('<?xml version="1.0" encoding="ISO-8859-1"?>'
+                   '<!DOCTYPE foo ['
+                   '<!ELEMENT foo ANY >'
+                   '<!ENTITY xxe SYSTEM "file://%s" >]>'
+                   '<xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">&xxe;</xrds:XRDS>')
+            tree = etxrd.parseXRDS(xml % tmp_file)
+            self.assertNotIn(xxe_content, etree.tostring(tree))
+        finally:
+            os.remove(tmp_file)
 
 
 class TestServiceParser(unittest.TestCase):
