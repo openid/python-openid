@@ -13,7 +13,7 @@ INSTALL_REQUIRES = [
 ]
 EXTRAS_REQUIRE = {
     'quality': ('flake8', 'isort'),
-    'tests': ('mock', 'testfixtures'),
+    'tests': ('mock', 'testfixtures', 'coverage'),
     # Optional dependencies for fetchers
     'httplib2': ('httplib2', ),
     'pycurl': ('pycurl', ),
