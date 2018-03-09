@@ -1,105 +1,12 @@
-import re
+"""URI normalization utilities."""
+from __future__ import unicode_literals
 
-# from appendix B of rfc 3986 (http://www.ietf.org/rfc/rfc3986.txt)
-uri_pattern = r'^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?'
-uri_re = re.compile(uri_pattern)
+import string
+import warnings
+from urllib import quote, unquote, urlencode
+from urlparse import parse_qsl, urlsplit, urlunsplit
 
-# gen-delims  = ":" / "/" / "?" / "#" / "[" / "]" / "@"
-#
-# sub-delims  = "!" / "$" / "&" / "'" / "(" / ")"
-#                  / "*" / "+" / "," / ";" / "="
-#
-# unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
-
-uri_illegal_char_re = re.compile(
-    "[^-A-Za-z0-9:/?#[\]@!$&'()*+,;=._~%]", re.UNICODE)
-
-authority_pattern = r'^([^@]*@)?([^:]*)(:.*)?'
-authority_re = re.compile(authority_pattern)
-
-
-pct_encoded_pattern = r'%([0-9A-Fa-f]{2})'
-pct_encoded_re = re.compile(pct_encoded_pattern)
-
-try:
-    unichr(0x10000)
-except ValueError:
-    # narrow python build
-    UCSCHAR = [
-        (0xA0, 0xD7FF),
-        (0xF900, 0xFDCF),
-        (0xFDF0, 0xFFEF),
-    ]
-
-    IPRIVATE = [
-        (0xE000, 0xF8FF),
-    ]
-else:
-    UCSCHAR = [
-        (0xA0, 0xD7FF),
-        (0xF900, 0xFDCF),
-        (0xFDF0, 0xFFEF),
-        (0x10000, 0x1FFFD),
-        (0x20000, 0x2FFFD),
-        (0x30000, 0x3FFFD),
-        (0x40000, 0x4FFFD),
-        (0x50000, 0x5FFFD),
-        (0x60000, 0x6FFFD),
-        (0x70000, 0x7FFFD),
-        (0x80000, 0x8FFFD),
-        (0x90000, 0x9FFFD),
-        (0xA0000, 0xAFFFD),
-        (0xB0000, 0xBFFFD),
-        (0xC0000, 0xCFFFD),
-        (0xD0000, 0xDFFFD),
-        (0xE1000, 0xEFFFD),
-    ]
-
-    IPRIVATE = [
-        (0xE000, 0xF8FF),
-        (0xF0000, 0xFFFFD),
-        (0x100000, 0x10FFFD),
-    ]
-
-
-_unreserved = [False] * 256
-for _ in range(ord('A'), ord('Z') + 1):
-    _unreserved[_] = True
-for _ in range(ord('0'), ord('9') + 1):
-    _unreserved[_] = True
-for _ in range(ord('a'), ord('z') + 1):
-    _unreserved[_] = True
-_unreserved[ord('-')] = True
-_unreserved[ord('.')] = True
-_unreserved[ord('_')] = True
-_unreserved[ord('~')] = True
-
-
-_escapeme_re = re.compile('[%s]' % ''.join(u'%s-%s' % (unichr(m_n[0]), unichr(m_n[1])) for m_n in UCSCHAR + IPRIVATE))
-
-
-def _pct_escape_unicode(char_match):
-    c = char_match.group()
-    return ''.join(['%%%X' % (ord(octet),) for octet in c.encode('utf-8')])
-
-
-def _pct_encoded_replace_unreserved(mo):
-    try:
-        i = int(mo.group(1), 16)
-        if _unreserved[i]:
-            return chr(i)
-        else:
-            return mo.group().upper()
-
-    except ValueError:
-        return mo.group()
-
-
-def _pct_encoded_replace(mo):
-    try:
-        return chr(int(mo.group(1), 16))
-    except ValueError:
-        return mo.group()
+import six
 
 
 def remove_dot_segments(path):
@@ -137,65 +44,92 @@ def remove_dot_segments(path):
     return ''.join(result_segments)
 
 
+GEN_DELIMS = ":" + "/" + "?" + "#" + "[" + "]" + "@"
+SUB_DELIMS = "!" + "$" + "&" + "'" + "(" + ")" + "*" + "+" + "," + ";" + "="
+RESERVED = GEN_DELIMS + SUB_DELIMS
+UNRESERVED = string.ascii_letters + string.digits + "-" + "." + "_" + "~"
+# Allow "%" as percent encoding character
+PERCENT_ENCODING_CHARACTER = "%"
+
+
+def _check_disallowed_characters(uri_part, part_name):
+    # Roughly check the allowed characters. The check in not strict according to URI ABNF, but good enough.
+    # Also allow "%" for percent encoding.
+    if set(uri_part).difference(set(UNRESERVED + RESERVED + PERCENT_ENCODING_CHARACTER)):
+        raise ValueError('Illegal characters in URI {}: {}'.format(part_name, uri_part))
+
+
 def urinorm(uri):
-    if isinstance(uri, unicode):
-        uri = _escapeme_re.sub(_pct_escape_unicode, uri).encode('ascii')
+    """Return normalized URI.
 
-    illegal_mo = uri_illegal_char_re.search(uri)
-    if illegal_mo:
-        raise ValueError('Illegal characters in URI: %r at position %s' %
-                         (illegal_mo.group(), illegal_mo.start()))
+    Normalization if performed according to RFC 3986, section 6 https://tools.ietf.org/html/rfc3986#section-6.
+    Supported URIs are URLs and OpenID realm URIs.
 
-    uri_mo = uri_re.match(uri)
+    @type uri: six.text_type, six.binary_type deprecated
+    @rtype: six.text_type
+    @raise ValueError: If URI is invalid.
+    """
+    # Transform the input to the unicode string
+    if isinstance(uri, six.binary_type):
+        warnings.warn("Binary input for urinorm is deprecated. Use text input instead.", DeprecationWarning)
+        uri = uri.decode('utf-8')
 
-    scheme = uri_mo.group(2)
-    if scheme is None:
-        raise ValueError('No scheme specified')
+    split_uri = urlsplit(uri)
 
-    scheme = scheme.lower()
+    # Normalize scheme
+    scheme = split_uri.scheme.lower()
     if scheme not in ('http', 'https'):
-        raise ValueError('Not an absolute HTTP or HTTPS URI: %r' % (uri,))
+        raise ValueError('Not an absolute HTTP or HTTPS URI: {!r}'.format(uri))
 
-    authority = uri_mo.group(4)
-    if authority is None:
-        raise ValueError('Not an absolute URI: %r' % (uri,))
+    # Normalize netloc
+    if not split_uri.netloc:
+        raise ValueError('Not an absolute URI: {!r}'.format(uri))
 
-    authority_mo = authority_re.match(authority)
-    if authority_mo is None:
-        raise ValueError('URI does not have a valid authority: %r' % (uri,))
-
-    userinfo, host, port = authority_mo.groups()
-
-    if userinfo is None:
-        userinfo = ''
-
-    if '%' in host:
-        host = host.lower()
-        host = pct_encoded_re.sub(_pct_encoded_replace, host)
-        host = unicode(host, 'utf-8').encode('idna')
+    hostname = split_uri.hostname
+    if hostname is None:
+        hostname = ''
     else:
-        host = host.lower()
+        hostname = hostname.lower()
+    # Unquote percent encoded characters
+    hostname = unquote(hostname)
+    # Quote IDN domain names
+    try:
+        hostname = hostname.encode('idna')
+    except ValueError as error:
+        raise ValueError('Invalid hostname {!r}: {}'.format(hostname, error))
+    _check_disallowed_characters(hostname, 'hostname')
 
-    if port:
-        if port == ':' or (scheme == 'http' and port == ':80') or (scheme == 'https' and port == ':443'):
-            port = ''
-    else:
+    port = split_uri.port
+    if port is None:
+        port = ''
+    elif (scheme == 'http' and port == 80) or (scheme == 'https' and port == 443):
         port = ''
 
-    authority = userinfo + host + port
+    netloc = hostname
+    if port:
+        netloc = netloc + ':' + str(port)
+    userinfo_chunks = [i for i in (split_uri.username, split_uri.password) if i is not None]
+    if userinfo_chunks:
+        userinfo = ':'.join(userinfo_chunks)
+        _check_disallowed_characters(userinfo, 'userinfo')
+        netloc = userinfo + '@' + netloc
 
-    path = uri_mo.group(5)
-    path = pct_encoded_re.sub(_pct_encoded_replace_unreserved, path)
+    # Normalize path
+    path = split_uri.path
+    # Unquote and quote - this normalizes the percent encoding
+    path = quote(unquote(path.encode('utf-8'))).decode('utf-8')
     path = remove_dot_segments(path)
     if not path:
         path = '/'
+    _check_disallowed_characters(path, 'path')
 
-    query = uri_mo.group(6)
-    if query is None:
-        query = ''
+    # Normalize query
+    data = parse_qsl(split_uri.query)
+    query = urlencode(data)
+    _check_disallowed_characters(query, 'query')
 
-    fragment = uri_mo.group(8)
-    if fragment is None:
-        fragment = ''
+    # Normalize fragment
+    fragment = unquote(split_uri.fragment)
+    _check_disallowed_characters(fragment, 'fragment')
 
-    return scheme + '://' + authority + path + query + fragment
+    return urlunsplit((scheme, netloc, path, query, fragment))

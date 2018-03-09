@@ -3,32 +3,31 @@ Trust root parsing checking
 ========================================
 
 ----------------------------------------
-21: Does not parse
+20: Does not parse
 ----------------------------------------
 baz.org
 *.foo.com
 http://*.schtuff.*/
 ftp://foo.com
 ftp://*.foo.com
-http://*.foo.com:80:90/
 http:///
 http://
 foo.*.com
 http://foo.*.com
 http://www.*
 http://*foo.com/
+http://.it/
+http://..it/
 http://foo.com\/
 http://localhost:1900foo/
 http://foo.com/invalid#fragment
-http://π.pi.com/
-http://lambda.com/Λ
 
  
  	
 5
 
 ----------------------------------------
-15: Insane
+13: Insane
 ----------------------------------------
 http://*/
 https://*/
@@ -43,11 +42,9 @@ http://*.museum/
 https://*.museum/
 http://www.schtuffcom/
 http://it/
-http://..it/
-http://.it/
 
 ----------------------------------------
-18: Sane
+21: Sane
 ----------------------------------------
 http://*.schtuff.com./
 http://*.schtuff.com/
@@ -67,6 +64,9 @@ https://foo.com/
 http://kink.fm/should/be/sane
 http://beta.lingu.no/
 http://goathack.livejournal.org:8020/openid/login.bml
+http://*.example.com:80:90/
+http://π.pi.example.com/
+http://lambda.example.com/Λ
 
 ========================================
 return_to matching

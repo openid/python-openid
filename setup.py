@@ -10,6 +10,7 @@ if 'sdist' in sys.argv:
 # Import version from openid library itself
 VERSION = __import__('openid').__version__
 INSTALL_REQUIRES = [
+    'six',
     'lxml;platform_python_implementation=="CPython"',
     'lxml <4.0;platform_python_implementation=="PyPy"',
 ]
