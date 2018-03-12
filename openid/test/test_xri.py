@@ -32,19 +32,10 @@ class XriTransformationTestCase(TestCase):
     def test_to_iri_normal(self):
         self.assertEqual(xri.toIRINormal('@example'), 'xri://@example')
 
-    try:
-        unichr(0x10000)
-    except ValueError:
-        # bleh narrow python build
-        def test_iri_to_url(self):
-            s = u'l\xa1m'
-            expected = 'l%C2%A1m'
-            self.assertEqual(xri.iriToURI(s), expected)
-    else:
-        def test_iri_to_url(self):
-            s = u'l\xa1m\U00101010n'
-            expected = 'l%C2%A1m%F4%81%80%90n'
-            self.assertEqual(xri.iriToURI(s), expected)
+    def test_iri_to_url(self):
+        s = u'l\xa1m\U00101010n'
+        expected = 'l%C2%A1m%F4%81%80%90n'
+        self.assertEqual(xri.iriToURI(s), expected)
 
 
 class CanonicalIDTest(TestCase):
