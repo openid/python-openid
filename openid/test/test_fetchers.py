@@ -6,9 +6,17 @@ from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from cStringIO import StringIO
 from urllib import addinfourl
 
+import responses
 from mock import Mock
 
 from openid import fetchers
+
+try:
+    import requests
+except ImportError:
+    requests = None
+else:
+    from requests.exceptions import ConnectionError, InvalidSchema
 
 # XXX: make these separate test cases
 
@@ -336,3 +344,60 @@ class TestSilencedUrllib2Fetcher(TestUrllib2Fetcher):
 
     fetcher = fetchers.ExceptionWrappingFetcher(fetchers.Urllib2Fetcher())
     invalid_url_error = fetchers.HTTPFetchingError
+
+
+@unittest.skipUnless(requests, "Requests are not installed")
+class TestRequestsFetcher(unittest.TestCase):
+    """Test `RequestsFetcher` class."""
+
+    fetcher = fetchers.RequestsFetcher()
+
+    def test_get(self):
+        # Test GET response
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, 'http://example.cz/', status=200, body='BODY',
+                     headers={'Content-Type': 'text/plain'})
+            response = self.fetcher.fetch('http://example.cz/')
+        expected = fetchers.HTTPResponse('http://example.cz/', 200, {'Content-Type': 'text/plain'}, 'BODY')
+        assertResponse(expected, response)
+
+    def test_post(self):
+        # Test POST response
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.POST, 'http://example.cz/', status=200, body='BODY',
+                     headers={'Content-Type': 'text/plain'})
+            response = self.fetcher.fetch('http://example.cz/', body='key=value')
+        expected = fetchers.HTTPResponse('http://example.cz/', 200, {'Content-Type': 'text/plain'}, 'BODY')
+        assertResponse(expected, response)
+
+    def test_redirect(self):
+        # Test redirect response - a final response comes from another URL.
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, 'http://example.cz/redirect/', status=302,
+                     headers={'Location': 'http://example.cz/target/'})
+            rsps.add(responses.GET, 'http://example.cz/target/', status=200, body='BODY',
+                     headers={'Content-Type': 'text/plain'})
+            response = self.fetcher.fetch('http://example.cz/redirect/')
+        expected = fetchers.HTTPResponse('http://example.cz/target/', 200, {'Content-Type': 'text/plain'}, 'BODY')
+        assertResponse(expected, response)
+
+    def test_error(self):
+        # Test error responses - returned as obtained
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, 'http://example.cz/error/', status=500, body='BODY',
+                     headers={'Content-Type': 'text/plain'})
+            response = self.fetcher.fetch('http://example.cz/error/')
+        expected = fetchers.HTTPResponse('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, 'BODY')
+        assertResponse(expected, response)
+
+    def test_invalid_url(self):
+        invalid_url = 'invalid://example.cz/'
+        with self.assertRaisesRegexp(InvalidSchema, "No connection adapters were found for '" + invalid_url + "'"):
+            self.fetcher.fetch(invalid_url)
+
+    def test_connection_error(self):
+        # Test connection error
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, 'http://example.cz/', body=ConnectionError('Name or service not known'))
+            with self.assertRaisesRegexp(ConnectionError, 'Name or service not known'):
+                self.fetcher.fetch('http://example.cz/')

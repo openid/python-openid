@@ -29,6 +29,12 @@ try:
 except ImportError:
     pycurl = None
 
+# try to import requests
+try:
+    import requests
+except ImportError:
+    requests = None
+
 USER_AGENT = "python-openid/%s (%s)" % (openid.__version__, sys.platform)
 MAX_RESPONSE_KB = 1024
 
@@ -438,3 +444,21 @@ class HTTPLib2Fetcher(HTTPFetcher):
             headers=dict(httplib2_response.items()),
             status=httplib2_response.status,
         )
+
+
+class RequestsFetcher(HTTPFetcher):
+    """A fetcher that uses C{requests} for performing HTTP requests."""
+
+    def fetch(self, url, body=None, headers=None):
+        """Perform an HTTP request
+
+        @raises Exception: Any exception that can be raised by 'requests'
+
+        @see: C{L{HTTPFetcher.fetch}}
+        """
+        if body:
+            method = 'POST'
+        else:
+            method = 'GET'
+        response = requests.request(method, url, data=body, headers=headers)
+        return HTTPResponse(response.url, response.status_code, response.headers, response.content)
