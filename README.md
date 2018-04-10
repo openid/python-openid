@@ -1,32 +1,23 @@
+# python-openid2 #
+
+[![Build Status](https://travis-ci.org/ziima/python-openid.svg?branch=master)](https://travis-ci.org/ziima/python-openid)
+
 This is the Python OpenID library.
 
-[![Build Status][travis-image]][travis-link]
-
-[travis-image]: https://secure.travis-ci.org/openid/python-openid.png?branch=master
-[travis-link]: http://travis-ci.org/openid/python-openid
-
-
-REQUIREMENTS
-============
+## REQUIREMENTS ##
 
  - Python 2.7.
  - lxml
 
 
-INSTALLATION
-============
+## INSTALLATION ##
 
 To install the base library, just run the following command:
 
-python setup.py install
-
-To run setup.py you need the distutils module from the Python standard
-library; some distributions package this seperately in a "python-dev"
-package.
+pip install python-openid2
 
 
-GETTING STARTED
-===============
+## GETTING STARTED ##
 
 The examples directory includes an example server and consumer
 implementation.  See the README file in that directory for more
@@ -35,8 +26,7 @@ information on running the examples.
 Library documentation is available in html form in the doc directory.
 
 
-LOGGING
-=======
+## LOGGING ##
 
 This library offers a logging hook that will record unexpected
 conditions that occur in library code. If a condition is recoverable,
@@ -46,8 +36,7 @@ documentation for the openid.oidutil module for more on the logging
 hook.
 
 
-DOCUMENTATION
-=============
+## DOCUMENTATION ##
 
 The documentation in this library is in Epydoc format, which is
 detailed at:
@@ -55,14 +44,10 @@ detailed at:
   http://epydoc.sourceforge.net/
 
 
-CONTACT
-=======
+## CONTACT ##
 
 Send bug reports, suggestions, comments, and questions to
-http://openid.net/developers/dev-mailing-lists/.
+https://github.com/ziima/python-openid/issues/new
 
 If you have a bugfix or feature you'd like to contribute, don't
-hesitate to send it to us.  For more detailed information on how to
-contribute, see
-
-  http://openidenabled.com/contribute/
+hesitate to send it to us on GitHub.
