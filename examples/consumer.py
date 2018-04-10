@@ -424,7 +424,7 @@ Content-type: text/html; charset=UTF-8
     <h1>%s</h1>
     <p>
       This example consumer uses the <a href=
-      "http://github.com/openid/python-openid" >Python
+      "https://github.com/ziima/python-openid" >Python
       OpenID</a> library. It just verifies that the identifier that you enter
       is your identifier.
     </p>
