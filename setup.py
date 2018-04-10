@@ -7,7 +7,8 @@ from setuptools import setup
 if 'sdist' in sys.argv:
     os.system('./admin/makedoc')
 
-version = '[library version:2.2.5]'[17:-1]
+# Import version from openid library itself
+VERSION = __import__('openid').__version__
 INSTALL_REQUIRES = [
     'lxml;platform_python_implementation=="CPython"',
     'lxml <4.0;platform_python_implementation=="PyPy"',
@@ -25,7 +26,7 @@ EXTRAS_REQUIRE = {
 
 setup(
     name='python-openid2',
-    version=version,
+    version=VERSION,
     description='OpenID support for servers and consumers.',
     long_description='''This is a set of Python packages to support use of
 the OpenID decentralized identity system in your application.  Want to enable
