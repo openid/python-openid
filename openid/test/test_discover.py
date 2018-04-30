@@ -234,9 +234,12 @@ class TestDiscovery(BaseTestDiscovery):
         """
         Check page with unicode and HTML entities that can not be decoded
         """
+        self.documents[self.id_url + 'xrds'] = (
+            'application/xrds+xml', readDataFile('yadis_idp.xml'))
+
         data = readDataFile('unicode2.html')
         self.assertRaises(UnicodeDecodeError, data.decode, 'utf-8')
-        self._discover(content_type='text/html;charset=utf-8', data=data, expected_services=0)
+        self._discover(content_type='text/html;charset=utf-8', data=data, expected_services=1)
 
     def test_unicode_undecodable_html2(self):
         """
