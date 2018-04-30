@@ -5,7 +5,14 @@
 [![PyPI](https://img.shields.io/pypi/v/python-openid2.svg)](https://pypi.org/pypi/python-openid2/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/python-openid2.svg)](https://pypi.org/pypi/python-openid2/)
 
-This is the Python OpenID library.
+Python OpenID library - OpenID support for servers and consumers.
+
+This is a set of Python packages to support use of the OpenID decentralized identity system in your application.
+Want to enable single sign-on for your web site?
+Use the `openid.consumer package`.
+Want to run your own OpenID server?
+Check out `openid.server`.
+Includes example code and support for a variety of storage back-ends.
 
 ## REQUIREMENTS ##
 
@@ -17,7 +24,7 @@ This is the Python OpenID library.
 
 To install the base library, just run the following command:
 
-pip install python-openid2
+    pip install python-openid2
 
 
 ## GETTING STARTED ##
