@@ -19,7 +19,7 @@ __all__ = [
 
 import logging
 import re
-from urlparse import urlparse, urlunparse
+from urlparse import urlsplit, urlunsplit
 
 from openid import urinorm
 from openid.yadis import services
@@ -27,7 +27,6 @@ from openid.yadis import services
 _LOGGER = logging.getLogger(__name__)
 
 ############################################
-_protocols = ['http', 'https']
 _top_level_domains = [
     'ac', 'ad', 'ae', 'aero', 'af', 'ag', 'ai', 'al', 'am', 'an',
     'ao', 'aq', 'ar', 'arpa', 'as', 'asia', 'at', 'au', 'aw',
@@ -89,29 +88,12 @@ def _parseURL(url):
         url = urinorm.urinorm(url)
     except ValueError:
         return None
-    proto, netloc, path, params, query, frag = urlparse(url)
-    if not path:
-        path = '/'
 
-    path = urlunparse(('', '', path, params, query, frag))
+    split_url = urlsplit(url)
 
-    if ':' in netloc:
-        try:
-            host, port = netloc.split(':')
-        except ValueError:
-            return None
+    path = urlunsplit(('', '', split_url.path or '/', split_url.query, split_url.fragment))
 
-        if not re.match(r'\d+$', port):
-            return None
-    else:
-        host = netloc
-        port = ''
-
-    host = host.lower()
-    if not host_segment_re.match(host):
-        return None
-
-    return proto, host, port, path
+    return split_url.scheme, split_url.hostname, split_url.port, path
 
 
 class TrustRoot(object):
@@ -269,10 +251,6 @@ class TrustRoot(object):
             return None
 
         proto, host, port, path = url_parts
-
-        # check for valid prototype
-        if proto not in _protocols:
-            return None
 
         # check for URI fragment
         if path.find('#') != -1:
