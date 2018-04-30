@@ -23,6 +23,7 @@ EXTRAS_REQUIRE = {
     # Dependencies for Django example
     'djopenid': ('django<1.11.99', ),
 }
+LONG_DESCRIPTION = open('README.md').read() + '\n\n' + open('Changelog.md').read()
 CLASSIFIERS = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Web Environment',
@@ -42,12 +43,9 @@ CLASSIFIERS = [
 setup(
     name='python-openid2',
     version=VERSION,
-    description='OpenID support for servers and consumers.',
-    long_description='''This is a set of Python packages to support use of
-the OpenID decentralized identity system in your application.  Want to enable
-single sign-on for your web site?  Use the openid.consumer package.  Want to
-run your own OpenID server? Check out openid.server.  Includes example code
-and support for a variety of storage back-ends.''',
+    description='Python OpenID library - OpenID support for servers and consumers.',
+    long_description=LONG_DESCRIPTION,
+    long_description_content_type='text/markdown',
     url='https://github.com/ziima/python-openid',
     packages=['openid',
               'openid.consumer',
