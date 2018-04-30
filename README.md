@@ -1,12 +1,15 @@
 # python-openid2 #
 
 [![Build Status](https://travis-ci.org/ziima/python-openid.svg?branch=master)](https://travis-ci.org/ziima/python-openid)
+[![codecov](https://codecov.io/gh/ziima/python-openid/branch/master/graph/badge.svg)](https://codecov.io/gh/ziima/python-openid)
+[![PyPI](https://img.shields.io/pypi/v/python-openid2.svg)](https://pypi.org/pypi/python-openid2/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/python-openid2.svg)](https://pypi.org/pypi/python-openid2/)
 
 This is the Python OpenID library.
 
 ## REQUIREMENTS ##
 
- - Python 2.7.
+ - Python 2.7
  - lxml
 
 

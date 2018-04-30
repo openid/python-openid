@@ -23,6 +23,21 @@ EXTRAS_REQUIRE = {
     # Dependencies for Django example
     'djopenid': ('django<1.11.99', ),
 }
+CLASSIFIERS = [
+    'Development Status :: 5 - Production/Stable',
+    'Environment :: Web Environment',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: Apache Software License',
+    'Operating System :: POSIX',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 2',
+    'Programming Language :: Python :: 2.7',
+    'Topic :: Internet :: WWW/HTTP',
+    'Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+    'Topic :: System :: Systems Administration :: Authentication/Directory',
+]
+
 
 setup(
     name='python-openid2',
@@ -42,22 +57,12 @@ and support for a variety of storage back-ends.''',
               'openid.extensions',
               'openid.extensions.draft',
               ],
+    python_requires='~=2.7',
     install_requires=INSTALL_REQUIRES,
     extras_require=EXTRAS_REQUIRE,
     # license specified by classifier.
     # license=getLicense(),
     author='Vlastimil Zíma',
     author_email='vlastimil.zima@gmail.com',
-    classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Environment :: Web Environment",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: Apache Software License",
-        "Operating System :: POSIX",
-        "Programming Language :: Python",
-        "Topic :: Internet :: WWW/HTTP",
-        "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "Topic :: System :: Systems Administration :: Authentication/Directory",
-    ],
+    classifiers=CLASSIFIERS,
 )
