@@ -1,10 +1,12 @@
-*~
 *.pyc
-*.swp
-.tox
-# Created in tests
-/.coverage
+__pycache__
+# Distribution
+/dist
+/*.egg-info
+# Tests
+/.tox
 /.eggs
-/htmlcov
-/python_openid.egg-info
 /sstore
+# Coverage
+/.coverage
+/htmlcov
