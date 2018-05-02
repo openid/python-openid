@@ -52,11 +52,20 @@ def fetch(url, body=None, headers=None):
 def createHTTPFetcher():
     """Create a default HTTP fetcher instance
 
-    prefers Curl to urllib2."""
-    if pycurl is None:
-        fetcher = Urllib2Fetcher()
-    else:
+    Preferences:
+     1. requests
+     2. curl
+     3. httplib2
+     4. urllib2
+    """
+    if requests is not None:
+        fetcher = RequestsFetcher()
+    elif pycurl is not None:
         fetcher = CurlHTTPFetcher()
+    elif httplib2 is not None:
+        fetcher = HTTPLib2Fetcher()
+    else:
+        fetcher = Urllib2Fetcher()
 
     return fetcher
 
