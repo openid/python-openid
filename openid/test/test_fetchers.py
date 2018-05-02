@@ -7,7 +7,7 @@ from cStringIO import StringIO
 from urllib import addinfourl
 
 import responses
-from mock import Mock
+from mock import Mock, patch, sentinel
 
 from openid import fetchers
 
@@ -17,6 +17,35 @@ except ImportError:
     requests = None
 else:
     from requests.exceptions import ConnectionError, InvalidSchema
+
+
+class TestHTTPLib2Fetcher(object):
+    """Mock of HTTPLib2Fetcher for test of fetcher selection."""
+
+
+class TestCreateHTTPFetcher(unittest.TestCase):
+    """Test default selection of `createHTTPFetcher` function."""
+
+    fetcher_selection = {
+        # (requests, pycurl, httplib2) -> fetcher
+        (sentinel.requests, sentinel.pycurl, sentinel.httplib2): fetchers.RequestsFetcher,
+        (sentinel.requests, sentinel.pycurl, None): fetchers.RequestsFetcher,
+        (sentinel.requests, None, sentinel.httplib2): fetchers.RequestsFetcher,
+        (sentinel.requests, None, None): fetchers.RequestsFetcher,
+        (None, sentinel.pycurl, sentinel.httplib2): fetchers.CurlHTTPFetcher,
+        (None, sentinel.pycurl, None): fetchers.CurlHTTPFetcher,
+        (None, None, sentinel.httplib2): TestHTTPLib2Fetcher,
+        (None, None, None): fetchers.Urllib2Fetcher,
+    }
+
+    def test_requests(self):
+        for (requests, pycurl, httplib2), fetcher_cls in self.fetcher_selection.items():
+            with patch.multiple(fetchers, requests=requests, pycurl=pycurl, httplib2=httplib2,
+                                # HTTPLib2Fetcher actually calls httplib2 on init.
+                                # Patch it as it's not necessary for selection test.
+                                HTTPLib2Fetcher=TestHTTPLib2Fetcher):
+                self.assertIsInstance(fetchers.createHTTPFetcher(), fetcher_cls)
+
 
 # XXX: make these separate test cases
 
