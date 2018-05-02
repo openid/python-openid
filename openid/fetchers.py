@@ -1,10 +1,11 @@
 """This module contains the HTTP fetcher interface and several implementations."""
 from __future__ import unicode_literals
 
-import cStringIO
 import sys
 import time
 import urllib2
+
+from six import BytesIO
 
 import openid
 import openid.urinorm
@@ -277,7 +278,7 @@ class CurlHTTPFetcher(HTTPFetcher):
 
         # Remove the status line from the beginning of the input
         unused_http_status_line = header_file.readline().lower()
-        if unused_http_status_line.startswith('http/1.1 100 '):
+        if unused_http_status_line.startswith(b'http/1.1 100 '):
             unused_http_status_line = header_file.readline()
             unused_http_status_line = header_file.readline()
 
@@ -291,15 +292,15 @@ class CurlHTTPFetcher(HTTPFetcher):
         headers = {}
         for line in lines:
             try:
-                name, value = line.split(':', 1)
+                name, value = line.split(b':', 1)
             except ValueError:
                 raise HTTPError(
                     "Malformed HTTP header line in response: %r" % (line,))
 
-            value = value.strip()
+            value = value.strip().decode('utf-8')
 
             # HTTP headers are case-insensitive
-            name = name.lower()
+            name = name.lower().decode('utf-8')
             headers[name] = value
 
         return headers
@@ -340,7 +341,7 @@ class CurlHTTPFetcher(HTTPFetcher):
                 if not self._checkURL(url):
                     raise HTTPError("Fetching URL not allowed: %r" % (url,))
 
-                data = cStringIO.StringIO()
+                data = BytesIO()
 
                 def write_data(chunk):
                     if data.tell() > 1024 * MAX_RESPONSE_KB:
@@ -348,7 +349,7 @@ class CurlHTTPFetcher(HTTPFetcher):
                     else:
                         return data.write(chunk)
 
-                response_header_data = cStringIO.StringIO()
+                response_header_data = BytesIO()
                 c.setopt(pycurl.WRITEFUNCTION, write_data)
                 c.setopt(pycurl.HEADERFUNCTION, response_header_data.write)
                 c.setopt(pycurl.TIMEOUT, off)

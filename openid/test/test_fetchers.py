@@ -5,11 +5,11 @@ import unittest
 import urllib2
 import warnings
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from cStringIO import StringIO
 from urllib import addinfourl
 
 import responses
 from mock import Mock, patch, sentinel
+from six import StringIO
 
 from openid import fetchers
 
