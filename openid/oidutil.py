@@ -121,7 +121,7 @@ def fromBase64(s):
 class Symbol(object):
     """This class implements an object that compares equal to others
     of the same type that have the same name. These are distict from
-    str or unicode objects.
+    string objects.
     """
 
     def __init__(self, name):

@@ -212,7 +212,7 @@ class FetchRequest(AXMessage):
         """Get the serialized form of this attribute fetch request.
 
         @returns: The fetch request message parameters
-        @rtype: {unicode:unicode}
+        @rtype: Dict[six.text_type, six.text_type]
         """
         aliases = NamespaceMap()
 
@@ -418,7 +418,7 @@ class AXKeyValueMessage(AXMessage):
 
         @param value: The value to add to the response to the relying
             party for this attribute
-        @type value: unicode
+        @type value: six.text_type
 
         @returns: None
         """
@@ -436,7 +436,7 @@ class AXKeyValueMessage(AXMessage):
         @param type_uri: The URI for the attribute
 
         @param values: A list of values to send for this attribute.
-        @type values: [unicode]
+        @type values: List[six.text_type]
         """
 
         self.data[type_uri] = values
@@ -471,7 +471,7 @@ class AXKeyValueMessage(AXMessage):
 
         @param ax_args: The attribute exchange fetch_response
             arguments, with namespacing removed.
-        @type ax_args: {unicode:unicode}
+        @type ax_args: Dict[six.text_type, six.text_type]
 
         @returns: None
 
@@ -525,7 +525,7 @@ class AXKeyValueMessage(AXMessage):
 
         @returns: The value of the attribute in the fetch_response
             message, or the default supplied
-        @rtype: unicode or NoneType
+        @rtype: six.text_type or NoneType
 
         @raises ValueError: If there is more than one value for this
             parameter in the fetch_response message.
@@ -554,7 +554,7 @@ class AXKeyValueMessage(AXMessage):
 
         @returns: The list of values for this attribute in the
             response. May be an empty list.
-        @rtype: [unicode]
+        @rtype: List[six.text_type]
 
         @raises KeyError: If the attribute was not sent in the response
         """
@@ -605,7 +605,7 @@ class FetchResponse(AXKeyValueMessage):
 
         @returns: The dictionary of unqualified attribute exchange
             arguments that represent this fetch_response.
-        @rtype: {unicode;unicode}
+        @rtype: Dict[six.text_type, six.text_type]
         """
 
         aliases = NamespaceMap()

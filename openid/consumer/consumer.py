@@ -308,7 +308,7 @@ class Consumer(object):
             normalizing and resolving any redirects the server might
             issue.
 
-        @type user_url: unicode
+        @type user_url: six.text_type
 
         @param anonymous: Whether to make an anonymous request of the OpenID
             provider.  Such a request does not ask for an authorization
@@ -1616,7 +1616,7 @@ class AuthRequest(object):
             the form tag. 'accept-charset' and 'enctype' have defaults
             that can be overridden. If a value is supplied for
             'action' or 'method', it will be replaced.
-        @type form_tag_attrs: {unicode: unicode}
+        @type form_tag_attrs: Dict[six.text_type, six.text_type]
         """
         message = self.getMessage(realm, return_to, immediate)
         return message.toFormMarkup(self.endpoint.server_url, form_tag_attrs)

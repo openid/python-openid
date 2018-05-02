@@ -121,6 +121,8 @@ import time
 import warnings
 from copy import deepcopy
 
+import six
+
 from openid import cryptutil, kvform, oidutil
 from openid.association import Association, default_negotiator, getSecretSize
 from openid.dh import DiffieHellman
@@ -1624,7 +1626,7 @@ class ProtocolError(Exception):
         self.openid_message = message
         self.reference = reference
         self.contact = contact
-        assert type(message) not in [str, unicode]
+        assert not isinstance(message, six.string_types)
         Exception.__init__(self, text)
 
     def getReturnTo(self):

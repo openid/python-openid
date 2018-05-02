@@ -153,13 +153,13 @@ def getCanonicalID(iname, xrd_tree):
     """Return the CanonicalID from this XRDS document.
 
     @param iname: the XRI being resolved.
-    @type iname: unicode
+    @type iname: six.text_type
 
     @param xrd_tree: The XRDS output from the resolver.
     @type xrd_tree: ElementTree
 
     @returns: The XRI CanonicalID or None.
-    @returntype: unicode or None
+    @returntype: six.text_type or None
     """
     xrd_list = xrd_tree.findall(xrd_tag)
     xrd_list.reverse()

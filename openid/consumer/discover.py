@@ -269,7 +269,7 @@ def findOPLocalIdentifier(service_element, type_uris):
 
     @returns: The OP-Local Identifier for this service element, if one
         is present, or None otherwise.
-    @rtype: str or unicode or NoneType
+    @rtype: six.text_type or NoneType
     """
     # XXX: Test this function on its own!
 

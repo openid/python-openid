@@ -23,7 +23,7 @@ class ProxyResolver(object):
         """Build a URL to query the proxy resolver.
 
         @param xri: An XRI to resolve.
-        @type xri: unicode
+        @type xri: six.text_type
 
         @param service_type: The service type to resolve, if you desire
             service endpoint selection.  A service type is a URI.
@@ -63,14 +63,14 @@ class ProxyResolver(object):
         the fetching or parsing don't go so well.
 
         @param xri: An XRI to resolve.
-        @type xri: unicode
+        @type xri: six.text_type
 
         @param service_types: A list of services types to query for.  Service
             types are URIs.
         @type service_types: list of str
 
         @returns: tuple of (CanonicalID, Service elements)
-        @returntype: (unicode, list of C{ElementTree.Element}s)
+        @returntype: (six.text_type, list of C{ElementTree.Element}s)
         """
         # FIXME: No test coverage!
         services = []
