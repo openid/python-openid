@@ -2,8 +2,8 @@ from __future__ import unicode_literals
 
 import time
 import unittest
-import urlparse
 
+from six.moves.urllib.parse import parse_qsl, urlparse
 from testfixtures import LogCapture, StringComparison
 
 from openid import association, cryptutil, fetchers, kvform, oidutil
@@ -39,7 +39,7 @@ def mkSuccess(endpoint, q):
 
 def parseQuery(qs):
     q = {}
-    for (k, v) in urlparse.parse_qsl(qs):
+    for (k, v) in parse_qsl(qs):
         assert k not in q
         q[k] = v
     return q
@@ -159,7 +159,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
 
         redirect_url = request.redirectURL(trust_root, return_to, immediate)
 
-        parsed = urlparse.urlparse(redirect_url)
+        parsed = urlparse(redirect_url)
         qs = parsed[4]
         q = parseQuery(qs)
         new_return_to = q['openid.return_to']
@@ -174,7 +174,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         assert new_return_to.startswith(return_to)
         assert redirect_url.startswith(server_url)
 
-        parsed = urlparse.urlparse(new_return_to)
+        parsed = urlparse(new_return_to)
         query = parseQuery(parsed[4])
         query.update({
             'openid.mode': 'id_res',

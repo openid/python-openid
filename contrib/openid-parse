@@ -12,9 +12,9 @@ import re
 import subprocess
 import sys
 from pprint import pformat
-from urlparse import parse_qs, urlsplit, urlunsplit
 
 import six
+from six.moves.urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from openid import message
 

@@ -2,11 +2,10 @@
 from __future__ import unicode_literals
 
 import unittest
-import urllib
 import warnings
-from urlparse import parse_qs
 
 from lxml import etree as ElementTree
+from six.moves.urllib.parse import parse_qs, quote
 from testfixtures import ShouldWarn
 
 from openid.extensions import sreg
@@ -435,8 +434,7 @@ class OpenID2MessageTest(unittest.TestCase):
         self.assertEqual(self.msg.toKVForm(), 'error:unit test\nmode:error\nns:%s\n' % OPENID2_NS)
 
     def _test_urlencoded(self, s):
-        expected = ('openid.error=unit+test&openid.mode=error&openid.ns=%s&xey=value' %
-                    urllib.quote(OPENID2_NS, ''))
+        expected = ('openid.error=unit+test&openid.mode=error&openid.ns=%s&xey=value' % quote(OPENID2_NS, ''))
         self.assertEqual(s, expected)
 
     def test_toURLEncoded(self):

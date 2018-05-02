@@ -190,9 +190,9 @@ from __future__ import unicode_literals
 
 import copy
 import logging
-from urlparse import parse_qsl, urldefrag, urlparse
 
 import six
+from six.moves.urllib.parse import parse_qsl, urldefrag, urlparse
 
 from openid import cryptutil, fetchers, oidutil, urinorm
 from openid.association import Association, SessionNegotiator, default_negotiator

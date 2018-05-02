@@ -2,7 +2,8 @@
 from __future__ import unicode_literals
 
 import os.path
-import urlparse
+
+from six.moves.urllib.parse import urljoin
 
 from openid.yadis.constants import YADIS_HEADER_NAME
 from openid.yadis.discover import DiscoveryFailure, DiscoveryResult
@@ -105,7 +106,7 @@ def generateSample(test_name, base_url,
 
 
 def generateResult(base_url, input_name, id_name, result_name, success):
-    input_url = urlparse.urljoin(base_url, input_name)
+    input_url = urljoin(base_url, input_name)
 
     # If the name is None then we expect the protocol to fail, which
     # we represent by None
@@ -124,12 +125,12 @@ def generateResult(base_url, input_name, id_name, result_name, success):
     else:
         ctype = None
 
-    id_url = urlparse.urljoin(base_url, id_name)
+    id_url = urljoin(base_url, id_name)
 
     result = DiscoveryResult(input_url)
     result.normalized_uri = id_url
     if success:
-        result.xrds_uri = urlparse.urljoin(base_url, result_name)
+        result.xrds_uri = urljoin(base_url, result_name)
     result.content_type = ctype
     result.response_text = content
     return input_url, result

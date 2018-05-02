@@ -2,10 +2,9 @@
 from __future__ import unicode_literals
 
 import string
-from urllib import quote, unquote, urlencode
-from urlparse import parse_qsl, urlsplit, urlunsplit
 
 import six
+from six.moves.urllib.parse import parse_qsl, quote, unquote, urlencode, urlsplit, urlunsplit
 
 from .oidutil import string_to_text
 

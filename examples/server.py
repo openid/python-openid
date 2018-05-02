@@ -11,7 +11,7 @@ import optparse
 import sys
 import time
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from urlparse import parse_qsl, urlparse
+from six.moves.urllib.parse import parse_qsl, urlparse
 
 
 def quoteattr(s):

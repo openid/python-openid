@@ -8,9 +8,9 @@ from __future__ import unicode_literals
 
 import re
 import warnings
-from urllib import quote
 
 import six
+from six.moves.urllib.parse import quote
 
 from openid.urinorm import GEN_DELIMS, PERCENT_ENCODING_CHARACTER, SUB_DELIMS
 

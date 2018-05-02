@@ -11,9 +11,9 @@ from __future__ import unicode_literals
 
 import logging
 import re
-from urlparse import urlsplit, urlunsplit
 
 import six
+from six.moves.urllib.parse import urlsplit, urlunsplit
 
 from openid import urinorm
 from openid.oidutil import string_to_text
@@ -26,7 +26,6 @@ __all__ = [
     'returnToMatches',
     'verifyReturnTo',
 ]
-
 
 _LOGGER = logging.getLogger(__name__)
 

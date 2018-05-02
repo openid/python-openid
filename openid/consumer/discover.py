@@ -2,10 +2,10 @@
 from __future__ import unicode_literals
 
 import logging
-import urlparse
 
 from lxml.etree import LxmlError
 from lxml.html import document_fromstring
+from six.moves.urllib.parse import urldefrag, urlparse
 
 from openid import fetchers, urinorm
 from openid.message import OPENID1_NS as OPENID_1_0_MESSAGE_NS, OPENID2_NS as OPENID_2_0_MESSAGE_NS
@@ -87,7 +87,7 @@ class OpenIDServiceEndpoint(object):
         if self.claimed_id is None:
             return None
         else:
-            return urlparse.urldefrag(self.claimed_id)[0]
+            return urldefrag(self.claimed_id)[0]
 
     def compatibilityMode(self):
         return self.preferredNamespace() != OPENID_2_0_MESSAGE_NS
@@ -306,7 +306,7 @@ def normalizeURL(url):
     except ValueError as why:
         raise DiscoveryFailure('Normalizing identifier: %s' % (why[0],), None)
     else:
-        return urlparse.urldefrag(normalized)[0]
+        return urldefrag(normalized)[0]
 
 
 def normalizeXRI(xri):
@@ -448,7 +448,7 @@ def discoverNoYadis(uri):
 
 
 def discoverURI(uri):
-    parsed = urlparse.urlparse(uri)
+    parsed = urlparse(uri)
     if parsed[0] and parsed[1]:
         if parsed[0] not in ['http', 'https']:
             raise DiscoveryFailure('URI scheme is not HTTP or HTTPS', None)

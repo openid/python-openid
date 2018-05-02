@@ -3,7 +3,8 @@ from __future__ import unicode_literals
 
 import os.path
 import unittest
-from urlparse import urlsplit
+
+from six.moves.urllib.parse import urlsplit
 
 from openid import fetchers, message
 from openid.consumer import discover

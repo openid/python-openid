@@ -9,9 +9,9 @@ from __future__ import unicode_literals
 import binascii
 import logging
 import warnings
-from urllib import urlencode
 
 import six
+from six.moves.urllib.parse import urlencode
 
 __all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'autoSubmitHTML']
 

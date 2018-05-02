@@ -3,11 +3,11 @@
 from __future__ import unicode_literals
 
 import copy
-import urllib
 import warnings
 
 import six
 from lxml import etree as ElementTree
+from six.moves.urllib.parse import urlencode
 
 from openid import kvform, oidutil
 
@@ -394,7 +394,7 @@ class Message(object):
     def toURLEncoded(self):
         """Generate an x-www-urlencoded string"""
         args = sorted(self.toPostArgs().items())
-        return urllib.urlencode(args)
+        return urlencode(args)
 
     def _fixNS(self, namespace):
         """Convert an input value into the internally used values of

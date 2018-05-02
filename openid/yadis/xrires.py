@@ -1,7 +1,7 @@
 """XRI resolution."""
 from __future__ import unicode_literals
 
-from urllib import urlencode
+from six.moves.urllib.parse import urlencode
 
 from openid import fetchers
 from openid.oidutil import string_to_text
