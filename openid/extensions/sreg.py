@@ -524,5 +524,8 @@ class SRegResponse(Extension):
         checkFieldName(field_name)
         return self.data[field_name]
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.data)
+
+    def __nonzero__(self):
+        return self.__bool__()
