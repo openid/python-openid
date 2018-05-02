@@ -1,5 +1,9 @@
+"""Tests for `openid.kvform` module."""
+from __future__ import unicode_literals
+
 import unittest
 
+import six
 from testfixtures import LogCapture
 
 from openid import kvform
@@ -33,10 +37,6 @@ class KVSeqTest(unittest.TestCase):
         and end of each value of each pair"""
         clean = []
         for k, v in seq:
-            if isinstance(k, str):
-                k = k.decode('utf8')
-            if isinstance(v, str):
-                v = v.decode('utf8')
             clean.append((k.strip(), v.strip()))
         return clean
 
@@ -46,7 +46,7 @@ class KVSeqTest(unittest.TestCase):
             with LogCapture() as logbook:
                 actual = kvform.seqToKV(kv_data)
             self.assertEqual(actual, result)
-            self.assertIsInstance(actual, str)
+            self.assertIsInstance(actual, six.text_type)
 
             # Parse back to sequence. Expected to be unchanged, except
             # stripping whitespace from start and end of values
@@ -92,12 +92,12 @@ kvdict_cases = [
 kvseq_cases = [
     ([], '', 0),
 
-    # Make sure that we handle non-ascii characters (also wider than 8 bits)
-    ([(u'\u03bbx', u'x')], '\xce\xbbx:x\n', 0),
+    # Make sure that we handle unicode characters
+    ([('\u03bbx', 'x')], '\u03bbx:x\n', 0),
 
     # If it's a UTF-8 str, make sure that it's equivalent to the same
     # string, decoded.
-    ([('\xce\xbbx', 'x')], '\xce\xbbx:x\n', 0),
+    ([(b'\xce\xbbx', b'x')], '\u03bbx:x\n', 0),
 
     ([('openid', 'useful'), ('a', 'b')], 'openid:useful\na:b\n', 0),
 
@@ -113,7 +113,7 @@ kvseq_cases = [
     ([(' open id ', ' use ful '),
       (' a ', ' b ')], ' open id : use ful \n a : b \n', 4),
 
-    ([(u'foo', 'bar')], 'foo:bar\n', 0),
+    ([('foo', 'bar')], 'foo:bar\n', 0),
 ]
 
 kvexc_cases = [

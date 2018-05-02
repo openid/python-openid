@@ -1068,7 +1068,7 @@ class OpenIDResponse(object):
         @see: OpenID Specs,
            U{Key-Value Colon/Newline format<http://openid.net/specs.bml#keyvalue>}
 
-        @returntype: str
+        @returntype: six.text_type
         """
         return self.fields.toKVForm()
 

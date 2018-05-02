@@ -402,7 +402,7 @@ class Association(object):
         @return: String in KV form suitable for deserialization by
             deserialize.
 
-        @rtype: str
+        @rtype: six.text_type
         """
         data = {
             'version': '2',
@@ -465,7 +465,7 @@ class Association(object):
 
         @return: The binary signature of this sequence of pairs
 
-        @rtype: str
+        @rtype: six.text_type
         """
         kv = kvform.seqToKV(pairs)
 
