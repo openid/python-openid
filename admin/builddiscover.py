@@ -44,7 +44,7 @@ def buildDiscover(base_url, out_dir):
             test_name, template, base_url, discoverdata.example_xrds)
 
         out_file_name = os.path.join(out_dir, test_name)
-        out_file = file(out_file_name, 'w')
+        out_file = open(out_file_name, 'w')
         out_file.write(data)
 
     manifest = [manifest_header]
@@ -61,7 +61,7 @@ def buildDiscover(base_url, out_dir):
         manifest.append('\n')
 
     manifest_file_name = os.path.join(out_dir, 'manifest.txt')
-    manifest_file = file(manifest_file_name, 'w')
+    manifest_file = open(manifest_file_name, 'w')
     for chunk in manifest:
         manifest_file.write(chunk)
     manifest_file.close()

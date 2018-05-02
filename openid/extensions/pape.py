@@ -76,7 +76,7 @@ class PAPEExtension(Extension):
 
     def _generateAlias(self):
         """Return an unused auth level alias"""
-        for i in xrange(1000):
+        for i in range(1000):
             alias = 'cust%d' % (i,)
             if alias not in self.auth_level_aliases:
                 return alias

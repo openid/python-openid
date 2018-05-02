@@ -314,6 +314,10 @@ class SQLiteStore(SQLStore):
 
     All other methods are implementation details.
     """
+    try:
+        import sqlite3
+    except ImportError:
+        sqlite3 = None
 
     create_nonce_sql = """
     CREATE TABLE %(nonces)s (
@@ -363,7 +367,7 @@ class SQLiteStore(SQLStore):
         return six.binary_type(buf)
 
     def blobEncode(self, s):
-        return buffer(s)
+        return self.sqlite3.Binary(s)
 
     def useNonce(self, *args, **kwargs):
         # Older versions of the sqlite wrapper do not raise

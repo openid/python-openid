@@ -265,7 +265,7 @@ class FileOpenIDStore(OpenIDStore):
 
     def _getAssociation(self, filename):
         try:
-            assoc_file = file(filename, 'rb')
+            assoc_file = open(filename, 'rb')
         except IOError as why:
             if why.errno == ENOENT:
                 # No association exists for that URL and handle
@@ -349,7 +349,7 @@ class FileOpenIDStore(OpenIDStore):
         association_filenames = [os.path.join(self.association_dir, f) for f in os.listdir(self.association_dir)]
         for association_filename in association_filenames:
             try:
-                association_file = file(association_filename, 'rb')
+                association_file = open(association_filename, 'rb')
             except IOError as why:
                 if why.errno == ENOENT:
                     _LOGGER.exception("%s disappeared during %s._allAssocs",

@@ -43,7 +43,7 @@ class TestLongBinary(unittest.TestCase):
 
     def test_binaryLongConvert(self):
         MAX = sys.maxsize
-        for iteration in xrange(500):
+        for iteration in range(500):
             n = 0
             for i in range(10):
                 n += long(random.randrange(MAX))
@@ -75,7 +75,7 @@ class TestLongToBase64(unittest.TestCase):
     """Test `longToBase64` function."""
 
     def test_longToBase64(self):
-        f = file(os.path.join(os.path.dirname(__file__), 'n2b64'))
+        f = open(os.path.join(os.path.dirname(__file__), 'n2b64'))
         try:
             for line in f:
                 parts = line.strip().split(' ')
@@ -88,7 +88,7 @@ class TestBase64ToLong(unittest.TestCase):
     """Test `Base64ToLong` function."""
 
     def test_base64ToLong(self):
-        f = file(os.path.join(os.path.dirname(__file__), 'n2b64'))
+        f = open(os.path.join(os.path.dirname(__file__), 'n2b64'))
         try:
             for line in f:
                 parts = line.strip().split(' ')

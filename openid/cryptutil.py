@@ -142,7 +142,7 @@ except AttributeError:
         # have Windows equivalent here, but for now, require pycrypto
         # on Windows.
         try:
-            _urandom = file('/dev/urandom', 'rb')
+            _urandom = open('/dev/urandom', 'rb')
         except IOError:
             raise ImportError('No adequate source of randomness found!')
         else:

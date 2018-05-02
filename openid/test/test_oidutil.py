@@ -45,7 +45,7 @@ class TestBase64(unittest.TestCase):
             assert s_prime == s, (s, b64, s_prime)
 
         # Randomized test
-        for _ in xrange(50):
+        for _ in range(50):
             n = random.randrange(2048)
             s = b''.join(chr(random.randrange(256)) for i in range(n))
             b64 = oidutil.toBase64(s)

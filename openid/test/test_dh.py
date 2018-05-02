@@ -67,7 +67,7 @@ class TestDiffieHellman(unittest.TestCase):
         assert s1 != s2
 
     def test_public(self):
-        f = file(os.path.join(os.path.dirname(__file__), 'dhpriv'))
+        f = open(os.path.join(os.path.dirname(__file__), 'dhpriv'))
         dh = DiffieHellman.fromDefaults()
         try:
             for line in f:

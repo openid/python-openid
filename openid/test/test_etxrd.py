@@ -87,7 +87,7 @@ class TestParseXRDS(unittest.TestCase):
 
 class TestServiceParser(unittest.TestCase):
     def setUp(self):
-        self.xmldoc = file(XRD_FILE).read()
+        self.xmldoc = open(XRD_FILE).read()
         self.yadis_url = 'http://unittest.url/'
 
     def _getServices(self, flt=None):
@@ -155,7 +155,7 @@ class TestServiceParser(unittest.TestCase):
     def testNoXRDS(self):
         """Make sure that we get an exception when an XRDS element is
         not present"""
-        self.xmldoc = file(NOXRDS_FILE).read()
+        self.xmldoc = open(NOXRDS_FILE).read()
         self.assertRaises(etxrd.XRDSError, services.applyFilter, self.yadis_url, self.xmldoc, None)
 
     def testEmpty(self):
@@ -167,7 +167,7 @@ class TestServiceParser(unittest.TestCase):
     def testNoXRD(self):
         """Make sure that we get an exception when there is no XRD
         element present."""
-        self.xmldoc = file(NOXRD_FILE).read()
+        self.xmldoc = open(NOXRD_FILE).read()
         self.assertRaises(etxrd.XRDSError, services.applyFilter, self.yadis_url, self.xmldoc, None)
 
 
@@ -180,7 +180,7 @@ class TestCanonicalID(unittest.TestCase):
         filename = datapath(filename)
 
         def test(self):
-            xrds = etxrd.parseXRDS(file(filename).read())
+            xrds = etxrd.parseXRDS(open(filename).read())
             self._getCanonicalID(iname, xrds, expectedID)
         return test
 
