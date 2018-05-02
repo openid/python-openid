@@ -2,14 +2,15 @@ from __future__ import unicode_literals
 
 import socket
 import unittest
-import urllib2
 import warnings
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from urllib import addinfourl
 
 import responses
 from mock import Mock, patch, sentinel
 from six import StringIO
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from six.moves.urllib.error import HTTPError, URLError
+from six.moves.urllib.request import BaseHandler, OpenerDirector, install_opener
+from six.moves.urllib.response import addinfourl
 
 from openid import fetchers
 
@@ -300,11 +301,11 @@ class DefaultFetcherTest(unittest.TestCase):
 
         self.assertNotIsInstance(fetchers.getDefaultFetcher(), fetchers.ExceptionWrappingFetcher)
 
-        with self.assertRaises(urllib2.URLError):
+        with self.assertRaises(URLError):
             fetchers.fetch('http://invalid.janrain.com/')
 
 
-class TestHandler(urllib2.BaseHandler):
+class TestHandler(BaseHandler):
     """Urllib2 test handler."""
 
     def __init__(self, http_mock):
@@ -322,13 +323,13 @@ class TestUrllib2Fetcher(unittest.TestCase):
 
     def setUp(self):
         self.http_mock = Mock(side_effect=[])
-        opener = urllib2.OpenerDirector()
+        opener = OpenerDirector()
         opener.add_handler(TestHandler(self.http_mock))
-        urllib2.install_opener(opener)
+        install_opener(opener)
 
     def tearDown(self):
         # Uninstall custom opener
-        urllib2.install_opener(None)
+        install_opener(None)
 
     def add_response(self, url, status_code, headers, body=None):
         response = addinfourl(StringIO(body or ''), headers, url, status_code)
@@ -363,8 +364,8 @@ class TestUrllib2Fetcher(unittest.TestCase):
 
     def test_connection_error(self):
         # Test connection error
-        self.http_mock.side_effect = urllib2.HTTPError('http://example.cz/error/', 500, 'Error message',
-                                                       {'Content-Type': 'text/plain'}, StringIO('BODY'))
+        self.http_mock.side_effect = HTTPError('http://example.cz/error/', 500, 'Error message',
+                                               {'Content-Type': 'text/plain'}, StringIO('BODY'))
         response = self.fetcher.fetch('http://example.cz/error/')
         expected = fetchers.HTTPResponse('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, 'BODY')
         assertResponse(expected, response)

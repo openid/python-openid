@@ -10,7 +10,8 @@ import Cookie
 import optparse
 import sys
 import time
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from six.moves.urllib.parse import parse_qsl, urlparse
 
 

@@ -14,11 +14,10 @@ import cgi
 import cgitb
 import optparse
 import sys
-from six.moves.urllib.parse import urlparse, parse_qsl, urljoin
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from Cookie import SimpleCookie
 
 import six
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from six.moves.urllib.parse import parse_qsl, urljoin, urlparse
 
 

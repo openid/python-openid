@@ -3,9 +3,10 @@ from __future__ import unicode_literals
 
 import sys
 import time
-import urllib2
 
 from six import BytesIO
+from six.moves.urllib.error import HTTPError as UrllibHTTPError
+from six.moves.urllib.request import Request, urlopen
 
 import openid
 import openid.urinorm
@@ -55,7 +56,7 @@ def createHTTPFetcher():
      1. requests
      2. curl
      3. httplib2
-     4. urllib2
+     4. urllib
     """
     if requests is not None:
         fetcher = RequestsFetcher()
@@ -206,12 +207,11 @@ class ExceptionWrappingFetcher(HTTPFetcher):
 
 
 class Urllib2Fetcher(HTTPFetcher):
-    """An C{L{HTTPFetcher}} that uses urllib2.
-    """
+    """An C{L{HTTPFetcher}} that uses urllib."""
 
     # Parameterized for the benefit of testing frameworks, see
     # http://trac.openidenabled.com/trac/ticket/85
-    urlopen = staticmethod(urllib2.urlopen)
+    urlopen = staticmethod(urlopen)
 
     def fetch(self, url, body=None, headers=None):
         if not _allowedURL(url):
@@ -220,31 +220,29 @@ class Urllib2Fetcher(HTTPFetcher):
         if headers is None:
             headers = {}
 
-        headers.setdefault(
-            'User-Agent',
-            "%s Python-urllib/%s" % (USER_AGENT, urllib2.__version__,))
+        headers.setdefault('User-Agent', "%s Python-urllib" % USER_AGENT)
 
-        req = urllib2.Request(url, data=body, headers=headers)
+        req = Request(url, data=body, headers=headers)
         try:
             f = self.urlopen(req)
             try:
                 return self._makeResponse(f)
             finally:
                 f.close()
-        except urllib2.HTTPError as why:
+        except UrllibHTTPError as why:
             try:
                 return self._makeResponse(why)
             finally:
                 why.close()
 
-    def _makeResponse(self, urllib2_response):
+    def _makeResponse(self, urllib_response):
         resp = HTTPResponse()
-        resp.body = urllib2_response.read(MAX_RESPONSE_KB * 1024)
-        resp.final_url = urllib2_response.geturl()
-        resp.headers = dict(urllib2_response.info().items())
+        resp.body = urllib_response.read(MAX_RESPONSE_KB * 1024)
+        resp.final_url = urllib_response.geturl()
+        resp.headers = dict(urllib_response.info().items())
 
-        if hasattr(urllib2_response, 'code'):
-            resp.status = urllib2_response.code
+        if hasattr(urllib_response, 'code'):
+            resp.status = urllib_response.code
         else:
             resp.status = 200
 
