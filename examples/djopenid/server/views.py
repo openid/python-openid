@@ -257,7 +257,7 @@ def displayResponse(request, openid_response):
     r = http.HttpResponse(webresponse.body)
     r.status_code = webresponse.code
 
-    for header, value in webresponse.headers.iteritems():
+    for header, value in webresponse.headers.items():
         r[header] = value
 
     return r

@@ -62,7 +62,7 @@ def assertResponse(expected, actual):
     # TODO: Delete these pops
     got_headers.pop('date', None)
     got_headers.pop('server', None)
-    for k, v in expected.headers.iteritems():
+    for k, v in expected.headers.items():
         assert got_headers[k] == v, (k, v, got_headers[k])
 
 

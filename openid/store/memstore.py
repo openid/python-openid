@@ -44,7 +44,7 @@ class ServerAssocs(object):
         @return: tuple of (removed associations, remaining associations)
         """
         remove = []
-        for handle, assoc in self.assocs.iteritems():
+        for handle, assoc in six.iteritems(self.assocs):
             if assoc.getExpiresIn() == 0:
                 remove.append(handle)
         for handle in remove:
@@ -98,7 +98,7 @@ class MemoryStore(object):
     def cleanupNonces(self):
         now = time.time()
         expired = []
-        for anonce in self.nonces.iterkeys():
+        for anonce in self.nonces:
             if abs(anonce[1] - now) > nonce.SKEW:
                 # removing items while iterating over the set could be bad.
                 expired.append(anonce)
@@ -110,7 +110,7 @@ class MemoryStore(object):
     def cleanupAssociations(self):
         remove_urls = []
         removed_assocs = 0
-        for server_url, assocs in self.server_assocs.iteritems():
+        for server_url, assocs in six.iteritems(self.server_assocs):
             removed, remaining = assocs.cleanup()
             removed_assocs += removed
             if not remaining:

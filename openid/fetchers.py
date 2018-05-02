@@ -320,7 +320,7 @@ class CurlHTTPFetcher(HTTPFetcher):
 
         header_list = []
         if headers is not None:
-            for header_name, header_value in headers.iteritems():
+            for header_name, header_value in headers.items():
                 header_list.append('%s: %s' % (header_name, header_value))
 
         c = pycurl.Curl()

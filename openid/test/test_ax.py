@@ -217,7 +217,7 @@ class FetchRequestTest(unittest.TestCase):
         )
         self.msg.add(attr)
         ax_args = self.msg.getExtensionArgs()
-        for k, v in ax_args.iteritems():
+        for k, v in ax_args.items():
             if v == attr.type_uri and k.startswith('type.'):
                 alias = k[5:]
                 break

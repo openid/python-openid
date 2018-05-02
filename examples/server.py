@@ -234,7 +234,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             return
 
         self.send_response(webresponse.code)
-        for header, value in webresponse.headers.iteritems():
+        for header, value in webresponse.headers.items():
             self.send_header(header, value)
         self.writeUserHeader()
         self.end_headers()

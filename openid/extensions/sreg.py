@@ -502,13 +502,13 @@ class SRegResponse(Extension):
         return self.data.items()
 
     def iteritems(self):
-        return self.data.iteritems()
+        return six.iteritems(self.data)
 
     def keys(self):
         return self.data.keys()
 
     def iterkeys(self):
-        return self.data.iterkeys()
+        return six.iterkeys(self.data)
 
     def has_key(self, key):
         return key in self

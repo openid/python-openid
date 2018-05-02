@@ -88,7 +88,7 @@ class PAPEExtension(Extension):
 
         @raises KeyError: if no alias is defined
         """
-        for (alias, existing_uri) in self.auth_level_aliases.iteritems():
+        for (alias, existing_uri) in self.auth_level_aliases.items():
             if auth_level_uri == existing_uri:
                 return alias
 
@@ -297,7 +297,7 @@ class Response(PAPEExtension):
         if auth_levels is None:
             auth_levels = {}
 
-        for uri, level in auth_levels.iteritems():
+        for uri, level in auth_levels.items():
             self.setAuthLevel(uri, level)
 
     def setAuthLevel(self, level_uri, level, alias=None):
@@ -417,7 +417,7 @@ class Response(PAPEExtension):
 
         self.auth_policies = auth_policies
 
-        for (key, val) in args.iteritems():
+        for (key, val) in six.iteritems(args):
             if key.startswith('auth_level.'):
                 alias = key[11:]
 
@@ -459,7 +459,7 @@ class Response(PAPEExtension):
                 'auth_policies': ' '.join(self.auth_policies),
             }
 
-        for level_type, level in self.auth_levels.iteritems():
+        for level_type, level in self.auth_levels.items():
             alias = self._getAlias(level_type)
             ns_args['auth_level.ns.%s' % (alias,)] = level_type
             ns_args['auth_level.%s' % (alias,)] = six.text_type(level)
