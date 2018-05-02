@@ -3,14 +3,15 @@ import unittest
 from openid.consumer.discover import OpenIDServiceEndpoint
 
 
-class BadLinksTestCase(unittest.TestCase):
-    cases = [
-        '',
-        "http://not.in.a.link.tag/",
-        '<link rel="openid.server" href="not.in.html.or.head" />',
-    ]
+class TestFromHTML(unittest.TestCase):
+    """Test `OpenIDServiceEndpoint.fromHTML`."""
 
-    def test_from_html(self):
-        for html in self.cases:
-            actual = OpenIDServiceEndpoint.fromHTML('http://unused.url/', html)
-            self.assertEqual(actual, [])
+    def test_empty(self):
+        self.assertEqual(OpenIDServiceEndpoint.fromHTML('http://example.url/', ''), [])
+
+    def test_invalid_html(self):
+        self.assertEqual(OpenIDServiceEndpoint.fromHTML('http://example.url/', "http://not.in.a.link.tag/"), [])
+
+    def test_no_op_url(self):
+        html = '<html><head><link rel="openid.server"></head></html>'
+        self.assertEqual(OpenIDServiceEndpoint.fromHTML('http://example.url/', html), [])
