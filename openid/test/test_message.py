@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
 import unittest
 import urllib
 import warnings
@@ -851,7 +853,7 @@ class MessageTest(unittest.TestCase):
             # Good guess!  But wrong.
             'http://openid.net/signon/2.0',
             # What?
-            u'http://specs%\\\r2Eopenid.net/auth/2.0',
+            'http://specs%\\\r2Eopenid.net/auth/2.0',
             # Too much escapings!
             'http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0',
             # This is a Type URI, not a openid.ns value.
@@ -905,15 +907,15 @@ class MessageTest(unittest.TestCase):
         # An example of the stuff that some Drupal installations send us,
         # which includes openid.ns but is 1.1.
         query = {
-            u'openid.assoc_handle': u'',
-            u'openid.claimed_id': u'http://foobar.invalid/',
-            u'openid.identity': u'http://foobar.myopenid.com',
-            u'openid.mode': u'checkid_setup',
-            u'openid.ns': u'http://openid.net/signon/1.1',
-            u'openid.ns.sreg': u'http://openid.net/extensions/sreg/1.1',
-            u'openid.return_to': u'http://drupal.invalid/return_to',
-            u'openid.sreg.required': u'nickname,email',
-            u'openid.trust_root': u'http://drupal.invalid',
+            'openid.assoc_handle': '',
+            'openid.claimed_id': 'http://foobar.invalid/',
+            'openid.identity': 'http://foobar.myopenid.com',
+            'openid.mode': 'checkid_setup',
+            'openid.ns': 'http://openid.net/signon/1.1',
+            'openid.ns.sreg': 'http://openid.net/extensions/sreg/1.1',
+            'openid.return_to': 'http://drupal.invalid/return_to',
+            'openid.sreg.required': 'nickname,email',
+            'openid.trust_root': 'http://drupal.invalid',
         }
         m = Message.fromPostArgs(query)
         self.assertTrue(m.isOpenID1())

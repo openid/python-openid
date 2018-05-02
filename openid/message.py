@@ -1,16 +1,22 @@
 """Extension argument processing code
 """
-__all__ = ['Message', 'NamespaceMap', 'no_default', 'registerNamespaceAlias',
-           'OPENID_NS', 'BARE_NS', 'OPENID1_NS', 'OPENID2_NS', 'SREG_URI',
-           'IDENTIFIER_SELECT']
+from __future__ import unicode_literals
 
 import copy
 import urllib
 import warnings
 
+import six
 from lxml import etree as ElementTree
 
 from openid import kvform, oidutil
+
+from .oidutil import string_to_text
+
+__all__ = ['Message', 'NamespaceMap', 'no_default', 'registerNamespaceAlias',
+           'OPENID_NS', 'BARE_NS', 'OPENID1_NS', 'OPENID2_NS', 'SREG_URI',
+           'IDENTIFIER_SELECT']
+
 
 # This doesn't REALLY belong here, but where is better?
 IDENTIFIER_SELECT = 'http://specs.openid.net/auth/2.0/identifier_select'
@@ -154,6 +160,7 @@ class Message(object):
     def fromPostArgs(cls, args):
         """Construct a Message containing a set of POST arguments.
 
+        @type args: Dict[six.text_type, six.text_type]
         """
         # Partition into "openid." args and bare args
         openid_args = {}
@@ -183,6 +190,8 @@ class Message(object):
     def fromOpenIDArgs(cls, openid_args):
         """Construct a Message from a parsed KVForm message.
 
+        @type openid_args: Dict[six.text_type, six.text_type]
+
         @raises InvalidOpenIDNamespace: if openid.ns is not in
             L{Message.allowed_openid_namespaces}
         """
@@ -197,6 +206,8 @@ class Message(object):
         namespaces = {}
         ns_args = []
         for key, value in openid_args.iteritems():
+            key = string_to_text(key, "Binary keys in message creations are deprecated. Use text input instead.")
+            value = string_to_text(value, "Binary values in message creations are deprecated. Use text input instead.")
             if '.' not in key:
                 ns_alias = NULL_NAMESPACE
                 ns_key = key
@@ -286,6 +297,8 @@ class Message(object):
 
     def toPostArgs(self):
         """Return all arguments with openid. in front of namespaced arguments.
+
+        @rtype: Dict[six.text_type, six.text_type]
         """
         args = {}
 
@@ -297,12 +310,11 @@ class Message(object):
                 ns_key = 'openid.ns'
             else:
                 ns_key = 'openid.ns.' + alias
-            args[ns_key] = oidutil.toUnicode(ns_uri).encode('UTF-8')
+            args[ns_key] = ns_uri
 
         for (ns_uri, ns_key), value in self.args.iteritems():
             key = self.getKey(ns_uri, ns_key)
-            # Ensure the resulting value is an UTF-8 encoded bytestring.
-            args[key] = oidutil.toUnicode(value).encode('UTF-8')
+            args[key] = value
 
         return args
 
@@ -323,51 +335,49 @@ class Message(object):
         return kvargs
 
     def toFormMarkup(self, action_url, form_tag_attrs=None,
-                     submit_text=u"Continue"):
+                     submit_text="Continue"):
         """Generate HTML form markup that contains the values in this
         message, to be HTTP POSTed as x-www-form-urlencoded UTF-8.
 
         @param action_url: The URL to which the form will be POSTed
-        @type action_url: str
+        @type action_url: six.text_type, six.binary_type is deprecated
 
         @param form_tag_attrs: Dictionary of attributes to be added to
             the form tag. 'accept-charset' and 'enctype' have defaults
             that can be overridden. If a value is supplied for
             'action' or 'method', it will be replaced.
-        @type form_tag_attrs: {unicode: unicode}
+        @type form_tag_attrs: Dict[six.text_type, six.text_type]
 
         @param submit_text: The text that will appear on the submit
             button for this form.
-        @type submit_text: unicode
+        @type submit_text: six.text_type
 
         @returns: A string containing (X)HTML markup for a form that
             encodes the values in this Message object.
-        @rtype: str or unicode
+        @rtype: six.text_type
         """
         assert action_url is not None
+        action_url = string_to_text(action_url, "Binary values for action_url is deprecated. Use text input instead.")
 
-        form = ElementTree.Element(u'form')
+        form = ElementTree.Element('form')
 
         if form_tag_attrs:
             for name, attr in form_tag_attrs.iteritems():
                 form.attrib[name] = attr
 
-        form.attrib[u'action'] = oidutil.toUnicode(action_url)
-        form.attrib[u'method'] = u'post'
-        form.attrib[u'accept-charset'] = u'UTF-8'
-        form.attrib[u'enctype'] = u'application/x-www-form-urlencoded'
+        form.attrib['action'] = action_url
+        form.attrib['method'] = 'post'
+        form.attrib['accept-charset'] = 'UTF-8'
+        form.attrib['enctype'] = 'application/x-www-form-urlencoded'
 
         for name, value in self.toPostArgs().iteritems():
-            attrs = {u'type': u'hidden',
-                     u'name': oidutil.toUnicode(name),
-                     u'value': oidutil.toUnicode(value)}
-            form.append(ElementTree.Element(u'input', attrs))
+            attrs = {'type': 'hidden', 'name': name, 'value': value}
+            form.append(ElementTree.Element('input', attrs))
 
-        submit = ElementTree.Element(u'input',
-                                     {u'type': 'submit', u'value': oidutil.toUnicode(submit_text)})
+        submit = ElementTree.Element('input', {'type': 'submit', 'value': submit_text})
         form.append(submit)
 
-        return ElementTree.tostring(form, encoding='utf-8')
+        return ElementTree.tostring(form, encoding='unicode')
 
     def toURL(self, base_url):
         """Generate a GET URL with the parameters in this message
@@ -391,14 +401,14 @@ class Message(object):
         this object
 
         @param namespace: The string or constant to convert
-        @type namespace: str or unicode or BARE_NS or OPENID_NS
+        @type namespace: six.text_type or BARE_NS or OPENID_NS
         """
         if namespace == OPENID_NS:
             namespace = self.getOpenIDNamespace()
             if namespace is None:
                 raise UndefinedOpenIDNamespace('OpenID namespace not set')
 
-        if namespace != BARE_NS and type(namespace) not in [str, unicode]:
+        if namespace != BARE_NS and not isinstance(namespace, six.string_types):
             raise TypeError(
                 "Namespace must be BARE_NS, OPENID_NS or a string. got %r"
                 % (namespace,))
@@ -441,21 +451,24 @@ class Message(object):
         """Get a value for a namespaced key.
 
         @param namespace: The namespace in the message for this key
-        @type namespace: str
+        @type namespace: Union[six.text_type, NULL_NAMESPACE, OPENID_NS, BARE_NS], six.binary_type is deprecated
 
         @param key: The key to get within this namespace
-        @type key: str
+        @type key: six.text_type, six.binary_type is deprecated
 
         @param default: The value to use if this key is absent from
             this message. Using the special value
             openid.message.no_default will result in this method
             raising a KeyError instead of returning the default.
 
-        @rtype: str or the type of default
+        @rtype: six.text_type or the type of default
         @raises KeyError: if default is no_default
         @raises UndefinedOpenIDNamespace: if the message has not yet
             had an OpenID namespace set
         """
+        if isinstance(namespace, six.string_types):
+            namespace = string_to_text(namespace, "Binary values for namespace are deprecated. Use text input instead.")
+        key = string_to_text(key, "Binary values for key are deprecated. Use text input instead.")
         namespace = self._fixNS(namespace)
         args_key = (namespace, key)
         try:
@@ -484,7 +497,7 @@ class Message(object):
         """Set multiple key/value pairs in one call
 
         @param updates: The values to set
-        @type updates: {unicode:unicode}
+        @type updates: Dict[six.text_type, six.text_type]
         """
         namespace = self._fixNS(namespace)
         for k, v in updates.iteritems():
@@ -582,7 +595,7 @@ class NamespaceMap(object):
 
         # Check that desired_alias does not contain a period as per
         # the spec.
-        if type(desired_alias) in [str, unicode]:
+        if isinstance(desired_alias, six.string_types):
             assert '.' not in desired_alias, \
                    "%r must not contain a dot" % (desired_alias,)
 
@@ -609,8 +622,7 @@ class NamespaceMap(object):
                    'It is already mapped to alias %r')
             raise InvalidNamespace(fmt % (namespace_uri, desired_alias, alias))
 
-        assert (desired_alias == NULL_NAMESPACE or
-                type(desired_alias) in [str, unicode]), repr(desired_alias)
+        assert (desired_alias == NULL_NAMESPACE or isinstance(desired_alias, six.string_types)), repr(desired_alias)
         assert namespace_uri not in self.implicit_namespaces
         self.alias_to_namespace[desired_alias] = namespace_uri
         self.namespace_to_alias[namespace_uri] = desired_alias
@@ -629,7 +641,7 @@ class NamespaceMap(object):
         # Fall back to generating a numerical alias
         i = 0
         while True:
-            alias = 'ext' + str(i)
+            alias = 'ext' + six.text_type(i)
             try:
                 self.addAlias(namespace_uri, alias)
             except KeyError:
