@@ -5,7 +5,7 @@ For users of this library, the C{L{log}} function is probably the most
 interesting.
 """
 
-__all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'autoSubmitHTML', 'toUnicode']
+__all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'autoSubmitHTML']
 
 import binascii
 import logging
@@ -15,19 +15,6 @@ from urllib import urlencode
 import six
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def toUnicode(value):
-    """Returns the given argument as a unicode object.
-
-    @param value: A UTF-8 encoded string or a unicode (coercable) object
-    @type message: str or unicode
-
-    @returns: Unicode object representing the input value.
-    """
-    if isinstance(value, str):
-        return value.decode('utf-8')
-    return unicode(value)
 
 
 def autoSubmitHTML(form, title='OpenID transaction in progress'):

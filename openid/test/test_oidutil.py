@@ -137,19 +137,6 @@ class AppendArgsTest(unittest.TestCase):
             self.assertEqual(expected, result, '{} {}'.format(name, args))
 
 
-class TestUnicodeConversion(unittest.TestCase):
-
-    def test_toUnicode(self):
-        # Unicode objects pass through
-        self.assertIsInstance(oidutil.toUnicode(u'fööbär'), unicode)
-        self.assertEquals(oidutil.toUnicode(u'fööbär'), u'fööbär')
-        # UTF-8 encoded string are decoded
-        self.assertIsInstance(oidutil.toUnicode('fööbär'), unicode)
-        self.assertEquals(oidutil.toUnicode('fööbär'), u'fööbär')
-        # Other encodings raise exceptions
-        self.assertRaises(UnicodeDecodeError, lambda: oidutil.toUnicode(u'fööbär'.encode('latin-1')))
-
-
 class TestSymbol(unittest.TestCase):
     def testCopyHash(self):
         import copy
