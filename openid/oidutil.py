@@ -9,7 +9,10 @@ __all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'autoSubmitHTML', 'toU
 
 import binascii
 import logging
+import warnings
 from urllib import urlencode
+
+import six
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -148,3 +151,17 @@ class Symbol(object):
 
     def __repr__(self):
         return '<Symbol %s>' % (self.name,)
+
+
+def string_to_text(value, deprecate_msg):
+    """
+    Return input string coverted to text string.
+
+    If input is text, it is returned as is.
+    If input is binary, it is decoded using UTF-8 to text.
+    """
+    assert isinstance(value, (six.text_type, six.binary_type))
+    if isinstance(value, six.binary_type):
+        warnings.warn(deprecate_msg, DeprecationWarning)
+        value = value.decode('utf-8')
+    return value

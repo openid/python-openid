@@ -3,8 +3,14 @@
 import random
 import string
 import unittest
+import warnings
+
+import six
+from mock import sentinel
+from testfixtures import ShouldWarn
 
 from openid import oidutil
+from openid.oidutil import string_to_text
 
 
 class TestBase64(unittest.TestCase):
@@ -159,3 +165,21 @@ class TestSymbol(unittest.TestCase):
 # XXX: there are more functions that could benefit from being better
 # specified and tested in oidutil.py These include, but are not
 # limited to appendArgs
+
+
+class TestToText(unittest.TestCase):
+    """Test `string_to_text` utility function."""
+
+    def test_text_input(self):
+        result = string_to_text(u'ěščřž', sentinel.msg)
+        self.assertIsInstance(result, six.text_type)
+        self.assertEqual(result, u'ěščřž')
+
+    def test_binary_input(self):
+        warning_msg = 'Conversion warning'
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            result = string_to_text('ěščřž'.encode('utf-8'), warning_msg)
+
+        self.assertIsInstance(result, six.text_type)
+        self.assertEqual(result, u'ěščřž')

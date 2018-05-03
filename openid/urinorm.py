@@ -2,11 +2,10 @@
 from __future__ import unicode_literals
 
 import string
-import warnings
 from urllib import quote, unquote, urlencode
 from urlparse import parse_qsl, urlsplit, urlunsplit
 
-import six
+from .oidutil import string_to_text
 
 
 def remove_dot_segments(path):
@@ -69,10 +68,7 @@ def urinorm(uri):
     @rtype: six.text_type
     @raise ValueError: If URI is invalid.
     """
-    # Transform the input to the unicode string
-    if isinstance(uri, six.binary_type):
-        warnings.warn("Binary input for urinorm is deprecated. Use text input instead.", DeprecationWarning)
-        uri = uri.decode('utf-8')
+    uri = string_to_text(uri, "Binary input for urinorm is deprecated. Use text input instead.")
 
     split_uri = urlsplit(uri)
 
