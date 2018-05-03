@@ -2,6 +2,15 @@
 """
 ElementTree interface to an XRD document.
 """
+from __future__ import unicode_literals
+
+import random
+from datetime import datetime
+from time import strptime
+
+from lxml import etree
+
+from openid.yadis import xri
 
 __all__ = [
     'nsTag',
@@ -17,14 +26,6 @@ __all__ = [
     'expandService',
     'expandServices',
 ]
-
-import random
-from datetime import datetime
-from time import strptime
-
-from lxml import etree
-
-from openid.yadis import xri
 
 
 class XRDSError(Exception):
@@ -42,6 +43,8 @@ class XRDSFraud(XRDSError):
 
 def parseXRDS(text):
     """Parse the given text as an XRDS document.
+
+    @type text: six.binary_type
 
     @return: ElementTree containing an XRDS document
 
@@ -72,7 +75,7 @@ def nsTag(ns, t):
 
 
 def mkXRDTag(t):
-    """basestring -> basestring
+    """six.text_type -> six.text_type
 
     Create a tag name in the XRD 2.0 XML namespace suitable for using
     with ElementTree
@@ -81,7 +84,7 @@ def mkXRDTag(t):
 
 
 def mkXRDSTag(t):
-    """basestring -> basestring
+    """six.text_type -> six.text_type
 
     Create a tag name in the XRDS XML namespace suitable for using
     with ElementTree

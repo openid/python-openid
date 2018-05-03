@@ -1,7 +1,10 @@
+from __future__ import unicode_literals
+
 import os.path
 import tempfile
 import unittest
 
+import six
 from lxml import etree
 
 from openid.yadis import etxrd, services, xri
@@ -71,11 +74,11 @@ class TestParseXRDS(unittest.TestCase):
                 xxe_file.write(xxe_content)
             # XXE example from Testing for XML Injection (OTG-INPVAL-008)
             # https://www.owasp.org/index.php/Testing_for_XML_Injection_(OTG-INPVAL-008)
-            xml = ('<?xml version="1.0" encoding="ISO-8859-1"?>'
-                   '<!DOCTYPE foo ['
-                   '<!ELEMENT foo ANY >'
-                   '<!ENTITY xxe SYSTEM "file://%s" >]>'
-                   '<xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">&xxe;</xrds:XRDS>')
+            xml = (b'<?xml version="1.0" encoding="ISO-8859-1"?>'
+                   b'<!DOCTYPE foo ['
+                   b'<!ELEMENT foo ANY >'
+                   b'<!ENTITY xxe SYSTEM "file://%s" >]>'
+                   b'<xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">&xxe;</xrds:XRDS>')
             tree = etxrd.parseXRDS(xml % tmp_file)
             self.assertNotIn(xxe_content, etree.tostring(tree))
         finally:
@@ -226,7 +229,7 @@ class TestCanonicalID(unittest.TestCase):
     #   somewhere in the resolution chain.
 
     def _getCanonicalID(self, iname, xrds, expectedID):
-        if isinstance(expectedID, (str, unicode, type(None))):
+        if isinstance(expectedID, six.string_types + (type(None), )):
             cid = etxrd.getCanonicalID(iname, xrds)
             self.assertEqual(cid, expectedID and xri.XRI(expectedID))
         elif issubclass(expectedID, etxrd.XRDSError):

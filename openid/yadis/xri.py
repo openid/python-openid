@@ -4,6 +4,8 @@
 @see: XRI Syntax v2.0 at the
       U{OASIS XRI Technical Committee<http://www.oasis-open.org/committees/tc_home.php?wg_abbrev=xri>}
 """
+from __future__ import unicode_literals
+
 import re
 import warnings
 from urllib import quote
