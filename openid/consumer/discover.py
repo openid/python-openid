@@ -16,8 +16,10 @@ __all__ = [
 import logging
 import urlparse
 
+from lxml.etree import LxmlError
+from lxml.html import document_fromstring
+
 from openid import fetchers, urinorm
-from openid.consumer import html_parse
 from openid.message import OPENID1_NS as OPENID_1_0_MESSAGE_NS, OPENID2_NS as OPENID_2_0_MESSAGE_NS
 from openid.yadis import filters, xri, xrires
 from openid.yadis.discover import DiscoveryFailure, discover as yadisDiscover
@@ -31,6 +33,8 @@ OPENID_IDP_2_0_TYPE = 'http://specs.openid.net/auth/2.0/server'
 OPENID_2_0_TYPE = 'http://specs.openid.net/auth/2.0/signon'
 OPENID_1_1_TYPE = 'http://openid.net/signon/1.1'
 OPENID_1_0_TYPE = 'http://openid.net/signon/1.0'
+
+LINK_REL_XPATH = "/html/head/link[contains(concat(' ', normalize-space(@rel), ' '), ' {} ')]"
 
 
 class OpenIDServiceEndpoint(object):
@@ -152,19 +156,29 @@ class OpenIDServiceEndpoint(object):
             (OPENID_2_0_TYPE, 'openid2.provider', 'openid2.local_id'),
             (OPENID_1_1_TYPE, 'openid.server', 'openid.delegate'),
         ]
-
-        link_attrs = html_parse.parseLinkAttrs(html)
         services = []
+
+        try:
+            parsed_html = document_fromstring(html)
+        except LxmlError:
+            # It's a dumb function. Return empty results in case of an error.
+            return []
         for type_uri, op_endpoint_rel, local_id_rel in discovery_types:
-            op_endpoint_url = html_parse.findFirstHref(
-                link_attrs, op_endpoint_rel)
-            if op_endpoint_url is None:
+            op_links = parsed_html.xpath(LINK_REL_XPATH.format(op_endpoint_rel))
+            if not op_links:
                 continue
+            op_endpoint_url = op_links[0].get('href')
+            if not op_endpoint_url:
+                continue
+
+            local_id_links = parsed_html.xpath(LINK_REL_XPATH.format(local_id_rel))
+            local_id = None
+            if local_id_links:
+                local_id = local_id_links[0].get('href')
 
             service = cls()
             service.claimed_id = uri
-            service.local_id = html_parse.findFirstHref(
-                link_attrs, local_id_rel)
+            service.local_id = local_id
             service.server_url = op_endpoint_url
             service.type_uris = [type_uri]
 
