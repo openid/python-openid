@@ -5,6 +5,14 @@ Extension 1.0
 
 @since: 2.1.0
 """
+from __future__ import unicode_literals
+
+import re
+import warnings
+
+import six
+
+from openid.extension import Extension
 
 __all__ = [
     'Request',
@@ -14,11 +22,6 @@ __all__ = [
     'AUTH_MULTI_FACTOR',
     'AUTH_MULTI_FACTOR_PHYSICAL',
 ]
-
-import re
-import warnings
-
-from openid.extension import Extension
 
 warnings.warn("Module 'openid.extensions.draft.pape2' is deprecated. Use 'openid.extensions.pape' instead.",
               DeprecationWarning)
@@ -41,7 +44,7 @@ class Request(Extension):
 
     @ivar preferred_auth_policies: The authentication policies that
         the relying party prefers
-    @type preferred_auth_policies: [str]
+    @type preferred_auth_policies: List[six.text_type]
 
     @ivar max_auth_age: The maximum time, in seconds, that the relying
         party wants to allow to have elapsed before the user must
@@ -84,7 +87,7 @@ class Request(Extension):
         }
 
         if self.max_auth_age is not None:
-            ns_args['max_auth_age'] = str(self.max_auth_age)
+            ns_args['max_auth_age'] = six.text_type(self.max_auth_age)
 
         return ns_args
 
@@ -147,7 +150,7 @@ class Request(Extension):
             sequence, and may be empty if the provider does not prefer
             any of the supported authentication types.
 
-        @returntype: [str]
+        @returntype: List[six.text_type]
         """
         return [i for i in supported_types if i in self.preferred_auth_policies]
 
@@ -268,7 +271,7 @@ class Response(Extension):
             if self.nist_auth_level not in range(0, 5):
                 raise ValueError('nist_auth_level must be an integer between '
                                  'zero and four, inclusive')
-            ns_args['nist_auth_level'] = str(self.nist_auth_level)
+            ns_args['nist_auth_level'] = six.text_type(self.nist_auth_level)
 
         if self.auth_time is not None:
             if not TIME_VALIDATOR.match(self.auth_time):

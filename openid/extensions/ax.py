@@ -1,8 +1,15 @@
-# -*- test-case-name: openid.test.test_ax -*-
 """Implements the OpenID Attribute Exchange specification, version 1.0.
 
 @since: 2.1.0
 """
+from __future__ import unicode_literals
+
+import six
+
+from openid import extension
+from openid.message import OPENID_NS, NamespaceMap
+from openid.oidutil import string_to_text
+from openid.server.trustroot import TrustRoot
 
 __all__ = [
     'AttrInfo',
@@ -11,10 +18,6 @@ __all__ = [
     'StoreRequest',
     'StoreResponse',
 ]
-
-from openid import extension
-from openid.message import OPENID_NS, NamespaceMap
-from openid.server.trustroot import TrustRoot
 
 # Use this as the 'count' value for an attribute in a FetchRequest to
 # ask for as many values as the OP can provide.
@@ -107,7 +110,7 @@ class AttrInfo(object):
         represents and how it is serialized. For example, one type URI
         representing dates could represent a Unix timestamp in base 10
         and another could represent a human-readable string.
-    @type type_uri: str
+    @type type_uri: six.text_type
 
     @ivar alias: The name that should be given to this alias in the
         request. If it is not supplied, a generic name will be
@@ -115,7 +118,7 @@ class AttrInfo(object):
         value 'tstamp', set its alias to that value. If two attributes
         in the same message request to use the same alias, the request
         will fail to be generated.
-    @type alias: str or NoneType
+    @type alias: six.text_type or NoneType
     """
 
     def __init__(self, type_uri, count=1, required=False, alias=None):
@@ -148,7 +151,7 @@ def toTypeURIs(namespace_map, alias_list_s):
 
     @param alias_list_s: The string containing the comma-separated
         list of aliases. May also be None for convenience.
-    @type alias_list_s: str or NoneType
+    @type alias_list_s: Optional[six.text_type], six.binary_type is deprecated
 
     @returns: The list of namespace URIs that corresponds to the
         supplied list of aliases. If the string was zero-length or
@@ -160,6 +163,8 @@ def toTypeURIs(namespace_map, alias_list_s):
     uris = []
 
     if alias_list_s:
+        alias_list_s = string_to_text(alias_list_s,
+                                      "Binary values for alias_list_s are deprecated. Use text input instead.")
         for alias in alias_list_s.split(','):
             type_uri = namespace_map.getNamespaceURI(alias)
             if type_uri is None:
@@ -178,7 +183,7 @@ class FetchRequest(AXMessage):
 
     @ivar requested_attributes: The attributes that have been
         requested thus far, indexed by the type URI.
-    @type requested_attributes: {str:AttrInfo}
+    @type requested_attributes: Dict[six.text_type, AttrInfo]
 
     @ivar update_url: A URL that will accept responses for this
         attribute exchange request, even in the absence of the user
@@ -246,7 +251,7 @@ class FetchRequest(AXMessage):
                 if_available.append(alias)
 
             if attribute.count != 1:
-                ax_args['count.' + alias] = str(attribute.count)
+                ax_args['count.' + alias] = six.text_type(attribute.count)
 
             ax_args['type.' + alias] = type_uri
 
@@ -264,7 +269,7 @@ class FetchRequest(AXMessage):
 
         @returns: A list of the type URIs for attributes that have
             been marked as required.
-        @rtype: [str]
+        @rtype: List[six.text_type]
         """
         required = []
         for type_uri, attribute in self.requested_attributes.iteritems():
@@ -457,7 +462,7 @@ class AXKeyValueMessage(AXMessage):
             alias = aliases.add(type_uri)
 
             ax_args['type.' + alias] = type_uri
-            ax_args['count.' + alias] = str(len(values))
+            ax_args['count.' + alias] = six.text_type(len(values))
 
             for i, value in enumerate(values):
                 key = 'value.%s.%d' % (alias, i + 1)
@@ -498,7 +503,7 @@ class AXKeyValueMessage(AXMessage):
             except KeyError:
                 value = ax_args['value.' + alias]
 
-                if value == u'':
+                if value == '':
                     values = []
                 else:
                     values = [value]
@@ -517,8 +522,8 @@ class AXKeyValueMessage(AXMessage):
         for this attribute, use the supplied default. If there is more
         than one value for this attribute, this method will fail.
 
-        @type type_uri: str
         @param type_uri: The URI for the attribute
+        @type type_uri: six.text_type, six.binary_type is deprecated
 
         @param default: The value to return if the attribute was not
             sent in the fetch_response.
@@ -531,6 +536,7 @@ class AXKeyValueMessage(AXMessage):
             parameter in the fetch_response message.
         @raises KeyError: If the attribute was not sent in this response
         """
+        type_uri = string_to_text(type_uri, "Binary values for type_uri are deprecated. Use text input instead.")
         values = self.data.get(type_uri)
         if not values:
             return default
@@ -593,9 +599,12 @@ class FetchResponse(AXKeyValueMessage):
             request.  But if you do not supply the request, you may set
             the C{update_url} here.
 
-        @type update_url: str
+        @type update_url: Optional[six.text_type], six.binary_type is deprecated
         """
         AXKeyValueMessage.__init__(self)
+        if update_url is not None:
+            update_url = string_to_text(update_url,
+                                        "Binary values for update_url are deprecated. Use text input instead.")
         self.update_url = update_url
         self.request = request
 
