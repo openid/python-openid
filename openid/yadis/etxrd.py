@@ -6,6 +6,8 @@ from __future__ import unicode_literals
 
 import random
 from datetime import datetime
+from functools import total_ordering
+from operator import itemgetter
 from time import strptime
 
 from lxml import etree
@@ -190,17 +192,18 @@ def getCanonicalID(iname, xrd_tree):
     return canonicalID
 
 
+@total_ordering
 class _Max(object):
     """Value that compares greater than any other value.
 
     Should only be used as a singleton. Implemented for use as a
     priority value for when a priority is not specified."""
 
-    def __cmp__(self, other):
-        if other is self:
-            return 0
+    def __eq__(self, other):
+        return self is other
 
-        return 1
+    def __gt__(self, other):
+        return True
 
 
 Max = _Max()
@@ -242,7 +245,7 @@ def prioSort(elements):
     # elements are load-balanced.
     random.shuffle(elements)
 
-    prio_elems = sorted((getPriority(e), e) for e in elements)
+    prio_elems = sorted(((getPriority(e), e) for e in elements), key=itemgetter(0))
     sorted_elems = [s for (_, s) in prio_elems]
     return sorted_elems
 
