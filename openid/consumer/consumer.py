@@ -186,10 +186,13 @@ USING THIS LIBRARY
     L{SetupNeededResponse<openid.consumer.consumer.SetupNeededResponse>}
     objects.
 """
+from __future__ import unicode_literals
 
 import copy
 import logging
 from urlparse import parse_qsl, urldefrag, urlparse
+
+import six
 
 from openid import cryptutil, fetchers, oidutil, urinorm
 from openid.association import Association, SessionNegotiator, default_negotiator
@@ -197,6 +200,7 @@ from openid.consumer.discover import (OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2
                                       OpenIDServiceEndpoint, discover)
 from openid.dh import DiffieHellman
 from openid.message import BARE_NS, IDENTIFIER_SELECT, OPENID1_NS, OPENID2_NS, OPENID_NS, Message, no_default
+from openid.oidutil import string_to_text
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.yadis.manager import Discovery
 
@@ -373,7 +377,7 @@ class Consumer(object):
         try:
             auth_req.setAnonymous(anonymous)
         except ValueError as why:
-            raise ProtocolError(str(why))
+            raise ProtocolError(six.text_type(why))
 
         return auth_req
 
@@ -437,7 +441,7 @@ class Consumer(object):
             (association type, association session type) pairs that
             should be allowed for this consumer to use, in order from
             most preferred to least preferred.
-        @type association_preferences: [(str, str)]
+        @type association_preferences: List[Tuple[six.text_type, six.text_type]], six.binary_type is deprecated
 
         @returns: None
 
@@ -1054,7 +1058,7 @@ class GenericConsumer(object):
                     self._verifyDiscoverySingle(
                         endpoint, to_match_endpoint)
                 except ProtocolError as why:
-                    failure_messages.append(str(why))
+                    failure_messages.append(six.text_type(why))
                 else:
                     # It matches, so discover verification has
                     # succeeded. Return this endpoint.
@@ -1258,20 +1262,23 @@ class GenericConsumer(object):
 
         @param assoc_type: The association type that the request
             should ask for.
-        @type assoc_type: str
+        @type assoc_type: six.text_type, six.binary_type is deprecated
 
         @param session_type: The session type that should be used in
             the association request. The session_type is used to
             create an association session object, and that session
             object is asked for any additional fields that it needs to
             add to the request.
-        @type session_type: str
+        @type session_type: six.text_type, six.binary_type is deprecated
 
         @returns: a pair of the association session object and the
             request message that will be sent to the server.
         @rtype: (association session type (depends on session_type),
                  openid.message.Message)
         """
+        assoc_type = string_to_text(assoc_type, "Binary values for assoc_type are deprecated. Use text input instead.")
+        session_type = string_to_text(session_type,
+                                      "Binary values for assoc_type are deprecated. Use text input instead.")
         session_type_class = self.session_types[session_type]
         assoc_session = session_type_class()
 
@@ -1303,7 +1310,7 @@ class GenericConsumer(object):
         return 'no-encryption'
 
         @returns: The association type for this message
-        @rtype: str
+        @rtype: six.text_type
 
         @raises KeyError: when the session_type field is absent.
         """
@@ -1472,20 +1479,20 @@ class AuthRequest(object):
         @param namespace: The namespace for the extension. For
             example, the simple registration extension uses the
             namespace C{sreg}.
-
-        @type namespace: str
+        @type namespace: six.text_type, six.binary_type is deprecated
 
         @param key: The key within the extension namespace. For
             example, the nickname field in the simple registration
             extension's key is C{nickname}.
-
-        @type key: str
+        @type key: six.text_type, six.binary_type is deprecated
 
         @param value: The value to provide to the server for this
             argument.
-
-        @type value: str
+        @type value: six.text_type, six.binary_type is deprecated
         """
+        namespace = string_to_text(namespace, "Binary values for namespace are deprecated. Use text input instead.")
+        key = string_to_text(key, "Binary values for key are deprecated. Use text input instead.")
+        value = string_to_text(value, "Binary values for value are deprecated. Use text input instead.")
         self.message.setArg(namespace, key, value)
 
     def getMessage(self, realm, return_to=None, immediate=False):
@@ -1493,8 +1500,7 @@ class AuthRequest(object):
 
         @param realm: The URL (or URL pattern) that identifies your
             web site to the user when she is authorizing it.
-
-        @type realm: str
+        @type realm: six.text_type, six.binary_type is deprecated
 
         @param return_to: The URL that the OpenID provider will send the
             user back to after attempting to verify her identity.
@@ -1502,8 +1508,7 @@ class AuthRequest(object):
             Not specifying a return_to URL means that the user will not
             be returned to the site issuing the request upon its
             completion.
-
-        @type return_to: str
+        @type return_to: six.text_type, six.binary_type is deprecated
 
         @param immediate: If True, the OpenID provider is to send back
             a response immediately, useful for behind-the-scenes
@@ -1517,7 +1522,9 @@ class AuthRequest(object):
 
         @returntype: L{openid.message.Message}
         """
+        realm = string_to_text(realm, "Binary values for realm are deprecated. Use text input instead.")
         if return_to:
+            return_to = string_to_text(return_to, "Binary values for return_to are deprecated. Use text input instead.")
             return_to = oidutil.appendArgs(return_to, self.return_to_args)
         elif immediate:
             raise ValueError(
@@ -1580,8 +1587,7 @@ class AuthRequest(object):
 
         @param realm: The URL (or URL pattern) that identifies your
             web site to the user when she is authorizing it.
-
-        @type realm: str
+        @type realm: six.text_type, six.binary_type is deprecated
 
         @param return_to: The URL that the OpenID provider will send the
             user back to after attempting to verify her identity.
@@ -1589,8 +1595,7 @@ class AuthRequest(object):
             Not specifying a return_to URL means that the user will not
             be returned to the site issuing the request upon its
             completion.
-
-        @type return_to: str
+        @type return_to: six.text_type, six.binary_type is deprecated
 
         @param immediate: If True, the OpenID provider is to send back
             a response immediately, useful for behind-the-scenes
@@ -1604,7 +1609,7 @@ class AuthRequest(object):
 
         @returns: The URL to redirect the user agent to.
 
-        @returntype: str
+        @returntype: six.text_type
         """
         message = self.getMessage(realm, return_to, immediate)
         return message.toURL(self.endpoint.server_url)
@@ -1627,7 +1632,7 @@ class AuthRequest(object):
 
         @see: formMarkup
 
-        @returns: str
+        @returns: six.text_type
         """
         return oidutil.autoSubmitHTML(self.formMarkup(realm, return_to, immediate, form_tag_attrs))
 
@@ -1772,7 +1777,7 @@ class SuccessResponse(Response):
             initial request, or C{None} if the response did not contain
             an C{openid.return_to} argument.
 
-        @returntype: str
+        @returntype: six.text_type
         """
         return self.getSigned(OPENID_NS, 'return_to')
 

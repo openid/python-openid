@@ -1,7 +1,5 @@
-"""Unit tests for verification of return_to URLs for a realm
-"""
-
-__all__ = ['TestBuildDiscoveryURL']
+"""Unit tests for verification of return_to URLs for a realm."""
+from __future__ import unicode_literals
 
 import unittest
 
@@ -10,6 +8,8 @@ from testfixtures import LogCapture, StringComparison
 from openid.server import trustroot
 from openid.yadis import services
 from openid.yadis.discover import DiscoveryFailure, DiscoveryResult
+
+__all__ = ['TestBuildDiscoveryURL']
 
 
 class TestBuildDiscoveryURL(unittest.TestCase):
@@ -75,7 +75,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
         self.assertDiscoveryFailure('>')
 
     def test_noEntries(self):
-        self.assertReturnURLs('''\
+        self.assertReturnURLs(b'''\
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
@@ -86,7 +86,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
 ''', [])
 
     def test_noReturnToEntries(self):
-        self.assertReturnURLs('''\
+        self.assertReturnURLs(b'''\
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
@@ -101,7 +101,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
 ''', [])
 
     def test_oneEntry(self):
-        self.assertReturnURLs('''\
+        self.assertReturnURLs(b'''\
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
@@ -116,7 +116,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
 ''', ['http://rp.example.com/return'])
 
     def test_twoEntries(self):
-        self.assertReturnURLs('''\
+        self.assertReturnURLs(b'''\
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
@@ -135,7 +135,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
 ''', ['http://rp.example.com/return', 'http://other.rp.example.com/return'])
 
     def test_twoEntries_withOther(self):
-        self.assertReturnURLs('''\
+        self.assertReturnURLs(b'''\
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"

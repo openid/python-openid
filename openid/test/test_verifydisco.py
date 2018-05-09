@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import unittest
 
 from testfixtures import LogCapture, StringComparison

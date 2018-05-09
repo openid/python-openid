@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import time
 import unittest
 import urlparse
@@ -535,8 +537,7 @@ class TestCheckAuthResponse(TestIdRes):
     def _createAssoc(self):
         issued = time.time()
         lifetime = 1000
-        assoc = association.Association(
-            'handle', 'secret', issued, lifetime, 'HMAC-SHA1')
+        assoc = association.Association('handle', b'secret', issued, lifetime, 'HMAC-SHA1')
         store = self.consumer.store
         store.storeAssociation(self.server_url, assoc)
         assoc2 = store.getAssociation(self.server_url)
@@ -918,8 +919,7 @@ class TestCheckAuthTriggered(TestIdRes):
         # handle that is in the message
         issued = time.time()
         lifetime = 1000
-        assoc = association.Association(
-            'handle', 'secret', issued, lifetime, 'HMAC-SHA1')
+        assoc = association.Association('handle', b'secret', issued, lifetime, 'HMAC-SHA1')
         self.store.storeAssociation(self.server_url, assoc)
         self.disableReturnToChecking()
         message = Message.fromPostArgs({
@@ -942,8 +942,7 @@ class TestCheckAuthTriggered(TestIdRes):
         issued = time.time() - 10
         lifetime = 0
         handle = 'handle'
-        assoc = association.Association(
-            handle, 'secret', issued, lifetime, 'HMAC-SHA1')
+        assoc = association.Association(handle, b'secret', issued, lifetime, 'HMAC-SHA1')
         self.assertLessEqual(assoc.expiresIn, 0)
         self.store.storeAssociation(self.server_url, assoc)
 
@@ -962,14 +961,12 @@ class TestCheckAuthTriggered(TestIdRes):
 
         good_issued = time.time() - 10
         good_handle = 'handle'
-        good_assoc = association.Association(
-            good_handle, 'secret', good_issued, lifetime, 'HMAC-SHA1')
+        good_assoc = association.Association(good_handle, b'secret', good_issued, lifetime, 'HMAC-SHA1')
         self.store.storeAssociation(self.server_url, good_assoc)
 
         bad_issued = time.time() - 5
         bad_handle = 'handle2'
-        bad_assoc = association.Association(
-            bad_handle, 'secret', bad_issued, lifetime, 'HMAC-SHA1')
+        bad_assoc = association.Association(bad_handle, b'secret', bad_issued, lifetime, 'HMAC-SHA1')
         self.store.storeAssociation(self.server_url, bad_assoc)
 
         query = {

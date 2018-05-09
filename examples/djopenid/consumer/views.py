@@ -1,3 +1,6 @@
+from __future__ import unicode_literals
+
+import six
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
@@ -70,7 +73,7 @@ def startOpenID(request):
             auth_request = c.begin(openid_url)
         except DiscoveryFailure as e:
             # Some other protocol-level failure occurred.
-            error = "OpenID discovery error: %s" % (str(e),)
+            error = "OpenID discovery error: %s" % (six.text_type(e),)
 
         if error:
             # Render the page with an error.

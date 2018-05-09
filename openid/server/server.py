@@ -115,6 +115,7 @@ From 1.1 to 2.0
 
 @group Response Encodings: ENCODE_KVFORM, ENCODE_HTML_FORM, ENCODE_URL
 """
+from __future__ import unicode_literals
 
 import logging
 import time
@@ -128,6 +129,7 @@ from openid.association import Association, default_negotiator, getSecretSize
 from openid.dh import DiffieHellman
 from openid.message import (IDENTIFIER_SELECT, OPENID1_URL_LIMIT, OPENID2_NS, OPENID_NS, InvalidNamespace,
                             InvalidOpenIDNamespace, Message)
+from openid.oidutil import string_to_text
 from openid.server.trustroot import TrustRoot, verifyReturnTo
 from openid.store.nonce import mkNonce
 from openid.urinorm import urinorm
@@ -151,7 +153,7 @@ class OpenIDRequest(object):
     """I represent an incoming OpenID request.
 
     @cvar mode: the C{X{openid.mode}} of this request.
-    @type mode: str
+    @type mode: six.text_type
 
     @ivar message: Original request message.
     @type message: Message
@@ -177,16 +179,16 @@ class CheckAuthRequest(OpenIDRequest):
     """A request to verify the validity of a previous response.
 
     @cvar mode: "X{C{check_authentication}}"
-    @type mode: str
+    @type mode: six.text_type
 
     @ivar assoc_handle: The X{association handle} the response was signed with.
-    @type assoc_handle: str
+    @type assoc_handle: six.text_type
     @ivar signed: The message with the signature which wants checking.
     @type signed: L{Message}
 
     @ivar invalidate_handle: An X{association handle} the client is asking
         about the validity of.  Optional, may be C{None}.
-    @type invalidate_handle: str
+    @type invalidate_handle: six.text_type
 
     @see: U{OpenID Specs, Mode: check_authentication
         <http://openid.net/specs.bml#mode-check_authentication>}
@@ -201,13 +203,17 @@ class CheckAuthRequest(OpenIDRequest):
         These parameters are assigned directly as class attributes, see
         my L{class documentation<CheckAuthRequest>} for their descriptions.
 
-        @type assoc_handle: str
+        @type assoc_handle: six.text_type, six.binary_type is deprecated
         @type signed: L{Message}
-        @type invalidate_handle: str
+        @type invalidate_handle: six.text_type, six.binary_type is deprecated
         """
         super(CheckAuthRequest, self).__init__(message=message)
-        self.assoc_handle = assoc_handle
+        self.assoc_handle = string_to_text(assoc_handle,
+                                           "Binary values for assoc_handle are deprecated. Use text input instead.")
         self.signed = signed
+        if invalidate_handle is not None:
+            invalidate_handle = string_to_text(
+                invalidate_handle, "Binary values for invalidate_handle are deprecated. Use text input instead.")
         self.invalidate_handle = invalidate_handle
 
     @classmethod
@@ -282,7 +288,7 @@ class PlainTextServerSession(object):
     @cvar session_type: The session_type for this association
         session. There is no type defined for plain-text in the OpenID
         specification, so we use 'no-encryption'.
-    @type session_type: str
+    @type session_type: six.text_type
 
     @see: U{OpenID Specs, Mode: associate
         <http://openid.net/specs.bml#mode-associate>}
@@ -305,7 +311,7 @@ class DiffieHellmanSHA1ServerSession(object):
 
     @cvar session_type: The session_type for this association
         session.
-    @type session_type: str
+    @type session_type: six.text_type
 
     @ivar dh: The Diffie-Hellman algorithm values for this request
     @type dh: DiffieHellman
@@ -388,11 +394,11 @@ class AssociateRequest(OpenIDRequest):
     """A request to establish an X{association}.
 
     @cvar mode: "X{C{check_authentication}}"
-    @type mode: str
+    @type mode: six.text_type
 
     @ivar assoc_type: The type of association.  The protocol currently only
         defines one value for this, "X{C{HMAC-SHA1}}".
-    @type assoc_type: str
+    @type assoc_type: six.text_type
 
     @ivar session: An object that knows how to handle association
         requests of a certain type.
@@ -526,32 +532,32 @@ class CheckIDRequest(OpenIDRequest):
     and X{C{checkid_setup}}.
 
     @cvar mode: "X{C{checkid_immediate}}" or "X{C{checkid_setup}}"
-    @type mode: str
+    @type mode: six.text_type
 
     @ivar immediate: Is this an immediate-mode request?
     @type immediate: bool
 
     @ivar identity: The OP-local identifier being checked.
-    @type identity: str
+    @type identity: six.text_type
 
     @ivar claimed_id: The claimed identifier.  Not present in OpenID 1.x
         messages.
-    @type claimed_id: str or None
+    @type claimed_id: Optional[six.text_type]
 
     @ivar trust_root: "Are you Frank?" asks the checkid request.  "Who wants
         to know?"  C{trust_root}, that's who.  This URL identifies the party
         making the request, and the user will use that to make her decision
         about what answer she trusts them to have.  Referred to as "realm" in
         OpenID 2.0.
-    @type trust_root: str
+    @type trust_root: six.text_type
 
     @ivar return_to: The URL to send the user agent back to to reply to this
         request.
-    @type return_to: str
+    @type return_to: six.text_type
 
     @ivar assoc_handle: Provided in smart mode requests, a handle for a
         previously established association.  C{None} for dumb mode requests.
-    @type assoc_handle: str
+    @type assoc_handle: six.text_type
     """
 
     def __init__(self, identity, return_to, trust_root=None, immediate=False,
@@ -631,7 +637,7 @@ class CheckIDRequest(OpenIDRequest):
 
         @param op_endpoint: The endpoint URL of the server that this
             message was sent to.
-        @type op_endpoint: str
+        @type op_endpoint: Optional[six.text_type], six.binary_type is deprecated
 
         @returntype: L{CheckIDRequest}
         """
@@ -665,6 +671,9 @@ class CheckIDRequest(OpenIDRequest):
 
         assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
 
+        if op_endpoint is not None:
+            op_endpoint = string_to_text(op_endpoint,
+                                         "Binary values for op_endpoint are deprecated. Use text input instead.")
         self = klass(identity, return_to, trust_root=trust_root, immediate=immediate, assoc_handle=assoc_handle,
                      op_endpoint=op_endpoint, claimed_id=claimed_id, message=message)
         return self
@@ -742,12 +751,11 @@ class CheckIDRequest(OpenIDRequest):
 
             Optional for requests where C{CheckIDRequest.immediate} is C{False}
             or C{allow} is C{True}.
-
-        @type server_url: str
+        @type server_url: Optional[six.text_type], six.binary_type is deprecated
 
         @param identity: The OP-local identifier to answer with.  Only for use
             when the relying party requested identifier selection.
-        @type identity: str or None
+        @type identity: Optional[six.text_type], six.binary_type is deprecated
 
         @param claimed_id: The claimed identifier to answer with, for use
             with identifier selection in the case where the claimed identifier
@@ -760,7 +768,7 @@ class CheckIDRequest(OpenIDRequest):
             C{claimed_id} will default to that of the request.
 
             This parameter is new in OpenID 2.0.
-        @type claimed_id: str or None
+        @type claimed_id: Optional[six.text_type], six.binary_type is deprecated
 
         @returntype: L{OpenIDResponse}
 
@@ -768,6 +776,12 @@ class CheckIDRequest(OpenIDRequest):
 
         @raises NoReturnError: when I do not have a return_to.
         """
+        if identity is not None:
+            identity = string_to_text(identity, "Binary values for identity are deprecated. Use text input instead.")
+        if claimed_id is not None:
+            claimed_id = string_to_text(claimed_id,
+                                        "Binary values for claimed_id are deprecated. Use text input instead.")
+
         if not self.return_to:
             raise NoReturnToError
 
@@ -779,6 +793,9 @@ class CheckIDRequest(OpenIDRequest):
                                    "to respond to OpenID 2.0 messages." %
                                    (self,))
             server_url = self.op_endpoint
+        else:
+            server_url = string_to_text(server_url,
+                                        "Binary values for server_url are deprecated. Use text input instead.")
 
         if allow:
             mode = 'id_res'
@@ -876,9 +893,9 @@ class CheckIDRequest(OpenIDRequest):
         """Encode this request as a URL to GET.
 
         @param server_url: The URL of the OpenID server to make this request of.
-        @type server_url: str
+        @type server_url: six.text_type, six.binary_type is deprecated
 
-        @returntype: str
+        @returntype: six.text_type
 
         @raises NoReturnError: when I do not have a return_to.
         """
@@ -903,6 +920,7 @@ class CheckIDRequest(OpenIDRequest):
 
         response = Message(self.message.getOpenIDNamespace())
         response.updateArgs(OPENID_NS, q)
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
         return response.toURL(server_url)
 
     def getCancelURL(self):
@@ -915,7 +933,7 @@ class CheckIDRequest(OpenIDRequest):
         that it knows that the user did make a decision.  Or you could simulate
         this method by doing C{.answer(False).encodeToURL()})
 
-        @returntype: str
+        @returntype: six.text_type
         @returns: The return_to URL with openid.mode = cancel.
 
         @raises NoReturnError: when I do not have a return_to.
@@ -951,7 +969,7 @@ class OpenIDResponse(object):
     @type fields: L{openid.message.Message}
 
     @ivar signed: The names of the fields which should be signed.
-    @type signed: list of str
+    @type signed: List[six.text_type]
     """
 
     # Implementer's note: In a more symmetric client/server
@@ -983,7 +1001,7 @@ class OpenIDResponse(object):
             that can be overridden. If a value is supplied for
             'action' or 'method', it will be replaced.
 
-        @returntype: str
+        @returntype: six.text_type
 
         @since: 2.1.0
         """
@@ -994,7 +1012,7 @@ class OpenIDResponse(object):
         """Returns an HTML document that auto-submits the form markup
         for this response.
 
-        @returntype: str
+        @returntype: six.text_type
 
         @see: toFormMarkup
 
@@ -1044,7 +1062,7 @@ class OpenIDResponse(object):
         You will generally use this URL with a HTTP redirect.
 
         @returns: A URL to direct the user agent back to.
-        @returntype: str
+        @returntype: six.text_type
         """
         return self.fields.toURL(self.request.return_to)
 
@@ -1088,7 +1106,7 @@ class WebResponse(object):
     @type headers: dict
 
     @ivar body: The body of this response.
-    @type body: str
+    @type body: six.text_type
     """
 
     def __init__(self, code=HTTP_OK, headers=None, body=""):
@@ -1141,7 +1159,7 @@ class Signatory(object):
 
         @param assoc_handle: The handle of the association used to sign the
             data.
-        @type assoc_handle: str
+        @type assoc_handle: six.text_type, six.binary_type is deprecated
 
         @param message: The signed message to verify
         @type message: openid.message.Message
@@ -1149,6 +1167,8 @@ class Signatory(object):
         @returns: C{True} if the signature is valid, C{False} if not.
         @returntype: bool
         """
+        assoc_handle = string_to_text(assoc_handle,
+                                      "Binary values for assoc_handle are deprecated. Use text input instead.")
         assoc = self.getAssociation(assoc_handle, dumb=True)
         if not assoc:
             _LOGGER.error("failed to get assoc with handle %r to verify message %r", assoc_handle, message)
@@ -1202,7 +1222,7 @@ class Signatory(object):
         try:
             signed_response.fields = assoc.signMessage(signed_response.fields)
         except kvform.KVFormError as err:
-            raise EncodingError(response, explanation=str(err))
+            raise EncodingError(response, explanation=six.text_type(err))
         return signed_response
 
     def createAssociation(self, dumb=True, assoc_type='HMAC-SHA1'):
@@ -1213,11 +1233,13 @@ class Signatory(object):
 
         @param assoc_type: The type of association to create.  Currently
             there is only one type defined, C{HMAC-SHA1}.
-        @type assoc_type: str
+        @type assoc_type: six.text_type, six.binary_type is deprecated
 
         @returns: the new association.
         @returntype: L{openid.association.Association}
         """
+        assoc_type = string_to_text(assoc_type, "Binary values for assoc_type are deprecated. Use text input instead.")
+
         secret = cryptutil.getBytes(getSecretSize(assoc_type))
         uniq = oidutil.toBase64(cryptutil.getBytes(4))
         handle = '{%s}{%x}{%s}' % (assoc_type, int(time.time()), uniq)
@@ -1235,7 +1257,7 @@ class Signatory(object):
     def getAssociation(self, assoc_handle, dumb, checkExpiration=True):
         """Get the association with the specified handle.
 
-        @type assoc_handle: str
+        @type assoc_handle: six.text_type, six.binary_type is deprecated
 
         @param dumb: Is this association used with dumb mode?
         @type dumb: bool
@@ -1252,6 +1274,8 @@ class Signatory(object):
 
         if assoc_handle is None:
             raise ValueError("assoc_handle must not be None")
+        assoc_handle = string_to_text(assoc_handle,
+                                      "Binary values for assoc_handle are deprecated. Use text input instead.")
 
         if dumb:
             key = self._dumb_key
@@ -1269,7 +1293,7 @@ class Signatory(object):
     def invalidate(self, assoc_handle, dumb):
         """Invalidates the association with the given handle.
 
-        @type assoc_handle: str
+        @type assoc_handle: six.text_type, six.binary_type is deprecated
 
         @param dumb: Is this association used with dumb mode?
         @type dumb: bool
@@ -1278,6 +1302,8 @@ class Signatory(object):
             key = self._dumb_key
         else:
             key = self._normal_key
+        assoc_handle = string_to_text(assoc_handle,
+                                      "Binary values for assoc_handle are deprecated. Use text input instead.")
         self.store.removeAssociation(key, assoc_handle)
 
 
@@ -1400,13 +1426,13 @@ class Decoder(object):
             query = query.copy()
             query['openid.ns'] = OPENID2_NS
             message = Message.fromPostArgs(query)
-            raise ProtocolError(message, str(err))
+            raise ProtocolError(message, six.text_type(err))
         except InvalidNamespace as err:
             # If openid.ns is OK, but there is problem with other namespaces
             # We keep only bare parts of query and we try to make a ProtocolError from it
             query = [(key, value) for key, value in query.items() if key.count('.') < 2]
             message = Message.fromPostArgs(dict(query))
-            raise ProtocolError(message, str(err))
+            raise ProtocolError(message, six.text_type(err))
 
         mode = message.getArg(OPENID_NS, 'mode')
         if not mode:
@@ -1469,7 +1495,7 @@ class Server(object):
     @type encoder: L{Encoder}
 
     @ivar op_endpoint: My URL.
-    @type op_endpoint: str
+    @type op_endpoint: six.text_type
 
     @ivar negotiator: I use this to determine which kinds of
         associations I can make and how.
@@ -1488,7 +1514,7 @@ class Server(object):
 
         @param op_endpoint: My URL, the fully qualified address of this
             server's endpoint, i.e. C{http://example.com/server}
-        @type op_endpoint: str
+        @type op_endpoint: six.text_type, six.binary_type is deprecated
 
         @change: C{op_endpoint} is new in library version 2.0.  It
             currently defaults to C{None} for compatibility with
@@ -1521,7 +1547,8 @@ class Server(object):
                           "for OpenID 2.0 servers" %
                           (self.__class__.__module__, self.__class__.__name__),
                           stacklevel=2)
-        self.op_endpoint = op_endpoint
+        self.op_endpoint = string_to_text(op_endpoint,
+                                          "Binary values for op_endpoint are deprecated. Use text input instead.")
 
     def handleRequest(self, request):
         """Handle a request.
@@ -1621,18 +1648,20 @@ class ProtocolError(Exception):
         @type message: openid.message.Message
 
         @param text: A message about the encountered error.  Set as C{args[0]}.
-        @type text: str
+        @type text: six.text_type, six.binary_type is deprecated
         """
         self.openid_message = message
         self.reference = reference
         self.contact = contact
         assert not isinstance(message, six.string_types)
+        if text is not None:
+            text = string_to_text(text, "Binary values for text are deprecated. Use text input instead.")
         Exception.__init__(self, text)
 
     def getReturnTo(self):
         """Get the return_to argument from the request, if any.
 
-        @returntype: str
+        @returntype: six.text_type
         """
         if self.openid_message is None:
             return None
@@ -1653,13 +1682,13 @@ class ProtocolError(Exception):
         namespace = self.openid_message.getOpenIDNamespace()
         reply = Message(namespace)
         reply.setArg(OPENID_NS, 'mode', 'error')
-        reply.setArg(OPENID_NS, 'error', str(self))
+        reply.setArg(OPENID_NS, 'error', six.text_type(self))
 
         if self.contact is not None:
-            reply.setArg(OPENID_NS, 'contact', str(self.contact))
+            reply.setArg(OPENID_NS, 'contact', six.text_type(self.contact))
 
         if self.reference is not None:
-            reply.setArg(OPENID_NS, 'reference', str(self.reference))
+            reply.setArg(OPENID_NS, 'reference', six.text_type(self.reference))
 
         return reply
 

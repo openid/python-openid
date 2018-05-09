@@ -14,9 +14,11 @@ Some code conventions used here:
 
 * 'openid_response' is an OpenID library response
 """
+from __future__ import unicode_literals
 
 import cgi
 
+import six
 from django import http
 from django.shortcuts import render
 from django.urls import reverse
@@ -104,7 +106,7 @@ def endpoint(request):
         openid_request = s.decodeRequest(query)
     except ProtocolError as why:
         # This means the incoming request was invalid.
-        return render(request, 'server/endpoint.html', {'error': str(why)})
+        return render(request, 'server/endpoint.html', {'error': six.text_type(why)})
 
     # If we did not get a request, display text indicating that this
     # is an endpoint.

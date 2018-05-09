@@ -1,14 +1,18 @@
-__all__ = [
-    'split',
-    'mkNonce',
-    'checkTimestamp',
-]
+from __future__ import unicode_literals
 
 import string
 from calendar import timegm
 from time import gmtime, strftime, strptime, time
 
 from openid import cryptutil
+from openid.oidutil import string_to_text
+
+__all__ = [
+    'split',
+    'mkNonce',
+    'checkTimestamp',
+]
+
 
 NONCE_CHARS = (string.ascii_letters + string.digits).encode('utf-8')
 
@@ -25,14 +29,17 @@ def split(nonce_string):
     """Extract a timestamp from the given nonce string
 
     @param nonce_string: the nonce from which to extract the timestamp
-    @type nonce_string: str
+    @type nonce_string: six.text_type, six.binary_type is deprecated
 
     @returns: A pair of a Unix timestamp and the salt characters
-    @returntype: (int, str)
+    @returntype: (int, six.text_type)
 
     @raises ValueError: if the nonce does not start with a correctly
         formatted time string
     """
+    nonce_string = string_to_text(nonce_string,
+                                  "Binary values for nonce_string are deprecated. Use text input instead.")
+
     timestamp_str = nonce_string[:time_str_len]
     timestamp = timegm(strptime(timestamp_str, time_fmt))
     if timestamp < 0:
@@ -45,7 +52,7 @@ def checkTimestamp(nonce_string, allowed_skew=SKEW, now=None):
     within the allowed clock-skew of the current time?
 
     @param nonce_string: The nonce that is being checked
-    @type nonce_string: str
+    @type nonce_string: six.text_type, six.binary_type is deprecated
 
     @param allowed_skew: How many seconds should be allowed for
         completing the request, allowing for clock skew.
@@ -84,7 +91,7 @@ def mkNonce(when=None):
         nonce. Defaults to the current time.
     @type when: int
 
-    @returntype: str
+    @returntype: six.text_type
     @returns: A string that should be usable as a one-way nonce
 
     @see: time

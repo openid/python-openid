@@ -1,6 +1,8 @@
 """
 Utility code for the Django example consumer and server.
 """
+from __future__ import unicode_literals
+
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connection

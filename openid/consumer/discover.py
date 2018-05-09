@@ -1,6 +1,19 @@
-# -*- test-case-name: openid.test.test_discover -*-
-"""Functions to discover OpenID endpoints from identifiers.
-"""
+"""Functions to discover OpenID endpoints from identifiers."""
+from __future__ import unicode_literals
+
+import logging
+import urlparse
+
+from lxml.etree import LxmlError
+from lxml.html import document_fromstring
+
+from openid import fetchers, urinorm
+from openid.message import OPENID1_NS as OPENID_1_0_MESSAGE_NS, OPENID2_NS as OPENID_2_0_MESSAGE_NS
+from openid.oidutil import string_to_text
+from openid.yadis import filters, xri, xrires
+from openid.yadis.discover import DiscoveryFailure, discover as yadisDiscover
+from openid.yadis.etxrd import XRD_NS_2_0, XRDSError, nsTag
+from openid.yadis.services import applyFilter as extractServices
 
 __all__ = [
     'DiscoveryFailure',
@@ -12,19 +25,6 @@ __all__ = [
     'OpenIDServiceEndpoint',
     'discover',
 ]
-
-import logging
-import urlparse
-
-from lxml.etree import LxmlError
-from lxml.html import document_fromstring
-
-from openid import fetchers, urinorm
-from openid.message import OPENID1_NS as OPENID_1_0_MESSAGE_NS, OPENID2_NS as OPENID_2_0_MESSAGE_NS
-from openid.yadis import filters, xri, xrires
-from openid.yadis.discover import DiscoveryFailure, discover as yadisDiscover
-from openid.yadis.etxrd import XRD_NS_2_0, XRDSError, nsTag
-from openid.yadis.services import applyFilter as extractServices
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -263,7 +263,7 @@ def findOPLocalIdentifier(service_element, type_uris):
     @param type_uris: The xrd:Type values present in this service
         element. This function could extract them, but higher level
         code needs to do that anyway.
-    @type type_uris: [str]
+    @type type_uris: List[six.text_type], six.binary_type is deprecated
 
     @raises DiscoveryFailure: when discovery fails.
 
@@ -272,6 +272,8 @@ def findOPLocalIdentifier(service_element, type_uris):
     @rtype: six.text_type or NoneType
     """
     # XXX: Test this function on its own!
+    type_uris = [string_to_text(u, "Binary values for text_uris are deprecated. Use text input instead.")
+                 for u in type_uris]
 
     # Build the list of tags that could contain the OP-Local Identifier
     local_id_tags = []
@@ -367,13 +369,14 @@ def discoverYadis(uri):
     on old-style <link rel='...'> discovery if Yadis fails.
 
     @param uri: normalized identity URL
-    @type uri: str
+    @type uri: six.text_type, six.binary_type is deprecated
 
     @return: (claimed_id, services)
-    @rtype: (str, list(OpenIDServiceEndpoint))
+    @rtype: (six.text_type, list(OpenIDServiceEndpoint))
 
     @raises DiscoveryFailure: when discovery fails.
     """
+    uri = string_to_text(uri, "Binary values for discoverYadis are deprecated. Use text input instead.")
     # Might raise a yadis.discover.DiscoveryFailure if no document
     # came back for that URI at all.  I don't think falling back
     # to OpenID 1.0 discovery on the same URL will help, so don't

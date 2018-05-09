@@ -1,7 +1,10 @@
 """A simple store using only in-process memory."""
+from __future__ import unicode_literals
 
 import copy
 import time
+
+import six
 
 from openid.store import nonce
 
@@ -85,7 +88,7 @@ class MemoryStore(object):
         if abs(timestamp - time.time()) > nonce.SKEW:
             return False
 
-        anonce = (str(server_url), int(timestamp), str(salt))
+        anonce = (six.text_type(server_url), int(timestamp), six.text_type(salt))
         if anonce in self.nonces:
             return False
         else:

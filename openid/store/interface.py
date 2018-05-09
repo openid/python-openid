@@ -1,7 +1,5 @@
-"""
-This module contains the definition of the C{L{OpenIDStore}}
-interface.
-"""
+"""This module contains the definition of the C{L{OpenIDStore}} interface."""
+from __future__ import unicode_literals
 
 
 class OpenIDStore(object):
@@ -33,8 +31,7 @@ class OpenIDStore(object):
             there are any limitations on the character set of the
             input string.  In particular, expect to see unescaped
             non-url-safe characters in the server_url field.
-
-        @type server_url: C{str}
+        @type server_url: six.text_type
 
 
         @param association: The C{L{Association
@@ -74,16 +71,13 @@ class OpenIDStore(object):
             any limitations on the character set of the input string.
             In particular, expect to see unescaped non-url-safe
             characters in the server_url field.
-
-        @type server_url: C{str}
-
+        @type server_url: six.text_type
 
         @param handle: This optional parameter is the handle of the
             specific association to get.  If no specific handle is
             provided, any valid association matching the server URL is
             returned.
-
-        @type handle: C{str} or C{NoneType}
+        @type handle: Optional[six.text_type]
 
 
         @return: The C{L{Association
@@ -107,16 +101,13 @@ class OpenIDStore(object):
             assume there are any limitations on the character set of
             the input string.  In particular, expect to see unescaped
             non-url-safe characters in the server_url field.
-
-        @type server_url: C{str}
-
+        @type server_url: six.text_type
 
         @param handle: This is the handle of the association to
             remove.  If there isn't an association found that matches
             both the given URL and handle, then there was no matching
             handle found.
-
-        @type handle: C{str}
+        @type handle: six.text_type
 
 
         @return: Returns whether or not the given association existed.
@@ -144,8 +135,7 @@ class OpenIDStore(object):
 
         @param server_url: The URL of the server from which the nonce
             originated.
-
-        @type server_url: C{str}
+        @type server_url: six.text_type
 
         @param timestamp: The time that the nonce was created (to the
             nearest second), in seconds since January 1 1970 UTC.
@@ -153,7 +143,7 @@ class OpenIDStore(object):
 
         @param salt: A random string that makes two nonces from the
             same server issued during the same second unique.
-        @type salt: str
+        @type salt: six.text_type
 
         @return: Whether or not the nonce was valid.
 

@@ -1,4 +1,3 @@
-# -*- test-case-name: openid.test.test_rpverify -*-
 """
 This module contains the C{L{TrustRoot}} class, which helps handle
 trust root checking.  This module is used by the
@@ -8,6 +7,17 @@ implementers who wish to use it for additional trust root checking.
 It also implements relying party return_to URL verification, based on
 the realm.
 """
+from __future__ import unicode_literals
+
+import logging
+import re
+from urlparse import urlsplit, urlunsplit
+
+import six
+
+from openid import urinorm
+from openid.oidutil import string_to_text
+from openid.yadis import services
 
 __all__ = [
     'TrustRoot',
@@ -17,12 +27,6 @@ __all__ = [
     'verifyReturnTo',
 ]
 
-import logging
-import re
-from urlparse import urlsplit, urlunsplit
-
-from openid import urinorm
-from openid.yadis import services
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -176,14 +180,14 @@ class TrustRoot(object):
 
 
         @param url: The URL to check
-
-        @type url: C{str}
+        @type url: six.text_type, six.binary_type is deprecated
 
 
         @return: Whether the given URL is within this trust root.
 
         @rtype: C{bool}
         """
+        url = string_to_text(url, "Binary values for validateURL are deprecated. Use text input instead.")
 
         url_parts = _parseURL(url)
         if url_parts is None:
@@ -237,8 +241,7 @@ class TrustRoot(object):
 
         @param trust_root: This is the trust root to parse into a
         C{L{TrustRoot}} object.
-
-        @type trust_root: C{str}
+        @type trust_root: six.text_type, six.binary_type is deprecated
 
 
         @return: A C{L{TrustRoot}} instance if trust_root parses as a
@@ -246,6 +249,7 @@ class TrustRoot(object):
 
         @rtype: C{NoneType} or C{L{TrustRoot}}
         """
+        trust_root = string_to_text(trust_root, "Binary values for trust_root are deprecated. Use text input instead.")
         url_parts = _parseURL(trust_root)
         if url_parts is None:
             return None
@@ -279,7 +283,7 @@ class TrustRoot(object):
 
     @classmethod
     def checkSanity(cls, trust_root_string):
-        """str -> bool
+        """six.text_type -> bool, six.binary_type is deprecated
 
         is this a sane trust root?
         """
@@ -302,7 +306,7 @@ class TrustRoot(object):
         This function does not check to make sure that the realm is
         valid. Its behaviour on invalid inputs is undefined.
 
-        @rtype: str
+        @rtype: six.text_type
 
         @returns: The URL upon which relying party discovery should be run
             in order to verify the return_to URL
@@ -352,7 +356,7 @@ def _extractReturnURL(endpoint):
 
     @returns: The endpoint URL or None if the endpoint is not a
         relying party endpoint.
-    @rtype: str or NoneType
+    @rtype: six.text_type or NoneType
     """
     if endpoint.matchTypes([RP_RETURN_TO_URL_TYPE]):
         return endpoint.uri
@@ -429,7 +433,7 @@ def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):
     try:
         allowable_urls = _vrfy(realm.buildDiscoveryURL())
     except RealmVerificationRedirected as err:
-        _LOGGER.exception(str(err))
+        _LOGGER.exception(six.text_type(err))
         return False
 
     if returnToMatches(allowable_urls, return_to):

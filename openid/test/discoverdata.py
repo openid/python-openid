@@ -1,4 +1,6 @@
 """Module to make discovery data test cases available"""
+from __future__ import unicode_literals
+
 import os.path
 import urlparse
 

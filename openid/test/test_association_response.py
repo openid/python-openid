@@ -3,6 +3,8 @@
 This duplicates some things that are covered by test_consumer, but
 this works for now.
 """
+from __future__ import unicode_literals
+
 import unittest
 
 from testfixtures import LogCapture
@@ -231,7 +233,7 @@ class TestOpenID1AssociationResponseSessionType(BaseAssocTest):
 
 
 class DummyAssociationSession(object):
-    secret = "shh! don't tell!"
+    secret = b"shh! don't tell!"
     extract_secret_called = False
 
     session_type = None
