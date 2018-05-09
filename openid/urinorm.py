@@ -97,7 +97,10 @@ def urinorm(uri):
         raise ValueError('Invalid hostname {!r}: {}'.format(hostname, error))
     _check_disallowed_characters(hostname, 'hostname')
 
-    port = split_uri.port
+    try:
+        port = split_uri.port
+    except ValueError as error:
+        raise ValueError('Invalid port in {!r}: {}'.format(split_uri.netloc, error))
     if port is None:
         port = ''
     elif (scheme == 'http' and port == 80) or (scheme == 'https' and port == 443):
