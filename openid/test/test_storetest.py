@@ -20,7 +20,7 @@ allowed_handle = ''.join(allowed_handle)
 
 
 def generateHandle(n):
-    return randomString(n, allowed_handle)
+    return randomString(n, allowed_handle.encode('utf-8'))
 
 
 generateSecret = randomString

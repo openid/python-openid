@@ -10,7 +10,7 @@ from time import gmtime, strftime, strptime, time
 
 from openid import cryptutil
 
-NONCE_CHARS = string.ascii_letters + string.digits
+NONCE_CHARS = (string.ascii_letters + string.digits).encode('utf-8')
 
 # Keep nonces for five hours (allow five hours for the combination of
 # request time and clock skew). This is probably way more than is
@@ -89,7 +89,7 @@ def mkNonce(when=None):
 
     @see: time
     """
-    salt = cryptutil.randomString(6, NONCE_CHARS)
+    salt = cryptutil.randomString(6, NONCE_CHARS).decode('utf-8')
     if when is None:
         t = gmtime()
     else:

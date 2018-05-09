@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Test `openid.oidutil` module."""
+from __future__ import unicode_literals
+
 import random
 import string
 import unittest
@@ -28,12 +30,12 @@ class TestBase64(unittest.TestCase):
                 assert isAllowed(c), s
 
         cases = [
-            '',
-            'x',
-            '\x00',
-            '\x01',
-            '\x00' * 100,
-            ''.join(chr(i) for i in range(256)),
+            b'',
+            b'x',
+            b'\x00',
+            b'\x01',
+            b'\x00' * 100,
+            b''.join(chr(i) for i in range(256)),
         ]
 
         for s in cases:
@@ -45,7 +47,7 @@ class TestBase64(unittest.TestCase):
         # Randomized test
         for _ in xrange(50):
             n = random.randrange(2048)
-            s = ''.join(chr(random.randrange(256)) for i in range(n))
+            s = b''.join(chr(random.randrange(256)) for i in range(n))
             b64 = oidutil.toBase64(s)
             checkEncoded(b64)
             s_prime = oidutil.fromBase64(b64)
@@ -158,9 +160,9 @@ class TestToText(unittest.TestCase):
     """Test `string_to_text` utility function."""
 
     def test_text_input(self):
-        result = string_to_text(u'ěščřž', sentinel.msg)
+        result = string_to_text('ěščřž', sentinel.msg)
         self.assertIsInstance(result, six.text_type)
-        self.assertEqual(result, u'ěščřž')
+        self.assertEqual(result, 'ěščřž')
 
     def test_binary_input(self):
         warning_msg = 'Conversion warning'
@@ -169,4 +171,4 @@ class TestToText(unittest.TestCase):
             result = string_to_text('ěščřž'.encode('utf-8'), warning_msg)
 
         self.assertIsInstance(result, six.text_type)
-        self.assertEqual(result, u'ěščřž')
+        self.assertEqual(result, 'ěščřž')

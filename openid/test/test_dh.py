@@ -1,6 +1,10 @@
 """Test `openid.dh` module."""
+from __future__ import unicode_literals
+
 import os.path
 import unittest
+
+import six
 
 from openid.dh import DiffieHellman, strxor
 
@@ -9,18 +13,18 @@ class TestStrXor(unittest.TestCase):
     """Test `strxor` function."""
 
     def test_strxor(self):
-        NUL = '\x00'
+        NUL = b'\x00'
 
         cases = [
             (NUL, NUL, NUL),
-            ('\x01', NUL, '\x01'),
-            ('a', 'a', NUL),
-            ('a', NUL, 'a'),
-            ('abc', NUL * 3, 'abc'),
-            ('x' * 10, NUL * 10, 'x' * 10),
-            ('\x01', '\x02', '\x03'),
-            ('\xf0', '\x0f', '\xff'),
-            ('\xff', '\x0f', '\xf0'),
+            (b'\x01', NUL, b'\x01'),
+            (b'a', b'a', NUL),
+            (b'a', NUL, b'a'),
+            (b'abc', NUL * 3, b'abc'),
+            (b'x' * 10, NUL * 10, b'x' * 10),
+            (b'\x01', b'\x02', b'\x03'),
+            (b'\xf0', b'\x0f', b'\xff'),
+            (b'\xff', b'\x0f', b'\xf0'),
         ]
 
         for aa, bb, expected in cases:
@@ -28,12 +32,15 @@ class TestStrXor(unittest.TestCase):
             assert actual == expected, (aa, bb, expected, actual)
 
         exc_cases = [
-            ('', 'a'),
-            ('foo', 'ba'),
+            (b'', b'a'),
+            (b'foo', b'ba'),
             (NUL * 3, NUL * 4),
-            (''.join(chr(i) for i in range(256)),
-             ''.join(chr(i) for i in range(128))),
         ]
+        if six.PY2:
+            exc_cases.append((b''.join(chr(i) for i in range(256)), b''.join(chr(i) for i in range(128))))
+        else:
+            assert six.PY3
+            exc_cases.append((bytes(i for i in range(256)), bytes(i for i in range(128))))
 
         for aa, bb in exc_cases:
             try:

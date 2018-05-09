@@ -1,8 +1,12 @@
 """Test `openid.cryptutil` module."""
+from __future__ import unicode_literals
+
 import os.path
 import random
 import sys
 import unittest
+
+import six
 
 from openid import cryptutil
 
@@ -45,19 +49,19 @@ class TestLongBinary(unittest.TestCase):
                 n += long(random.randrange(MAX))
 
             s = cryptutil.longToBinary(n)
-            assert isinstance(s, str)
+            assert isinstance(s, six.binary_type)
             n_prime = cryptutil.binaryToLong(s)
             assert n == n_prime, (n, n_prime)
 
         cases = [
-            ('\x00', 0),
-            ('\x01', 1),
-            ('\x7F', 127),
-            ('\x00\xFF', 255),
-            ('\x00\x80', 128),
-            ('\x00\x81', 129),
-            ('\x00\x80\x00', 32768),
-            ('OpenID is cool', 1611215304203901150134421257416556)
+            (b'\x00', 0),
+            (b'\x01', 1),
+            (b'\x7F', 127),
+            (b'\x00\xFF', 255),
+            (b'\x00\x80', 128),
+            (b'\x00\x81', 129),
+            (b'\x00\x80\x00', 32768),
+            (b'OpenID is cool', 1611215304203901150134421257416556)
         ]
 
         for s, n in cases:

@@ -22,8 +22,9 @@ from openid.yadis.discover import DiscoveryFailure
 from openid.yadis.manager import Discovery
 
 assocs = [
-    ('another 20-byte key.', 'Snarky'),
-    ('\x00' * 20, 'Zeros'),
+    # (secret, handle)
+    (b'another 20-byte key.', 'Snarky'),
+    (b'\x00' * 20, 'Zeros'),
 ]
 
 

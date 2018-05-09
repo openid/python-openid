@@ -296,7 +296,7 @@ class TestInvalidFields(BaseAssocTest):
 # sort of a unit test and sort of a functional test. I'm not terribly
 # fond of it.
 class TestExtractAssociationDiffieHellman(BaseAssocTest):
-    secret = 'x' * 20
+    secret = b'x' * 20
 
     def _setUpDH(self):
         sess, message = self.consumer._createAssociateRequest(

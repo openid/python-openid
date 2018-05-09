@@ -1308,7 +1308,7 @@ class TestAssociate(unittest.TestCase):
         self.assertTrue(rfg("enc_mac_key"))
         self.assertTrue(rfg("dh_server_public"))
 
-        enc_key = rfg("enc_mac_key").decode('base64')
+        enc_key = oidutil.fromBase64(rfg("enc_mac_key"))
         spub = cryptutil.base64ToLong(rfg("dh_server_public"))
         secret = consumer_dh.xorSecret(spub, enc_key, cryptutil.sha1)
         self.assertEqual(secret, self.assoc.secret)
@@ -1333,7 +1333,7 @@ class TestAssociate(unittest.TestCase):
         self.assertTrue(rfg("enc_mac_key"))
         self.assertTrue(rfg("dh_server_public"))
 
-        enc_key = rfg("enc_mac_key").decode('base64')
+        enc_key = oidutil.fromBase64(rfg("enc_mac_key"))
         spub = cryptutil.base64ToLong(rfg("dh_server_public"))
         secret = consumer_dh.xorSecret(spub, enc_key, cryptutil.sha256)
         self.assertEqual(secret, self.assoc.secret)
@@ -1802,7 +1802,7 @@ class TestSignatory(unittest.TestCase):
             'openid.apple': 'orange',
             'openid.assoc_handle': assoc_handle,
             'openid.signed': 'apple,assoc_handle,foo,signed',
-            'openid.sig': 'uXoT1qm62/BB09Xbj98TQ8mlBco='.encode('rot13'),
+            'openid.sig': 'invalid/BB09Xbj98TQ8mlBco=',
         })
 
         with LogCapture() as logbook:
