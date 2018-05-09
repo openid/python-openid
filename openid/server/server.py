@@ -318,7 +318,7 @@ class DiffieHellmanSHA1ServerSession(object):
 
     @ivar consumer_pubkey: The public key sent by the consumer in the
         associate request
-    @type consumer_pubkey: long
+    @type consumer_pubkey: int, long in Python 2
 
     @see: U{OpenID Specs, Mode: associate
         <http://openid.net/specs.bml#mode-associate>}

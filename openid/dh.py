@@ -4,6 +4,12 @@ import six
 
 from openid import cryptutil
 
+if six.PY2:
+    long_int = long
+else:
+    assert six.PY3
+    long_int = int
+
 
 def _xor(a_b):
     # Python 2 only
@@ -35,8 +41,8 @@ class DiffieHellman(object):
         return cls(cls.DEFAULT_MOD, cls.DEFAULT_GEN)
 
     def __init__(self, modulus, generator):
-        self.modulus = long(modulus)
-        self.generator = long(generator)
+        self.modulus = long_int(modulus)
+        self.generator = long_int(generator)
 
         self._setPrivate(cryptutil.randrange(1, modulus - 1))
 

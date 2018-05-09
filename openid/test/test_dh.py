@@ -6,7 +6,7 @@ import unittest
 
 import six
 
-from openid.dh import DiffieHellman, strxor
+from openid.dh import DiffieHellman, long_int, strxor
 
 
 class TestStrXor(unittest.TestCase):
@@ -72,8 +72,8 @@ class TestDiffieHellman(unittest.TestCase):
         try:
             for line in f:
                 parts = line.strip().split(' ')
-                dh._setPrivate(long(parts[0]))
+                dh._setPrivate(long_int(parts[0]))
 
-                assert dh.public == long(parts[1])
+                assert dh.public == long_int(parts[1])
         finally:
             f.close()
