@@ -67,19 +67,20 @@ class TestParseXRDS(unittest.TestCase):
             etxrd.parseXRDS(xml)
 
     def test_xxe(self):
-        xxe_content = 'XXE CONTENT'
+        xxe_content = b'XXE CONTENT'
         _, tmp_file = tempfile.mkstemp()
         try:
-            with open(tmp_file, 'w') as xxe_file:
+            with open(tmp_file, 'wb') as xxe_file:
                 xxe_file.write(xxe_content)
             # XXE example from Testing for XML Injection (OTG-INPVAL-008)
             # https://www.owasp.org/index.php/Testing_for_XML_Injection_(OTG-INPVAL-008)
-            xml = (b'<?xml version="1.0" encoding="ISO-8859-1"?>'
-                   b'<!DOCTYPE foo ['
-                   b'<!ELEMENT foo ANY >'
-                   b'<!ENTITY xxe SYSTEM "file://%s" >]>'
-                   b'<xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">&xxe;</xrds:XRDS>')
-            tree = etxrd.parseXRDS(xml % tmp_file)
+            xml = ('<?xml version="1.0" encoding="ISO-8859-1"?>'
+                   '<!DOCTYPE foo ['
+                   '<!ELEMENT foo ANY >'
+                   '<!ENTITY xxe SYSTEM "file://%s" >]>'
+                   '<xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">&xxe;</xrds:XRDS>')
+            xml = xml % tmp_file
+            tree = etxrd.parseXRDS(xml.encode('utf-8'))
             self.assertNotIn(xxe_content, etree.tostring(tree))
         finally:
             os.remove(tmp_file)
@@ -87,7 +88,7 @@ class TestParseXRDS(unittest.TestCase):
 
 class TestServiceParser(unittest.TestCase):
     def setUp(self):
-        self.xmldoc = open(XRD_FILE).read()
+        self.xmldoc = open(XRD_FILE, 'rb').read()
         self.yadis_url = 'http://unittest.url/'
 
     def _getServices(self, flt=None):
@@ -155,7 +156,7 @@ class TestServiceParser(unittest.TestCase):
     def testNoXRDS(self):
         """Make sure that we get an exception when an XRDS element is
         not present"""
-        self.xmldoc = open(NOXRDS_FILE).read()
+        self.xmldoc = open(NOXRDS_FILE, 'rb').read()
         self.assertRaises(etxrd.XRDSError, services.applyFilter, self.yadis_url, self.xmldoc, None)
 
     def testEmpty(self):
@@ -167,7 +168,7 @@ class TestServiceParser(unittest.TestCase):
     def testNoXRD(self):
         """Make sure that we get an exception when there is no XRD
         element present."""
-        self.xmldoc = open(NOXRD_FILE).read()
+        self.xmldoc = open(NOXRD_FILE, 'rb').read()
         self.assertRaises(etxrd.XRDSError, services.applyFilter, self.yadis_url, self.xmldoc, None)
 
 
@@ -180,7 +181,7 @@ class TestCanonicalID(unittest.TestCase):
         filename = datapath(filename)
 
         def test(self):
-            xrds = etxrd.parseXRDS(open(filename).read())
+            xrds = etxrd.parseXRDS(open(filename, 'rb').read())
             self._getCanonicalID(iname, xrds, expectedID)
         return test
 

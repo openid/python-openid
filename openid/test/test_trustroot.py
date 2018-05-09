@@ -5,7 +5,7 @@ import unittest
 
 from openid.server.trustroot import TrustRoot
 
-with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'trustroot.txt')) as test_data_file:
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'trustroot.txt'), 'rb') as test_data_file:
     trustroot_test_data = test_data_file.read().decode('utf-8')
 
 

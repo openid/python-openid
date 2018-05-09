@@ -132,5 +132,5 @@ def generateResult(base_url, input_name, id_name, result_name, success):
     if success:
         result.xrds_uri = urljoin(base_url, result_name)
     result.content_type = ctype
-    result.response_text = content
+    result.response_text = content.encode('utf-8')
     return input_url, result

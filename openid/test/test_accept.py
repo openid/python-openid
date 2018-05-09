@@ -15,7 +15,7 @@ def getTestData():
     filename = os.path.join(os.path.dirname(__file__), 'data', 'accept.txt')
     i = 1
     lines = []
-    for line in open(filename):
+    for line in open(filename, 'rb'):
         lines.append((i, line.decode('utf-8')))
         i += 1
     return lines

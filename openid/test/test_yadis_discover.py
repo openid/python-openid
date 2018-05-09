@@ -41,7 +41,7 @@ def mkResponse(data):
     status = int(status_mo.group(1))
     return fetchers.HTTPResponse(status=status,
                                  headers=headers,
-                                 body=body)
+                                 body=body.encode('utf-8'))
 
 
 class TestFetcher(object):
