@@ -115,7 +115,15 @@ def urinorm(uri):
     # Normalize path
     path = split_uri.path
     # Unquote and quote - this normalizes the percent encoding
-    path = quote(unquote(path.encode('utf-8'))).decode('utf-8')
+
+    # This is hackish. `unquote` and `quote` requires `str` in both py27 and py3+.
+    if isinstance(path, str):
+        # Python 3 branch
+        path = quote(unquote(path))
+    else:
+        # Python 2 branch
+        path = quote(unquote(path.encode('utf-8'))).decode('utf-8')
+
     path = remove_dot_segments(path)
     if not path:
         path = '/'

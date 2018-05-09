@@ -7,11 +7,10 @@
 from __future__ import unicode_literals
 
 import re
-import warnings
 
-import six
 from six.moves.urllib.parse import quote
 
+from openid.oidutil import string_to_text
 from openid.urinorm import GEN_DELIMS, PERCENT_ENCODING_CHARACTER, SUB_DELIMS
 
 XRI_AUTHORITIES = ['!', '=', '@', '+', '$', '(']
@@ -68,14 +67,16 @@ def iriToURI(iri):
     @type iri: six.text_type, six.binary_type deprecated.
     @rtype: six.text_type
     """
-    # Transform the input to the binary string. `quote` doesn't quote correctly unicode strings.
-    if isinstance(iri, six.text_type):
-        iri = iri.encode('utf-8')
-    else:
-        assert isinstance(iri, six.binary_type)
-        warnings.warn("Binary input for iriToURI is deprecated. Use text input instead.", DeprecationWarning)
+    iri = string_to_text(iri, "Binary input for iriToURI is deprecated. Use text input instead.")
 
-    return quote(iri, (GEN_DELIMS + SUB_DELIMS + PERCENT_ENCODING_CHARACTER).encode('utf-8')).decode('utf-8')
+    # This is hackish. `quote` requires `str` in both py27 and py3+.
+    if isinstance(iri, str):
+        # Python 3 branch
+        return quote(iri, GEN_DELIMS + SUB_DELIMS + PERCENT_ENCODING_CHARACTER)
+    else:
+        # Python 2 branch
+        return quote(iri.encode('utf-8'),
+                     (GEN_DELIMS + SUB_DELIMS + PERCENT_ENCODING_CHARACTER).encode('utf-8')).decode('utf-8')
 
 
 def providerIsAuthoritative(providerID, canonicalID):
