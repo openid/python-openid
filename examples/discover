@@ -11,40 +11,40 @@ names = [["server_url", "Server URL  "],
 
 
 def show_services(user_input, normalized, services):
-    print " Claimed identifier:", normalized
+    print(" Claimed identifier:", normalized)
     if services:
-        print " Discovered OpenID services:"
+        print(" Discovered OpenID services:")
         for n, service in enumerate(services):
-            print " %s." % (n,)
+            print(" %s." % (n,))
             for attr, name in names:
                 val = getattr(service, attr, None)
                 if val is not None:
-                    print "  %s: %s" % (name, val)
+                    print("  %s: %s" % (name, val))
 
-            print "  Type URIs:"
+            print("  Type URIs:")
             for type_uri in service.type_uris:
-                print "   *", type_uri
+                print("   *", type_uri)
 
-            print
+            print()
 
     else:
-        print " No OpenID services found"
-        print
+        print(" No OpenID services found")
+        print()
 
 
 if __name__ == "__main__":
     import sys
 
     for user_input in sys.argv[1:]:
-        print "=" * 50
-        print "Running discovery on", user_input
+        print("=" * 50)
+        print("Running discovery on", user_input)
         try:
             normalized, services = discover(user_input)
         except DiscoveryFailure as why:
-            print "Discovery failed:", why
-            print
+            print("Discovery failed:", why)
+            print()
         except HTTPFetchingError as why:
-            print "HTTP request failed:", why
-            print
+            print("HTTP request failed:", why)
+            print()
         else:
             show_services(user_input, normalized, services)

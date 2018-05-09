@@ -473,8 +473,8 @@ def main(host, port, data_path, weak_ssl=False):
     addr = (host, port)
     server = OpenIDHTTPServer(store, addr, OpenIDRequestHandler)
 
-    print 'Server running at:'
-    print server.base_url
+    print('Server running at:')
+    print(server.base_url)
     server.serve_forever()
 
 

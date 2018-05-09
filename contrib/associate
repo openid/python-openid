@@ -27,9 +27,9 @@ def verboseAssociation(assoc):
 
 def main():
     if not sys.argv[1:]:
-        print "Usage: %s ENDPOINT_URL..." % (sys.argv[0],)
+        print("Usage: %s ENDPOINT_URL..." % (sys.argv[0],))
     for endpoint_url in sys.argv[1:]:
-        print "Associating with", endpoint_url
+        print("Associating with", endpoint_url)
 
         # This makes it clear why j3h made AssociationManager when we
         # did the ruby port.  We can't invoke requestAssociation
@@ -40,9 +40,9 @@ def main():
         c = consumer.GenericConsumer(store)
         auth_req = c.begin(endpoint)
         if auth_req.assoc:
-            print verboseAssociation(auth_req.assoc)
+            print(verboseAssociation(auth_req.assoc))
         else:
-            print "  ...no association."
+            print("  ...no association.")
 
 
 if __name__ == '__main__':

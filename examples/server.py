@@ -685,8 +685,8 @@ def main(host, port, data_path):
 
     httpserver.setOpenIDServer(oidserver)
 
-    print 'Server running at:'
-    print httpserver.base_url
+    print('Server running at:')
+    print(httpserver.base_url)
     httpserver.serve_forever()
 
 

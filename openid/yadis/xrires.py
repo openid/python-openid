@@ -87,7 +87,7 @@ class ProxyResolver(object):
             response = fetchers.fetch(url)
             if response.status not in (200, 206):
                 # XXX: sucks to fail silently.
-                # print "response not OK:", response
+                # print("response not OK:", response)
                 continue
             et = etxrd.parseXRDS(response.body)
             canonicalID = etxrd.getCanonicalID(xri, et)

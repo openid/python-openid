@@ -57,10 +57,10 @@ def main():
         output.append('at %s:\n%s' % (where, openidFromQuery(query)))
 
     if output:
-        print '\n\n'.join(output)
+        print('\n\n'.join(output))
     elif errors:
         for err in errors:
-            print err
+            print(err)
 
 
 def queryFromURL(url):

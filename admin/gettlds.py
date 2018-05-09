@@ -38,10 +38,10 @@ for input_line in f:
     tld = input_line.strip().lower()
     new_output_line = output_line + prefix + tld
     if len(new_output_line) > 60:
-        print output_line + line_suffix
+        print(output_line + line_suffix)
         output_line = line_prefix + tld
     else:
         output_line = new_output_line
     prefix = separator
 
-print output_line + suffix
+print(output_line + suffix)

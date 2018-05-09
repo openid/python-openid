@@ -101,7 +101,7 @@ class MatchAcceptTest(unittest.TestCase):
             try:
                 available = parseAvailable(avail_data)
             except Exception:
-                print 'On line', lno
+                print('On line', lno)
                 raise
 
             lno, exp_data = data['expected']
@@ -109,7 +109,7 @@ class MatchAcceptTest(unittest.TestCase):
             try:
                 expected = parseExpected(exp_data)
             except Exception:
-                print 'On line', lno
+                print('On line', lno)
                 raise
 
             accepted = accept.parseAcceptHeader(accept_header)

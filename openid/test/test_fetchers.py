@@ -101,7 +101,7 @@ def test_fetcher(fetcher, exc, server):
         try:
             actual = fetcher.fetch(fetch_url)
         except Exception:
-            print fetcher, fetch_url
+            print(fetcher, fetch_url)
             raise
         else:
             assertResponse(expected, actual)
