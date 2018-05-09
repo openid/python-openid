@@ -5,6 +5,7 @@ import unittest
 import warnings
 
 import responses
+import six
 from mock import Mock, patch, sentinel
 from six import StringIO
 from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -133,7 +134,7 @@ def run_fetcher_tests(server):
         try:
             exc_fetchers.append(klass())
         except RuntimeError as why:
-            if why[0].startswith('Cannot find %s library' % (library_name,)):
+            if six.text_type(why).startswith('Cannot find %s library' % (library_name,)):
                 try:
                     __import__(library_name)
                 except ImportError:

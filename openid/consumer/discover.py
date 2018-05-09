@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 import logging
 
+import six
 from lxml.etree import LxmlError
 from lxml.html import document_fromstring
 from six.moves.urllib.parse import urldefrag, urlparse
@@ -304,7 +305,7 @@ def normalizeURL(url):
     try:
         normalized = urinorm.urinorm(url)
     except ValueError as why:
-        raise DiscoveryFailure('Normalizing identifier: %s' % (why[0],), None)
+        raise DiscoveryFailure('Normalizing identifier: %s' % six.text_type(why), None)
     else:
         return urldefrag(normalized)[0]
 

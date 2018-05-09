@@ -127,7 +127,7 @@ def fromBase64(s):
         return binascii.a2b_base64(s)
     except binascii.Error as why:
         # Convert to a common exception type
-        raise ValueError(why[0])
+        raise ValueError(six.text_type(why))
 
 
 class Symbol(object):

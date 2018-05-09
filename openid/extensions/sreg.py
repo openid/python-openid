@@ -163,7 +163,7 @@ def getSRegNS(message):
         except KeyError as why:
             # An alias for the string 'sreg' already exists, but it's
             # defined for something other than simple registration
-            raise SRegNamespaceError(why[0])
+            raise SRegNamespaceError(six.text_type(why))
 
     return sreg_ns_uri
 

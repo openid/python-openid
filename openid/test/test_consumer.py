@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import time
 import unittest
 
+import six
 from six.moves.urllib.parse import parse_qsl, urlparse
 from testfixtures import LogCapture, StringComparison
 
@@ -740,7 +741,7 @@ class IdResCheckForFieldsTest(TestIdRes):
             message = Message.fromOpenIDArgs(openid_args)
             with self.assertRaises(ProtocolError) as catch:
                 self.consumer._idResCheckForFields(message)
-            self.assertTrue(catch.exception[0].startswith('Missing required'))
+            self.assertTrue(six.text_type(catch.exception).startswith('Missing required'))
         return test
 
     def mkMissingSignedTest(openid_args):
@@ -748,7 +749,7 @@ class IdResCheckForFieldsTest(TestIdRes):
             message = Message.fromOpenIDArgs(openid_args)
             with self.assertRaises(ProtocolError) as catch:
                 self.consumer._idResCheckForFields(message)
-            self.assertTrue(catch.exception[0].endswith('not signed'))
+            self.assertTrue(six.text_type(catch.exception).endswith('not signed'))
         return test
 
     test_openid1Missing_returnToSig = mkMissingSignedTest(
