@@ -182,14 +182,3 @@ def longToBase64(l):
 
 def base64ToLong(s):
     return binaryToLong(fromBase64(s))
-
-
-def const_eq(s1, s2):
-    if len(s1) != len(s2):
-        return False
-
-    result = True
-    for i in range(len(s1)):
-        result = result and (s1[i] == s2[i])
-
-    return result
