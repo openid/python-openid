@@ -39,11 +39,11 @@ distribution.""")
 else:
     del openid
     from openid.consumer import consumer
-    from openid.cryptutil import randomString
     from openid.extensions import pape, sreg
     from openid.fetchers import Urllib2Fetcher, setDefaultFetcher
     from openid.oidutil import appendArgs
     from openid.store import filestore, memstore
+    from openid.store.nonce import make_nonce_salt
 
 
 # Used with an OpenID provider affiliate program.
@@ -100,7 +100,8 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
 
         # If a session id was not set, create a new one
         if sid is None:
-            sid = randomString(16, '0123456789abcdef')
+            # Pure pragmatism: Use function for nonce salt to generate session ID.
+            sid = make_nonce_salt(16)
             session = None
         else:
             session = self.server.sessions.get(sid)

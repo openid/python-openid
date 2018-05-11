@@ -16,8 +16,6 @@ import hmac
 import os
 import random
 
-import six
-
 from openid.oidutil import fromBase64, string_to_text, toBase64
 
 __all__ = [
@@ -27,7 +25,6 @@ __all__ = [
     'hmacSha256',
     'longToBase64',
     'longToBinary',
-    'randomString',
     'randrange',
     'sha1',
     'sha256',
@@ -215,23 +212,6 @@ def longToBase64(l):
 
 def base64ToLong(s):
     return binaryToLong(fromBase64(s))
-
-
-def randomString(length, chrs=None):
-    """Produce a string of length random bytes, chosen from chrs.
-
-    @type chrs: six.binary_type
-    @rtype: six.binary_type
-    """
-    if chrs is None:
-        return getBytes(length)
-    else:
-        n = len(chrs)
-        random_chars = [chrs[randrange(n)] for _ in range(length)]
-        if six.PY2:
-            return b''.join(random_chars)
-        else:
-            return six.binary_type(random_chars)
 
 
 def const_eq(s1, s2):

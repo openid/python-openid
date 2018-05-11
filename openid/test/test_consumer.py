@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import os
 import time
 import unittest
 from functools import partial
@@ -1779,7 +1780,7 @@ class TestDiffieHellmanResponseParameters(object):
         # base64(btwoc(g ^ xb mod p))
         self.dh_server_public = cryptutil.longToBase64(self.server_dh.public)
 
-        self.secret = cryptutil.randomString(self.session_cls.secret_size)
+        self.secret = os.urandom(self.session_cls.secret_size)
 
         self.enc_mac_key = oidutil.toBase64(
             self.server_dh.xorSecret(self.consumer_dh.public,

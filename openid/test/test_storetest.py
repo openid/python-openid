@@ -1,6 +1,7 @@
 """Test `openid.store` module."""
 from __future__ import unicode_literals
 
+import itertools
 import os
 import random
 import socket
@@ -9,7 +10,6 @@ import time
 import unittest
 
 from openid.association import Association
-from openid.cryptutil import randomString
 from openid.store.nonce import mkNonce, split
 
 db_host = 'dbtest'
@@ -22,10 +22,7 @@ allowed_handle = ''.join(allowed_handle)
 
 
 def generateHandle(n):
-    return randomString(n, allowed_handle.encode('utf-8'))
-
-
-generateSecret = randomString
+    return ''.join(itertools.starmap(random.choice, itertools.repeat((allowed_handle, ), n)))
 
 
 def getTmpDbName():
@@ -49,7 +46,7 @@ def testStore(store):
     server_url = 'http://www.myopenid.com/openid'
 
     def genAssoc(issued, lifetime=600):
-        sec = generateSecret(20)
+        sec = os.urandom(20)
         hdl = generateHandle(128)
         return Association(hdl, sec, now + issued, lifetime, 'HMAC-SHA1')
 
