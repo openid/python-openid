@@ -17,8 +17,7 @@ association.
 @var default_negotiator: A C{L{SessionNegotiator}} that allows all
     association types that are specified by the OpenID
     specification. It prefers to use HMAC-SHA1/DH-SHA1, if it's
-    available. If HMAC-SHA256 is not supported by your Python runtime,
-    HMAC-SHA256 and DH-SHA256 will not be available.
+    available.
 
 @var encrypted_negotiator: A C{L{SessionNegotiator}} that
     does not support C{'no-encryption'} associations. It prefers
@@ -48,31 +47,17 @@ all_association_types = [
     'HMAC-SHA256',
 ]
 
-if hasattr(cryptutil, 'hmacSha256'):
-    supported_association_types = list(all_association_types)
+default_association_order = [
+    ('HMAC-SHA1', 'DH-SHA1'),
+    ('HMAC-SHA1', 'no-encryption'),
+    ('HMAC-SHA256', 'DH-SHA256'),
+    ('HMAC-SHA256', 'no-encryption'),
+]
 
-    default_association_order = [
-        ('HMAC-SHA1', 'DH-SHA1'),
-        ('HMAC-SHA1', 'no-encryption'),
-        ('HMAC-SHA256', 'DH-SHA256'),
-        ('HMAC-SHA256', 'no-encryption'),
-    ]
-
-    only_encrypted_association_order = [
-        ('HMAC-SHA1', 'DH-SHA1'),
-        ('HMAC-SHA256', 'DH-SHA256'),
-    ]
-else:
-    supported_association_types = ['HMAC-SHA1']
-
-    default_association_order = [
-        ('HMAC-SHA1', 'DH-SHA1'),
-        ('HMAC-SHA1', 'no-encryption'),
-    ]
-
-    only_encrypted_association_order = [
-        ('HMAC-SHA1', 'DH-SHA1'),
-    ]
+only_encrypted_association_order = [
+    ('HMAC-SHA1', 'DH-SHA1'),
+    ('HMAC-SHA256', 'DH-SHA256'),
+]
 
 
 def getSessionTypes(assoc_type):
