@@ -3,7 +3,8 @@ from __future__ import unicode_literals
 
 import os.path
 import unittest
-from urlparse import urlsplit
+
+from six.moves.urllib.parse import urlsplit
 
 from openid import fetchers, message
 from openid.consumer import discover
@@ -205,7 +206,7 @@ def readDataFile(filename):
     module_directory = os.path.dirname(os.path.abspath(__file__))
     filename = os.path.join(
         module_directory, 'data', 'test_discover', filename)
-    return file(filename).read()
+    return open(filename, 'rb').read()
 
 
 class TestDiscovery(BaseTestDiscovery):
@@ -257,7 +258,7 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_noOpenID(self):
         services = self._discover(content_type='text/plain',
-                                  data="junk",
+                                  data=b"junk",
                                   expected_services=0)
 
         services = self._discover(

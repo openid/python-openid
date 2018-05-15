@@ -2,9 +2,9 @@
 from __future__ import unicode_literals
 
 import unittest
-from StringIO import StringIO
 
 from mock import sentinel
+from six import StringIO
 
 from openid.yadis.parsehtml import MetaNotFound, findHTMLMeta, xpath_lower_case
 

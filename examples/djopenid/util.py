@@ -3,6 +3,7 @@ Utility code for the Django example consumer and server.
 """
 from __future__ import unicode_literals
 
+import six
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
@@ -84,7 +85,7 @@ def normalDict(request_data):
     values are lists, because in OpenID, each key in the query arg set
     can have at most one value.
     """
-    return dict((k, v) for k, v in request_data.iteritems())
+    return dict((k, v) for k, v in six.iteritems(request_data))
 
 
 def renderXRDS(request, type_uris, endpoint_urls):

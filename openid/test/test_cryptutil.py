@@ -12,6 +12,11 @@ from openid import cryptutil
 
 # Most of the purpose of this test is to make sure that cryptutil can
 # find a good source of randomness on this machine.
+if six.PY2:
+    long_int = long
+else:
+    assert six.PY3
+    long_int = int
 
 
 class TestRandRange(unittest.TestCase):
@@ -29,13 +34,13 @@ class TestRandRange(unittest.TestCase):
 
         a = cryptutil.randrange(2 ** 128)
         b = cryptutil.randrange(2 ** 128)
-        assert isinstance(a, long)
-        assert isinstance(b, long)
+        assert isinstance(a, long_int)
+        assert isinstance(b, long_int)
         assert b != a
 
         # Make sure that we can generate random numbers that are larger
         # than platform int size
-        cryptutil.randrange(long(sys.maxsize) + 1)
+        cryptutil.randrange(long_int(sys.maxsize) + 1)
 
 
 class TestLongBinary(unittest.TestCase):
@@ -43,10 +48,10 @@ class TestLongBinary(unittest.TestCase):
 
     def test_binaryLongConvert(self):
         MAX = sys.maxsize
-        for iteration in xrange(500):
+        for iteration in range(500):
             n = 0
             for i in range(10):
-                n += long(random.randrange(MAX))
+                n += long_int(random.randrange(MAX))
 
             s = cryptutil.longToBinary(n)
             assert isinstance(s, six.binary_type)
@@ -75,11 +80,11 @@ class TestLongToBase64(unittest.TestCase):
     """Test `longToBase64` function."""
 
     def test_longToBase64(self):
-        f = file(os.path.join(os.path.dirname(__file__), 'n2b64'))
+        f = open(os.path.join(os.path.dirname(__file__), 'n2b64'))
         try:
             for line in f:
                 parts = line.strip().split(' ')
-                assert parts[0] == cryptutil.longToBase64(long(parts[1]))
+                assert parts[0] == cryptutil.longToBase64(long_int(parts[1]))
         finally:
             f.close()
 
@@ -88,10 +93,10 @@ class TestBase64ToLong(unittest.TestCase):
     """Test `Base64ToLong` function."""
 
     def test_base64ToLong(self):
-        f = file(os.path.join(os.path.dirname(__file__), 'n2b64'))
+        f = open(os.path.join(os.path.dirname(__file__), 'n2b64'))
         try:
             for line in f:
                 parts = line.strip().split(' ')
-                assert long(parts[1]) == cryptutil.base64ToLong(parts[0])
+                assert long_int(parts[1]) == cryptutil.base64ToLong(parts[0])
         finally:
             f.close()

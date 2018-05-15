@@ -2,10 +2,9 @@
 from __future__ import unicode_literals
 
 import string
-from urllib import quote, unquote, urlencode
-from urlparse import parse_qsl, urlsplit, urlunsplit
 
 import six
+from six.moves.urllib.parse import parse_qsl, quote, unquote, urlencode, urlsplit, urlunsplit
 
 from .oidutil import string_to_text
 
@@ -98,7 +97,10 @@ def urinorm(uri):
         raise ValueError('Invalid hostname {!r}: {}'.format(hostname, error))
     _check_disallowed_characters(hostname, 'hostname')
 
-    port = split_uri.port
+    try:
+        port = split_uri.port
+    except ValueError as error:
+        raise ValueError('Invalid port in {!r}: {}'.format(split_uri.netloc, error))
     if port is None:
         port = ''
     elif (scheme == 'http' and port == 80) or (scheme == 'https' and port == 443):
@@ -116,7 +118,15 @@ def urinorm(uri):
     # Normalize path
     path = split_uri.path
     # Unquote and quote - this normalizes the percent encoding
-    path = quote(unquote(path.encode('utf-8'))).decode('utf-8')
+
+    # This is hackish. `unquote` and `quote` requires `str` in both py27 and py3+.
+    if isinstance(path, str):
+        # Python 3 branch
+        path = quote(unquote(path))
+    else:
+        # Python 2 branch
+        path = quote(unquote(path.encode('utf-8'))).decode('utf-8')
+
     path = remove_dot_segments(path)
     if not path:
         path = '/'

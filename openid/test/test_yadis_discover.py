@@ -8,7 +8,8 @@ from __future__ import unicode_literals
 import re
 import types
 import unittest
-import urlparse
+
+from six.moves.urllib.parse import urlparse
 
 from openid import fetchers
 from openid.yadis.discover import DiscoveryFailure, discover
@@ -40,7 +41,7 @@ def mkResponse(data):
     status = int(status_mo.group(1))
     return fetchers.HTTPResponse(status=status,
                                  headers=headers,
-                                 body=body)
+                                 body=body.encode('utf-8'))
 
 
 class TestFetcher(object):
@@ -50,7 +51,7 @@ class TestFetcher(object):
     def fetch(self, url, headers, body):
         current_url = url
         while True:
-            parsed = urlparse.urlparse(current_url)
+            parsed = urlparse(current_url)
             path = parsed[2][1:]
             try:
                 data = discoverdata.generateSample(path, self.base_url)

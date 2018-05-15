@@ -430,7 +430,7 @@ class SRegResponseTest(unittest.TestCase):
         success_resp = DummySuccessResponse(message, {})
         sreg_resp = sreg.SRegResponse.fromSuccessResponse(success_resp,
                                                           signed_only=False)
-        self.assertEqual(sreg_resp.items(), [('nickname', 'The Mad Stork')])
+        self.assertEqual(list(sreg_resp.items()), [('nickname', 'The Mad Stork')])
 
 
 class SendFieldsTest(unittest.TestCase):

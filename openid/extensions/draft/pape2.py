@@ -62,9 +62,12 @@ class Request(Extension):
         self.preferred_auth_policies = preferred_auth_policies
         self.max_auth_age = max_auth_age
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.preferred_auth_policies or
                     self.max_auth_age is not None)
+
+    def __nonzero__(self):
+        return self.__bool__()
 
     def addPolicyURI(self, policy_uri):
         """Add an acceptable authentication policy URI to this request

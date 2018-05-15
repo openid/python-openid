@@ -9,9 +9,9 @@ from __future__ import unicode_literals
 import binascii
 import logging
 import warnings
-from urllib import urlencode
 
 import six
+from six.moves.urllib.parse import urlencode
 
 __all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'autoSubmitHTML']
 
@@ -127,7 +127,7 @@ def fromBase64(s):
         return binascii.a2b_base64(s)
     except binascii.Error as why:
         # Convert to a common exception type
-        raise ValueError(why[0])
+        raise ValueError(six.text_type(why))
 
 
 class Symbol(object):

@@ -44,7 +44,7 @@ http://www.schtuffcom/
 http://it/
 
 ----------------------------------------
-21: Sane
+20: Sane
 ----------------------------------------
 http://*.schtuff.com./
 http://*.schtuff.com/
@@ -64,7 +64,6 @@ https://foo.com/
 http://kink.fm/should/be/sane
 http://beta.lingu.no/
 http://goathack.livejournal.org:8020/openid/login.bml
-http://*.example.com:80:90/
 http://π.pi.example.com/
 http://lambda.example.com/Λ
 

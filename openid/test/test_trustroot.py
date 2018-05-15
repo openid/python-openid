@@ -3,9 +3,11 @@ from __future__ import unicode_literals
 import os
 import unittest
 
+import six
+
 from openid.server.trustroot import TrustRoot
 
-with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'trustroot.txt')) as test_data_file:
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'trustroot.txt'), 'rb') as test_data_file:
     trustroot_test_data = test_data_file.read().decode('utf-8')
 
 
@@ -22,6 +24,18 @@ class ParseTest(unittest.TestCase):
                 assert not tr.isSane(), case
             else:
                 assert tr is None, tr
+
+    @unittest.skipUnless(six.PY2, "Test for python 2 only")
+    def test_double_port_py2(self):
+        # Python 2 urlparse silently drops the ':90' port
+        trust_root = TrustRoot.parse('http://*.example.com:80:90/')
+        self.assertTrue(trust_root.isSane())
+        self.assertEqual(trust_root.buildDiscoveryURL(), 'http://www.example.com/')
+
+    @unittest.skipUnless(six.PY3, "Test for python 3 only")
+    def test_double_port_py3(self):
+        # Python 3 urllib.parse complains about invalid port
+        self.assertIsNone(TrustRoot.parse('http://*.example.com:80:90/'))
 
 
 class MatchTest(unittest.TestCase):

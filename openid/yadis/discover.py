@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from StringIO import StringIO
+from six import BytesIO, StringIO
 
 from openid import fetchers
 from openid.yadis.constants import YADIS_ACCEPT_HEADER, YADIS_CONTENT_TYPE, YADIS_HEADER_NAME
@@ -138,14 +138,14 @@ def whereIsYadis(resp):
                 encoding = 'UTF-8'
 
             try:
-                content = resp.body.decode(encoding)
+                buff = StringIO(resp.body.decode(encoding))
             except UnicodeError:
                 # Keep encoded version in case yadis location can be found before encoding shut this up.
                 # Possible errors will be caught lower.
-                content = resp.body
+                buff = BytesIO(resp.body)
 
             try:
-                yadis_loc = findHTMLMeta(StringIO(content))
+                yadis_loc = findHTMLMeta(buff)
             except (MetaNotFound, UnicodeError):
                 # UnicodeError: Response body could not be encoded and xrds location
                 # could not be found before troubles occurs.

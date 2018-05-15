@@ -3,11 +3,11 @@
 from __future__ import unicode_literals
 
 import copy
-import urllib
 import warnings
 
 import six
 from lxml import etree as ElementTree
+from six.moves.urllib.parse import urlencode
 
 from openid import kvform, oidutil
 
@@ -205,7 +205,7 @@ class Message(object):
         # Other arguments
         namespaces = {}
         ns_args = []
-        for key, value in openid_args.iteritems():
+        for key, value in six.iteritems(openid_args):
             key = string_to_text(key, "Binary keys in message creations are deprecated. Use text input instead.")
             value = string_to_text(value, "Binary values in message creations are deprecated. Use text input instead.")
             if '.' not in key:
@@ -303,7 +303,7 @@ class Message(object):
         args = {}
 
         # Add namespace definitions to the output
-        for ns_uri, alias in self.namespaces.iteritems():
+        for ns_uri, alias in self.namespaces.items():
             if self.namespaces.isImplicit(ns_uri):
                 continue
             if alias == NULL_NAMESPACE:
@@ -312,7 +312,7 @@ class Message(object):
                 ns_key = 'openid.ns.' + alias
             args[ns_key] = ns_uri
 
-        for (ns_uri, ns_key), value in self.args.iteritems():
+        for (ns_uri, ns_key), value in six.iteritems(self.args):
             key = self.getKey(ns_uri, ns_key)
             args[key] = value
 
@@ -324,7 +324,7 @@ class Message(object):
         # FIXME - undocumented exception
         post_args = self.toPostArgs()
         kvargs = {}
-        for k, v in post_args.iteritems():
+        for k, v in six.iteritems(post_args):
             if not k.startswith('openid.'):
                 raise ValueError(
                     'This message can only be encoded as a POST, because it '
@@ -362,7 +362,7 @@ class Message(object):
         form = ElementTree.Element('form')
 
         if form_tag_attrs:
-            for name, attr in form_tag_attrs.iteritems():
+            for name, attr in form_tag_attrs.items():
                 form.attrib[name] = attr
 
         form.attrib['action'] = action_url
@@ -370,7 +370,7 @@ class Message(object):
         form.attrib['accept-charset'] = 'UTF-8'
         form.attrib['enctype'] = 'application/x-www-form-urlencoded'
 
-        for name, value in self.toPostArgs().iteritems():
+        for name, value in six.iteritems(self.toPostArgs()):
             attrs = {'type': 'hidden', 'name': name, 'value': value}
             form.append(ElementTree.Element('input', attrs))
 
@@ -394,7 +394,7 @@ class Message(object):
     def toURLEncoded(self):
         """Generate an x-www-urlencoded string"""
         args = sorted(self.toPostArgs().items())
-        return urllib.urlencode(args)
+        return urlencode(args)
 
     def _fixNS(self, namespace):
         """Convert an input value into the internally used values of
@@ -489,7 +489,7 @@ class Message(object):
         return dict([
             (ns_key, value)
             for ((pair_ns, ns_key), value)
-            in self.args.iteritems()
+            in six.iteritems(self.args)
             if pair_ns == namespace
         ])
 
@@ -500,7 +500,7 @@ class Message(object):
         @type updates: Dict[six.text_type, six.text_type]
         """
         namespace = self._fixNS(namespace)
-        for k, v in updates.iteritems():
+        for k, v in six.iteritems(updates):
             self.setArg(namespace, k, v)
 
     def setArg(self, namespace, key, value):
@@ -579,12 +579,16 @@ class NamespaceMap(object):
         """Return an iterator over the aliases"""
         return iter(self.alias_to_namespace)
 
+    def items(self):
+        """Iterate over the mapping."""
+        return self.namespace_to_alias.items()
+
     def iteritems(self):
         """Iterate over the mapping
 
         @returns: iterator of (namespace_uri, alias)
         """
-        return self.namespace_to_alias.iteritems()
+        return six.iteritems(self.namespace_to_alias)
 
     def addAlias(self, namespace_uri, desired_alias, implicit=False):
         """Add an alias from this namespace URI to the desired alias

@@ -12,9 +12,9 @@ import re
 import subprocess
 import sys
 from pprint import pformat
-from urlparse import parse_qs, urlsplit, urlunsplit
 
 import six
+from six.moves.urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from openid import message
 
@@ -57,10 +57,10 @@ def main():
         output.append('at %s:\n%s' % (where, openidFromQuery(query)))
 
     if output:
-        print '\n\n'.join(output)
+        print('\n\n'.join(output))
     elif errors:
         for err in errors:
-            print err
+            print(err)
 
 
 def queryFromURL(url):

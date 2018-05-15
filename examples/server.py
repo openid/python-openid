@@ -10,8 +10,9 @@ import Cookie
 import optparse
 import sys
 import time
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from urlparse import parse_qsl, urlparse
+
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from six.moves.urllib.parse import parse_qsl, urlparse
 
 
 def quoteattr(s):
@@ -233,7 +234,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             return
 
         self.send_response(webresponse.code)
-        for header, value in webresponse.headers.iteritems():
+        for header, value in webresponse.headers.items():
             self.send_header(header, value)
         self.writeUserHeader()
         self.end_headers()
@@ -684,8 +685,8 @@ def main(host, port, data_path):
 
     httpserver.setOpenIDServer(oidserver)
 
-    print 'Server running at:'
-    print httpserver.base_url
+    print('Server running at:')
+    print(httpserver.base_url)
     httpserver.serve_forever()
 
 

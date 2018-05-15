@@ -1,7 +1,7 @@
 """XRI resolution."""
 from __future__ import unicode_literals
 
-from urllib import urlencode
+from six.moves.urllib.parse import urlencode
 
 from openid import fetchers
 from openid.oidutil import string_to_text
@@ -87,7 +87,7 @@ class ProxyResolver(object):
             response = fetchers.fetch(url)
             if response.status not in (200, 206):
                 # XXX: sucks to fail silently.
-                # print "response not OK:", response
+                # print("response not OK:", response)
                 continue
             et = etxrd.parseXRDS(response.body)
             canonicalID = etxrd.getCanonicalID(xri, et)

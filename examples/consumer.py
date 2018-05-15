@@ -14,11 +14,11 @@ import cgi
 import cgitb
 import optparse
 import sys
-import urlparse
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from Cookie import SimpleCookie
 
 import six
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from six.moves.urllib.parse import parse_qsl, urljoin, urlparse
 
 
 def quoteattr(s):
@@ -135,9 +135,9 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         written to the requesting browser.
         """
         try:
-            self.parsed_uri = urlparse.urlparse(self.path)
+            self.parsed_uri = urlparse(self.path)
             self.query = {}
-            for k, v in urlparse.parse_qsl(self.parsed_uri[4]):
+            for k, v in parse_qsl(self.parsed_uri[4]):
                 self.query[k] = v.decode('utf-8')
 
             path = self.parsed_uri[2]
@@ -343,7 +343,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
     def buildURL(self, action, **query):
         """Build a URL relative to the server base_url, with the given
         query parameters added."""
-        base = urlparse.urljoin(self.server.base_url, action)
+        base = urljoin(self.server.base_url, action)
         return appendArgs(base, query)
 
     def notFound(self):
@@ -473,8 +473,8 @@ def main(host, port, data_path, weak_ssl=False):
     addr = (host, port)
     server = OpenIDHTTPServer(store, addr, OpenIDRequestHandler)
 
-    print 'Server running at:'
-    print server.base_url
+    print('Server running at:')
+    print(server.base_url)
     server.serve_forever()
 
 

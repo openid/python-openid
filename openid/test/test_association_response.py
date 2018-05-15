@@ -117,7 +117,7 @@ class ExtractAssociationSessionTypeMismatch(BaseAssocTest):
     def mkTest(requested_session_type, response_session_type, openid1=False):
         def test(self):
             assoc_session = DummyAssocationSession(requested_session_type)
-            keys = association_response_values.keys()
+            keys = list(association_response_values.keys())
             if openid1:
                 keys.remove('ns')
             msg = mkAssocResponse(*keys)

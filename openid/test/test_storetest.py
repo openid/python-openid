@@ -58,8 +58,7 @@ def testStore(store):
         assert retrieved_assoc == expected, (retrieved_assoc, expected)
         if expected is not None:
             if retrieved_assoc is expected:
-                print ('Unexpected: retrieved a reference to the expected '
-                       'value instead of a new object')
+                print('Unexpected: retrieved a reference to the expected value instead of a new object')
             assert retrieved_assoc.handle == expected.handle
             assert retrieved_assoc.secret == expected.secret
 
@@ -284,8 +283,7 @@ class TestMySQLStore(unittest.TestCase):
                 conn = MySQLdb.connect(user=db_user, passwd=db_passwd, host=db_host)
             except MySQLdb.OperationalError as why:
                 if why[0] == 2005:
-                    print ('Skipping MySQL store test (cannot connect '
-                           'to test server on host %r)' % (db_host,))
+                    print('Skipping MySQL store test (cannot connect to test server on host %r)' % db_host)
                     return
                 else:
                     raise

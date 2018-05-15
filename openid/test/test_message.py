@@ -2,11 +2,10 @@
 from __future__ import unicode_literals
 
 import unittest
-import urllib
 import warnings
-from urlparse import parse_qs
 
 from lxml import etree as ElementTree
+from six.moves.urllib.parse import parse_qs, quote
 from testfixtures import ShouldWarn
 
 from openid.extensions import sreg
@@ -435,8 +434,7 @@ class OpenID2MessageTest(unittest.TestCase):
         self.assertEqual(self.msg.toKVForm(), 'error:unit test\nmode:error\nns:%s\n' % OPENID2_NS)
 
     def _test_urlencoded(self, s):
-        expected = ('openid.error=unit+test&openid.mode=error&openid.ns=%s&xey=value' %
-                    urllib.quote(OPENID2_NS, ''))
+        expected = ('openid.error=unit+test&openid.mode=error&openid.ns=%s&xey=value' % quote(OPENID2_NS, ''))
         self.assertEqual(s, expected)
 
     def test_toURLEncoded(self):
@@ -736,12 +734,12 @@ class MessageTest(unittest.TestCase):
         form = input_tree.getroot()
 
         # Check required form attributes
-        for k, v in self.required_form_attrs.iteritems():
+        for k, v in self.required_form_attrs.items():
             assert form.attrib[k] == v, \
                 "Expected '%s' for required form attribute '%s', got '%s'" % (v, k, form.attrib[k])
 
         # Check extra form attributes
-        for k, v in form_tag_attrs.iteritems():
+        for k, v in form_tag_attrs.items():
 
             # Skip attributes that already passed the required
             # attribute check, since they should be ignored by the
@@ -758,7 +756,7 @@ class MessageTest(unittest.TestCase):
 
         # For each post arg, make sure there is a hidden with that
         # value.  Make sure there are no other hiddens.
-        for name, value in message_.toPostArgs().iteritems():
+        for name, value in message_.toPostArgs().items():
             for e in hiddens:
                 if e.attrib['name'] == name:
                     assert e.attrib['value'] == value, \
@@ -940,26 +938,14 @@ class NamespaceMapTest(unittest.TestCase):
             self.assertTrue(nsm.isDefined(uripat % (n - 1)))
             nsm.add(uripat % n)
 
+        for (uri, alias) in nsm.items():
+            self.assertEqual(uri[22:], alias[3:])
+
         for (uri, alias) in nsm.iteritems():
             self.assertEqual(uri[22:], alias[3:])
 
-        i = 0
-        it = nsm.iterAliases()
-        try:
-            while True:
-                it.next()
-                i += 1
-        except StopIteration:
-            self.assertEqual(i, 23)
-
-        i = 0
-        it = nsm.iterNamespaceURIs()
-        try:
-            while True:
-                it.next()
-                i += 1
-        except StopIteration:
-            self.assertEqual(i, 23)
+        self.assertEqual(len(tuple(nsm.iterAliases())), 23)
+        self.assertEqual(len(tuple(nsm.iterNamespaceURIs())), 23)
 
 
 if __name__ == '__main__':

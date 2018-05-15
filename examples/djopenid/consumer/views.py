@@ -104,7 +104,7 @@ def startOpenID(request):
         # the response.
         requested_policies = []
         policy_prefix = 'policy_'
-        for k, v in request.POST.iteritems():
+        for k, v in six.iteritems(request.POST):
             if k.startswith(policy_prefix):
                 policy_attr = k[len(policy_prefix):]
                 if policy_attr in PAPE_POLICIES:

@@ -163,7 +163,7 @@ def getSRegNS(message):
         except KeyError as why:
             # An alias for the string 'sreg' already exists, but it's
             # defined for something other than simple registration
-            raise SRegNamespaceError(why[0])
+            raise SRegNamespaceError(six.text_type(why))
 
     return sreg_ns_uri
 
@@ -502,13 +502,13 @@ class SRegResponse(Extension):
         return self.data.items()
 
     def iteritems(self):
-        return self.data.iteritems()
+        return six.iteritems(self.data)
 
     def keys(self):
         return self.data.keys()
 
     def iterkeys(self):
-        return self.data.iterkeys()
+        return six.iterkeys(self.data)
 
     def has_key(self, key):
         return key in self
@@ -524,5 +524,8 @@ class SRegResponse(Extension):
         checkFieldName(field_name)
         return self.data[field_name]
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.data)
+
+    def __nonzero__(self):
+        return self.__bool__()

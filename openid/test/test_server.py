@@ -5,9 +5,9 @@ from __future__ import unicode_literals
 import unittest
 import warnings
 from functools import partial
-from urlparse import parse_qs, parse_qsl, urlparse
 
 from mock import sentinel
+from six.moves.urllib.parse import parse_qs, parse_qsl, urlparse
 from testfixtures import LogCapture, ShouldWarn, StringComparison
 
 from openid import association, cryptutil, oidutil

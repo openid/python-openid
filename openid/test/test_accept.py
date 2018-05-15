@@ -15,7 +15,7 @@ def getTestData():
     filename = os.path.join(os.path.dirname(__file__), 'data', 'accept.txt')
     i = 1
     lines = []
-    for line in file(filename):
+    for line in open(filename, 'rb'):
         lines.append((i, line.decode('utf-8')))
         i += 1
     return lines
@@ -101,7 +101,7 @@ class MatchAcceptTest(unittest.TestCase):
             try:
                 available = parseAvailable(avail_data)
             except Exception:
-                print 'On line', lno
+                print('On line', lno)
                 raise
 
             lno, exp_data = data['expected']
@@ -109,7 +109,7 @@ class MatchAcceptTest(unittest.TestCase):
             try:
                 expected = parseExpected(exp_data)
             except Exception:
-                print 'On line', lno
+                print('On line', lno)
                 raise
 
             accepted = accept.parseAcceptHeader(accept_header)

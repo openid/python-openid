@@ -23,11 +23,10 @@ class TestBase64(unittest.TestCase):
         allowed_d = {}
         for c in allowed_s:
             allowed_d[c] = None
-        isAllowed = allowed_d.has_key
 
         def checkEncoded(s):
             for c in s:
-                assert isAllowed(c), s
+                self.assertIn(c, allowed_d, msg=s)
 
         cases = [
             b'',
@@ -35,8 +34,12 @@ class TestBase64(unittest.TestCase):
             b'\x00',
             b'\x01',
             b'\x00' * 100,
-            b''.join(chr(i) for i in range(256)),
         ]
+        if six.PY2:
+            cases.append(b''.join(chr(i) for i in range(256)))
+        else:
+            assert six.PY3
+            cases.append(bytes(i for i in range(256)))
 
         for s in cases:
             b64 = oidutil.toBase64(s)
@@ -45,9 +48,13 @@ class TestBase64(unittest.TestCase):
             assert s_prime == s, (s, b64, s_prime)
 
         # Randomized test
-        for _ in xrange(50):
+        for _ in range(50):
             n = random.randrange(2048)
-            s = b''.join(chr(random.randrange(256)) for i in range(n))
+            if six.PY2:
+                s = b''.join(chr(random.randrange(256)) for i in range(n))
+            else:
+                assert six.PY3
+                s = bytes(random.randrange(256) for i in range(n))
             b64 = oidutil.toBase64(s)
             checkEncoded(b64)
             s_prime = oidutil.fromBase64(b64)

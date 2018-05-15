@@ -190,9 +190,9 @@ from __future__ import unicode_literals
 
 import copy
 import logging
-from urlparse import parse_qsl, urldefrag, urlparse
 
 import six
+from six.moves.urllib.parse import parse_qsl, urldefrag, urlparse
 
 from openid import cryptutil, fetchers, oidutil, urinorm
 from openid.association import Association, SessionNegotiator, default_negotiator
@@ -341,8 +341,7 @@ class Consumer(object):
         try:
             service = disco.getNextService(self._discover)
         except fetchers.HTTPFetchingError as why:
-            raise DiscoveryFailure(
-                'Error fetching XRDS document: %s' % (why[0],), None)
+            raise DiscoveryFailure('Error fetching XRDS document: %s' % six.text_type(why), None)
 
         if service is None:
             raise DiscoveryFailure(
@@ -648,7 +647,7 @@ class GenericConsumer(object):
             try:
                 return self._doIdRes(message, endpoint, return_to)
             except (ProtocolError, DiscoveryFailure) as why:
-                return FailureResponse(endpoint, why[0])
+                return FailureResponse(endpoint, six.text_type(why))
 
     def _completeInvalid(self, message, endpoint, _):
         mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
@@ -770,7 +769,7 @@ class GenericConsumer(object):
         try:
             timestamp, salt = splitNonce(nonce)
         except ValueError as why:
-            raise ProtocolError('Malformed nonce: %s' % (why[0],))
+            raise ProtocolError('Malformed nonce: %s' % six.text_type(why))
 
         if (self.store is not None and not self.store.useNonce(server_url, timestamp, salt)):
             raise ProtocolError('Nonce already used or out of range')
@@ -864,7 +863,7 @@ class GenericConsumer(object):
         # Make sure all non-OpenID arguments in the response are also
         # in the signed return_to.
         bare_args = message.getArgs(BARE_NS)
-        for pair in bare_args.iteritems():
+        for pair in six.iteritems(bare_args):
             if pair not in parsed_args:
                 raise ProtocolError("Parameter %s not in return_to URL" % (pair[0],))
 
@@ -1370,7 +1369,7 @@ class GenericConsumer(object):
         try:
             expires_in = int(expires_in_str)
         except ValueError as why:
-            raise ProtocolError('Invalid expires_in field: %s' % (why[0],))
+            raise ProtocolError('Invalid expires_in field: %s' % six.text_type(why))
 
         # OpenID 1 has funny association session behaviour.
         if assoc_response.isOpenID1():
@@ -1408,7 +1407,7 @@ class GenericConsumer(object):
             secret = assoc_session.extractSecret(assoc_response)
         except ValueError as why:
             fmt = 'Malformed response for %s session: %s'
-            raise ProtocolError(fmt % (assoc_session.session_type, why[0]))
+            raise ProtocolError(fmt % (assoc_session.session_type, six.text_type(why)))
 
         return Association.fromExpiresIn(
             expires_in, assoc_handle, secret, assoc_type)
@@ -1743,7 +1742,7 @@ class SuccessResponse(Response):
         """
         msg_args = self.message.getArgs(ns_uri)
 
-        for key in msg_args.iterkeys():
+        for key in msg_args:
             if not self.isSigned(ns_uri, key):
                 _LOGGER.info("SuccessResponse.getSignedNS: (%s, %s) not signed.", ns_uri, key)
                 return None

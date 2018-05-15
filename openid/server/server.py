@@ -318,7 +318,7 @@ class DiffieHellmanSHA1ServerSession(object):
 
     @ivar consumer_pubkey: The public key sent by the consumer in the
         associate request
-    @type consumer_pubkey: long
+    @type consumer_pubkey: int, long in Python 2
 
     @see: U{OpenID Specs, Mode: associate
         <http://openid.net/specs.bml#mode-associate>}
@@ -466,7 +466,7 @@ class AssociateRequest(OpenIDRequest):
             session = session_class.fromMessage(message)
         except ValueError as why:
             raise ProtocolError(message, 'Error parsing %s session: %s' %
-                                (session_class.session_type, why[0]))
+                                (session_class.session_type, six.text_type(why)))
 
         if assoc_type not in session.allowed_assoc_types:
             fmt = 'Session type %s does not support association type %s'
