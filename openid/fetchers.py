@@ -1,11 +1,5 @@
-# -*- test-case-name: openid.test.test_fetchers -*-
-"""
-This module contains the HTTP fetcher interface and several implementations.
-"""
-
-__all__ = ['fetch', 'getDefaultFetcher', 'setDefaultFetcher', 'HTTPResponse',
-           'HTTPFetcher', 'createHTTPFetcher', 'HTTPFetchingError',
-           'HTTPError']
+"""This module contains the HTTP fetcher interface and several implementations."""
+from __future__ import unicode_literals
 
 import cStringIO
 import sys
@@ -14,6 +8,10 @@ import urllib2
 
 import openid
 import openid.urinorm
+
+__all__ = ['fetch', 'getDefaultFetcher', 'setDefaultFetcher', 'HTTPResponse',
+           'HTTPFetcher', 'createHTTPFetcher', 'HTTPFetchingError',
+           'HTTPError']
 
 # Try to import httplib2 for caching support
 # http://bitworking.org/projects/httplib2/
@@ -121,7 +119,10 @@ def usingCurl():
 
 
 class HTTPResponse(object):
-    """XXX document attributes"""
+    """XXX document attributes
+
+    @type body: six.binary_type
+    """
     headers = None
     status = None
     body = None
@@ -154,7 +155,7 @@ class HTTPFetcher(object):
 
 
         @param headers: HTTP headers to include with the request
-        @type headers: {str:str}
+        @type headers: Dict[six.text_type, six.text_type]
 
         @return: An object representing the server's HTTP response. If
             there are network or protocol errors, an exception will be

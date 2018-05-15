@@ -1,7 +1,12 @@
+from __future__ import unicode_literals
+
+import six
+
 from openid import cryptutil
 
 
 def _xor(a_b):
+    # Python 2 only
     a, b = a_b
     return chr(ord(a) ^ ord(b))
 
@@ -10,7 +15,11 @@ def strxor(x, y):
     if len(x) != len(y):
         raise ValueError('Inputs to strxor must have the same length')
 
-    return "".join(_xor((a, b)) for a, b in zip(x, y))
+    if six.PY2:
+        return b"".join(_xor((a, b)) for a, b in zip(x, y))
+    else:
+        assert six.PY3
+        return bytes((a ^ b) for a, b in zip(x, y))
 
 
 class DiffieHellman(object):

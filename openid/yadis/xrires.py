@@ -1,10 +1,10 @@
-# -*- test-case-name: openid.test.test_xrires -*-
-"""XRI resolution.
-"""
+"""XRI resolution."""
+from __future__ import unicode_literals
 
 from urllib import urlencode
 
 from openid import fetchers
+from openid.oidutil import string_to_text
 from openid.yadis import etxrd
 from openid.yadis.services import iterServices
 from openid.yadis.xri import toURINormal
@@ -23,14 +23,14 @@ class ProxyResolver(object):
         """Build a URL to query the proxy resolver.
 
         @param xri: An XRI to resolve.
-        @type xri: unicode
+        @type xri: six.text_type
 
         @param service_type: The service type to resolve, if you desire
             service endpoint selection.  A service type is a URI.
-        @type service_type: str
+        @type service_type: Optional[six.text_type], six.binary_type is deprecated
 
         @returns: a URL
-        @returntype: str
+        @returntype: six.text_type
         """
         # Trim off the xri:// prefix.  The proxy resolver didn't accept it
         # when this code was written, but that may (or may not) change for
@@ -45,6 +45,8 @@ class ProxyResolver(object):
             '_xrd_r': 'application/xrds+xml',
         }
         if service_type:
+            service_type = string_to_text(service_type,
+                                          "Binary values for service_type are deprecated. Use text input instead.")
             args['_xrd_t'] = service_type
         else:
             # Don't perform service endpoint selection.
@@ -63,14 +65,14 @@ class ProxyResolver(object):
         the fetching or parsing don't go so well.
 
         @param xri: An XRI to resolve.
-        @type xri: unicode
+        @type xri: six.text_type
 
         @param service_types: A list of services types to query for.  Service
             types are URIs.
-        @type service_types: list of str
+        @type service_types: List[six.text_type], six.binary_type is deprecated
 
         @returns: tuple of (CanonicalID, Service elements)
-        @returntype: (unicode, list of C{ElementTree.Element}s)
+        @returntype: (six.text_type, list of C{ElementTree.Element}s)
         """
         # FIXME: No test coverage!
         services = []

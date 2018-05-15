@@ -34,11 +34,15 @@ OpenID providers.
 @var sreg_uri: The preferred URI to use for the simple registration
     namespace and XRD Type value
 """
+from __future__ import unicode_literals
 
 import logging
 
+import six
+
 from openid.extension import Extension
 from openid.message import NamespaceAliasRegistrationError, registerNamespaceAlias
+from openid.oidutil import string_to_text
 
 __all__ = [
     'SRegRequest',
@@ -138,7 +142,7 @@ def getSRegNS(message):
     @returns: the sreg namespace URI for the supplied message. The
         message may be modified to define a simple registration
         namespace.
-    @rtype: C{str}
+    @rtype: six.text_type
 
     @raise ValueError: when using OpenID 1 if the message defines
         the 'sreg' alias to be something other than a simple
@@ -169,14 +173,14 @@ class SRegRequest(Extension):
 
     @ivar required: A list of the required fields in this simple
         registration request
-    @type required: [str]
+    @type required: List[six.text_type]
 
     @ivar optional: A list of the optional fields in this simple
         registration request
-    @type optional: [str]
+    @type optional: List[six.text_type]
 
     @ivar policy_url: The policy URL that was provided with the request
-    @type policy_url: str or NoneType
+    @type policy_url: Optional[six.text_type]
 
     @group Consumer: requestField, requestFields, getExtensionArgs, addToOpenIDRequest
     @group Server: fromOpenIDRequest, parseExtensionArgs
@@ -246,7 +250,7 @@ class SRegRequest(Extension):
         >>> request.parseExtensionArgs(args)
 
         @param args: The unqualified simple registration arguments
-        @type args: {str:str}
+        @type args: Dict[six.text_type, six.text_type], six.binary_type is deprecated
 
         @param strict: Whether requests with fields that are not
             defined in the simple registration specification should be
@@ -259,6 +263,7 @@ class SRegRequest(Extension):
             required = (list_name == 'required')
             items = args.get(list_name)
             if items:
+                items = string_to_text(items, "Binary values for args are deprecated. Use text input instead.")
                 for field_name in items.split(','):
                     try:
                         self.requestField(field_name, required, strict)
@@ -266,13 +271,17 @@ class SRegRequest(Extension):
                         if strict:
                             raise
 
-        self.policy_url = args.get('policy_url')
+        policy_url = args.get('policy_url')
+        if policy_url is not None:
+            policy_url = string_to_text(args.get('policy_url'),
+                                        "Binary values for args are deprecated. Use text input instead.")
+        self.policy_url = policy_url
 
     def allRequestedFields(self):
         """A list of all of the simple registration fields that were
         requested, whether they were required or optional.
 
-        @rtype: [str]
+        @rtype: List[six.text_type]
         """
         return self.required + self.optional
 
@@ -292,7 +301,7 @@ class SRegRequest(Extension):
         """Request the specified field from the OpenID user
 
         @param field_name: the unqualified simple registration field name
-        @type field_name: str
+        @type field_name: six.text_type, six.binary_type is deprecated
 
         @param required: whether the given field should be presented
             to the user as being a required to successfully complete
@@ -305,6 +314,7 @@ class SRegRequest(Extension):
             registration field or strict is set and the field was
             requested more than once
         """
+        field_name = string_to_text(field_name, "Binary values for field_name are deprecated. Use text input instead.")
         checkFieldName(field_name)
 
         if strict:
@@ -329,7 +339,7 @@ class SRegRequest(Extension):
         """Add the given list of fields to the request
 
         @param field_names: The simple registration data fields to request
-        @type field_names: [str]
+        @type field_names: List[six.text_type], six.binary_type is deprecated
 
         @param required: Whether these values should be presented to
             the user as required
@@ -341,11 +351,13 @@ class SRegRequest(Extension):
             registration field or strict is set and a field was
             requested more than once
         """
-        if isinstance(field_names, basestring):
+        if isinstance(field_names, six.string_types):
             raise TypeError('Fields should be passed as a list of '
                             'strings (not %r)' % (type(field_names),))
 
         for field_name in field_names:
+            field_name = string_to_text(field_name,
+                                        "Binary values for field_names are deprecated. Use text input instead.")
             self.requestField(field_name, required, strict=strict)
 
     def getExtensionArgs(self):
@@ -356,7 +368,7 @@ class SRegRequest(Extension):
         C{L{parseExtensionArgs}}. This method serializes the simple
         registration request fields.
 
-        @rtype: {str:str}
+        @rtype: Dict[six.text_type, six.text_type]
         """
         args = {}
 
@@ -417,7 +429,7 @@ class SRegResponse(Extension):
             registration field name to string (unicode) value. For
             instance, the nickname should be stored under the key
             'nickname'.
-        @type data: {str:str}
+        @type data: Dict[six.text_type, six.text_type], six.binary_type is deprecated
 
         @returns: a simple registration response object
         @rtype: SRegResponse
@@ -427,6 +439,7 @@ class SRegResponse(Extension):
         for field in request.allRequestedFields():
             value = data.get(field)
             if value is not None:
+                value = string_to_text(value, "Binary values for data are deprecated. Use text input instead.")
                 self.data[field] = value
         return self
 

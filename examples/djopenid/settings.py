@@ -1,4 +1,6 @@
 """Example Django settings for djopenid project."""
+from __future__ import unicode_literals
+
 import os
 import sys
 import warnings

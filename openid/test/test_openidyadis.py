@@ -1,4 +1,8 @@
+from __future__ import unicode_literals
+
 import unittest
+
+import six
 
 from openid.consumer.discover import OPENID_1_0_TYPE, OPENID_1_1_TYPE, OpenIDServiceEndpoint
 from openid.yadis.services import applyFilter
@@ -16,7 +20,8 @@ XRDS_BOILERPLATE = '''\
 
 
 def mkXRDS(services):
-    return XRDS_BOILERPLATE % (services,)
+    xrds = XRDS_BOILERPLATE % services
+    return xrds.encode('utf-8')
 
 
 def mkService(uris=None, type_uris=None, local_id=None, dent='        '):
@@ -35,7 +40,7 @@ def mkService(uris=None, type_uris=None, local_id=None, dent='        '):
 
             chunks.extend([dent2, '<URI'])
             if prio is not None:
-                chunks.extend([' priority="', str(prio), '"'])
+                chunks.extend([' priority="', six.text_type(prio), '"'])
             chunks.extend(['>', uri, '</URI>\n'])
 
     if local_id:

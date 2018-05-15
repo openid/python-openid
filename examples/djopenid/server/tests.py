@@ -1,12 +1,13 @@
+from __future__ import unicode_literals
+
 from urlparse import urljoin
 
 import django
 from django.http import HttpRequest
 from django.test.testcases import TestCase
 from django.urls import reverse
-
 from openid.message import Message
-from openid.server.server import CheckIDRequest, HTTP_REDIRECT
+from openid.server.server import HTTP_REDIRECT, CheckIDRequest
 from openid.yadis.constants import YADIS_CONTENT_TYPE
 from openid.yadis.services import applyFilter
 
@@ -85,7 +86,7 @@ class TestShowDecidePage(TestCase):
         views.setRequest(self.request, self.openid_request)
 
         response = views.showDecidePage(self.request, self.openid_request)
-        self.assertIn('trust_root_valid is Unreachable', response.content)
+        self.assertContains(response, 'trust_root_valid is Unreachable')
 
 
 class TestGenericXRDS(TestCase):

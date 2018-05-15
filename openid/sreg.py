@@ -1,4 +1,5 @@
 """moved to L{openid.extensions.sreg}"""
+from __future__ import unicode_literals
 
 import warnings
 

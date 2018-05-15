@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import unittest
 
 from openid.extensions.draft import pape2 as pape

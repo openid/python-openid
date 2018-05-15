@@ -1,7 +1,5 @@
-"""
-This module contains an C{L{OpenIDStore}} implementation backed by
-flat files.
-"""
+"""This module contains an C{L{OpenIDStore}} implementation backed by flat files."""
+from __future__ import unicode_literals
 
 import logging
 import os
@@ -13,6 +11,7 @@ from tempfile import mkstemp
 
 from openid import cryptutil, oidutil
 from openid.association import Association
+from openid.oidutil import string_to_text
 from openid.store import nonce
 from openid.store.interface import OpenIDStore
 
@@ -23,7 +22,7 @@ _isFilenameSafe = set(_filename_allowed).__contains__
 
 
 def _safe64(s):
-    h64 = oidutil.toBase64(cryptutil.sha1(s))
+    h64 = oidutil.toBase64(cryptutil.sha1(s.encode('utf-8')))
     h64 = h64.replace('+', '_')
     h64 = h64.replace('/', '.')
     h64 = h64.replace('=', '')
@@ -44,7 +43,7 @@ def _removeIfPresent(filename):
     """Attempt to remove a file, returning whether the file existed at
     the time of the call.
 
-    str -> bool
+    six.text_type -> bool
     """
     try:
         os.unlink(filename)
@@ -65,7 +64,7 @@ def _ensureDir(dir_name):
 
     Can raise OSError
 
-    str -> NoneType
+    six.text_type -> NoneType
     """
     try:
         os.makedirs(dir_name)
@@ -99,8 +98,7 @@ class FileOpenIDStore(OpenIDStore):
 
         @param directory: This is the directory to put the store
             directories in.
-
-        @type directory: C{str}
+        @type directory: six.text_type, six.binary_type is deprecated
         """
         # Make absolute
         directory = os.path.normpath(os.path.abspath(directory))
@@ -136,7 +134,7 @@ class FileOpenIDStore(OpenIDStore):
         the store, it is safe to remove all of the files in the
         temporary directory.
 
-        () -> (file, str)
+        () -> (file, six.text_type)
         """
         fd, name = mkstemp(dir=self.temp_dir)
         try:
@@ -155,8 +153,11 @@ class FileOpenIDStore(OpenIDStore):
         contain the domain name from the server URL for ease of human
         inspection of the data directory.
 
-        (str, str) -> str
+        (six.text_type, six.text_type) -> six.text_type, six.binary_type is deprecated
         """
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
+        handle = string_to_text(handle, "Binary values for handle are deprecated. Use text input instead.")
+
         if server_url.find('://') == -1:
             raise ValueError('Bad server URL: %r' % server_url)
 
@@ -175,15 +176,17 @@ class FileOpenIDStore(OpenIDStore):
     def storeAssociation(self, server_url, association):
         """Store an association in the association directory.
 
-        (str, Association) -> NoneType
+        (six.text_type, Association) -> NoneType, six.binary_type is deprecated
         """
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
+
         association_s = association.serialize()
         filename = self.getAssociationFilename(server_url, association.handle)
         tmp_file, tmp = self._mktemp()
 
         try:
             try:
-                tmp_file.write(association_s)
+                tmp_file.write(association_s.encode('utf-8'))
                 os.fsync(tmp_file.fileno())
             finally:
                 tmp_file.close()
@@ -218,8 +221,12 @@ class FileOpenIDStore(OpenIDStore):
         """Retrieve an association. If no handle is specified, return
         the association with the latest expiration.
 
-        (str, str or NoneType) -> Association or NoneType
+        (six.text_type, Optional[six.text_type]) -> Association or NoneType, six.binary_type is deprecated
         """
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
+        if handle is not None:
+            handle = string_to_text(handle, "Binary values for handle are deprecated. Use text input instead.")
+
         if handle is None:
             handle = ''
 
@@ -287,8 +294,11 @@ class FileOpenIDStore(OpenIDStore):
     def removeAssociation(self, server_url, handle):
         """Remove an association if it exists. Do nothing if it does not.
 
-        (str, str) -> bool
+        (six.text_type, six.text_type) -> bool, six.binary_type is deprecated
         """
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
+        handle = string_to_text(handle, "Binary values for handle are deprecated. Use text input instead.")
+
         assoc = self.getAssociation(server_url, handle)
         if assoc is None:
             return 0
@@ -299,8 +309,11 @@ class FileOpenIDStore(OpenIDStore):
     def useNonce(self, server_url, timestamp, salt):
         """Return whether this nonce is valid.
 
-        str -> bool
+        @type server_url: six.text_type, six.binary_type is deprecated
+        @rtype: bool
         """
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
+
         if abs(timestamp - time.time()) > nonce.SKEW:
             return False
 

@@ -1,3 +1,6 @@
+from __future__ import unicode_literals
+
+
 class YadisServiceManager(object):
     """Holds the state of a list of selected Yadis services, managing
     storing it in a session and iterating over the services in order."""
@@ -93,7 +96,7 @@ class Discovery(object):
         @param discover: a callable that takes a URL and returns a
             list of services
 
-        @type discover: str -> [service]
+        @type discover: six.text_type -> [service]
 
 
         @return: the next available service
@@ -140,7 +143,7 @@ class Discovery(object):
         """Get the session key for this starting URL and suffix
 
         @return: The session key
-        @rtype: str
+        @rtype: six.text_type
         """
         return self.PREFIX + self.session_key_suffix
 

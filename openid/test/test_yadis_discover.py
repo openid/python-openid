@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-
 """Tests for yadis.discover.
 
 @todo: Now that yadis.discover uses urljr.fetchers, we should be able to do
    tests with a mock fetcher instead of spawning threads with BaseHTTPServer.
 """
+from __future__ import unicode_literals
 
 import re
 import types

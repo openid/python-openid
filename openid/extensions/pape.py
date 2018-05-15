@@ -5,6 +5,14 @@ Extension 1.0, Draft 5
 
 @since: 2.1.0
 """
+from __future__ import unicode_literals
+
+import re
+import warnings
+
+import six
+
+from openid.extension import Extension
 
 __all__ = [
     'Request',
@@ -16,11 +24,6 @@ __all__ = [
     'LEVELS_NIST',
     'LEVELS_JISA',
 ]
-
-import re
-import warnings
-
-from openid.extension import Extension
 
 ns_uri = "http://specs.openid.net/extensions/pape/1.0"
 
@@ -98,7 +101,7 @@ class Request(PAPEExtension):
 
     @ivar preferred_auth_policies: The authentication policies that
         the relying party prefers
-    @type preferred_auth_policies: [str]
+    @type preferred_auth_policies: List[six.text_type]
 
     @ivar max_auth_age: The maximum time, in seconds, that the relying
         party wants to allow to have elapsed before the user must
@@ -108,7 +111,7 @@ class Request(PAPEExtension):
     @ivar preferred_auth_level_types: Ordered list of authentication
         level namespace URIs
 
-    @type preferred_auth_level_types: [str]
+    @type preferred_auth_level_types: List[six.text_type]
     """
 
     ns_alias = 'pape'
@@ -158,7 +161,7 @@ class Request(PAPEExtension):
         }
 
         if self.max_auth_age is not None:
-            ns_args['max_auth_age'] = str(self.max_auth_age)
+            ns_args['max_auth_age'] = six.text_type(self.max_auth_age)
 
         if self.preferred_auth_level_types:
             preferred_types = []
@@ -262,7 +265,7 @@ class Request(PAPEExtension):
             sequence, and may be empty if the provider does not prefer
             any of the supported authentication types.
 
-        @returntype: [str]
+        @returntype: List[six.text_type]
         """
         return [i for i in supported_types if i in self.preferred_auth_policies]
 
@@ -459,7 +462,7 @@ class Response(PAPEExtension):
         for level_type, level in self.auth_levels.iteritems():
             alias = self._getAlias(level_type)
             ns_args['auth_level.ns.%s' % (alias,)] = level_type
-            ns_args['auth_level.%s' % (alias,)] = str(level)
+            ns_args['auth_level.%s' % (alias,)] = six.text_type(level)
 
         if self.auth_time is not None:
             if not TIME_VALIDATOR.match(self.auth_time):

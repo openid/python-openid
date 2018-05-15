@@ -9,6 +9,16 @@ engine, but is currently found at:
 
 http://www.amk.ca/python/code/crypto
 """
+from __future__ import unicode_literals
+
+import hashlib
+import hmac
+import os
+import random
+
+import six
+
+from openid.oidutil import fromBase64, string_to_text, toBase64
 
 __all__ = [
     'base64ToLong',
@@ -23,13 +33,6 @@ __all__ = [
     'sha256',
 ]
 
-import hashlib
-import hmac
-import os
-import random
-
-from openid.oidutil import fromBase64, toBase64
-
 
 class HashContainer(object):
     def __init__(self, hash_constructor):
@@ -42,18 +45,46 @@ sha256_module = HashContainer(hashlib.sha256)
 
 
 def hmacSha1(key, text):
-    return hmac.new(key, text, sha1_module).digest()
+    """
+    Return a SHA1 HMAC.
+
+    @type key: six.binary_type
+    @type text: six.text_type, six.binary_type is deprecated
+    @rtype: six.binary_type
+    """
+    text = string_to_text(text, "Binary values for text are deprecated. Use text input instead.")
+    return hmac.new(key, text.encode('utf-8'), sha1_module).digest()
 
 
 def sha1(s):
+    """
+    Return a SHA1 hash.
+
+    @type s: six.binary_type
+    @rtype: six.binary_type
+    """
     return sha1_module.new(s).digest()
 
 
 def hmacSha256(key, text):
-    return hmac.new(key, text, sha256_module).digest()
+    """
+    Return a SHA256 HMAC.
+
+    @type key: six.binary_type
+    @type text: six.text_type, six.binary_type is deprecated
+    @rtype: six.binary_type
+    """
+    text = string_to_text(text, "Binary values for text are deprecated. Use text input instead.")
+    return hmac.new(key, text.encode('utf-8'), sha256_module).digest()
 
 
 def sha256(s):
+    """
+    Return a SHA256 hash.
+
+    @type s: six.binary_type
+    @rtype: six.binary_type
+    """
     return sha256_module.new(s).digest()
 
 
@@ -64,12 +95,12 @@ except ImportError:
 
     def longToBinary(value):
         if value == 0:
-            return '\x00'
+            return b'\x00'
 
-        return ''.join(reversed(pickle.encode_long(value)))
+        return pickle.encode_long(value)[::-1]
 
     def binaryToLong(s):
-        return pickle.decode_long(''.join(reversed(s)))
+        return pickle.decode_long(s[::-1])
 else:
     # We have pycrypto
 
@@ -77,20 +108,28 @@ else:
         if value < 0:
             raise ValueError('This function only supports positive integers')
 
-        bytes = long_to_bytes(value)
-        if ord(bytes[0]) > 127:
-            return '\x00' + bytes
+        output = long_to_bytes(value)
+        if isinstance(output[0], int):
+            ord_first = output[0]
         else:
-            return bytes
+            ord_first = ord(output[0])
+        if ord_first > 127:
+            return b'\x00' + output
+        else:
+            return output
 
-    def binaryToLong(bytes):
-        if not bytes:
+    def binaryToLong(s):
+        if not s:
             raise ValueError('Empty string passed to strToLong')
 
-        if ord(bytes[0]) > 127:
+        if isinstance(s[0], int):
+            ord_first = s[0]
+        else:
+            ord_first = ord(s[0])
+        if ord_first > 127:
             raise ValueError('This function only supports positive integers')
 
-        return bytes_to_long(bytes)
+        return bytes_to_long(s)
 
 # A cryptographically safe source of random bytes
 try:
@@ -179,12 +218,20 @@ def base64ToLong(s):
 
 
 def randomString(length, chrs=None):
-    """Produce a string of length random bytes, chosen from chrs."""
+    """Produce a string of length random bytes, chosen from chrs.
+
+    @type chrs: six.binary_type
+    @rtype: six.binary_type
+    """
     if chrs is None:
         return getBytes(length)
     else:
         n = len(chrs)
-        return ''.join([chrs[randrange(n)] for _ in xrange(length)])
+        random_chars = [chrs[randrange(n)] for _ in range(length)]
+        if six.PY2:
+            return b''.join(random_chars)
+        else:
+            return six.binary_type(random_chars)
 
 
 def const_eq(s1, s2):

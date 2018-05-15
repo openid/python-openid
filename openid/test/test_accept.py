@@ -1,4 +1,6 @@
 """Test `openid.yadis.accept` module."""
+from __future__ import unicode_literals
+
 import os.path
 import unittest
 
@@ -8,13 +10,13 @@ from openid.yadis import accept
 def getTestData():
     """Read the test data off of disk
 
-    () -> [(int, str)]
+    () -> [(int, six.text_type)]
     """
     filename = os.path.join(os.path.dirname(__file__), 'data', 'accept.txt')
     i = 1
     lines = []
     for line in file(filename):
-        lines.append((i, line))
+        lines.append((i, line.decode('utf-8')))
         i += 1
     return lines
 
@@ -22,7 +24,7 @@ def getTestData():
 def chunk(lines):
     """Return groups of lines separated by whitespace or comments
 
-    [(int, str)] -> [[(int, str)]]
+    [(int, six.text_type)] -> [[(int, six.text_type)]]
     """
     chunks = []
     chunk = []
@@ -44,7 +46,7 @@ def chunk(lines):
 def parseLines(chunk):
     """Take the given chunk of lines and turn it into a test data dictionary
 
-    [(int, str)] -> {str:(int, str)}
+    [(int, six.text_type)] -> {six.text_type:(int, six.text_type)}
     """
     items = {}
     for (lineno, line) in chunk:
@@ -58,7 +60,7 @@ def parseLines(chunk):
 def parseAvailable(available_text):
     """Parse an Available: line's data
 
-    str -> [str]
+    six.text_type -> [six.text_type]
     """
     return [s.strip() for s in available_text.split(',')]
 
@@ -66,7 +68,7 @@ def parseAvailable(available_text):
 def parseExpected(expected_text):
     """Parse an Expected: line's data
 
-    str -> [(str, float)]
+    six.text_type -> [(six.text_type, float)]
     """
     expected = []
     if expected_text:

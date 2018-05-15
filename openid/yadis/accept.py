@@ -1,21 +1,28 @@
-"""Functions for generating and parsing HTTP Accept: headers for
-supporting server-directed content negotiation.
-"""
+"""Functions for generating and parsing HTTP Accept: headers for supporting server-directed content negotiation."""
+from __future__ import unicode_literals
+
 from operator import itemgetter
+
+import six
+
+from openid.oidutil import string_to_text
 
 
 def generateAcceptHeader(*elements):
     """Generate an accept header value
 
-    [str or (str, float)] -> str
+    [six.text_type or (six.text_type, float)] -> six.text_type
     """
     parts = []
     for element in elements:
-        if isinstance(element, str):
+        if isinstance(element, six.string_types):
             qs = "1.0"
-            mtype = element
+            mtype = string_to_text(element,
+                                   "Binary values for generateAcceptHeader are deprecated. Use text input instead.")
         else:
             mtype, q = element
+            mtype = string_to_text(mtype,
+                                   "Binary values for generateAcceptHeader are deprecated. Use text input instead.")
             q = float(q)
             if q > 1 or q <= 0:
                 raise ValueError('Invalid preference factor: %r' % q)
@@ -41,8 +48,9 @@ def parseAcceptHeader(value):
     returns a list of tuples containing main MIME type, MIME subtype,
     and quality markdown.
 
-    str -> [(str, str, float)]
+    six.text_type -> [(six.text_type, six.text_type, float)]
     """
+    value = string_to_text(value, "Binary values for parseAcceptHeader are deprecated. Use text input instead.")
     chunks = [chunk.strip() for chunk in value.split(',')]
     accept = []
     for chunk in chunks:
@@ -86,7 +94,7 @@ def matchTypes(accept_types, have_types):
     [('text/html', 1.0), ('text/plain', 0.5)]
 
 
-    Type signature: ([(str, str, float)], [str]) -> [(str, float)]
+    Type signature: ([(six.text_type, six.text_type, float)], [six.text_type]) -> [(six.text_type, float)]
     """
     if not accept_types:
         # Accept all of them
@@ -97,6 +105,8 @@ def matchTypes(accept_types, have_types):
     match_main = {}
     match_sub = {}
     for (main, sub, qvalue) in accept_types:
+        main = string_to_text(main, "Binary values for matchTypes accept_types are deprecated. Use text input instead.")
+        sub = string_to_text(sub, "Binary values for matchTypes accept_types are deprecated. Use text input instead.")
         if main == '*':
             default = max(default, qvalue)
             continue
@@ -108,6 +118,7 @@ def matchTypes(accept_types, have_types):
     accepted_list = []
     order_maintainer = 0
     for mtype in have_types:
+        mtype = string_to_text(mtype, "Binary values for matchTypes have_types are deprecated. Use text input instead.")
         main, sub = mtype.split('/')
         if (main, sub) in match_sub:
             quality = match_sub[(main, sub)]
@@ -119,7 +130,7 @@ def matchTypes(accept_types, have_types):
             order_maintainer += 1
 
     accepted_list.sort()
-    return [(mtype, q) for (_, _, q, mtype) in accepted_list]
+    return [(match, q) for (_, _, q, match) in accepted_list]
 
 
 def getAcceptable(accept_header, have_types):
@@ -130,8 +141,10 @@ def getAcceptable(accept_header, have_types):
     This is a convenience wrapper around matchTypes and
     parseAcceptHeader.
 
-    (str, [str]) -> [str]
+    (six.text_type, [six.text_type]) -> [six.text_type]
     """
+    accept_header = string_to_text(
+        accept_header, "Binary values for getAcceptable accept_header are deprecated. Use text input instead.")
     accepted = parseAcceptHeader(accept_header)
     preferred = matchTypes(accepted, have_types)
     return [mtype for (mtype, _) in preferred]

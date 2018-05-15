@@ -1,10 +1,18 @@
 # -*- coding: utf-8 -*-
 """Test `openid.oidutil` module."""
+from __future__ import unicode_literals
+
 import random
 import string
 import unittest
+import warnings
+
+import six
+from mock import sentinel
+from testfixtures import ShouldWarn
 
 from openid import oidutil
+from openid.oidutil import string_to_text
 
 
 class TestBase64(unittest.TestCase):
@@ -22,12 +30,12 @@ class TestBase64(unittest.TestCase):
                 assert isAllowed(c), s
 
         cases = [
-            '',
-            'x',
-            '\x00',
-            '\x01',
-            '\x00' * 100,
-            ''.join(chr(i) for i in range(256)),
+            b'',
+            b'x',
+            b'\x00',
+            b'\x01',
+            b'\x00' * 100,
+            b''.join(chr(i) for i in range(256)),
         ]
 
         for s in cases:
@@ -39,7 +47,7 @@ class TestBase64(unittest.TestCase):
         # Randomized test
         for _ in xrange(50):
             n = random.randrange(2048)
-            s = ''.join(chr(random.randrange(256)) for i in range(n))
+            s = b''.join(chr(random.randrange(256)) for i in range(n))
             b64 = oidutil.toBase64(s)
             checkEncoded(b64)
             s_prime = oidutil.fromBase64(b64)
@@ -131,19 +139,6 @@ class AppendArgsTest(unittest.TestCase):
             self.assertEqual(expected, result, '{} {}'.format(name, args))
 
 
-class TestUnicodeConversion(unittest.TestCase):
-
-    def test_toUnicode(self):
-        # Unicode objects pass through
-        self.assertIsInstance(oidutil.toUnicode(u'fööbär'), unicode)
-        self.assertEquals(oidutil.toUnicode(u'fööbär'), u'fööbär')
-        # UTF-8 encoded string are decoded
-        self.assertIsInstance(oidutil.toUnicode('fööbär'), unicode)
-        self.assertEquals(oidutil.toUnicode('fööbär'), u'fööbär')
-        # Other encodings raise exceptions
-        self.assertRaises(UnicodeDecodeError, lambda: oidutil.toUnicode(u'fööbär'.encode('latin-1')))
-
-
 class TestSymbol(unittest.TestCase):
     def testCopyHash(self):
         import copy
@@ -159,3 +154,21 @@ class TestSymbol(unittest.TestCase):
 # XXX: there are more functions that could benefit from being better
 # specified and tested in oidutil.py These include, but are not
 # limited to appendArgs
+
+
+class TestToText(unittest.TestCase):
+    """Test `string_to_text` utility function."""
+
+    def test_text_input(self):
+        result = string_to_text('ěščřž', sentinel.msg)
+        self.assertIsInstance(result, six.text_type)
+        self.assertEqual(result, 'ěščřž')
+
+    def test_binary_input(self):
+        warning_msg = 'Conversion warning'
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            result = string_to_text('ěščřž'.encode('utf-8'), warning_msg)
+
+        self.assertIsInstance(result, six.text_type)
+        self.assertEqual(result, 'ěščřž')

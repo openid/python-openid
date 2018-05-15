@@ -6,12 +6,15 @@ with a pattern like 'GET /foo?bar=baz HTTP'.
 
 Requires the 'xsel' program to get the contents of the clipboard.
 """
+from __future__ import unicode_literals
 
 import re
 import subprocess
 import sys
 from pprint import pformat
 from urlparse import parse_qs, urlsplit, urlunsplit
+
+import six
 
 from openid import message
 
@@ -78,7 +81,7 @@ def openidFromQuery(query):
         s = formatOpenIDMessage(msg)
     except Exception as err:
         # XXX - side effect.
-        sys.stderr.write(str(err))
+        sys.stderr.write(six.text_type(err))
         s = pformat(query)
 
     return s

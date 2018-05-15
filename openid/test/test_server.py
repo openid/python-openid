@@ -1,5 +1,7 @@
 """Tests for openid.server.
 """
+from __future__ import unicode_literals
+
 import unittest
 import warnings
 from functools import partial
@@ -667,9 +669,7 @@ class TestEncode(unittest.TestCase):
         self.assertEqual(webresponse.body, body)
 
     def test_checkauthReply(self):
-        request = server.CheckAuthRequest('a_sock_monkey',
-                                          'siggggg',
-                                          [])
+        request = server.CheckAuthRequest('a_sock_monkey', 'siggggg')
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
             'is_valid': 'true',
@@ -723,8 +723,7 @@ class TestSigningEncode(unittest.TestCase):
         assoc_handle = '{bicycle}{shed}'
         self.store.storeAssociation(
             self._normal_key,
-            association.Association.fromExpiresIn(60, assoc_handle,
-                                                  'sekrit', 'HMAC-SHA1'))
+            association.Association.fromExpiresIn(60, assoc_handle, b'sekrit', 'HMAC-SHA1'))
         self.request.assoc_handle = assoc_handle
         webresponse = self.encode(self.response)
         self.assertEqual(webresponse.code, server.HTTP_REDIRECT)
@@ -980,7 +979,7 @@ class TestCheckID(unittest.TestCase):
         msg.setArg(OPENID_NS, 'mode', 'checkid_setup')
         msg.setArg(OPENID_NS, 'assoc_handle', 'bogus')
 
-        self.assertRaises(server.ProtocolError, server.CheckIDRequest.fromMessage, msg, self.server)
+        self.assertRaises(server.ProtocolError, server.CheckIDRequest.fromMessage, msg, self.op_endpoint)
 
     def test_fromMessageClaimedIDWithoutIdentityOpenID2(self):
         name = 'https://example.myopenid.com'
@@ -990,7 +989,7 @@ class TestCheckID(unittest.TestCase):
         msg.setArg(OPENID_NS, 'return_to', 'http://invalid:8000/rt')
         msg.setArg(OPENID_NS, 'claimed_id', name)
 
-        self.assertRaises(server.ProtocolError, server.CheckIDRequest.fromMessage, msg, self.server)
+        self.assertRaises(server.ProtocolError, server.CheckIDRequest.fromMessage, msg, self.op_endpoint)
 
     def test_fromMessageIdentityWithoutClaimedIDOpenID2(self):
         name = 'https://example.myopenid.com'
@@ -1000,7 +999,7 @@ class TestCheckID(unittest.TestCase):
         msg.setArg(OPENID_NS, 'return_to', 'http://invalid:8000/rt')
         msg.setArg(OPENID_NS, 'identity', name)
 
-        self.assertRaises(server.ProtocolError, server.CheckIDRequest.fromMessage, msg, self.server)
+        self.assertRaises(server.ProtocolError, server.CheckIDRequest.fromMessage, msg, self.op_endpoint)
 
     def test_trustRootOpenID1(self):
         """Ignore openid.realm in OpenID 1"""
@@ -1308,7 +1307,7 @@ class TestAssociate(unittest.TestCase):
         self.assertTrue(rfg("enc_mac_key"))
         self.assertTrue(rfg("dh_server_public"))
 
-        enc_key = rfg("enc_mac_key").decode('base64')
+        enc_key = oidutil.fromBase64(rfg("enc_mac_key"))
         spub = cryptutil.base64ToLong(rfg("dh_server_public"))
         secret = consumer_dh.xorSecret(spub, enc_key, cryptutil.sha1)
         self.assertEqual(secret, self.assoc.secret)
@@ -1333,7 +1332,7 @@ class TestAssociate(unittest.TestCase):
         self.assertTrue(rfg("enc_mac_key"))
         self.assertTrue(rfg("dh_server_public"))
 
-        enc_key = rfg("enc_mac_key").decode('base64')
+        enc_key = oidutil.fromBase64(rfg("enc_mac_key"))
         spub = cryptutil.base64ToLong(rfg("dh_server_public"))
         secret = consumer_dh.xorSecret(spub, enc_key, cryptutil.sha256)
         self.assertEqual(secret, self.assoc.secret)
@@ -1637,7 +1636,7 @@ class TestServer(unittest.TestCase):
         self.assertRaises(server.ProtocolError, server.AssociateRequest.fromMessage, msg)
 
     def test_checkAuth(self):
-        request = server.CheckAuthRequest('arrrrrf', '0x3999', [])
+        request = server.CheckAuthRequest('arrrrrf', '0x3999')
         response = self.server.openid_check_authentication(request)
         self.assertTrue(response.fields.hasKey(OPENID_NS, "is_valid"))
 
@@ -1654,8 +1653,7 @@ class TestSignatory(unittest.TestCase):
         assoc_handle = '{assoc}{lookatme}'
         self.store.storeAssociation(
             self._normal_key,
-            association.Association.fromExpiresIn(60, assoc_handle,
-                                                  'sekrit', 'HMAC-SHA1'))
+            association.Association.fromExpiresIn(60, assoc_handle, b'sekrit', 'HMAC-SHA1'))
         request.assoc_handle = assoc_handle
         response = server.OpenIDResponse(request)
         response.fields = Message.fromOpenIDArgs({
@@ -1708,8 +1706,7 @@ class TestSignatory(unittest.TestCase):
         assoc_handle = '{assoc}{lookatme}'
         self.store.storeAssociation(
             self._normal_key,
-            association.Association.fromExpiresIn(-10, assoc_handle,
-                                                  'sekrit', 'HMAC-SHA1'))
+            association.Association.fromExpiresIn(-10, assoc_handle, b'sekrit', 'HMAC-SHA1'))
         self.assertTrue(self.store.getAssociation(self._normal_key, assoc_handle))
 
         request.assoc_handle = assoc_handle
@@ -1772,8 +1769,7 @@ class TestSignatory(unittest.TestCase):
 
     def test_verify(self):
         assoc_handle = '{vroom}{zoom}'
-        assoc = association.Association.fromExpiresIn(
-            60, assoc_handle, 'sekrit', 'HMAC-SHA1')
+        assoc = association.Association.fromExpiresIn(60, assoc_handle, b'sekrit', 'HMAC-SHA1')
 
         self.store.storeAssociation(self._dumb_key, assoc)
 
@@ -1792,8 +1788,7 @@ class TestSignatory(unittest.TestCase):
 
     def test_verifyBadSig(self):
         assoc_handle = '{vroom}{zoom}'
-        assoc = association.Association.fromExpiresIn(
-            60, assoc_handle, 'sekrit', 'HMAC-SHA1')
+        assoc = association.Association.fromExpiresIn(60, assoc_handle, b'sekrit', 'HMAC-SHA1')
 
         self.store.storeAssociation(self._dumb_key, assoc)
 
@@ -1802,7 +1797,7 @@ class TestSignatory(unittest.TestCase):
             'openid.apple': 'orange',
             'openid.assoc_handle': assoc_handle,
             'openid.signed': 'apple,assoc_handle,foo,signed',
-            'openid.sig': 'uXoT1qm62/BB09Xbj98TQ8mlBco='.encode('rot13'),
+            'openid.sig': 'invalid/BB09Xbj98TQ8mlBco=',
         })
 
         with LogCapture() as logbook:
@@ -1826,8 +1821,7 @@ class TestSignatory(unittest.TestCase):
     def test_verifyAssocMismatch(self):
         """Attempt to validate sign-all message with a signed-list assoc."""
         assoc_handle = '{vroom}{zoom}'
-        assoc = association.Association.fromExpiresIn(
-            60, assoc_handle, 'sekrit', 'HMAC-SHA1')
+        assoc = association.Association.fromExpiresIn(60, assoc_handle, b'sekrit', 'HMAC-SHA1')
 
         self.store.storeAssociation(self._dumb_key, assoc)
 
@@ -1891,16 +1885,14 @@ class TestSignatory(unittest.TestCase):
 
     def makeAssoc(self, dumb, lifetime=60):
         assoc_handle = '{bling}'
-        assoc = association.Association.fromExpiresIn(lifetime, assoc_handle,
-                                                      'sekrit', 'HMAC-SHA1')
+        assoc = association.Association.fromExpiresIn(lifetime, assoc_handle, b'sekrit', 'HMAC-SHA1')
 
         self.store.storeAssociation((dumb and self._dumb_key) or self._normal_key, assoc)
         return assoc_handle
 
     def test_invalidate(self):
         assoc_handle = '-squash-'
-        assoc = association.Association.fromExpiresIn(60, assoc_handle,
-                                                      'sekrit', 'HMAC-SHA1')
+        assoc = association.Association.fromExpiresIn(60, assoc_handle, b'sekrit', 'HMAC-SHA1')
 
         self.store.storeAssociation(self._dumb_key, assoc)
         assoc = self.signatory.getAssociation(assoc_handle, dumb=True)

@@ -24,6 +24,16 @@ association.
     does not support C{'no-encryption'} associations. It prefers
     HMAC-SHA1/DH-SHA1 association types if available.
 """
+from __future__ import unicode_literals
+
+import time
+
+import six
+
+from openid import cryptutil, kvform, oidutil
+from openid.message import OPENID_NS
+
+from .oidutil import string_to_text
 
 __all__ = [
     'default_negotiator',
@@ -32,10 +42,6 @@ __all__ = [
     'Association',
 ]
 
-import time
-
-from openid import cryptutil, kvform, oidutil
-from openid.message import OPENID_NS
 
 all_association_types = [
     'HMAC-SHA1',
@@ -132,7 +138,7 @@ class SessionNegotiator(object):
         determines preference. If an association/session type comes
         earlier in the list, the library is more likely to use that
         type.
-    @type allowed_types: [(str, str)]
+    @type allowed_types: List[Tuple[six.text_type, six.text_type]]
     """
 
     def __init__(self, allowed_types):
@@ -144,6 +150,11 @@ class SessionNegotiator(object):
     def setAllowedTypes(self, allowed_types):
         """Set the allowed association types, checking to make sure
         each combination is valid."""
+        # Convert strings to text
+        allowed_types = [
+            (string_to_text(a, "Binary values for assoc_type are deprecated. Use text input instead."),
+             string_to_text(s, "Binary values for session_type are deprecated. Use text input instead."))
+            for a, s in allowed_types]
         for (assoc_type, session_type) in allowed_types:
             checkSessionType(assoc_type, session_type)
 
@@ -209,14 +220,12 @@ class Association(object):
     C{L{assoc_type}} instance variables.
 
     @ivar handle: This is the handle the server gave this association.
-
-    @type handle: C{str}
+    @type handle: six.text_type
 
 
     @ivar secret: This is the shared secret the server generated for
         this association.
-
-    @type secret: C{str}
+    @type secret: six.binary_type
 
 
     @ivar issued: This is the time this association was issued, in
@@ -236,8 +245,7 @@ class Association(object):
     @ivar assoc_type: This is the type of association this instance
         represents.  The only valid value of this field at this time
         is C{'HMAC-SHA1'}, but new types may be defined in the future.
-
-    @type assoc_type: C{str}
+    @type assoc_type: six.text_type
 
 
     @sort: __init__, fromExpiresIn, getExpiresIn, __eq__, __ne__,
@@ -277,22 +285,17 @@ class Association(object):
 
         @param handle: This is the handle the server gave this
             association.
-
-        @type handle: C{str}
-
+        @type handle: six.text_type, six.binary_type is deprecated
 
         @param secret: This is the shared secret the server generated
             for this association.
-
-        @type secret: C{str}
-
+        @type secret: six.binary_type
 
         @param assoc_type: This is the type of association this
             instance represents.  The only valid value of this field
             at this time is C{'HMAC-SHA1'}, but new types may be
             defined in the future.
-
-        @type assoc_type: C{str}
+        @type assoc_type: six.text_type, six.binary_type is deprecated
         """
         issued = int(time.time())
         lifetime = expires_in
@@ -305,14 +308,12 @@ class Association(object):
 
         @param handle: This is the handle the server gave this
             association.
-
-        @type handle: C{str}
+        @type handle: six.text_type, six.binary_type is deprecated
 
 
         @param secret: This is the shared secret the server generated
             for this association.
-
-        @type secret: C{str}
+        @type secret: six.binary_type
 
 
         @param issued: This is the time this association was issued,
@@ -333,8 +334,7 @@ class Association(object):
             instance represents.  The only valid value of this field
             at this time is C{'HMAC-SHA1'}, but new types may be
             defined in the future.
-
-        @type assoc_type: C{str}
+        @type assoc_type: six.text_type, six.binary_type is deprecated
         """
         if assoc_type not in all_association_types:
             fmt = '%r is not a supported association type'
@@ -345,11 +345,13 @@ class Association(object):
 #             fmt = 'Wrong size secret (%s bytes) for association type %s'
 #             raise ValueError(fmt % (len(secret), assoc_type))
 
-        self.handle = handle
+        self.handle = string_to_text(handle, "Binary values for handle are deprecated. Use text input instead.")
+        assert isinstance(secret, six.binary_type)
         self.secret = secret
         self.issued = issued
         self.lifetime = lifetime
-        self.assoc_type = assoc_type
+        self.assoc_type = string_to_text(assoc_type,
+                                         "Binary values for assoc_type are deprecated. Use text input instead.")
 
     def getExpiresIn(self, now=None):
         """
@@ -402,14 +404,14 @@ class Association(object):
         @return: String in KV form suitable for deserialization by
             deserialize.
 
-        @rtype: str
+        @rtype: six.text_type
         """
         data = {
             'version': '2',
             'handle': self.handle,
             'secret': oidutil.toBase64(self.secret),
-            'issued': str(int(self.issued)),
-            'lifetime': str(int(self.lifetime)),
+            'issued': six.text_type(int(self.issued)),
+            'lifetime': six.text_type(int(self.lifetime)),
             'assoc_type': self.assoc_type
         }
 
@@ -429,13 +431,12 @@ class Association(object):
 
 
         @param assoc_s: Association as serialized by serialize()
-
-        @type assoc_s: str
-
+        @type assoc_s: six.text_type, six.binary_type is deprecated
 
         @return: instance of this class
         """
-        pairs = kvform.kvToSeq(assoc_s, strict=True)
+        pairs = kvform.kvToSeq(
+            string_to_text(assoc_s, "Binary values for assoc_s are deprecated. Use text input instead."), strict=True)
         keys = []
         values = []
         for k, v in pairs:
@@ -459,14 +460,13 @@ class Association(object):
 
 
         @param pairs: The pairs to sign, in order
-
-        @type pairs: sequence of (str, str)
-
+        @type pairs: Iterable[six.text_type, six.text_type], six.binary_type is deprecated
 
         @return: The binary signature of this sequence of pairs
-
-        @rtype: str
+        @rtype: six.binary_type
         """
+        warning_msg = "Binary values for pairs are deprecated. Use text input instead."
+        pairs = [(string_to_text(a, warning_msg), string_to_text(b, warning_msg)) for a, b in pairs]
         kv = kvform.seqToKV(pairs)
 
         try:
@@ -484,8 +484,7 @@ class Association(object):
         signed list.
 
         @return: the signature, base64 encoded
-
-        @rtype: str
+        @rtype: six.text_type
 
         @raises ValueError: If there is no signed list and I am not a sign-all
             type of association.

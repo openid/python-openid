@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import unittest
 
 from testfixtures import LogCapture, StringComparison
@@ -124,8 +126,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase):
         msg.setArg(OPENID_NS, 'assoc_type', 'HMAC-SHA1')
         msg.setArg(OPENID_NS, 'session_type', 'DH-SHA1')
 
-        assoc = association.Association(
-            'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
+        assoc = association.Association('handle', b'secret', 'issued', 10000, 'HMAC-SHA1')
 
         self.consumer.return_messages = [msg, assoc]
         with LogCapture() as logbook:
@@ -157,8 +158,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase):
         Test the valid case, wherein an association is returned on the
         first attempt to get one.
         """
-        assoc = association.Association(
-            'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
+        assoc = association.Association('handle', b'secret', 'issued', 10000, 'HMAC-SHA1')
 
         self.consumer.return_messages = [assoc]
         with LogCapture() as logbook:
@@ -241,8 +241,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase):
         msg.setArg(OPENID_NS, 'assoc_type', 'HMAC-SHA1')
         msg.setArg(OPENID_NS, 'session_type', 'DH-SHA1')
 
-        assoc = association.Association(
-            'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
+        assoc = association.Association('handle', b'secret', 'issued', 10000, 'HMAC-SHA1')
 
         self.consumer.return_messages = [msg, assoc]
         with LogCapture() as logbook:
@@ -251,8 +250,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase):
             ('openid.consumer.consumer', 'ERROR', StringComparison('Server error when requesting an association .*')))
 
     def testValid(self):
-        assoc = association.Association(
-            'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
+        assoc = association.Association('handle', b'secret', 'issued', 10000, 'HMAC-SHA1')
 
         self.consumer.return_messages = [assoc]
         with LogCapture() as logbook:

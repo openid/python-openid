@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import time
 import unittest
 
@@ -12,8 +14,7 @@ class AssociationSerializationTest(unittest.TestCase):
     def test_roundTrip(self):
         issued = int(time.time())
         lifetime = 600
-        assoc = association.Association(
-            'handle', 'secret', issued, lifetime, 'HMAC-SHA1')
+        assoc = association.Association('handle', b'secret', issued, lifetime, 'HMAC-SHA1')
         s = assoc.serialize()
         assoc2 = association.Association.deserialize(s)
         self.assertEqual(assoc.handle, assoc2.handle)
@@ -30,10 +31,10 @@ def createNonstandardConsumerDH():
 
 class DiffieHellmanSessionTest(unittest.TestCase):
     secrets = [
-        '\x00' * 20,
-        '\xff' * 20,
-        ' ' * 20,
-        'This is a secret....',
+        b'\x00' * 20,
+        b'\xff' * 20,
+        b' ' * 20,
+        b'This is a secret....',
     ]
 
     session_factories = [
@@ -66,8 +67,7 @@ class TestMakePairs(unittest.TestCase):
             'sig': 'cephalopod',
         })
         m.updateArgs(BARE_NS, {'xey': 'value'})
-        self.assoc = association.Association.fromExpiresIn(
-            3600, '{sha1}', 'very_secret', "HMAC-SHA1")
+        self.assoc = association.Association.fromExpiresIn(3600, '{sha1}', b'very_secret', "HMAC-SHA1")
 
     def testMakePairs(self):
         """Make pairs using the OpenID 1.x type signed list."""
@@ -85,18 +85,14 @@ class TestMac(unittest.TestCase):
                       ('key2', 'value2')]
 
     def test_sha1(self):
-        assoc = association.Association.fromExpiresIn(
-            3600, '{sha1}', 'very_secret', "HMAC-SHA1")
-        expected = ('\xe0\x1bv\x04\xf1G\xc0\xbb\x7f\x9a\x8b'
-                    '\xe9\xbc\xee}\\\xe5\xbb7*')
+        assoc = association.Association.fromExpiresIn(3600, '{sha1}', b'very_secret', "HMAC-SHA1")
+        expected = (b'\xe0\x1bv\x04\xf1G\xc0\xbb\x7f\x9a\x8b\xe9\xbc\xee}\\\xe5\xbb7*')
         sig = assoc.sign(self.pairs)
         self.assertEqual(sig, expected)
 
     def test_sha256(self):
-        assoc = association.Association.fromExpiresIn(
-            3600, '{sha256SA}', 'very_secret', "HMAC-SHA256")
-        expected = ('\xfd\xaa\xfe;\xac\xfc*\x988\xad\x05d6-\xeaVy'
-                    '\xd5\xa5Z.<\xa9\xed\x18\x82\\$\x95x\x1c&')
+        assoc = association.Association.fromExpiresIn(3600, '{sha256SA}', b'very_secret', "HMAC-SHA256")
+        expected = (b'\xfd\xaa\xfe;\xac\xfc*\x988\xad\x05d6-\xeaVy\xd5\xa5Z.<\xa9\xed\x18\x82\\$\x95x\x1c&')
         sig = assoc.sign(self.pairs)
         self.assertEqual(sig, expected)
 
@@ -112,16 +108,14 @@ class TestMessageSigning(unittest.TestCase):
                      'xey': 'value'}
 
     def test_signSHA1(self):
-        assoc = association.Association.fromExpiresIn(
-            3600, '{sha1}', 'very_secret', "HMAC-SHA1")
+        assoc = association.Association.fromExpiresIn(3600, '{sha1}', b'very_secret', "HMAC-SHA1")
         signed = assoc.signMessage(self.message)
         self.assertTrue(signed.getArg(OPENID_NS, "sig"))
         self.assertEqual(signed.getArg(OPENID_NS, "signed"), "assoc_handle,identifier,mode,ns,signed")
         self.assertEqual(signed.getArg(BARE_NS, "xey"), "value")
 
     def test_signSHA256(self):
-        assoc = association.Association.fromExpiresIn(
-            3600, '{sha1}', 'very_secret', "HMAC-SHA256")
+        assoc = association.Association.fromExpiresIn(3600, '{sha1}', b'very_secret', "HMAC-SHA256")
         signed = assoc.signMessage(self.message)
         self.assertTrue(signed.getArg(OPENID_NS, "sig"))
         self.assertEqual(signed.getArg(OPENID_NS, "signed"), "assoc_handle,identifier,mode,ns,signed")
@@ -136,6 +130,5 @@ class TestCheckMessageSignature(unittest.TestCase):
                                   'sig': 'coyote',
                                   })
         m.updateArgs(BARE_NS, {'xey': 'value'})
-        assoc = association.Association.fromExpiresIn(
-            3600, '{sha1}', 'very_secret', "HMAC-SHA1")
+        assoc = association.Association.fromExpiresIn(3600, '{sha1}', b'very_secret', "HMAC-SHA1")
         self.assertRaises(ValueError, assoc.checkMessageSignature, m)

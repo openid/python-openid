@@ -1,4 +1,6 @@
 """Test utilities."""
+from __future__ import unicode_literals
+
 from openid import message
 
 

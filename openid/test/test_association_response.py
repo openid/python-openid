@@ -3,6 +3,8 @@
 This duplicates some things that are covered by test_consumer, but
 this works for now.
 """
+from __future__ import unicode_literals
+
 import unittest
 
 from testfixtures import LogCapture
@@ -231,7 +233,7 @@ class TestOpenID1AssociationResponseSessionType(BaseAssocTest):
 
 
 class DummyAssociationSession(object):
-    secret = "shh! don't tell!"
+    secret = b"shh! don't tell!"
     extract_secret_called = False
 
     session_type = None
@@ -296,7 +298,7 @@ class TestInvalidFields(BaseAssocTest):
 # sort of a unit test and sort of a functional test. I'm not terribly
 # fond of it.
 class TestExtractAssociationDiffieHellman(BaseAssocTest):
-    secret = 'x' * 20
+    secret = b'x' * 20
 
     def _setUpDH(self):
         sess, message = self.consumer._createAssociateRequest(

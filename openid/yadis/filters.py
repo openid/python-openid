@@ -2,6 +2,10 @@
 endpoint information out of a Yadis XRD file using the ElementTree XML
 parser.
 """
+from __future__ import unicode_literals
+
+from openid.oidutil import string_to_text
+from openid.yadis.etxrd import expandService
 
 __all__ = [
     'BasicServiceEndpoint',
@@ -10,8 +14,6 @@ __all__ = [
     'TransformFilterMaker',
     'CompoundFilter',
 ]
-
-from openid.yadis.etxrd import expandService
 
 
 class BasicServiceEndpoint(object):
@@ -41,11 +43,13 @@ class BasicServiceEndpoint(object):
         of a single protocol.
 
         @param type_uris: The URIs that you wish to check
-        @type type_uris: iterable of str
+        @type type_uris: Iterable[six.text_type], six.binary_type is deprecated
 
         @return: all types that are in both in type_uris and
             self.type_uris
         """
+        type_uris = [string_to_text(u, "Binary values for matchTypes are deprecated. Use text input instead.")
+                     for u in type_uris]
         return [uri for uri in type_uris if uri in self.type_uris]
 
     @staticmethod

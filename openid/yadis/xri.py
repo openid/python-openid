@@ -4,6 +4,8 @@
 @see: XRI Syntax v2.0 at the
       U{OASIS XRI Technical Committee<http://www.oasis-open.org/committees/tc_home.php?wg_abbrev=xri>}
 """
+from __future__ import unicode_literals
+
 import re
 import warnings
 from urllib import quote
@@ -94,8 +96,8 @@ def rootAuthority(xri):
 
         rootAuthority("xri://@example") == "xri://@"
 
-    @type xri: unicode
-    @returntype: unicode
+    @type xri: six.text_type
+    @returntype: six.text_type
     """
     if xri.startswith('xri://'):
         xri = xri[6:]
@@ -127,7 +129,7 @@ def XRI(xri):
     canonicalization by ensuring the xri scheme is present.
 
     @param xri: an xri string
-    @type xri: unicode
+    @type xri: six.text_type
     """
     if not xri.startswith('xri://'):
         xri = 'xri://' + xri

@@ -5,6 +5,8 @@ Extension 1.0, Draft 5
 
 @since: 2.1.0
 """
+from __future__ import unicode_literals
+
 import warnings
 
 from openid.extensions.pape import (AUTH_MULTI_FACTOR, AUTH_MULTI_FACTOR_PHYSICAL, AUTH_PHISHING_RESISTANT, LEVELS_JISA,

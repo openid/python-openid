@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-"""Make an OpenID Assocition request against an endpoint
-and print the results."""
+"""Make an OpenID Assocition request against an endpoint and print the results."""
+from __future__ import unicode_literals
 
 import sys
 from datetime import datetime

@@ -1,4 +1,6 @@
 """Test `openid.store` module."""
+from __future__ import unicode_literals
+
 import os
 import random
 import socket
@@ -20,7 +22,7 @@ allowed_handle = ''.join(allowed_handle)
 
 
 def generateHandle(n):
-    return randomString(n, allowed_handle)
+    return randomString(n, allowed_handle.encode('utf-8'))
 
 
 generateSecret = randomString

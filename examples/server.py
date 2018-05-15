@@ -2,6 +2,8 @@
 
 __copyright__ = 'Copyright 2005-2008, Janrain, Inc.'
 
+from __future__ import unicode_literals
+
 import cgi
 import cgitb
 import Cookie

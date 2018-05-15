@@ -8,6 +8,8 @@ robust examples, and integrating OpenID into your application.
 """
 __copyright__ = 'Copyright 2005-2008, Janrain, Inc.'
 
+from __future__ import unicode_literals
+
 import cgi
 import cgitb
 import optparse
@@ -15,6 +17,8 @@ import sys
 import urlparse
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from Cookie import SimpleCookie
+
+import six
 
 
 def quoteattr(s):
@@ -176,7 +180,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             request = oidconsumer.begin(openid_url)
         except consumer.DiscoveryFailure as exc:
             fetch_error_string = 'Error in discovery: %s' % (
-                cgi.escape(str(exc[0])))
+                cgi.escape(six.text_type(exc[0])))
             self.render(fetch_error_string,
                         css_class='error',
                         form_contents=openid_url)

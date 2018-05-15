@@ -2,11 +2,12 @@
 from __future__ import unicode_literals
 
 import string
-import warnings
 from urllib import quote, unquote, urlencode
 from urlparse import parse_qsl, urlsplit, urlunsplit
 
 import six
+
+from .oidutil import string_to_text
 
 
 def remove_dot_segments(path):
@@ -69,10 +70,7 @@ def urinorm(uri):
     @rtype: six.text_type
     @raise ValueError: If URI is invalid.
     """
-    # Transform the input to the unicode string
-    if isinstance(uri, six.binary_type):
-        warnings.warn("Binary input for urinorm is deprecated. Use text input instead.", DeprecationWarning)
-        uri = uri.decode('utf-8')
+    uri = string_to_text(uri, "Binary input for urinorm is deprecated. Use text input instead.")
 
     split_uri = urlsplit(uri)
 
@@ -94,7 +92,8 @@ def urinorm(uri):
     hostname = unquote(hostname)
     # Quote IDN domain names
     try:
-        hostname = hostname.encode('idna')
+        # hostname: str --[idna]--> bytes --[utf-8]--> str
+        hostname = hostname.encode('idna').decode('utf-8')
     except ValueError as error:
         raise ValueError('Invalid hostname {!r}: {}'.format(hostname, error))
     _check_disallowed_characters(hostname, 'hostname')
@@ -107,7 +106,7 @@ def urinorm(uri):
 
     netloc = hostname
     if port:
-        netloc = netloc + ':' + str(port)
+        netloc = netloc + ':' + six.text_type(port)
     userinfo_chunks = [i for i in (split_uri.username, split_uri.password) if i is not None]
     if userinfo_chunks:
         userinfo = ':'.join(userinfo_chunks)

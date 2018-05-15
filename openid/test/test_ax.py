@@ -1,5 +1,5 @@
-"""Tests for the attribute exchange extension module
-"""
+"""Tests for the attribute exchange extension module."""
+from __future__ import unicode_literals
 
 import unittest
 

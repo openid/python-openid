@@ -1,11 +1,12 @@
-# -*- test-case-name: openid.test.test_yadis_discover -*-
-__all__ = ['discover', 'DiscoveryResult', 'DiscoveryFailure']
+from __future__ import unicode_literals
 
 from StringIO import StringIO
 
 from openid import fetchers
 from openid.yadis.constants import YADIS_ACCEPT_HEADER, YADIS_CONTENT_TYPE, YADIS_HEADER_NAME
 from openid.yadis.parsehtml import MetaNotFound, findHTMLMeta
+
+__all__ = ['discover', 'DiscoveryResult', 'DiscoveryFailure']
 
 
 class DiscoveryFailure(Exception):
@@ -107,7 +108,7 @@ def whereIsYadis(resp):
 
     [non-blocking]
 
-    @returns: str or None
+    @returns: six.text_type or None
     """
     # Attempt to find out where to go to discover the document
     # or if we already have it

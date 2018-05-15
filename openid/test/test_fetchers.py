@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import socket
 import unittest
 import urllib2
@@ -74,11 +76,11 @@ def test_fetcher(fetcher, exc, server):
     def plain(path, code):
         path = '/' + path
         expected = fetchers.HTTPResponse(
-            geturl(path), code, expected_headers, path)
+            geturl(path), code, expected_headers, path.encode('utf-8'))
         return (path, expected)
 
     expect_success = fetchers.HTTPResponse(
-        geturl('/success'), 200, expected_headers, '/success')
+        geturl('/success'), 200, expected_headers, b'/success')
     cases = [
         ('/success', expect_success),
         ('/301redirect', expect_success),
@@ -222,7 +224,7 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
         for k, v in extra_headers:
             self.send_header(k, v)
         self.end_headers()
-        self.wfile.write(body)
+        self.wfile.write(body.encode('utf-8'))
         self.wfile.close()
 
     def finish(self):
@@ -384,19 +386,19 @@ class TestRequestsFetcher(unittest.TestCase):
     def test_get(self):
         # Test GET response
         with responses.RequestsMock() as rsps:
-            rsps.add(responses.GET, 'http://example.cz/', status=200, body='BODY',
+            rsps.add(responses.GET, 'http://example.cz/', status=200, body=b'BODY',
                      headers={'Content-Type': 'text/plain'})
             response = self.fetcher.fetch('http://example.cz/')
-        expected = fetchers.HTTPResponse('http://example.cz/', 200, {'Content-Type': 'text/plain'}, 'BODY')
+        expected = fetchers.HTTPResponse('http://example.cz/', 200, {'Content-Type': 'text/plain'}, b'BODY')
         assertResponse(expected, response)
 
     def test_post(self):
         # Test POST response
         with responses.RequestsMock() as rsps:
-            rsps.add(responses.POST, 'http://example.cz/', status=200, body='BODY',
+            rsps.add(responses.POST, 'http://example.cz/', status=200, body=b'BODY',
                      headers={'Content-Type': 'text/plain'})
             response = self.fetcher.fetch('http://example.cz/', body='key=value')
-        expected = fetchers.HTTPResponse('http://example.cz/', 200, {'Content-Type': 'text/plain'}, 'BODY')
+        expected = fetchers.HTTPResponse('http://example.cz/', 200, {'Content-Type': 'text/plain'}, b'BODY')
         assertResponse(expected, response)
 
     def test_redirect(self):
@@ -404,19 +406,19 @@ class TestRequestsFetcher(unittest.TestCase):
         with responses.RequestsMock() as rsps:
             rsps.add(responses.GET, 'http://example.cz/redirect/', status=302,
                      headers={'Location': 'http://example.cz/target/'})
-            rsps.add(responses.GET, 'http://example.cz/target/', status=200, body='BODY',
+            rsps.add(responses.GET, 'http://example.cz/target/', status=200, body=b'BODY',
                      headers={'Content-Type': 'text/plain'})
             response = self.fetcher.fetch('http://example.cz/redirect/')
-        expected = fetchers.HTTPResponse('http://example.cz/target/', 200, {'Content-Type': 'text/plain'}, 'BODY')
+        expected = fetchers.HTTPResponse('http://example.cz/target/', 200, {'Content-Type': 'text/plain'}, b'BODY')
         assertResponse(expected, response)
 
     def test_error(self):
         # Test error responses - returned as obtained
         with responses.RequestsMock() as rsps:
-            rsps.add(responses.GET, 'http://example.cz/error/', status=500, body='BODY',
+            rsps.add(responses.GET, 'http://example.cz/error/', status=500, body=b'BODY',
                      headers={'Content-Type': 'text/plain'})
             response = self.fetcher.fetch('http://example.cz/error/')
-        expected = fetchers.HTTPResponse('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, 'BODY')
+        expected = fetchers.HTTPResponse('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, b'BODY')
         assertResponse(expected, response)
 
     def test_invalid_url(self):

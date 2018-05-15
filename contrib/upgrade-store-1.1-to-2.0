@@ -13,11 +13,14 @@
 #   TODO:
 #    * test data for mysql and postgresql.
 #    * automated tests.
+from __future__ import unicode_literals
 
 import getpass
 import os
 import sys
 from optparse import OptionParser
+
+import six
 
 
 def askForPassword():
@@ -111,7 +114,7 @@ def main(argv=None):
         try:
             db_conn = sqlite.connect(options.sqlite_db_name)
         except Exception as e:
-            print "Could not connect to SQLite database:", str(e)
+            print "Could not connect to SQLite database:", six.text_type(e)
             return 1
 
         if askForConfirmation(options.sqlite_db_name, options.tablename):
@@ -134,7 +137,7 @@ def main(argv=None):
                                       host=options.db_host,
                                       password=password)
         except Exception as e:
-            print "Could not connect to PostgreSQL database:", str(e)
+            print "Could not connect to PostgreSQL database:", six.text_type(e)
             return 1
 
         if askForConfirmation(options.postgres_db_name, options.tablename):
@@ -155,7 +158,7 @@ def main(argv=None):
             db_conn = MySQLdb.connect(options.db_host, options.username,
                                       password, options.mysql_db_name)
         except Exception as e:
-            print "Could not connect to MySQL database:", str(e)
+            print "Could not connect to MySQL database:", six.text_type(e)
             return 1
 
         if askForConfirmation(options.mysql_db_name, options.tablename):
