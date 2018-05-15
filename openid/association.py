@@ -43,28 +43,28 @@ __all__ = [
 
 
 all_association_types = [
-    'HMAC-SHA1',
     'HMAC-SHA256',
+    'HMAC-SHA1',
 ]
 
 default_association_order = [
-    ('HMAC-SHA1', 'DH-SHA1'),
-    ('HMAC-SHA1', 'no-encryption'),
     ('HMAC-SHA256', 'DH-SHA256'),
     ('HMAC-SHA256', 'no-encryption'),
+    ('HMAC-SHA1', 'DH-SHA1'),
+    ('HMAC-SHA1', 'no-encryption'),
 ]
 
 only_encrypted_association_order = [
-    ('HMAC-SHA1', 'DH-SHA1'),
     ('HMAC-SHA256', 'DH-SHA256'),
+    ('HMAC-SHA1', 'DH-SHA1'),
 ]
 
 
 def getSessionTypes(assoc_type):
     """Return the allowed session types for a given association type"""
     assoc_to_session = {
-        'HMAC-SHA1': ['DH-SHA1', 'no-encryption'],
         'HMAC-SHA256': ['DH-SHA256', 'no-encryption'],
+        'HMAC-SHA1': ['DH-SHA1', 'no-encryption'],
     }
     return assoc_to_session.get(assoc_type, [])
 

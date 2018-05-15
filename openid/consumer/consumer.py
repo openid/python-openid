@@ -579,8 +579,8 @@ class GenericConsumer(object):
     openid1_return_to_identifier_name = 'openid1_claimed_id'
 
     session_types = {
-        'DH-SHA1': DiffieHellmanSHA1ConsumerSession,
         'DH-SHA256': DiffieHellmanSHA256ConsumerSession,
+        'DH-SHA1': DiffieHellmanSHA1ConsumerSession,
         'no-encryption': PlainTextConsumerSession,
     }
 
