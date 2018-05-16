@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import six
 
 from openid import cryptutil
+from openid.constants import DEFAULT_DH_GENERATOR, DEFAULT_DH_MODULUS
 
 if six.PY2:
     long_int = long
@@ -29,16 +30,10 @@ def strxor(x, y):
 
 
 class DiffieHellman(object):
-    DEFAULT_MOD = int('155172898181473697471232257763715539915724801966915404479707795314057629378541917580651227423698'
-                      '188993727816152646631438561595825688188889951272158842675419950341258706556549803580104870537681'
-                      '476726513255747040765857479291291572334510643245094715007229621094194349783925984760375594985848'
-                      '253359305585439638443')
-
-    DEFAULT_GEN = 2
 
     @classmethod
     def fromDefaults(cls):
-        return cls(cls.DEFAULT_MOD, cls.DEFAULT_GEN)
+        return cls(DEFAULT_DH_MODULUS, DEFAULT_DH_GENERATOR)
 
     def __init__(self, modulus, generator):
         self.modulus = long_int(modulus)
@@ -52,8 +47,8 @@ class DiffieHellman(object):
         self.public = pow(self.generator, self.private, self.modulus)
 
     def usingDefaultValues(self):
-        return (self.modulus == self.DEFAULT_MOD and
-                self.generator == self.DEFAULT_GEN)
+        return (self.modulus == DEFAULT_DH_MODULUS and
+                self.generator == DEFAULT_DH_GENERATOR)
 
     def getSharedSecret(self, composite):
         return pow(composite, self.private, self.modulus)
