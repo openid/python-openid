@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import time
 import unittest
+from functools import partial
 
 import six
 from six.moves.urllib.parse import parse_qsl, urlparse
@@ -18,7 +19,7 @@ from openid.dh import DiffieHellman
 from openid.extension import Extension
 from openid.fetchers import HTTPFetchingError, HTTPResponse
 from openid.message import BARE_NS, IDENTIFIER_SELECT, OPENID1_NS, OPENID2_NS, OPENID_NS, Message
-from openid.server.server import DiffieHellmanSHA1ServerSession, PlainTextServerSession
+from openid.server.server import DiffieHellmanSHA256ServerSession
 from openid.store import memstore
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.yadis.discover import DiscoveryFailure
@@ -26,8 +27,8 @@ from openid.yadis.manager import Discovery
 
 assocs = [
     # (secret, handle)
-    (b'another 20-byte key.', 'Snarky'),
-    (b'\x00' * 20, 'Zeros'),
+    (b'another 32-byte very secret key.', 'Snarky'),
+    (b'\x00' * 32, 'Zeros'),
 ]
 
 
@@ -51,22 +52,18 @@ def associate(qs, assoc_secret, assoc_handle):
     secret and handle."""
     q = parseQuery(qs)
     assert q['openid.mode'] == 'associate'
-    assert q['openid.assoc_type'] == 'HMAC-SHA1'
+    assert q['openid.assoc_type'] == 'HMAC-SHA256'
     reply_dict = {
-        'assoc_type': 'HMAC-SHA1',
+        'assoc_type': 'HMAC-SHA256',
         'assoc_handle': assoc_handle,
         'expires_in': '600',
     }
 
-    if q.get('openid.session_type') == 'DH-SHA1':
-        assert len(q) == 6 or len(q) == 4
-        message = Message.fromPostArgs(q)
-        session = DiffieHellmanSHA1ServerSession.fromMessage(message)
-        reply_dict['session_type'] = 'DH-SHA1'
-    else:
-        assert len(q) == 2
-        session = PlainTextServerSession.fromQuery(q)
-
+    assert q.get('openid.session_type') == 'DH-SHA256'
+    assert len(q) == 6 or len(q) == 4
+    message = Message.fromPostArgs(q)
+    session = DiffieHellmanSHA256ServerSession.fromMessage(message)
+    reply_dict['session_type'] = 'DH-SHA256'
     reply_dict.update(session.answer(assoc_secret))
     return kvform.dictToKV(reply_dict)
 
@@ -112,7 +109,7 @@ class TestFetcher(object):
             except ValueError:
                 pass  # fall through
             else:
-                assert body.find('DH-SHA1') != -1
+                assert body.find('DH-SHA256') != -1
                 response = associate(
                     body, self.assoc_secret, self.assoc_handle)
                 self.num_assocs += 1
@@ -121,16 +118,18 @@ class TestFetcher(object):
         return self.response(url, 404, 'Not found')
 
 
-def makeFastConsumerSession():
+def makeFastConsumerSession(consumer_session_cls=DiffieHellmanSHA256ConsumerSession):
     """
     Create custom DH object so tests run quickly.
     """
     dh = DiffieHellman(100389557, 2)
-    return DiffieHellmanSHA1ConsumerSession(dh)
+    return consumer_session_cls(dh)
 
 
 def setConsumerSession(con):
-    con.session_types = {'DH-SHA1': makeFastConsumerSession}
+    con.session_types = {
+        'DH-SHA256': makeFastConsumerSession,
+        'DH-SHA1': partial(makeFastConsumerSession, consumer_session_cls=DiffieHellmanSHA1ConsumerSession)}
 
 
 def _test_success(server_url, user_url, delegate_url, links, immediate=False):
