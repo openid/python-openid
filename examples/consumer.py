@@ -6,8 +6,6 @@ Once you understand this example you'll know the basics of OpenID
 and using the Python OpenID library. You can then move on to more
 robust examples, and integrating OpenID into your application.
 """
-__copyright__ = 'Copyright 2005-2008, Janrain, Inc.'
-
 from __future__ import unicode_literals
 
 import cgi
