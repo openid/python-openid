@@ -128,36 +128,6 @@ else:
 
         return bytes_to_long(s)
 
-# A cryptographically safe source of random bytes
-try:
-    getBytes = os.urandom
-except AttributeError:
-    try:
-        from Crypto.Util.randpool import RandomPool
-    except ImportError:
-        # Fall back on /dev/urandom, if present. It would be nice to
-        # have Windows equivalent here, but for now, require pycrypto
-        # on Windows.
-        try:
-            _urandom = open('/dev/urandom', 'rb')
-        except IOError:
-            raise ImportError('No adequate source of randomness found!')
-        else:
-            def getBytes(n):
-                bytes = []
-                while n:
-                    chunk = _urandom.read(n)
-                    n -= len(chunk)
-                    bytes.append(chunk)
-                    assert n >= 0
-                return ''.join(bytes)
-    else:
-        _pool = RandomPool()
-
-        def getBytes(n, pool=_pool):
-            if pool.entropy < n:
-                pool.randomize()
-            return pool.get_bytes(n)
 
 # A randrange function that works for longs
 try:
@@ -197,7 +167,7 @@ except AttributeError:
             _duplicate_cache[r] = (duplicate, nbytes)
 
         while True:
-            bytes = '\x00' + getBytes(nbytes)
+            bytes = '\x00' + os.urandom(nbytes)
             n = binaryToLong(bytes)
             # Keep looping if this value is in the low duplicated range
             if n >= duplicate:
