@@ -3,9 +3,25 @@ from __future__ import unicode_literals
 import re
 import unittest
 
-from openid.store.nonce import checkTimestamp, mkNonce, split as splitNonce
+import six
+
+from openid.store.nonce import checkTimestamp, make_nonce_salt, mkNonce, split as splitNonce
 
 nonce_re = re.compile(r'\A\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ')
+
+
+class TestMakeNonceSalt(unittest.TestCase):
+    """Test `make_nonce_salt` function."""
+
+    def test_default(self):
+        salt = make_nonce_salt()
+        self.assertIsInstance(salt, six.text_type)
+        self.assertEqual(len(salt), 6)
+
+    def test_custom_length(self):
+        salt = make_nonce_salt(32)
+        self.assertIsInstance(salt, six.text_type)
+        self.assertEqual(len(salt), 32)
 
 
 class NonceTest(unittest.TestCase):

@@ -26,12 +26,6 @@ class TestRandRange(unittest.TestCase):
         # It's possible, but HIGHLY unlikely that a correct implementation
         # will fail by returning the same number twice
 
-        s = cryptutil.getBytes(32)
-        t = cryptutil.getBytes(32)
-        assert len(s) == 32
-        assert len(t) == 32
-        assert s != t
-
         a = cryptutil.randrange(2 ** 128)
         b = cryptutil.randrange(2 ** 128)
         assert isinstance(a, long_int)

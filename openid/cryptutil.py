@@ -16,8 +16,6 @@ import hmac
 import os
 import random
 
-import six
-
 from openid.oidutil import fromBase64, string_to_text, toBase64
 
 __all__ = [
@@ -27,7 +25,6 @@ __all__ = [
     'hmacSha256',
     'longToBase64',
     'longToBinary',
-    'randomString',
     'randrange',
     'sha1',
     'sha256',
@@ -131,36 +128,6 @@ else:
 
         return bytes_to_long(s)
 
-# A cryptographically safe source of random bytes
-try:
-    getBytes = os.urandom
-except AttributeError:
-    try:
-        from Crypto.Util.randpool import RandomPool
-    except ImportError:
-        # Fall back on /dev/urandom, if present. It would be nice to
-        # have Windows equivalent here, but for now, require pycrypto
-        # on Windows.
-        try:
-            _urandom = open('/dev/urandom', 'rb')
-        except IOError:
-            raise ImportError('No adequate source of randomness found!')
-        else:
-            def getBytes(n):
-                bytes = []
-                while n:
-                    chunk = _urandom.read(n)
-                    n -= len(chunk)
-                    bytes.append(chunk)
-                    assert n >= 0
-                return ''.join(bytes)
-    else:
-        _pool = RandomPool()
-
-        def getBytes(n, pool=_pool):
-            if pool.entropy < n:
-                pool.randomize()
-            return pool.get_bytes(n)
 
 # A randrange function that works for longs
 try:
@@ -200,7 +167,7 @@ except AttributeError:
             _duplicate_cache[r] = (duplicate, nbytes)
 
         while True:
-            bytes = '\x00' + getBytes(nbytes)
+            bytes = '\x00' + os.urandom(nbytes)
             n = binaryToLong(bytes)
             # Keep looping if this value is in the low duplicated range
             if n >= duplicate:
@@ -215,23 +182,6 @@ def longToBase64(l):
 
 def base64ToLong(s):
     return binaryToLong(fromBase64(s))
-
-
-def randomString(length, chrs=None):
-    """Produce a string of length random bytes, chosen from chrs.
-
-    @type chrs: six.binary_type
-    @rtype: six.binary_type
-    """
-    if chrs is None:
-        return getBytes(length)
-    else:
-        n = len(chrs)
-        random_chars = [chrs[randrange(n)] for _ in range(length)]
-        if six.PY2:
-            return b''.join(random_chars)
-        else:
-            return six.binary_type(random_chars)
 
 
 def const_eq(s1, s2):

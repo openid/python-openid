@@ -1,10 +1,11 @@
 from __future__ import unicode_literals
 
+import itertools
+import random
 import string
 from calendar import timegm
 from time import gmtime, strftime, strptime, time
 
-from openid import cryptutil
 from openid.oidutil import string_to_text
 
 __all__ = [
@@ -14,7 +15,7 @@ __all__ = [
 ]
 
 
-NONCE_CHARS = (string.ascii_letters + string.digits).encode('utf-8')
+NONCE_CHARS = string.ascii_letters + string.digits
 
 # Keep nonces for five hours (allow five hours for the combination of
 # request time and clock skew). This is probably way more than is
@@ -84,6 +85,19 @@ def checkTimestamp(nonce_string, allowed_skew=SKEW, now=None):
         return past <= stamp <= future
 
 
+def make_nonce_salt(length=6):
+    """
+    Generate and return a nonce salt.
+
+    @param length: Length of the generated string.
+    @type length: int
+    @rtype: six.text_type
+    """
+    sys_random = random.SystemRandom()
+    random_chars = itertools.starmap(sys_random.choice, itertools.repeat((NONCE_CHARS, ), length))
+    return ''.join(random_chars)
+
+
 def mkNonce(when=None):
     """Generate a nonce with the current timestamp
 
@@ -96,11 +110,10 @@ def mkNonce(when=None):
 
     @see: time
     """
-    salt = cryptutil.randomString(6, NONCE_CHARS).decode('utf-8')
     if when is None:
         t = gmtime()
     else:
         t = gmtime(when)
 
     time_str = strftime(time_fmt, t)
-    return time_str + salt
+    return time_str + make_nonce_salt()

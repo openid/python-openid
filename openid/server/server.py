@@ -118,6 +118,7 @@ From 1.1 to 2.0
 from __future__ import unicode_literals
 
 import logging
+import os
 import time
 import warnings
 from copy import deepcopy
@@ -1240,8 +1241,8 @@ class Signatory(object):
         """
         assoc_type = string_to_text(assoc_type, "Binary values for assoc_type are deprecated. Use text input instead.")
 
-        secret = cryptutil.getBytes(getSecretSize(assoc_type))
-        uniq = oidutil.toBase64(cryptutil.getBytes(4))
+        secret = os.urandom(getSecretSize(assoc_type))
+        uniq = oidutil.toBase64(os.urandom(4))
         handle = '{%s}{%x}{%s}' % (assoc_type, int(time.time()), uniq)
 
         assoc = Association.fromExpiresIn(
