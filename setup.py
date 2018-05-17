@@ -13,6 +13,7 @@ if 'sdist' in sys.argv:
 VERSION = __import__('openid').__version__
 INSTALL_REQUIRES = [
     'six',
+    'cryptography',
     'lxml;platform_python_implementation=="CPython"',
     'lxml <4.0;platform_python_implementation=="PyPy"',
 ]

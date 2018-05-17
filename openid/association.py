@@ -28,6 +28,7 @@ from __future__ import unicode_literals
 import time
 
 import six
+from cryptography.hazmat.primitives.constant_time import bytes_eq
 
 from openid import cryptutil, kvform, oidutil
 from openid.message import OPENID_NS
@@ -513,7 +514,7 @@ class Association(object):
         if not message_sig:
             raise ValueError("%s has no sig." % (message,))
         calculated_sig = self.getMessageSignature(message)
-        return cryptutil.const_eq(calculated_sig, message_sig)
+        return bytes_eq(calculated_sig.encode('utf-8'), message_sig.encode('utf-8'))
 
     def _makePairs(self, message):
         signed = message.getArg(OPENID_NS, 'signed')
