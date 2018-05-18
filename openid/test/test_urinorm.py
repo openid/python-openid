@@ -3,6 +3,9 @@
 from __future__ import unicode_literals
 
 import unittest
+import warnings
+
+from testfixtures import ShouldWarn
 
 from openid.urinorm import urinorm
 
@@ -12,7 +15,10 @@ class UrinormTest(unittest.TestCase):
 
     def test_normalized(self):
         self.assertEqual(urinorm('http://example.com/'), 'http://example.com/')
-        self.assertEqual(urinorm(b'http://example.com/'), 'http://example.com/')
+        warning_msg = "Binary input for urinorm is deprecated. Use text input instead."
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            self.assertEqual(urinorm(b'http://example.com/'), 'http://example.com/')
 
     def test_lowercase_scheme(self):
         self.assertEqual(urinorm('htTP://example.com/'), 'http://example.com/')
