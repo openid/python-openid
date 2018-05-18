@@ -399,7 +399,7 @@ class TestRequestsFetcher(unittest.TestCase):
         with responses.RequestsMock() as rsps:
             rsps.add(responses.POST, 'http://example.cz/', status=200, body=b'BODY',
                      headers={'Content-Type': 'text/plain'})
-            response = self.fetcher.fetch('http://example.cz/', body='key=value')
+            response = self.fetcher.fetch('http://example.cz/', body=b'key=value')
         expected = fetchers.HTTPResponse('http://example.cz/', 200, {'Content-Type': 'text/plain'}, b'BODY')
         assertResponse(expected, response)
 

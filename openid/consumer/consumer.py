@@ -222,7 +222,7 @@ def makeKVPost(request_message, server_url):
     @rtype: L{openid.message.Message}
     """
     # XXX: TESTME
-    resp = fetchers.fetch(server_url, body=request_message.toURLEncoded())
+    resp = fetchers.fetch(server_url, body=request_message.toURLEncoded().encode('utf-8'))
 
     # Process response in separate function that can be shared by async code.
     return _httpResponseToMessage(resp, server_url)

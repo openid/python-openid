@@ -105,6 +105,7 @@ class TestFetcher(object):
             if url in self.get_responses:
                 return self.get_responses[url]
         else:
+            body = body.decode('utf-8')
             try:
                 body.index('openid.mode=associate')
             except ValueError:
