@@ -10,6 +10,7 @@ from functools import total_ordering
 from operator import itemgetter
 from time import strptime
 
+import six
 from lxml import etree
 
 from openid.yadis import xri
@@ -266,10 +267,18 @@ def sortedURIs(service_element):
 
 
 def getTypeURIs(service_element):
-    """Given a Service element, return a list of the contents of all
-    Type tags"""
-    return [type_element.text for type_element
-            in service_element.findall(type_tag)]
+    """Given a Service element, return a list of the contents of all Type tags.
+
+    @rtype: List[six.text_type]
+    """
+    output = []
+    for type_element in service_element.findall(type_tag):
+        type_uri = type_element.text
+        # Attribute `text` returns str in both python 2 and 3, convert to text_type in 2.7
+        if not isinstance(type_uri, six.text_type):
+            type_uri = type_uri.decode('utf-8')
+        output.append(type_uri)
+    return output
 
 
 def expandService(service_element):
