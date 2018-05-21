@@ -58,12 +58,12 @@ class TestParseXRDS(unittest.TestCase):
 
     def test_not_xrds(self):
         xml = '<not_xrds />'
-        with self.assertRaisesRegexp(etxrd.XRDSError, 'Not an XRDS document'):
+        with six.assertRaisesRegex(self, etxrd.XRDSError, 'Not an XRDS document'):
             etxrd.parseXRDS(xml)
 
     def test_invalid_xml(self):
         xml = '<'
-        with self.assertRaisesRegexp(etxrd.XRDSError, 'Error parsing document as XML'):
+        with six.assertRaisesRegex(self, etxrd.XRDSError, 'Error parsing document as XML'):
             etxrd.parseXRDS(xml)
 
     def test_xxe(self):

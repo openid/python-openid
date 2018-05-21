@@ -98,7 +98,7 @@ class EmptyMessageTest(unittest.TestCase):
     def test_getAliasedArgSuccess(self):
         msg = Message.fromPostArgs({'openid.ns.test': 'urn://foo', 'openid.test.flub': 'bogus'})
         actual_uri = msg.getAliasedArg('ns.test', no_default)
-        self.assertEquals("urn://foo", actual_uri)
+        self.assertEqual("urn://foo", actual_uri)
 
     def test_getAliasedArgFailure(self):
         msg = Message.fromPostArgs({'openid.test.flub': 'bogus'})

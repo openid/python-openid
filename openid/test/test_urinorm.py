@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import unittest
 import warnings
 
+import six
 from testfixtures import ShouldWarn
 
 from openid.urinorm import urinorm
@@ -24,7 +25,7 @@ class UrinormTest(unittest.TestCase):
         self.assertEqual(urinorm('htTP://example.com/'), 'http://example.com/')
 
     def test_unsupported_scheme(self):
-        self.assertRaisesRegexp(ValueError, 'Not an absolute HTTP or HTTPS URI', urinorm, 'ftp://example.com/')
+        six.assertRaisesRegex(self, ValueError, 'Not an absolute HTTP or HTTPS URI', urinorm, 'ftp://example.com/')
 
     def test_lowercase_hostname(self):
         self.assertEqual(urinorm('http://exaMPLE.COm/'), 'http://example.com/')
@@ -36,9 +37,9 @@ class UrinormTest(unittest.TestCase):
         self.assertEqual(urinorm('http://username@/'), 'http://username@/')
 
     def test_invalid_hostname(self):
-        self.assertRaisesRegexp(ValueError, 'Invalid hostname', urinorm, 'http://.it/')
-        self.assertRaisesRegexp(ValueError, 'Invalid hostname', urinorm, 'http://..it/')
-        self.assertRaisesRegexp(ValueError, 'Not an absolute URI', urinorm, 'http:///path/')
+        six.assertRaisesRegex(self, ValueError, 'Invalid hostname', urinorm, 'http://.it/')
+        six.assertRaisesRegex(self, ValueError, 'Invalid hostname', urinorm, 'http://..it/')
+        six.assertRaisesRegex(self, ValueError, 'Not an absolute URI', urinorm, 'http:///path/')
 
     def test_empty_port_section(self):
         self.assertEqual(urinorm('http://example.com:/'), 'http://example.com/')
@@ -76,7 +77,7 @@ class UrinormTest(unittest.TestCase):
         self.assertEqual(urinorm('http://example.com/foo%2Dbar%2dbaz'), 'http://example.com/foo-bar-baz')
 
     def test_illegal_characters(self):
-        self.assertRaisesRegexp(ValueError, 'Illegal characters in URI', urinorm, 'http://<illegal>.com/')
+        six.assertRaisesRegex(self, ValueError, 'Illegal characters in URI', urinorm, 'http://<illegal>.com/')
 
     def test_realms(self):
         # Urinorm supports OpenID realms with * in them

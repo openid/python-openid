@@ -360,7 +360,7 @@ class TestUrllib2Fetcher(unittest.TestCase):
         assertResponse(expected, response)
 
     def test_invalid_url(self):
-        with self.assertRaisesRegexp(self.invalid_url_error, 'Bad URL scheme:'):
+        with six.assertRaisesRegex(self, self.invalid_url_error, 'Bad URL scheme:'):
             self.fetcher.fetch('invalid://example.cz/')
 
     def test_connection_error(self):
@@ -425,12 +425,12 @@ class TestRequestsFetcher(unittest.TestCase):
 
     def test_invalid_url(self):
         invalid_url = 'invalid://example.cz/'
-        with self.assertRaisesRegexp(InvalidSchema, "No connection adapters were found for '" + invalid_url + "'"):
+        with six.assertRaisesRegex(self, InvalidSchema, "No connection adapters were found for '" + invalid_url + "'"):
             self.fetcher.fetch(invalid_url)
 
     def test_connection_error(self):
         # Test connection error
         with responses.RequestsMock() as rsps:
             rsps.add(responses.GET, 'http://example.cz/', body=ConnectionError('Name or service not known'))
-            with self.assertRaisesRegexp(ConnectionError, 'Name or service not known'):
+            with six.assertRaisesRegex(self, ConnectionError, 'Name or service not known'):
                 self.fetcher.fetch('http://example.cz/')

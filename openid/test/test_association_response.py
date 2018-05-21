@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import unittest
 
+import six
 from testfixtures import LogCapture
 
 from openid.consumer.consumer import GenericConsumer, ProtocolError
@@ -122,7 +123,7 @@ class ExtractAssociationSessionTypeMismatch(BaseAssocTest):
                 keys.remove('ns')
             msg = mkAssocResponse(*keys)
             msg.setArg(OPENID_NS, 'session_type', response_session_type)
-            with self.assertRaisesRegexp(ProtocolError, 'Session type mismatch'):
+            with six.assertRaisesRegex(self, ProtocolError, 'Session type mismatch'):
                 self.consumer._extractAssociation(msg, assoc_session)
 
         return test
@@ -284,13 +285,13 @@ class TestInvalidFields(BaseAssocTest):
         # Make sure that the assoc type in the response is not valid
         # for the given session.
         self.assoc_session.allowed_assoc_types = []
-        with self.assertRaisesRegexp(ProtocolError, 'Unsupported assoc_type for session'):
+        with six.assertRaisesRegex(self, ProtocolError, 'Unsupported assoc_type for session'):
             self.consumer._extractAssociation(self.assoc_response, self.assoc_session)
 
     def test_badExpiresIn(self):
         # Invalid value for expires_in should cause failure
         self.assoc_response.setArg(OPENID_NS, 'expires_in', 'forever')
-        with self.assertRaisesRegexp(ProtocolError, 'Invalid expires_in'):
+        with six.assertRaisesRegex(self, ProtocolError, 'Invalid expires_in'):
             self.consumer._extractAssociation(self.assoc_response, self.assoc_session)
 
 
@@ -333,5 +334,5 @@ class TestExtractAssociationDiffieHellman(BaseAssocTest):
     def test_badDHValues(self):
         sess, server_resp = self._setUpDH()
         server_resp.setArg(OPENID_NS, 'enc_mac_key', '\x00\x00\x00')
-        with self.assertRaisesRegexp(ProtocolError, 'Malformed response for'):
+        with six.assertRaisesRegex(self, ProtocolError, 'Malformed response for'):
             self.consumer._extractAssociation(server_resp, sess)
