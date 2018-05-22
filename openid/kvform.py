@@ -32,7 +32,7 @@ def seqToKV(seq, strict=False):
         if strict:
             raise KVFormError(formatted)
         else:
-            _LOGGER.warn(formatted)
+            _LOGGER.warning(formatted)
 
     lines = []
     for k, v in seq:
@@ -87,7 +87,7 @@ def kvToSeq(data, strict=False):
         if strict:
             raise KVFormError(formatted)
         else:
-            _LOGGER.warn(formatted)
+            _LOGGER.warning(formatted)
 
     data = string_to_text(data, "Binary values for data are deprecated. Use text input instead.")
 

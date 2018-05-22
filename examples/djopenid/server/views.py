@@ -45,6 +45,9 @@ def getServer(request):
     Get a Server object to perform OpenID authentication.
     """
     endpoint_url = request.build_absolute_uri(reverse('server:endpoint'))
+    # Method `build_absolute_uri` returns str in both python 2 and 3, convert to text_type in 2.7
+    if isinstance(endpoint_url, six.binary_type):
+        endpoint_url = endpoint_url.decode('utf-8')
     return Server(getOpenIDStore(), endpoint_url)
 
 
@@ -139,6 +142,9 @@ def handleCheckIDRequest(request, openid_request):
     if not openid_request.idSelect():
 
         id_url = request.build_absolute_uri(reverse('server:local_id'))
+        # Method `build_absolute_uri` returns str in both python 2 and 3, convert to text_type in 2.7
+        if isinstance(id_url, six.binary_type):
+            id_url = id_url.decode('utf-8')
 
         # Confirm that this server can actually vouch for that
         # identifier
@@ -202,6 +208,9 @@ def processTrustResult(request):
 
     # The identifier that this server can vouch for
     response_identity = request.build_absolute_uri(reverse('server:local_id'))
+    # Method `build_absolute_uri` returns str in both python 2 and 3, convert to text_type in 2.7
+    if isinstance(response_identity, six.binary_type):
+        response_identity = response_identity.decode('utf-8')
 
     # If the decision was to allow the verification, respond
     # accordingly.

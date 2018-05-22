@@ -279,7 +279,7 @@ class FileOpenIDStore(OpenIDStore):
                 assoc_file.close()
 
             try:
-                association = Association.deserialize(assoc_s)
+                association = Association.deserialize(assoc_s.decode('utf-8'))
             except ValueError:
                 _removeIfPresent(filename)
                 return None
@@ -364,7 +364,7 @@ class FileOpenIDStore(OpenIDStore):
 
                 # Remove expired or corrupted associations
                 try:
-                    association = Association.deserialize(assoc_s)
+                    association = Association.deserialize(assoc_s.decode('utf-8'))
                 except ValueError:
                     _removeIfPresent(association_filename)
                 else:
