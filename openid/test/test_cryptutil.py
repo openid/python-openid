@@ -70,6 +70,27 @@ class TestLongBinary(unittest.TestCase):
             assert s == s_prime, (n, s, s_prime)
 
 
+class TestBytesIntConversion(unittest.TestCase):
+    """Test bytes <-> int conversions."""
+
+    # Examples from http://openid.net/specs/openid-authentication-2_0.html#btwoc
+    cases = [
+        (b'\x00', 0),
+        (b'\x01', 1),
+        (b'\x7F', 127),
+        (b'\x00\xFF', 255),
+        (b'\x00\x80', 128),
+        (b'\x00\x81', 129),
+        (b'\x00\x80\x00', 32768),
+        (b'OpenID is cool', 1611215304203901150134421257416556)
+    ]
+
+    def test_conversions(self):
+        for string, number in self.cases:
+            self.assertEqual(cryptutil.bytes_to_int(string), number)
+            self.assertEqual(cryptutil.int_to_bytes(number), string)
+
+
 class TestLongToBase64(unittest.TestCase):
     """Test `longToBase64` function."""
 

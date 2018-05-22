@@ -3,18 +3,18 @@ other cryptographically useful functionality
 
 Other configurations will need a quality source of random bytes and
 access to a function that will convert binary strings to long
-integers. This module will work with the Python Cryptography Toolkit
-(pycrypto) if it is present. pycrypto can be found with a search
-engine, but is currently found at:
-
-http://www.amk.ca/python/code/crypto
+integers.
 """
 from __future__ import unicode_literals
 
+import codecs
 import hashlib
 import hmac
 import os
 import random
+import warnings
+
+import six
 
 from openid.oidutil import fromBase64, string_to_text, toBase64
 
@@ -28,6 +28,8 @@ __all__ = [
     'randrange',
     'sha1',
     'sha256',
+    'int_to_bytes',
+    'bytes_to_int',
 ]
 
 
@@ -85,48 +87,43 @@ def sha256(s):
     return sha256_module.new(s).digest()
 
 
-try:
-    from Crypto.Util.number import long_to_bytes, bytes_to_long
-except ImportError:
-    import pickle
+def bytes_to_int(value):
+    """
+    Convert byte string to integer.
 
-    def longToBinary(value):
-        if value == 0:
-            return b'\x00'
+    @type value: six.binary_type
+    @rtype: Union[six.integer_types]
+    """
+    return int(codecs.encode(value, 'hex'), 16)
 
-        return pickle.encode_long(value)[::-1]
 
-    def binaryToLong(s):
-        return pickle.decode_long(s[::-1])
-else:
-    # We have pycrypto
+def int_to_bytes(value):
+    """
+    Convert integer to byte string.
 
-    def longToBinary(value):
-        if value < 0:
-            raise ValueError('This function only supports positive integers')
+    @type value: Union[six.integer_types]
+    @rtype: six.binary_type
+    """
+    hex_value = '{:x}'.format(value)
+    if len(hex_value) % 2:
+        hex_value = '0' + hex_value
+    array = bytearray.fromhex(hex_value)
+    # First bit must be zero. If it isn't, the bytes must be prepended by zero byte.
+    # See http://openid.net/specs/openid-authentication-2_0.html#btwoc for details.
+    if array[0] > 127:
+        array = bytearray([0]) + array
+    return six.binary_type(array)
 
-        output = long_to_bytes(value)
-        if isinstance(output[0], int):
-            ord_first = output[0]
-        else:
-            ord_first = ord(output[0])
-        if ord_first > 127:
-            return b'\x00' + output
-        else:
-            return output
 
-    def binaryToLong(s):
-        if not s:
-            raise ValueError('Empty string passed to strToLong')
+# Deprecated versions of bytes <--> int conversions
+def longToBinary(value):
+    warnings.warn("Function longToBinary is deprecated in favor of int_to_bytes.", DeprecationWarning)
+    return int_to_bytes(value)
 
-        if isinstance(s[0], int):
-            ord_first = s[0]
-        else:
-            ord_first = ord(s[0])
-        if ord_first > 127:
-            raise ValueError('This function only supports positive integers')
 
-        return bytes_to_long(s)
+def binaryToLong(s):
+    warnings.warn("Function binaryToLong is deprecated in favor of bytes_to_int.", DeprecationWarning)
+    return bytes_to_int(s)
 
 
 # A randrange function that works for longs
@@ -149,7 +146,7 @@ except AttributeError:
         try:
             (duplicate, nbytes) = _duplicate_cache[r]
         except KeyError:
-            rbytes = longToBinary(r)
+            rbytes = int_to_bytes(r)
             if rbytes[0] == '\x00':
                 nbytes = len(rbytes) - 1
             else:
@@ -168,7 +165,7 @@ except AttributeError:
 
         while True:
             bytes = '\x00' + os.urandom(nbytes)
-            n = binaryToLong(bytes)
+            n = bytes_to_int(bytes)
             # Keep looping if this value is in the low duplicated range
             if n >= duplicate:
                 break
@@ -177,8 +174,8 @@ except AttributeError:
 
 
 def longToBase64(l):
-    return toBase64(longToBinary(l))
+    return toBase64(int_to_bytes(l))
 
 
 def base64ToLong(s):
-    return binaryToLong(fromBase64(s))
+    return bytes_to_int(fromBase64(s))

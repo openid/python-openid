@@ -60,5 +60,5 @@ class DiffieHellman(object):
 
     def xorSecret(self, composite, secret, hash_func):
         dh_shared = self.getSharedSecret(composite)
-        hashed_dh_shared = hash_func(cryptutil.longToBinary(dh_shared))
+        hashed_dh_shared = hash_func(cryptutil.int_to_bytes(dh_shared))
         return strxor(secret, hashed_dh_shared)
