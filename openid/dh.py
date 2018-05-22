@@ -5,7 +5,7 @@ import warnings
 
 import six
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric.dh import DHParameterNumbers
+from cryptography.hazmat.primitives.asymmetric.dh import DHParameterNumbers, DHPublicNumbers
 
 from openid import cryptutil
 from openid.constants import DEFAULT_DH_GENERATOR, DEFAULT_DH_MODULUS
@@ -84,10 +84,26 @@ class DiffieHellman(object):
                 self.generator == DEFAULT_DH_GENERATOR)
 
     def getSharedSecret(self, composite):
-        private = self.private_key.private_numbers().x
-        return pow(composite, private, self.modulus)
+        """Return a shared secret.
+
+        @param composite: Public key of the other party.
+        @type composite: Union[six.integer_types]
+        @rtype: Union[six.integer_types]
+        """
+        warnings.warn("Method 'getSharedSecret' is deprecated in favor of 'get_shared_secret'.", DeprecationWarning)
+        return cryptutil.bytes_to_int(self.get_shared_secret(composite))
+
+    def get_shared_secret(self, public_key):
+        """Return a shared secret.
+
+        @param public_key: Public key of the other party.
+        @type public_key: Union[six.integer_types]
+        @rtype: six.binary_type
+        """
+        public_numbers = DHPublicNumbers(public_key, self.parameter_numbers)
+        return self.private_key.exchange(public_numbers.public_key(default_backend()))
 
     def xorSecret(self, composite, secret, hash_func):
-        dh_shared = self.getSharedSecret(composite)
-        hashed_dh_shared = hash_func(cryptutil.int_to_bytes(dh_shared))
+        dh_shared = self.get_shared_secret(composite)
+        hashed_dh_shared = hash_func(dh_shared)
         return strxor(secret, hashed_dh_shared)
