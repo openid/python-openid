@@ -1,15 +1,11 @@
+""""Utilities for Diffie-Hellman key exchange."""
 from __future__ import unicode_literals
 
 import six
+from cryptography.hazmat.primitives.asymmetric.dh import DHParameterNumbers
 
 from openid import cryptutil
 from openid.constants import DEFAULT_DH_GENERATOR, DEFAULT_DH_MODULUS
-
-if six.PY2:
-    long_int = long
-else:
-    assert six.PY3
-    long_int = int
 
 
 def _xor(a_b):
@@ -30,16 +26,37 @@ def strxor(x, y):
 
 
 class DiffieHellman(object):
+    """Utility for Diffie-Hellman key exchange."""
+
+    def __init__(self, modulus, generator):
+        """Create a new instance.
+
+        @type modulus: Union[six.integer_types]
+        @type generator: Union[six.integer_types]
+        """
+        self.parameter_numbers = DHParameterNumbers(modulus, generator)
+        self._setPrivate(cryptutil.randrange(1, modulus - 1))
 
     @classmethod
     def fromDefaults(cls):
+        """Create Diffie-Hellman with the default modulus and generator."""
         return cls(DEFAULT_DH_MODULUS, DEFAULT_DH_GENERATOR)
 
-    def __init__(self, modulus, generator):
-        self.modulus = long_int(modulus)
-        self.generator = long_int(generator)
+    @property
+    def modulus(self):
+        """Return the prime modulus value.
 
-        self._setPrivate(cryptutil.randrange(1, modulus - 1))
+        @rtype: Union[six.integer_types]
+        """
+        return self.parameter_numbers.p
+
+    @property
+    def generator(self):
+        """Return the generator value.
+
+        @rtype: Union[six.integer_types]
+        """
+        return self.parameter_numbers.g
 
     def _setPrivate(self, private):
         """This is here to make testing easier"""

@@ -6,7 +6,8 @@ import unittest
 
 import six
 
-from openid.dh import DiffieHellman, long_int, strxor
+from openid.constants import DEFAULT_DH_GENERATOR, DEFAULT_DH_MODULUS
+from openid.dh import DiffieHellman, strxor
 
 
 class TestStrXor(unittest.TestCase):
@@ -52,6 +53,15 @@ class TestStrXor(unittest.TestCase):
 
 
 class TestDiffieHellman(unittest.TestCase):
+    """Test `DiffieHellman` class."""
+
+    def test_modulus(self):
+        dh = DiffieHellman.fromDefaults()
+        self.assertEqual(dh.modulus, DEFAULT_DH_MODULUS)
+
+    def test_generator(self):
+        dh = DiffieHellman.fromDefaults()
+        self.assertEqual(dh.generator, DEFAULT_DH_GENERATOR)
 
     def _test_dh(self):
         dh1 = DiffieHellman.fromDefaults()
@@ -72,8 +82,8 @@ class TestDiffieHellman(unittest.TestCase):
         try:
             for line in f:
                 parts = line.strip().split(' ')
-                dh._setPrivate(long_int(parts[0]))
+                dh._setPrivate(int(parts[0]))
 
-                assert dh.public == long_int(parts[1])
+                assert dh.public == int(parts[1])
         finally:
             f.close()
