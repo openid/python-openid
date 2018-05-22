@@ -176,21 +176,18 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
-        if self.path == '/closed':
-            self.wfile.close()
+        try:
+            http_code, location = self.cases[self.path]
+        except KeyError:
+            self.errorResponse('Bad path')
         else:
-            try:
-                http_code, location = self.cases[self.path]
-            except KeyError:
-                self.errorResponse('Bad path')
-            else:
-                extra_headers = [('Content-type', 'text/plain')]
-                if location is not None:
-                    host, port = self.server.server_address
-                    base = ('http://%s:%s' % (socket.getfqdn(host), port,))
-                    location = base + location
-                    extra_headers.append(('Location', location))
-                self._respond(http_code, extra_headers, self.path)
+            extra_headers = [('Content-type', 'text/plain')]
+            if location is not None:
+                host, port = self.server.server_address
+                base = ('http://%s:%s' % (socket.getfqdn(host), port,))
+                location = base + location
+                extra_headers.append(('Location', location))
+            self._respond(http_code, extra_headers, self.path)
 
     def do_POST(self):
         try:
@@ -227,13 +224,28 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
             self.send_header(k, v)
         self.end_headers()
         self.wfile.write(body.encode('utf-8'))
-        self.wfile.close()
 
     def finish(self):
         if not self.wfile.closed:
             self.wfile.flush()
         self.wfile.close()
         self.rfile.close()
+
+    def parse_request(self):
+        """Contain a hook to simulate closed connection."""
+        # Parse the request first
+        # BaseHTTPRequestHandler is old style class in 2.7
+        if type(FetcherTestHandler) == type:
+            result = super(FetcherTestHandler, self).parse_request()
+        else:
+            result = BaseHTTPRequestHandler.parse_request(self)
+        # If the connection should be closed, do so.
+        if self.path == '/closed':
+            self.wfile.close()
+            return False
+        else:
+            # Otherwise continue as usual.
+            return result
 
 
 class TestFetchers(unittest.TestCase):
