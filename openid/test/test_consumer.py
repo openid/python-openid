@@ -1778,12 +1778,12 @@ class TestDiffieHellmanResponseParameters(object):
         self.consumer_dh = DiffieHellman(100389557, 2)
 
         # base64(btwoc(g ^ xb mod p))
-        self.dh_server_public = cryptutil.longToBase64(self.server_dh.public)
+        self.dh_server_public = self.server_dh.public_key
 
         self.secret = os.urandom(self.session_cls.secret_size)
 
         self.enc_mac_key = oidutil.toBase64(
-            self.server_dh.xorSecret(self.consumer_dh.public,
+            self.server_dh.xorSecret(cryptutil.base64ToLong(self.consumer_dh.public_key),
                                      self.secret,
                                      self.session_cls.hash_func))
 

@@ -462,9 +462,7 @@ class DiffieHellmanSHA1ConsumerSession(object):
         self.dh = dh
 
     def getRequest(self):
-        cpub = cryptutil.longToBase64(self.dh.public)
-
-        args = {'dh_consumer_public': cpub}
+        args = {'dh_consumer_public': self.dh.public_key}
 
         if not self.dh.usingDefaultValues():
             args.update({

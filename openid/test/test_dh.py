@@ -1,12 +1,16 @@
 """Test `openid.dh` module."""
 from __future__ import unicode_literals
 
-import os.path
 import unittest
+import warnings
 
 import six
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric.dh import DHPrivateNumbers, DHPublicNumbers
+from testfixtures import ShouldWarn
 
 from openid.constants import DEFAULT_DH_GENERATOR, DEFAULT_DH_MODULUS
+from openid.cryptutil import longToBase64
 from openid.dh import DiffieHellman, strxor
 
 
@@ -76,14 +80,30 @@ class TestDiffieHellman(unittest.TestCase):
         s2 = self._test_dh()
         assert s1 != s2
 
-    def test_public(self):
-        f = open(os.path.join(os.path.dirname(__file__), 'dhpriv'))
-        dh = DiffieHellman.fromDefaults()
-        try:
-            for line in f:
-                parts = line.strip().split(' ')
-                dh._setPrivate(int(parts[0]))
+    private_key = int(
+        '76773183260125655927407219021356850612958916567415386199501281181228346359328609688049646172182310748186340503'
+        '26318343789919595649515190982375134969315580266608309203790369036760020471410949003193451675532879428946682852'
+        '7087756147962428703119223967577366837042279080006329440425557036807436654929251188437293')
+    public_key = int(
+        '14830402392262721982219607342625341531794979311088664077137112813385301968870761946911013412944671626402638538'
+        '59019114967817783168739766941288204771883652891577627356203670315421489407520844320897873950439171044693921561'
+        '24149254347661216215110718681656349527564919668545970743829522251387472714136707262965225')
 
-                assert dh.public == int(parts[1])
-        finally:
-            f.close()
+    def setup_keys(self, dh_object, public_key, private_key):
+        """Set up private and public key into DiffieHellman object."""
+        public_numbers = DHPublicNumbers(public_key, dh_object.parameter_numbers)
+        private_numbers = DHPrivateNumbers(private_key, public_numbers)
+        dh_object.private_key = private_numbers.private_key(default_backend())
+
+    def test_public(self):
+        dh = DiffieHellman.fromDefaults()
+        self.setup_keys(dh, self.public_key, self.private_key)
+        warning_msg = "Attribute 'public' is deprecated. Use 'public_key' instead."
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            self.assertEqual(dh.public, self.server_public_key)
+
+    def test_public_key(self):
+        dh = DiffieHellman.fromDefaults()
+        self.setup_keys(dh, self.public_key, self.private_key)
+        self.assertEqual(dh.public_key, longToBase64(self.public_key))

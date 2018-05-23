@@ -1,7 +1,10 @@
 """"Utilities for Diffie-Hellman key exchange."""
 from __future__ import unicode_literals
 
+import warnings
+
 import six
+from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric.dh import DHParameterNumbers
 
 from openid import cryptutil
@@ -35,7 +38,8 @@ class DiffieHellman(object):
         @type generator: Union[six.integer_types]
         """
         self.parameter_numbers = DHParameterNumbers(modulus, generator)
-        self._setPrivate(cryptutil.randrange(1, modulus - 1))
+        parameters = self.parameter_numbers.parameters(default_backend())
+        self.private_key = parameters.generate_private_key()
 
     @classmethod
     def fromDefaults(cls):
@@ -58,17 +62,30 @@ class DiffieHellman(object):
         """
         return self.parameter_numbers.g
 
-    def _setPrivate(self, private):
-        """This is here to make testing easier"""
-        self.private = private
-        self.public = pow(self.generator, self.private, self.modulus)
+    @property
+    def public(self):
+        """Return the public key.
+
+        @rtype: Union[six.integer_types]
+        """
+        warnings.warn("Attribute 'public' is deprecated. Use 'public_key' instead.", DeprecationWarning)
+        return self.private_key.public_key().public_numbers().y
+
+    @property
+    def public_key(self):
+        """Return base64 encoded public key.
+
+        @rtype: six.text_type
+        """
+        return cryptutil.longToBase64(self.private_key.public_key().public_numbers().y)
 
     def usingDefaultValues(self):
         return (self.modulus == DEFAULT_DH_MODULUS and
                 self.generator == DEFAULT_DH_GENERATOR)
 
     def getSharedSecret(self, composite):
-        return pow(composite, self.private, self.modulus)
+        private = self.private_key.private_numbers().x
+        return pow(composite, private, self.modulus)
 
     def xorSecret(self, composite, secret, hash_func):
         dh_shared = self.getSharedSecret(composite)
