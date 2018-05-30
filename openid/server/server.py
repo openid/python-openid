@@ -380,7 +380,7 @@ class DiffieHellmanSHA1ServerSession(object):
                                     secret,
                                     self.hash_func)
         return {
-            'dh_server_public': cryptutil.longToBase64(self.dh.public),
+            'dh_server_public': self.dh.public_key,
             'enc_mac_key': oidutil.toBase64(mac_key),
         }
 

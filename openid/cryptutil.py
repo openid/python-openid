@@ -10,8 +10,6 @@ from __future__ import unicode_literals
 import codecs
 import hashlib
 import hmac
-import os
-import random
 import warnings
 
 import six
@@ -25,7 +23,6 @@ __all__ = [
     'hmacSha256',
     'longToBase64',
     'longToBinary',
-    'randrange',
     'sha1',
     'sha256',
     'int_to_bytes',
@@ -124,53 +121,6 @@ def longToBinary(value):
 def binaryToLong(s):
     warnings.warn("Function binaryToLong is deprecated in favor of bytes_to_int.", DeprecationWarning)
     return bytes_to_int(s)
-
-
-# A randrange function that works for longs
-try:
-    randrange = random.SystemRandom().randrange
-except AttributeError:
-    # In Python 2.2's random.Random, randrange does not support
-    # numbers larger than sys.maxint for randrange. For simplicity,
-    # use this implementation for any Python that does not have
-    # random.SystemRandom
-
-    _duplicate_cache = {}
-
-    def randrange(start, stop=None, step=1):
-        if stop is None:
-            stop = start
-            start = 0
-
-        r = (stop - start) // step
-        try:
-            (duplicate, nbytes) = _duplicate_cache[r]
-        except KeyError:
-            rbytes = int_to_bytes(r)
-            if rbytes[0] == '\x00':
-                nbytes = len(rbytes) - 1
-            else:
-                nbytes = len(rbytes)
-
-            mxrand = (256 ** nbytes)
-
-            # If we get a number less than this, then it is in the
-            # duplicated range.
-            duplicate = mxrand % r
-
-            if len(_duplicate_cache) > 10:
-                _duplicate_cache.clear()
-
-            _duplicate_cache[r] = (duplicate, nbytes)
-
-        while True:
-            bytes = '\x00' + os.urandom(nbytes)
-            n = bytes_to_int(bytes)
-            # Keep looping if this value is in the low duplicated range
-            if n >= duplicate:
-                break
-
-        return start + (n % r) * step
 
 
 def longToBase64(l):

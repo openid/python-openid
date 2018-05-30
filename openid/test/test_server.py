@@ -1293,7 +1293,7 @@ class TestAssociate(unittest.TestCase):
         from openid.dh import DiffieHellman
         from openid.server.server import DiffieHellmanSHA1ServerSession
         consumer_dh = DiffieHellman.fromDefaults()
-        cpub = consumer_dh.public
+        cpub = cryptutil.base64ToLong(consumer_dh.public_key)
         server_dh = DiffieHellman.fromDefaults()
         session = DiffieHellmanSHA1ServerSession(server_dh, cpub)
         self.request = server.AssociateRequest(session, 'HMAC-SHA1')
@@ -1318,7 +1318,7 @@ class TestAssociate(unittest.TestCase):
         from openid.dh import DiffieHellman
         from openid.server.server import DiffieHellmanSHA256ServerSession
         consumer_dh = DiffieHellman.fromDefaults()
-        cpub = consumer_dh.public
+        cpub = cryptutil.base64ToLong(consumer_dh.public_key)
         server_dh = DiffieHellman.fromDefaults()
         session = DiffieHellmanSHA256ServerSession(server_dh, cpub)
         self.request = server.AssociateRequest(session, 'HMAC-SHA256')

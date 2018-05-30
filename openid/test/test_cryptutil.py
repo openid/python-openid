@@ -19,24 +19,6 @@ else:
     long_int = int
 
 
-class TestRandRange(unittest.TestCase):
-    """Test `randrange` function."""
-
-    def test_cryptrand(self):
-        # It's possible, but HIGHLY unlikely that a correct implementation
-        # will fail by returning the same number twice
-
-        a = cryptutil.randrange(2 ** 128)
-        b = cryptutil.randrange(2 ** 128)
-        assert isinstance(a, long_int)
-        assert isinstance(b, long_int)
-        assert b != a
-
-        # Make sure that we can generate random numbers that are larger
-        # than platform int size
-        cryptutil.randrange(long_int(sys.maxsize) + 1)
-
-
 class TestLongBinary(unittest.TestCase):
     """Test `longToBinary` and `binaryToLong` functions."""
 
