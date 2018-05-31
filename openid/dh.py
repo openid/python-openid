@@ -5,6 +5,7 @@ import warnings
 
 import six
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.dh import DHParameterNumbers, DHPublicNumbers
 
 from openid import cryptutil
@@ -104,6 +105,7 @@ class DiffieHellman(object):
         return self.private_key.exchange(public_numbers.public_key(default_backend()))
 
     def xorSecret(self, composite, secret, hash_func):
+        warnings.warn("Method 'xorSecret' is deprecated, use 'xor_secret' instead.", DeprecationWarning)
         dh_shared = self.get_shared_secret(composite)
 
         # The DH secret must be `btwoc` compatible.
@@ -111,4 +113,22 @@ class DiffieHellman(object):
         dh_shared = cryptutil.fix_btwoc(dh_shared)
 
         hashed_dh_shared = hash_func(dh_shared)
+        return strxor(secret, hashed_dh_shared)
+
+    def xor_secret(self, public_key, secret, algorithm):
+        """Return a XOR of a secret key and hash of a DH exchanged secret.
+
+        @type public_key: Union[six.integer_types]
+        @type secret: bytes
+        @type algorithm: hashes.HashAlgorithm
+        """
+        dh_shared = self.get_shared_secret(public_key)
+
+        # The DH secret must be `btwoc` compatible.
+        # See http://openid.net/specs/openid-authentication-2_0.html#rfc.section.8.2.3 for details.
+        dh_shared = cryptutil.fix_btwoc(dh_shared)
+
+        digest = hashes.Hash(algorithm, backend=default_backend())
+        digest.update(dh_shared)
+        hashed_dh_shared = digest.finalize()
         return strxor(secret, hashed_dh_shared)

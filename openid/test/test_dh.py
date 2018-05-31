@@ -7,6 +7,7 @@ import warnings
 
 import six
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.dh import DHPrivateNumbers, DHPublicNumbers
 from testfixtures import ShouldWarn
 
@@ -131,12 +132,22 @@ class TestDiffieHellman(unittest.TestCase):
             warnings.simplefilter('always')
             self.assertEqual(consumer_dh.getSharedSecret(self.server_public_key), bytes_to_int(self.shared_secret))
 
+    def test_xorSecret(self):
+        # Test key exchange - deprecated method
+        server_dh = DiffieHellman.fromDefaults()
+        self.setup_keys(server_dh, self.server_public_key, self.server_private_key)
+
+        warning_msg = "Method 'xorSecret' is deprecated, use 'xor_secret' instead."
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            self.assertEqual(server_dh.xorSecret(self.consumer_public_key, self.secret, sha256), self.mac_key)
+
     def test_exchange_server_static(self):
         # Test key exchange - server part with static values
         server_dh = DiffieHellman.fromDefaults()
         self.setup_keys(server_dh, self.server_public_key, self.server_private_key)
 
-        self.assertEqual(server_dh.xorSecret(self.consumer_public_key, self.secret, sha256), self.mac_key)
+        self.assertEqual(server_dh.xor_secret(self.consumer_public_key, self.secret, hashes.SHA256()), self.mac_key)
         self.assertEqual(server_dh.public_key, longToBase64(self.server_public_key))
 
     def test_exchange_consumer_static(self):
@@ -144,7 +155,7 @@ class TestDiffieHellman(unittest.TestCase):
         consumer_dh = DiffieHellman.fromDefaults()
         self.setup_keys(consumer_dh, self.consumer_public_key, self.consumer_private_key)
 
-        shared_secret = consumer_dh.xorSecret(self.server_public_key, self.mac_key, sha256)
+        shared_secret = consumer_dh.xor_secret(self.server_public_key, self.mac_key, hashes.SHA256())
         # Check secret was negotiated correctly
         self.assertEqual(shared_secret, self.secret)
 
@@ -156,9 +167,9 @@ class TestDiffieHellman(unittest.TestCase):
         # Server part
         secret = os.urandom(32)
         server_dh = DiffieHellman.fromDefaults()
-        mac_key = server_dh.xorSecret(base64ToLong(consumer_public_key), secret, sha256)
+        mac_key = server_dh.xor_secret(base64ToLong(consumer_public_key), secret, hashes.SHA256())
         server_public_key = server_dh.public_key
         # Consumer part
-        shared_secret = consumer_dh.xorSecret(base64ToLong(server_public_key), mac_key, sha256)
+        shared_secret = consumer_dh.xor_secret(base64ToLong(server_public_key), mac_key, hashes.SHA256())
         # Check secret was negotiated correctly
         self.assertEqual(secret, shared_secret)

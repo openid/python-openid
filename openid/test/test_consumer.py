@@ -3,11 +3,12 @@ from __future__ import unicode_literals
 import os
 import time
 import unittest
+import warnings
 from functools import partial
 
 import six
 from six.moves.urllib.parse import parse_qsl, urlparse
-from testfixtures import LogCapture, StringComparison
+from testfixtures import LogCapture, ShouldWarn, StringComparison
 
 from openid import association, cryptutil, fetchers, kvform, oidutil
 from openid.consumer.consumer import (CANCEL, FAILURE, SETUP_NEEDED, SUCCESS, AuthRequest, CancelResponse, Consumer,
@@ -1784,9 +1785,9 @@ class TestDiffieHellmanResponseParameters(object):
         self.secret = os.urandom(self.session_cls.secret_size)
 
         self.enc_mac_key = oidutil.toBase64(
-            self.server_dh.xorSecret(cryptutil.base64ToLong(self.consumer_dh.public_key),
-                                     self.secret,
-                                     self.session_cls.hash_func))
+            self.server_dh.xor_secret(cryptutil.base64ToLong(self.consumer_dh.public_key),
+                                      self.secret,
+                                      self.session_cls.algorithm))
 
         self.consumer_session = self.session_cls(self.consumer_dh)
 
@@ -1835,6 +1836,33 @@ class TestOpenID2SHA1(TestDiffieHellmanResponseParameters, unittest.TestCase):
 class TestOpenID2SHA256(TestDiffieHellmanResponseParameters, unittest.TestCase):
     session_cls = DiffieHellmanSHA256ConsumerSession
     message_namespace = OPENID2_NS
+
+
+class TestDiffieHellmanSHA1ConsumerSession(unittest.TestCase):
+    """Unittests of `DiffieHellmanSHA1ConsumerSession` class."""
+
+    def test_custom_hash_func(self):
+        def zero_hash(value):
+            return b'\x00' * 20
+
+        class ZeroHashConsumerSession(DiffieHellmanSHA1ConsumerSession):
+            hash_func = staticmethod(zero_hash)
+
+        server_dh = DiffieHellman.fromDefaults()
+        consumer_dh = DiffieHellman.fromDefaults()
+
+        msg = Message(OPENID2_NS)
+        msg.setArg(OPENID_NS, 'dh_server_public', server_dh.public_key)
+        msg.setArg(OPENID_NS, 'enc_mac_key', oidutil.toBase64(b'Rimmer is smeg head!'))
+
+        consumer_session = ZeroHashConsumerSession(consumer_dh)
+        with ShouldWarn() as captured:
+            warnings.simplefilter('always')
+            self.assertEqual(consumer_session.extractSecret(msg), b'Rimmer is smeg head!')
+        # There are 2 warnings, we need to check only one.
+        self.assertIsInstance(captured[0].message, DeprecationWarning)
+        self.assertEqual(six.text_type(captured[0].message),
+                         "Attribute hash_func is deprecated, use algorithm instead.")
 
 
 class TestNoStore(unittest.TestCase):
