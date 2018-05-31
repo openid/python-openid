@@ -8,5 +8,5 @@ __pycache__
 /.eggs
 /sstore
 # Coverage
-/.coverage
+/.coverage*
 /htmlcov
