@@ -222,7 +222,7 @@ def makeKVPost(request_message, server_url):
     @rtype: L{openid.message.Message}
     """
     # XXX: TESTME
-    resp = fetchers.fetch(server_url, body=request_message.toURLEncoded())
+    resp = fetchers.fetch(server_url, body=request_message.toURLEncoded().encode('utf-8'))
 
     # Process response in separate function that can be shared by async code.
     return _httpResponseToMessage(resp, server_url)
@@ -1322,7 +1322,7 @@ class GenericConsumer(object):
         # OpenID 1, but we'll accept it anyway, while issuing a
         # warning.
         if session_type == 'no-encryption':
-            _LOGGER.warn('OpenID server sent "no-encryption" for OpenID 1.X')
+            _LOGGER.warning('OpenID server sent "no-encryption" for OpenID 1.X')
 
         # Missing or empty session type is the way to flag a
         # 'no-encryption' response. Change the session type to

@@ -438,8 +438,8 @@ class AssociateRequest(OpenIDRequest):
         if message.isOpenID1():
             session_type = message.getArg(OPENID_NS, 'session_type')
             if session_type == 'no-encryption':
-                _LOGGER.warn('Received OpenID 1 request with a no-encryption '
-                             'assocaition session type. Continuing anyway.')
+                _LOGGER.warning('Received OpenID 1 request with a no-encryption '
+                                'assocaition session type. Continuing anyway.')
             elif not session_type:
                 session_type = 'no-encryption'
 

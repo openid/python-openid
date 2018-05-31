@@ -58,12 +58,12 @@ class TestParseXRDS(unittest.TestCase):
 
     def test_not_xrds(self):
         xml = '<not_xrds />'
-        with self.assertRaisesRegexp(etxrd.XRDSError, 'Not an XRDS document'):
+        with six.assertRaisesRegex(self, etxrd.XRDSError, 'Not an XRDS document'):
             etxrd.parseXRDS(xml)
 
     def test_invalid_xml(self):
         xml = '<'
-        with self.assertRaisesRegexp(etxrd.XRDSError, 'Error parsing document as XML'):
+        with six.assertRaisesRegex(self, etxrd.XRDSError, 'Error parsing document as XML'):
             etxrd.parseXRDS(xml)
 
     def test_xxe(self):
@@ -88,7 +88,8 @@ class TestParseXRDS(unittest.TestCase):
 
 class TestServiceParser(unittest.TestCase):
     def setUp(self):
-        self.xmldoc = open(XRD_FILE, 'rb').read()
+        with open(XRD_FILE, 'rb') as xrd_file:
+            self.xmldoc = xrd_file.read()
         self.yadis_url = 'http://unittest.url/'
 
     def _getServices(self, flt=None):
@@ -156,7 +157,8 @@ class TestServiceParser(unittest.TestCase):
     def testNoXRDS(self):
         """Make sure that we get an exception when an XRDS element is
         not present"""
-        self.xmldoc = open(NOXRDS_FILE, 'rb').read()
+        with open(NOXRDS_FILE, 'rb') as xml_file:
+            self.xmldoc = xml_file.read()
         self.assertRaises(etxrd.XRDSError, services.applyFilter, self.yadis_url, self.xmldoc, None)
 
     def testEmpty(self):
@@ -168,7 +170,8 @@ class TestServiceParser(unittest.TestCase):
     def testNoXRD(self):
         """Make sure that we get an exception when there is no XRD
         element present."""
-        self.xmldoc = open(NOXRD_FILE, 'rb').read()
+        with open(NOXRD_FILE, 'rb') as xml_file:
+            self.xmldoc = xml_file.read()
         self.assertRaises(etxrd.XRDSError, services.applyFilter, self.yadis_url, self.xmldoc, None)
 
 
@@ -181,7 +184,8 @@ class TestCanonicalID(unittest.TestCase):
         filename = datapath(filename)
 
         def test(self):
-            xrds = etxrd.parseXRDS(open(filename, 'rb').read())
+            with open(filename, 'rb') as xrds_file:
+                xrds = etxrd.parseXRDS(xrds_file.read())
             self._getCanonicalID(iname, xrds, expectedID)
         return test
 

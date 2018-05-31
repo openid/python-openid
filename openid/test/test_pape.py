@@ -47,7 +47,7 @@ class PapeRequestTestCase(unittest.TestCase):
         # alias is None; we expect a new one to be generated.
         uri = 'http://another.example.com/'
         self.req.addAuthLevel(uri)
-        self.assert_(uri in self.req.auth_level_aliases.values())
+        self.assertIn(uri, self.req.auth_level_aliases.values())
 
         # We don't expect a new alias to be generated if one already
         # exists.

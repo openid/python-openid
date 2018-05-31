@@ -392,9 +392,16 @@ class Message(object):
         return kvform.dictToKV(self.toArgs())
 
     def toURLEncoded(self):
-        """Generate an x-www-urlencoded string"""
+        """Generate an x-www-urlencoded string
+
+        @rtype: six.text_type
+        """
         args = sorted(self.toPostArgs().items())
-        return urlencode(args)
+        result = urlencode(args)
+        # Function `urlencode` returns str in both python 2 and 3, convert to text_type in 2.7
+        if isinstance(result, six.binary_type):
+            result = result.decode('utf-8')
+        return result
 
     def _fixNS(self, namespace):
         """Convert an input value into the internally used values of

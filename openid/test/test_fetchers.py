@@ -176,21 +176,18 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
-        if self.path == '/closed':
-            self.wfile.close()
+        try:
+            http_code, location = self.cases[self.path]
+        except KeyError:
+            self.errorResponse('Bad path')
         else:
-            try:
-                http_code, location = self.cases[self.path]
-            except KeyError:
-                self.errorResponse('Bad path')
-            else:
-                extra_headers = [('Content-type', 'text/plain')]
-                if location is not None:
-                    host, port = self.server.server_address
-                    base = ('http://%s:%s' % (socket.getfqdn(host), port,))
-                    location = base + location
-                    extra_headers.append(('Location', location))
-                self._respond(http_code, extra_headers, self.path)
+            extra_headers = [('Content-type', 'text/plain')]
+            if location is not None:
+                host, port = self.server.server_address
+                base = ('http://%s:%s' % (socket.getfqdn(host), port,))
+                location = base + location
+                extra_headers.append(('Location', location))
+            self._respond(http_code, extra_headers, self.path)
 
     def do_POST(self):
         try:
@@ -227,13 +224,28 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
             self.send_header(k, v)
         self.end_headers()
         self.wfile.write(body.encode('utf-8'))
-        self.wfile.close()
 
     def finish(self):
         if not self.wfile.closed:
             self.wfile.flush()
         self.wfile.close()
         self.rfile.close()
+
+    def parse_request(self):
+        """Contain a hook to simulate closed connection."""
+        # Parse the request first
+        # BaseHTTPRequestHandler is old style class in 2.7
+        if type(FetcherTestHandler) == type:
+            result = super(FetcherTestHandler, self).parse_request()
+        else:
+            result = BaseHTTPRequestHandler.parse_request(self)
+        # If the connection should be closed, do so.
+        if self.path == '/closed':
+            self.wfile.close()
+            return False
+        else:
+            # Otherwise continue as usual.
+            return result
 
 
 class TestFetchers(unittest.TestCase):
@@ -360,7 +372,7 @@ class TestUrllib2Fetcher(unittest.TestCase):
         assertResponse(expected, response)
 
     def test_invalid_url(self):
-        with self.assertRaisesRegexp(self.invalid_url_error, 'Bad URL scheme:'):
+        with six.assertRaisesRegex(self, self.invalid_url_error, 'Bad URL scheme:'):
             self.fetcher.fetch('invalid://example.cz/')
 
     def test_connection_error(self):
@@ -399,7 +411,7 @@ class TestRequestsFetcher(unittest.TestCase):
         with responses.RequestsMock() as rsps:
             rsps.add(responses.POST, 'http://example.cz/', status=200, body=b'BODY',
                      headers={'Content-Type': 'text/plain'})
-            response = self.fetcher.fetch('http://example.cz/', body='key=value')
+            response = self.fetcher.fetch('http://example.cz/', body=b'key=value')
         expected = fetchers.HTTPResponse('http://example.cz/', 200, {'Content-Type': 'text/plain'}, b'BODY')
         assertResponse(expected, response)
 
@@ -425,12 +437,12 @@ class TestRequestsFetcher(unittest.TestCase):
 
     def test_invalid_url(self):
         invalid_url = 'invalid://example.cz/'
-        with self.assertRaisesRegexp(InvalidSchema, "No connection adapters were found for '" + invalid_url + "'"):
+        with six.assertRaisesRegex(self, InvalidSchema, "No connection adapters were found for '" + invalid_url + "'"):
             self.fetcher.fetch(invalid_url)
 
     def test_connection_error(self):
         # Test connection error
         with responses.RequestsMock() as rsps:
             rsps.add(responses.GET, 'http://example.cz/', body=ConnectionError('Name or service not known'))
-            with self.assertRaisesRegexp(ConnectionError, 'Name or service not known'):
+            with six.assertRaisesRegex(self, ConnectionError, 'Name or service not known'):
                 self.fetcher.fetch('http://example.cz/')

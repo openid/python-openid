@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import unittest
 
+import six
 from testfixtures import LogCapture, StringComparison
 
 from openid import message
@@ -26,7 +27,7 @@ class DiscoveryVerificationTest(TestIdRes):
 
         msg = message.Message.fromOpenIDArgs({})
         with LogCapture() as logbook:
-            with self.assertRaisesRegexp(consumer.ProtocolError, 'Missing required field openid.identity'):
+            with six.assertRaisesRegex(self, consumer.ProtocolError, 'Missing required field openid.identity'):
                 self.consumer._verifyDiscoveryResults(msg, endpoint)
         self.assertEqual(logbook.records, [])
 
@@ -47,7 +48,7 @@ class DiscoveryVerificationTest(TestIdRes):
                                               'op_endpoint': 'Phone Home',
                                               'identity': 'Jose Lius Borges'})
         with LogCapture() as logbook:
-            with self.assertRaisesRegexp(consumer.ProtocolError, 'openid.identity is present without'):
+            with six.assertRaisesRegex(self, consumer.ProtocolError, 'openid.identity is present without'):
                 self.consumer._verifyDiscoveryResults(msg)
         self.assertEqual(logbook.records, [])
 
@@ -56,7 +57,7 @@ class DiscoveryVerificationTest(TestIdRes):
                                               'op_endpoint': 'Phone Home',
                                               'claimed_id': 'Manuel Noriega'})
         with LogCapture() as logbook:
-            with self.assertRaisesRegexp(consumer.ProtocolError, 'openid.claimed_id is present without'):
+            with six.assertRaisesRegex(self, consumer.ProtocolError, 'openid.claimed_id is present without'):
                 self.consumer._verifyDiscoveryResults(msg)
         self.assertEqual(logbook.records, [])
 
@@ -147,7 +148,7 @@ class DiscoveryVerificationTest(TestIdRes):
              'op_endpoint': endpoint.server_url})
 
         with LogCapture() as logbook:
-            with self.assertRaisesRegexp(consumer.ProtocolError, text):
+            with six.assertRaisesRegex(self, consumer.ProtocolError, text):
                 self.consumer._verifyDiscoveryResults(msg, endpoint)
 
         logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Error attempting to use .*')),

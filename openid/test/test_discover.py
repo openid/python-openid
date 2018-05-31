@@ -206,7 +206,8 @@ def readDataFile(filename):
     module_directory = os.path.dirname(os.path.abspath(__file__))
     filename = os.path.join(
         module_directory, 'data', 'test_discover', filename)
-    return open(filename, 'rb').read()
+    with open(filename, 'rb') as data_file:
+        return data_file.read()
 
 
 class TestDiscovery(BaseTestDiscovery):

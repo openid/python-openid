@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import sys
 import time
 
+import six
 from six import BytesIO
 from six.moves.urllib.error import HTTPError as UrllibHTTPError
 from six.moves.urllib.request import Request, urlopen
@@ -155,6 +156,7 @@ class HTTPFetcher(object):
         the way. If a body is specified, then the request will be a
         POST. Otherwise, it will be a GET.
 
+        @type body: six.binary_type
 
         @param headers: HTTP headers to include with the request
         @type headers: Dict[six.text_type, six.text_type]
@@ -214,6 +216,8 @@ class Urllib2Fetcher(HTTPFetcher):
     urlopen = staticmethod(urlopen)
 
     def fetch(self, url, body=None, headers=None):
+        assert body is None or isinstance(body, six.binary_type)
+
         if not _allowedURL(url):
             raise ValueError('Bad URL scheme: %r' % (url,))
 
@@ -309,6 +313,8 @@ class CurlHTTPFetcher(HTTPFetcher):
         return _allowedURL(url)
 
     def fetch(self, url, body=None, headers=None):
+        assert body is None or isinstance(body, six.binary_type)
+
         stop = int(time.time()) + self.ALLOWED_TIME
         off = self.ALLOWED_TIME
 
@@ -415,6 +421,8 @@ class HTTPLib2Fetcher(HTTPFetcher):
 
         @see: C{L{HTTPFetcher.fetch}}
         """
+        assert body is None or isinstance(body, six.binary_type)
+
         if body:
             method = 'POST'
         else:
@@ -465,6 +473,8 @@ class RequestsFetcher(HTTPFetcher):
 
         @see: C{L{HTTPFetcher.fetch}}
         """
+        assert body is None or isinstance(body, six.binary_type)
+
         if body:
             method = 'POST'
         else:

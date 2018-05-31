@@ -59,7 +59,8 @@ discover_tests = {}
 
 
 def readTests(filename):
-    data = open(filename).read()
+    with open(filename) as data_file:
+        data = data_file.read()
     tests = {}
     for case in data.split('\f\n'):
         (name, content) = case.split('\n', 1)

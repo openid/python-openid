@@ -56,7 +56,10 @@ class EmptyMessageTest(unittest.TestCase):
         # exception. I'm not sure which one is more right, since this
         # case should only happen when you're building a message from
         # scratch and so have no default namespace.
-        self.assertRaises(UndefinedOpenIDNamespace, self.msg.getKey, OPENID_NS, 'foo')
+        warning_msg = "UndefinedOpenIDNamespace exception is deprecated."
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            self.assertRaises(UndefinedOpenIDNamespace, self.msg.getKey, OPENID_NS, 'foo')
 
     def test_getKeyBARE(self):
         self.assertEqual(self.msg.getKey(BARE_NS, 'foo'), 'foo')
@@ -75,7 +78,10 @@ class EmptyMessageTest(unittest.TestCase):
         # exception. I'm not sure which one is more right, since this
         # case should only happen when you're building a message from
         # scratch and so have no default namespace.
-        self.assertRaises(UndefinedOpenIDNamespace, self.msg.hasKey, OPENID_NS, 'foo')
+        warning_msg = "UndefinedOpenIDNamespace exception is deprecated."
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            self.assertRaises(UndefinedOpenIDNamespace, self.msg.hasKey, OPENID_NS, 'foo')
 
     def test_hasKeyBARE(self):
         self.assertFalse(self.msg.hasKey(BARE_NS, 'foo'))
@@ -92,7 +98,7 @@ class EmptyMessageTest(unittest.TestCase):
     def test_getAliasedArgSuccess(self):
         msg = Message.fromPostArgs({'openid.ns.test': 'urn://foo', 'openid.test.flub': 'bogus'})
         actual_uri = msg.getAliasedArg('ns.test', no_default)
-        self.assertEquals("urn://foo", actual_uri)
+        self.assertEqual("urn://foo", actual_uri)
 
     def test_getAliasedArgFailure(self):
         msg = Message.fromPostArgs({'openid.test.flub': 'bogus'})
@@ -103,7 +109,10 @@ class EmptyMessageTest(unittest.TestCase):
         # exception. I'm not sure which one is more right, since this
         # case should only happen when you're building a message from
         # scratch and so have no default namespace.
-        self.assertRaises(UndefinedOpenIDNamespace, self.msg.getArg, OPENID_NS, 'foo')
+        warning_msg = "UndefinedOpenIDNamespace exception is deprecated."
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            self.assertRaises(UndefinedOpenIDNamespace, self.msg.getArg, OPENID_NS, 'foo')
 
     test_getArgBARE = mkGetArgTest(BARE_NS, 'foo')
     test_getArgNS1 = mkGetArgTest(OPENID1_NS, 'foo')
@@ -115,7 +124,10 @@ class EmptyMessageTest(unittest.TestCase):
         # exception. I'm not sure which one is more right, since this
         # case should only happen when you're building a message from
         # scratch and so have no default namespace.
-        self.assertRaises(UndefinedOpenIDNamespace, self.msg.getArgs, OPENID_NS)
+        warning_msg = "UndefinedOpenIDNamespace exception is deprecated."
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            self.assertRaises(UndefinedOpenIDNamespace, self.msg.getArgs, OPENID_NS)
 
     def test_getArgsBARE(self):
         self.assertEqual(self.msg.getArgs(BARE_NS), {})
@@ -130,7 +142,10 @@ class EmptyMessageTest(unittest.TestCase):
         self.assertEqual(self.msg.getArgs('urn:nothing-significant'), {})
 
     def test_updateArgs(self):
-        self.assertRaises(UndefinedOpenIDNamespace, self.msg.updateArgs, OPENID_NS, {'does not': 'matter'})
+        warning_msg = "UndefinedOpenIDNamespace exception is deprecated."
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            self.assertRaises(UndefinedOpenIDNamespace, self.msg.updateArgs, OPENID_NS, {'does not': 'matter'})
 
     def _test_updateArgsNS(self, ns):
         update_args = {
@@ -155,7 +170,10 @@ class EmptyMessageTest(unittest.TestCase):
         self._test_updateArgsNS('urn:nothing-significant')
 
     def test_setArg(self):
-        self.assertRaises(UndefinedOpenIDNamespace, self.msg.setArg, OPENID_NS, 'does not', 'matter')
+        warning_msg = "UndefinedOpenIDNamespace exception is deprecated."
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            self.assertRaises(UndefinedOpenIDNamespace, self.msg.setArg, OPENID_NS, 'does not', 'matter')
 
     def _test_setArgNS(self, ns):
         key = 'Camper van Beethoven'
@@ -185,7 +203,10 @@ class EmptyMessageTest(unittest.TestCase):
         # right, since this case should only happen when you're
         # building a message from scratch and so have no default
         # namespace.
-        self.assertRaises(UndefinedOpenIDNamespace, self.msg.delArg, OPENID_NS, 'key')
+        warning_msg = "UndefinedOpenIDNamespace exception is deprecated."
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            self.assertRaises(UndefinedOpenIDNamespace, self.msg.delArg, OPENID_NS, 'key')
 
     def _test_delArgNS(self, ns):
         key = 'Camper van Beethoven'

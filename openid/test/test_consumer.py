@@ -105,6 +105,7 @@ class TestFetcher(object):
             if url in self.get_responses:
                 return self.get_responses[url]
         else:
+            body = body.decode('utf-8')
             try:
                 body.index('openid.mode=associate')
             except ValueError:
@@ -357,7 +358,7 @@ class TestQueryFormat(TestIdRes):
         # Value should be a single string.  If it's a list, it should generate
         # an exception.
         query = {'openid.mode': ['cancel']}
-        with self.assertRaisesRegexp(TypeError, 'values'):
+        with six.assertRaisesRegex(self, TypeError, 'values'):
             Message.fromPostArgs(query)
 
 
@@ -1400,7 +1401,7 @@ class ConsumerTest(unittest.TestCase):
 
         def test():
             text = 'Error fetching XRDS document: Unit test'
-            with self.assertRaisesRegexp(DiscoveryFailure, text):
+            with six.assertRaisesRegex(self, DiscoveryFailure, text):
                 self.consumer.begin('unused in this test')
 
         self.withDummyDiscovery(test, getNextService)
@@ -1413,7 +1414,7 @@ class ConsumerTest(unittest.TestCase):
 
         def test():
             text = 'No usable OpenID services found for http://a.user.url/'
-            with self.assertRaisesRegexp(DiscoveryFailure, text):
+            with six.assertRaisesRegex(self, DiscoveryFailure, text):
                 self.consumer.begin(url)
 
         self.withDummyDiscovery(test, getNextService)
@@ -1668,7 +1669,7 @@ class TestDiscoveryVerification(unittest.TestCase):
         endpoint.server_url = "http://the-MOON.unittest/"
         endpoint.local_id = self.identifier
         self.services = [endpoint]
-        with self.assertRaisesRegexp(ProtocolError, text):
+        with six.assertRaisesRegex(self, ProtocolError, text):
             self.consumer._verifyDiscoveryResults(self.message, endpoint)
 
     def test_foreignDelegate(self):
@@ -1689,7 +1690,7 @@ class TestDiscoveryVerification(unittest.TestCase):
         endpoint.server_url = self.server_url
         endpoint.local_id = "http://unittest/juan-carlos"
 
-        with self.assertRaisesRegexp(ProtocolError, text):
+        with six.assertRaisesRegex(self, ProtocolError, text):
             self.consumer._verifyDiscoveryResults(self.message, endpoint)
 
     def test_nothingDiscovered(self):

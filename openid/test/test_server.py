@@ -6,6 +6,7 @@ import unittest
 import warnings
 from functools import partial
 
+import six
 from mock import sentinel
 from six.moves.urllib.parse import parse_qs, parse_qsl, urlparse
 from testfixtures import LogCapture, ShouldWarn, StringComparison
@@ -199,7 +200,7 @@ class TestDecode(unittest.TestCase):
             'openid.return_to': self.rt_url,
             'openid.trust_root': self.tr_url,
         }
-        with self.assertRaisesRegexp(TypeError, 'values'):
+        with six.assertRaisesRegex(self, TypeError, 'values'):
             self.decode(args)
 
     def test_checkidImmediate(self):
@@ -506,7 +507,7 @@ class TestDecode(unittest.TestCase):
         args = {'openid.ns': 'Tuesday',
                 'openid.mode': 'associate'}
 
-        with self.assertRaisesRegexp(server.ProtocolError, 'Tuesday') as catch:
+        with six.assertRaisesRegex(self, server.ProtocolError, 'Tuesday') as catch:
             self.decode(args)
         self.assertTrue(catch.exception.openid_message)
 
@@ -788,7 +789,7 @@ class TestCheckID(unittest.TestCase):
         self.request = make_checkid_request(op_endpoint=self.op_endpoint)
 
     def test_openid2_requires_provider(self):
-        with self.assertRaisesRegexp(ValueError, 'CheckIDRequest requires op_endpoint'):
+        with six.assertRaisesRegex(self, ValueError, 'CheckIDRequest requires op_endpoint'):
             server.CheckIDRequest(sentinel.identity, sentinel.return_to, claimed_id=sentinel.claimed_id,
                                   message=Message(OPENID2_NS))
 
