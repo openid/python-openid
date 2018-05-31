@@ -7,9 +7,10 @@ import os.path
 import string
 import time
 from errno import EEXIST, ENOENT
+from hashlib import sha1
 from tempfile import mkstemp
 
-from openid import cryptutil, oidutil
+from openid import oidutil
 from openid.association import Association
 from openid.oidutil import string_to_text
 from openid.store import nonce
@@ -22,7 +23,7 @@ _isFilenameSafe = set(_filename_allowed).__contains__
 
 
 def _safe64(s):
-    h64 = oidutil.toBase64(cryptutil.sha1(s.encode('utf-8')))
+    h64 = oidutil.toBase64(sha1(s.encode('utf-8')).digest())
     h64 = h64.replace('+', '_')
     h64 = h64.replace('/', '.')
     h64 = h64.replace('=', '')

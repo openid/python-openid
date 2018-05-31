@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.asymmetric.dh import DHPrivateNumbers, DHPub
 from testfixtures import ShouldWarn
 
 from openid.constants import DEFAULT_DH_GENERATOR, DEFAULT_DH_MODULUS
-from openid.cryptutil import base64ToLong, bytes_to_int, longToBase64, sha256
+from openid.cryptutil import base64ToLong, bytes_to_int, longToBase64
 from openid.dh import DiffieHellman, strxor
 
 
@@ -136,6 +136,11 @@ class TestDiffieHellman(unittest.TestCase):
         # Test key exchange - deprecated method
         server_dh = DiffieHellman.fromDefaults()
         self.setup_keys(server_dh, self.server_public_key, self.server_private_key)
+
+        def sha256(value):
+            digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+            digest.update(value)
+            return digest.finalize()
 
         warning_msg = "Method 'xorSecret' is deprecated, use 'xor_secret' instead."
         with ShouldWarn(DeprecationWarning(warning_msg)):
