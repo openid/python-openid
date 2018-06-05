@@ -8,56 +8,18 @@ integers.
 from __future__ import unicode_literals
 
 import codecs
-import hashlib
-import hmac
 import warnings
 
-from openid.oidutil import fromBase64, string_to_text, toBase64
+from openid.oidutil import fromBase64, toBase64
 
 __all__ = [
     'base64ToLong',
     'binaryToLong',
-    'hmacSha1',
-    'hmacSha256',
     'longToBase64',
     'longToBinary',
     'int_to_bytes',
     'bytes_to_int',
 ]
-
-
-class HashContainer(object):
-    def __init__(self, hash_constructor):
-        self.new = hash_constructor
-        self.digest_size = hash_constructor().digest_size
-
-
-sha1_module = HashContainer(hashlib.sha1)
-sha256_module = HashContainer(hashlib.sha256)
-
-
-def hmacSha1(key, text):
-    """
-    Return a SHA1 HMAC.
-
-    @type key: six.binary_type
-    @type text: six.text_type, six.binary_type is deprecated
-    @rtype: six.binary_type
-    """
-    text = string_to_text(text, "Binary values for text are deprecated. Use text input instead.")
-    return hmac.new(key, text.encode('utf-8'), sha1_module).digest()
-
-
-def hmacSha256(key, text):
-    """
-    Return a SHA256 HMAC.
-
-    @type key: six.binary_type
-    @type text: six.text_type, six.binary_type is deprecated
-    @rtype: six.binary_type
-    """
-    text = string_to_text(text, "Binary values for text are deprecated. Use text input instead.")
-    return hmac.new(key, text.encode('utf-8'), sha256_module).digest()
 
 
 def bytes_to_int(value):

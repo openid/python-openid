@@ -28,9 +28,12 @@ from __future__ import unicode_literals
 import time
 
 import six
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.constant_time import bytes_eq
+from cryptography.hazmat.primitives.hmac import HMAC
 
-from openid import cryptutil, kvform, oidutil
+from openid import kvform, oidutil
 from openid.message import OPENID_NS
 
 from .oidutil import string_to_text
@@ -233,6 +236,8 @@ class Association(object):
         is C{'HMAC-SHA1'}, but new types may be defined in the future.
     @type assoc_type: six.text_type
 
+    @cvar hmac_algorithms: Mapping of association type to hash algorithm.
+    @type hmac_algorithms: Dict[six.text_type, hashes.HashAlgorithm]
 
     @sort: __init__, fromExpiresIn, getExpiresIn, __eq__, __ne__,
         handle, secret, issued, lifetime, assoc_type
@@ -248,9 +253,9 @@ class Association(object):
         'assoc_type',
     ]
 
-    _macs = {
-        'HMAC-SHA1': cryptutil.hmacSha1,
-        'HMAC-SHA256': cryptutil.hmacSha256,
+    hmac_algorithms = {
+        'HMAC-SHA1': hashes.SHA1(),
+        'HMAC-SHA256': hashes.SHA256(),
     }
 
     @classmethod
@@ -456,12 +461,14 @@ class Association(object):
         kv = kvform.seqToKV(pairs)
 
         try:
-            mac = self._macs[self.assoc_type]
+            algorithm = self.hmac_algorithms[self.assoc_type]
         except KeyError:
             raise ValueError(
                 'Unknown association type: %r' % (self.assoc_type,))
 
-        return mac(self.secret, kv)
+        hmac = HMAC(self.secret, algorithm, backend=default_backend())
+        hmac.update(kv.encode('utf-8'))
+        return hmac.finalize()
 
     def getMessageSignature(self, message):
         """Return the signature of a message.
