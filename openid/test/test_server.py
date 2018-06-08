@@ -284,6 +284,28 @@ class TestDecode(unittest.TestCase):
         self.assertEqual(r.trust_root, self.tr_url)
         self.assertEqual(r.return_to, self.rt_url)
 
+    def test_checkidSetupEmptyIdentityOpenID2(self):
+        args = {
+            'openid.ns': OPENID2_NS,
+            'openid.mode': 'checkid_setup',
+            'openid.assoc_handle': self.assoc_handle,
+            'openid.return_to': self.rt_url,
+            'openid.realm': self.tr_url,
+            'openid.identity': '',
+        }
+        self.assertRaises(server.ProtocolError, self.decode, args)
+
+    def test_checkidSetupEmptyClaimedIDOpenID2(self):
+        args = {
+            'openid.ns': OPENID2_NS,
+            'openid.mode': 'checkid_setup',
+            'openid.assoc_handle': self.assoc_handle,
+            'openid.return_to': self.rt_url,
+            'openid.realm': self.tr_url,
+            'openid.claimed_id': '',
+        }
+        self.assertRaises(server.ProtocolError, self.decode, args)
+
     def test_checkidSetupNoReturnOpenID1(self):
         """Make sure an OpenID 1 request cannot be decoded if it lacks
         a return_to.
