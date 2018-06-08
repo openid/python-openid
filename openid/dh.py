@@ -105,5 +105,10 @@ class DiffieHellman(object):
 
     def xorSecret(self, composite, secret, hash_func):
         dh_shared = self.get_shared_secret(composite)
+
+        # The DH secret must be `btwoc` compatible.
+        # See http://openid.net/specs/openid-authentication-2_0.html#rfc.section.8.2.3 for details.
+        dh_shared = cryptutil.fix_btwoc(dh_shared)
+
         hashed_dh_shared = hash_func(dh_shared)
         return strxor(secret, hashed_dh_shared)
