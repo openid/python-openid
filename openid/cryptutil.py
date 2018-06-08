@@ -12,8 +12,6 @@ import hashlib
 import hmac
 import warnings
 
-import six
-
 from openid.oidutil import fromBase64, string_to_text, toBase64
 
 __all__ = [
@@ -94,6 +92,23 @@ def bytes_to_int(value):
     return int(codecs.encode(value, 'hex'), 16)
 
 
+def fix_btwoc(value):
+    """
+    Utility function to ensure the output conforms the `btwoc` function output.
+
+    See http://openid.net/specs/openid-authentication-2_0.html#btwoc for details.
+
+    @type value: bytes or bytearray
+    @rtype: bytes
+    """
+    # Conversion to bytearray is python 2/3 compatible
+    array = bytearray(value)
+    # First bit must be zero. If it isn't, the bytes must be prepended by zero byte.
+    if array[0] > 127:
+        array = bytearray([0]) + array
+    return bytes(array)
+
+
 def int_to_bytes(value):
     """
     Convert integer to byte string.
@@ -105,11 +120,8 @@ def int_to_bytes(value):
     if len(hex_value) % 2:
         hex_value = '0' + hex_value
     array = bytearray.fromhex(hex_value)
-    # First bit must be zero. If it isn't, the bytes must be prepended by zero byte.
-    # See http://openid.net/specs/openid-authentication-2_0.html#btwoc for details.
-    if array[0] > 127:
-        array = bytearray([0]) + array
-    return six.binary_type(array)
+    # The output must be `btwoc` compatible
+    return fix_btwoc(array)
 
 
 # Deprecated versions of bytes <--> int conversions
