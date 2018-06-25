@@ -124,6 +124,7 @@ import warnings
 from copy import deepcopy
 
 import six
+from cryptography.hazmat.primitives import hashes
 
 from openid import cryptutil, kvform, oidutil
 from openid.association import Association, default_negotiator, getSecretSize
@@ -314,6 +315,11 @@ class DiffieHellmanSHA1ServerSession(object):
         session.
     @type session_type: six.text_type
 
+    @cvar algorithm: Hash algorithm for MAC key generation.
+    @type algorithm: hashes.HashAlgorithm
+    @cvar hash_func: Hash function for MAC key generation. Deprecated attribute.
+    @type hash_func: function
+
     @ivar dh: The Diffie-Hellman algorithm values for this request
     @type dh: DiffieHellman
 
@@ -326,7 +332,8 @@ class DiffieHellmanSHA1ServerSession(object):
     @see: AssociateRequest
     """
     session_type = 'DH-SHA1'
-    hash_func = staticmethod(cryptutil.sha1)
+    algorithm = hashes.SHA1()
+    hash_func = None
     allowed_assoc_types = ['HMAC-SHA1']
 
     def __init__(self, dh, consumer_pubkey):
@@ -376,9 +383,11 @@ class DiffieHellmanSHA1ServerSession(object):
         return cls(dh, consumer_pubkey)
 
     def answer(self, secret):
-        mac_key = self.dh.xorSecret(self.consumer_pubkey,
-                                    secret,
-                                    self.hash_func)
+        if self.hash_func is not None:
+            warnings.warn("Attribute hash_func is deprecated, use algorithm instead.", DeprecationWarning)
+            mac_key = self.dh.xorSecret(self.consumer_pubkey, secret, self.hash_func)
+        else:
+            mac_key = self.dh.xor_secret(self.consumer_pubkey, secret, self.algorithm)
         return {
             'dh_server_public': self.dh.public_key,
             'enc_mac_key': oidutil.toBase64(mac_key),
@@ -387,7 +396,7 @@ class DiffieHellmanSHA1ServerSession(object):
 
 class DiffieHellmanSHA256ServerSession(DiffieHellmanSHA1ServerSession):
     session_type = 'DH-SHA256'
-    hash_func = staticmethod(cryptutil.sha256)
+    algorithm = hashes.SHA256()
     allowed_assoc_types = ['HMAC-SHA256']
 
 

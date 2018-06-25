@@ -21,8 +21,6 @@ __all__ = [
     'hmacSha256',
     'longToBase64',
     'longToBinary',
-    'sha1',
-    'sha256',
     'int_to_bytes',
     'bytes_to_int',
 ]
@@ -50,16 +48,6 @@ def hmacSha1(key, text):
     return hmac.new(key, text.encode('utf-8'), sha1_module).digest()
 
 
-def sha1(s):
-    """
-    Return a SHA1 hash.
-
-    @type s: six.binary_type
-    @rtype: six.binary_type
-    """
-    return sha1_module.new(s).digest()
-
-
 def hmacSha256(key, text):
     """
     Return a SHA256 HMAC.
@@ -70,16 +58,6 @@ def hmacSha256(key, text):
     """
     text = string_to_text(text, "Binary values for text are deprecated. Use text input instead.")
     return hmac.new(key, text.encode('utf-8'), sha256_module).digest()
-
-
-def sha256(s):
-    """
-    Return a SHA256 hash.
-
-    @type s: six.binary_type
-    @rtype: six.binary_type
-    """
-    return sha256_module.new(s).digest()
 
 
 def bytes_to_int(value):

@@ -190,8 +190,10 @@ from __future__ import unicode_literals
 
 import copy
 import logging
+import warnings
 
 import six
+from cryptography.hazmat.primitives import hashes
 from six.moves.urllib.parse import parse_qsl, urldefrag, urlparse
 
 from openid import cryptutil, fetchers, oidutil, urinorm
@@ -450,8 +452,16 @@ class Consumer(object):
 
 
 class DiffieHellmanSHA1ConsumerSession(object):
+    """Handler for Diffie-Hellman session.
+
+    @cvar algorithm: Hash algorithm for MAC key generation.
+    @type algorithm: hashes.HashAlgorithm
+    @cvar hash_func: Hash function for MAC key generation. Deprecated attribute.
+    @type hash_func: function
+    """
     session_type = 'DH-SHA1'
-    hash_func = staticmethod(cryptutil.sha1)
+    algorithm = hashes.SHA1()
+    hash_func = None
     secret_size = 20
     allowed_assoc_types = ['HMAC-SHA1']
 
@@ -478,12 +488,16 @@ class DiffieHellmanSHA1ConsumerSession(object):
         enc_mac_key64 = response.getArg(OPENID_NS, 'enc_mac_key', no_default)
         dh_server_public = cryptutil.base64ToLong(dh_server_public64)
         enc_mac_key = oidutil.fromBase64(enc_mac_key64)
-        return self.dh.xorSecret(dh_server_public, enc_mac_key, self.hash_func)
+        if self.hash_func is not None:
+            warnings.warn("Attribute hash_func is deprecated, use algorithm instead.", DeprecationWarning)
+            return self.dh.xorSecret(dh_server_public, enc_mac_key, self.hash_func)
+        else:
+            return self.dh.xor_secret(dh_server_public, enc_mac_key, self.algorithm)
 
 
 class DiffieHellmanSHA256ConsumerSession(DiffieHellmanSHA1ConsumerSession):
     session_type = 'DH-SHA256'
-    hash_func = staticmethod(cryptutil.sha256)
+    algorithm = hashes.SHA256()
     secret_size = 32
     allowed_assoc_types = ['HMAC-SHA256']
 
