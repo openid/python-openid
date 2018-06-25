@@ -52,6 +52,26 @@ class TestLongBinary(unittest.TestCase):
             assert s == s_prime, (n, s, s_prime)
 
 
+class TestFixBtwoc(unittest.TestCase):
+    """Test `fix_btwoc` function."""
+
+    cases = (
+        (b'\x00', b'\x00'),
+        (b'\x01', b'\x01'),
+        (b'\x7F', b'\x7F'),
+        (b'\x80', b'\x00\x80'),
+        (b'\xFF', b'\x00\xFF'),
+    )
+
+    def test_bytes(self):
+        for value, output in self.cases:
+            self.assertEqual(cryptutil.fix_btwoc(value), output)
+
+    def test_bytearray(self):
+        for value, output in self.cases:
+            self.assertEqual(cryptutil.fix_btwoc(bytearray(value)), output)
+
+
 class TestBytesIntConversion(unittest.TestCase):
     """Test bytes <-> int conversions."""
 

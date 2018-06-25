@@ -579,11 +579,11 @@ class CheckIDRequest(OpenIDRequest):
                 s = "OpenID 1 message did not contain openid.identity"
                 raise ProtocolError(message, text=s)
         else:
-            if identity and not claimed_id:
+            if identity is not None and claimed_id is None:
                 s = ("OpenID 2.0 message contained openid.identity but not "
                      "claimed_id")
                 raise ProtocolError(message, text=s)
-            elif claimed_id and not identity:
+            elif identity is None and claimed_id is not None:
                 s = ("OpenID 2.0 message contained openid.claimed_id but not "
                      "identity")
                 raise ProtocolError(message, text=s)
