@@ -15,8 +15,6 @@ from six.moves.urllib.parse import urlencode
 
 __all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'autoSubmitHTML']
 
-_LOGGER = logging.getLogger(__name__)
-
 
 def autoSubmitHTML(form, title='OpenID transaction in progress'):
     return """

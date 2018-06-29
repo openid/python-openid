@@ -676,7 +676,7 @@ class GenericConsumer(object):
         try:
             self._verifyReturnToArgs(message.toPostArgs())
         except ProtocolError as why:
-            _LOGGER.exception("Verifying return_to arguments: %s", why)
+            _LOGGER.warning("Verifying return_to arguments: %s", why)
             return False
 
         # Check the return_to base URL against the one in the message.
@@ -935,7 +935,7 @@ class GenericConsumer(object):
             try:
                 self._verifyDiscoverySingle(endpoint, to_match)
             except ProtocolError as e:
-                _LOGGER.exception("Error attempting to use stored discovery information: %s", e)
+                _LOGGER.info("Unable to use stored discovery information: %s", e)
                 _LOGGER.info("Attempting discovery to verify endpoint")
                 endpoint = self._discoverAndVerify(
                     to_match.claimed_id, [to_match])
@@ -978,7 +978,7 @@ class GenericConsumer(object):
                 except TypeURIMismatch:
                     self._verifyDiscoverySingle(endpoint, to_match_1_0)
             except ProtocolError as e:
-                _LOGGER.exception("Error attempting to use stored discovery information: %s", e)
+                _LOGGER.info("Unable to use stored discovery information: %s", e)
                 _LOGGER.info("Attempting discovery to verify endpoint")
             else:
                 return endpoint
@@ -1075,9 +1075,9 @@ class GenericConsumer(object):
                     # succeeded. Return this endpoint.
                     return endpoint
         else:
-            _LOGGER.error('Discovery verification failure for %s', claimed_id)
+            _LOGGER.warning('Discovery verification failure for %s', claimed_id)
             for failure_message in failure_messages:
-                _LOGGER.error(' * Endpoint mismatch: %s', failure_message)
+                _LOGGER.warning(' * Endpoint mismatch: %s', failure_message)
 
             raise DiscoveryFailure(
                 'No matching endpoint found after discovering %s'
@@ -1096,7 +1096,7 @@ class GenericConsumer(object):
         try:
             response = self._makeKVPost(request, server_url)
         except (fetchers.HTTPFetchingError, ServerError) as e:
-            _LOGGER.exception('check_authentication failed: %s', e)
+            _LOGGER.info('check_authentication failed: %s', e)
             return False
         else:
             return self._processCheckAuthResponse(response, server_url)
@@ -1130,14 +1130,14 @@ class GenericConsumer(object):
         if invalidate_handle is not None:
             _LOGGER.info('Received "invalidate_handle" from server %s', server_url)
             if self.store is None:
-                _LOGGER.error('Unexpectedly got invalidate_handle without a store!')
+                _LOGGER.warning('Unexpectedly got invalidate_handle without a store!')
             else:
                 self.store.removeAssociation(server_url, invalidate_handle)
 
         if is_valid == 'true':
             return True
         else:
-            _LOGGER.error('Server responds that checkAuth call is not valid')
+            _LOGGER.info('Server responds that checkAuth call is not valid')
             return False
 
     def _getAssociation(self, endpoint):
@@ -1217,7 +1217,7 @@ class GenericConsumer(object):
         # The server didn't like the association/session type
         # that we sent, and it sent us back a message that
         # might tell us how to handle it.
-        _LOGGER.error('Unsupported association type %s: %s', assoc_type, server_error.error_text)
+        _LOGGER.warning('Unsupported association type %s: %s', assoc_type, server_error.error_text)
 
         # Extract the session_type and assoc_type from the
         # error message
@@ -1225,11 +1225,11 @@ class GenericConsumer(object):
         session_type = server_error.message.getArg(OPENID_NS, 'session_type')
 
         if assoc_type is None or session_type is None:
-            _LOGGER.error('Server responded with unsupported association session but did not supply a fallback.')
+            _LOGGER.warning('Server responded with unsupported association session but did not supply a fallback.')
             return None
         elif not self.negotiator.isAllowed(assoc_type, session_type):
-            _LOGGER.error('Server sent unsupported session/association type: session_type=%s, assoc_type=%s',
-                          session_type, assoc_type)
+            _LOGGER.warning('Server sent unsupported session/association type: session_type=%s, assoc_type=%s',
+                            session_type, assoc_type)
             return None
         else:
             return assoc_type, session_type
@@ -1249,7 +1249,7 @@ class GenericConsumer(object):
         try:
             response = self._makeKVPost(args, endpoint.server_url)
         except fetchers.HTTPFetchingError as why:
-            _LOGGER.exception('openid.associate request failed: %s', why)
+            _LOGGER.warning('openid.associate request failed: %s', why)
             return None
 
         try:

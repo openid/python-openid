@@ -422,7 +422,7 @@ def discoverXRI(iname):
         for service_element in services:
             endpoints.extend(flt.getServiceEndpoints(iname, service_element))
     except XRDSError:
-        _LOGGER.exception('xrds error on %s', iname)
+        _LOGGER.info('xrds error on %s', iname)
 
     for endpoint in endpoints:
         # Is there a way to pass this through the filter to the endpoint

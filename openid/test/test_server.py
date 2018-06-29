@@ -1864,7 +1864,7 @@ class TestSignatory(unittest.TestCase):
         with LogCapture() as logbook:
             verified = self.signatory.verify(assoc_handle, signed)
         self.assertFalse(verified)
-        logbook.check(('openid.server.server', 'ERROR', StringComparison('failed to get assoc with handle .*')))
+        logbook.check(('openid.server.server', 'INFO', StringComparison('failed to get assoc with handle .*')))
 
     def test_verifyAssocMismatch(self):
         """Attempt to validate sign-all message with a signed-list assoc."""
@@ -1882,7 +1882,7 @@ class TestSignatory(unittest.TestCase):
         with LogCapture() as logbook:
             verified = self.signatory.verify(assoc_handle, signed)
         self.assertFalse(verified)
-        logbook.check(('openid.server.server', 'ERROR', StringComparison('Error in verifying .*')))
+        logbook.check(('openid.server.server', 'INFO', StringComparison('Error in verifying .*')))
 
     def test_getAssoc(self):
         assoc_handle = self.makeAssoc(dumb=True)

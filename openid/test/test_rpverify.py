@@ -210,7 +210,7 @@ class TestVerifyReturnTo(unittest.TestCase):
 
         with LogCapture() as logbook:
             self.assertFalse(trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
-        logbook.check(('openid.server.trustroot', 'ERROR', StringComparison('Failed to validate return_to .*')))
+        logbook.check(('openid.server.trustroot', 'INFO', StringComparison('Failed to validate return_to .*')))
 
     def test_verifyFailIfDiscoveryRedirects(self):
         realm = 'http://*.example.com/'
@@ -222,7 +222,7 @@ class TestVerifyReturnTo(unittest.TestCase):
 
         with LogCapture() as logbook:
             self.assertFalse(trustroot.verifyReturnTo(realm, return_to, _vrfy=vrfy))
-        logbook.check(('openid.server.trustroot', 'ERROR', StringComparison('Attempting to verify .*')))
+        logbook.check(('openid.server.trustroot', 'INFO', StringComparison('Attempting to verify .*')))
 
 
 if __name__ == '__main__':

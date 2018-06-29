@@ -70,8 +70,8 @@ class TestOpenID2SessionNegotiation(unittest.TestCase):
         with LogCapture() as logbook:
             self.assertIsNone(self.consumer._negotiateAssociation(self.endpoint))
         no_fallback_msg = 'Server responded with unsupported association session but did not supply a fallback.'
-        logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Unsupported association type .*')),
-                      ('openid.consumer.consumer', 'ERROR', no_fallback_msg))
+        logbook.check(('openid.consumer.consumer', 'WARNING', StringComparison('Unsupported association type .*')),
+                      ('openid.consumer.consumer', 'WARNING', no_fallback_msg))
 
     def testEmptySessionType(self):
         """
@@ -88,8 +88,8 @@ class TestOpenID2SessionNegotiation(unittest.TestCase):
         with LogCapture() as logbook:
             self.assertIsNone(self.consumer._negotiateAssociation(self.endpoint))
         no_fallback_msg = 'Server responded with unsupported association session but did not supply a fallback.'
-        logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Unsupported association type .*')),
-                      ('openid.consumer.consumer', 'ERROR', no_fallback_msg))
+        logbook.check(('openid.consumer.consumer', 'WARNING', StringComparison('Unsupported association type .*')),
+                      ('openid.consumer.consumer', 'WARNING', no_fallback_msg))
 
     def testNotAllowed(self):
         """
@@ -112,8 +112,8 @@ class TestOpenID2SessionNegotiation(unittest.TestCase):
         with LogCapture() as logbook:
             self.assertIsNone(self.consumer._negotiateAssociation(self.endpoint))
         unsupported_msg = StringComparison('Server sent unsupported session/association type: .*')
-        logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Unsupported association type .*')),
-                      ('openid.consumer.consumer', 'ERROR', unsupported_msg))
+        logbook.check(('openid.consumer.consumer', 'WARNING', StringComparison('Unsupported association type .*')),
+                      ('openid.consumer.consumer', 'WARNING', unsupported_msg))
 
     def testUnsupportedWithRetry(self):
         """
@@ -131,7 +131,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase):
         self.consumer.return_messages = [msg, assoc]
         with LogCapture() as logbook:
             self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), assoc)
-        logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Unsupported association type .*')))
+        logbook.check(('openid.consumer.consumer', 'WARNING', StringComparison('Unsupported association type .*')))
 
     def testUnsupportedWithRetryAndFail(self):
         """
@@ -150,7 +150,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase):
         with LogCapture() as logbook:
             self.assertIsNone(self.consumer._negotiateAssociation(self.endpoint))
         refused_msg = StringComparison('Server %s refused its .*' % self.endpoint.server_url)
-        logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Unsupported association type .*')),
+        logbook.check(('openid.consumer.consumer', 'WARNING', StringComparison('Unsupported association type .*')),
                       ('openid.consumer.consumer', 'ERROR', refused_msg))
 
     def testValid(self):
