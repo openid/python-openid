@@ -465,7 +465,7 @@ class TestComplete(TestIdRes):
 
         with LogCapture() as logbook:
             self.assertRaises(VerifiedError, self.consumer.complete, message, self.endpoint)
-        logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Error attempting to use .*')),
+        logbook.check(('openid.consumer.consumer', 'INFO', StringComparison('Unable to use stored discovery .*')),
                       ('openid.consumer.consumer', 'INFO', 'Attempting discovery to verify endpoint'))
 
 
@@ -604,7 +604,7 @@ class TestCheckAuthResponse(TestIdRes):
             r = self.consumer._processCheckAuthResponse(response, self.server_url)
         self.assertTrue(r)
         logbook.check(('openid.consumer.consumer', 'INFO', StringComparison('Received "invalidate_handle" from .*')),
-                      ('openid.consumer.consumer', 'ERROR', 'Unexpectedly got invalidate_handle without a store!'))
+                      ('openid.consumer.consumer', 'WARNING', 'Unexpectedly got invalidate_handle without a store!'))
 
     def test_invalidatePresent(self):
         """invalidate_handle with a handle that exists
@@ -1164,7 +1164,7 @@ class TestCheckAuth(unittest.TestCase):
         self.assertFalse(r)
         logbook.check(('openid.consumer.consumer', 'INFO', 'Using OpenID check_authentication'),
                       ('openid.consumer.consumer', 'INFO', 'stuff'),
-                      ('openid.consumer.consumer', 'ERROR', StringComparison('check_authentication failed: .*: 404')))
+                      ('openid.consumer.consumer', 'INFO', StringComparison('check_authentication failed: .*: 404')))
 
     def test_bad_args(self):
         query = {

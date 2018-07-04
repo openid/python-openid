@@ -104,7 +104,7 @@ class DiscoveryVerificationTest(TestIdRes):
         with LogCapture() as logbook:
             result = self.consumer._verifyDiscoveryResults(msg, mismatched)
         self.assertEqual(result, sentinel)
-        logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Error attempting to use .*')),
+        logbook.check(('openid.consumer.consumer', 'INFO', StringComparison('Unable to use stored discovery .*')),
                       ('openid.consumer.consumer', 'INFO', 'Attempting discovery to verify endpoint'))
 
     def test_openid2UsePreDiscovered(self):
@@ -151,7 +151,7 @@ class DiscoveryVerificationTest(TestIdRes):
             with six.assertRaisesRegex(self, consumer.ProtocolError, text):
                 self.consumer._verifyDiscoveryResults(msg, endpoint)
 
-        logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Error attempting to use .*')),
+        logbook.check(('openid.consumer.consumer', 'INFO', StringComparison('Unable to use stored discovery .*')),
                       ('openid.consumer.consumer', 'INFO', 'Attempting discovery to verify endpoint'))
 
     def test_openid1UsePreDiscovered(self):
@@ -190,7 +190,7 @@ class DiscoveryVerificationTest(TestIdRes):
 
         with LogCapture() as logbook:
             self.assertRaises(VerifiedError, self.consumer._verifyDiscoveryResults, msg, endpoint)
-        logbook.check(('openid.consumer.consumer', 'ERROR', StringComparison('Error attempting to use .*')),
+        logbook.check(('openid.consumer.consumer', 'INFO', StringComparison('Unable to use stored discovery .*')),
                       ('openid.consumer.consumer', 'INFO', 'Attempting discovery to verify endpoint'))
 
     def test_openid2Fragment(self):

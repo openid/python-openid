@@ -432,12 +432,12 @@ def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):
     try:
         allowable_urls = _vrfy(realm.buildDiscoveryURL())
     except RealmVerificationRedirected as err:
-        _LOGGER.exception(six.text_type(err))
+        _LOGGER.info(six.text_type(err))
         return False
 
     if returnToMatches(allowable_urls, return_to):
         return True
     else:
-        _LOGGER.error("Failed to validate return_to %r for realm %r, was not in %s",
-                      return_to, realm_str, allowable_urls)
+        _LOGGER.info("Failed to validate return_to %r for realm %r, was not in %s",
+                     return_to, realm_str, allowable_urls)
         return False

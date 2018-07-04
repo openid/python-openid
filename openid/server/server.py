@@ -1181,13 +1181,13 @@ class Signatory(object):
                                       "Binary values for assoc_handle are deprecated. Use text input instead.")
         assoc = self.getAssociation(assoc_handle, dumb=True)
         if not assoc:
-            _LOGGER.error("failed to get assoc with handle %r to verify message %r", assoc_handle, message)
+            _LOGGER.info("failed to get assoc with handle %r to verify message %r", assoc_handle, message)
             return False
 
         try:
             valid = assoc.checkMessageSignature(message)
         except ValueError as ex:
-            _LOGGER.exception("Error in verifying %s with %s: %s", message, assoc, ex)
+            _LOGGER.info("Error in verifying %s with %s: %s", message, assoc, ex)
             return False
         return valid
 
