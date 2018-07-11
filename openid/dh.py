@@ -114,10 +114,10 @@ class DiffieHellman(object):
         @type composite: Union[six.integer_types]
         @rtype: Union[six.integer_types]
         """
-        warnings.warn("Method 'getSharedSecret' is deprecated in favor of 'get_shared_secret'.", DeprecationWarning)
-        return cryptutil.bytes_to_int(self.get_shared_secret(composite))
+        warnings.warn("Method 'getSharedSecret' is deprecated in favor of '_get_shared_secret'.", DeprecationWarning)
+        return cryptutil.bytes_to_int(self._get_shared_secret(composite))
 
-    def get_shared_secret(self, public_key):
+    def _get_shared_secret(self, public_key):
         """Return a shared secret.
 
         @param public_key: Base64 encoded public key of the other party.
@@ -129,7 +129,7 @@ class DiffieHellman(object):
 
     def xorSecret(self, composite, secret, hash_func):
         warnings.warn("Method 'xorSecret' is deprecated, use 'xor_secret' instead.", DeprecationWarning)
-        dh_shared = self.get_shared_secret(cryptutil.longToBase64(composite))
+        dh_shared = self._get_shared_secret(cryptutil.longToBase64(composite))
 
         # The DH secret must be `btwoc` compatible.
         # See http://openid.net/specs/openid-authentication-2_0.html#rfc.section.8.2.3 for details.
@@ -148,7 +148,7 @@ class DiffieHellman(object):
         @type algorithm: hashes.HashAlgorithm
         @rtype: six.text_type
         """
-        dh_shared = self.get_shared_secret(public_key)
+        dh_shared = self._get_shared_secret(public_key)
 
         # The DH secret must be `btwoc` compatible.
         # See http://openid.net/specs/openid-authentication-2_0.html#rfc.section.8.2.3 for details.

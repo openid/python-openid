@@ -128,18 +128,18 @@ class TestDiffieHellman(unittest.TestCase):
     def test_get_shared_secret_server(self):
         server_dh = DiffieHellman.fromDefaults()
         self.setup_keys(server_dh, self.server_public_key, self.server_private_key)
-        self.assertEqual(server_dh.get_shared_secret(self.consumer_public_key), base64.b64decode(self.shared_secret))
+        self.assertEqual(server_dh._get_shared_secret(self.consumer_public_key), base64.b64decode(self.shared_secret))
 
     def test_get_shared_secret_consumer(self):
         consumer_dh = DiffieHellman.fromDefaults()
         self.setup_keys(consumer_dh, self.consumer_public_key, self.consumer_private_key)
-        self.assertEqual(consumer_dh.get_shared_secret(self.server_public_key), base64.b64decode(self.shared_secret))
+        self.assertEqual(consumer_dh._get_shared_secret(self.server_public_key), base64.b64decode(self.shared_secret))
 
     def test_getSharedSecret(self):
         # Test the deprecated method
         consumer_dh = DiffieHellman.fromDefaults()
         self.setup_keys(consumer_dh, self.consumer_public_key, self.consumer_private_key)
-        warning_msg = "Method 'getSharedSecret' is deprecated in favor of 'get_shared_secret'."
+        warning_msg = "Method 'getSharedSecret' is deprecated in favor of '_get_shared_secret'."
         with ShouldWarn(DeprecationWarning(warning_msg)):
             warnings.simplefilter('always')
             self.assertEqual(consumer_dh.getSharedSecret(self.server_public_key), base64ToLong(self.shared_secret))
