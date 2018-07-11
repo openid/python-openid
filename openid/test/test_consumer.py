@@ -11,6 +11,7 @@ from six.moves.urllib.parse import parse_qsl, urlparse
 from testfixtures import LogCapture, ShouldWarn, StringComparison
 
 from openid import association, cryptutil, fetchers, kvform, oidutil
+from openid.constants import DEFAULT_DH_GENERATOR
 from openid.consumer.consumer import (CANCEL, FAILURE, SETUP_NEEDED, SUCCESS, AuthRequest, CancelResponse, Consumer,
                                       DiffieHellmanSHA1ConsumerSession, DiffieHellmanSHA256ConsumerSession,
                                       FailureResponse, GenericConsumer, PlainTextConsumerSession, ProtocolError,
@@ -125,7 +126,7 @@ def makeFastConsumerSession(consumer_session_cls=DiffieHellmanSHA256ConsumerSess
     """
     Create custom DH object so tests run quickly.
     """
-    dh = DiffieHellman(100389557, 2)
+    dh = DiffieHellman('BfvStQ==', DEFAULT_DH_GENERATOR)
     return consumer_session_cls(dh)
 
 
@@ -1776,8 +1777,8 @@ class TestDiffieHellmanResponseParameters(object):
 
     def setUp(self):
         # Pre-compute DH with small prime so tests run quickly.
-        self.server_dh = DiffieHellman(100389557, 2)
-        self.consumer_dh = DiffieHellman(100389557, 2)
+        self.server_dh = DiffieHellman('BfvStQ==', DEFAULT_DH_GENERATOR)
+        self.consumer_dh = DiffieHellman('BfvStQ==', DEFAULT_DH_GENERATOR)
 
         # base64(btwoc(g ^ xb mod p))
         self.dh_server_public = self.server_dh.public_key

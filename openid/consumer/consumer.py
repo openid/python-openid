@@ -475,10 +475,8 @@ class DiffieHellmanSHA1ConsumerSession(object):
         args = {'dh_consumer_public': self.dh.public_key}
 
         if not self.dh.usingDefaultValues():
-            args.update({
-                'dh_modulus': cryptutil.longToBase64(self.dh.modulus),
-                'dh_gen': cryptutil.longToBase64(self.dh.generator),
-            })
+            modulus, generator = self.dh.parameters
+            args.update({'dh_modulus': modulus, 'dh_gen': generator})
 
         return args
 

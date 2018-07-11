@@ -35,9 +35,18 @@ class DiffieHellman(object):
     def __init__(self, modulus, generator):
         """Create a new instance.
 
-        @type modulus: Union[six.integer_types]
-        @type generator: Union[six.integer_types]
+        @type modulus: six.text_type, Union[six.integer_types] are deprecated
+        @type generator: six.text_type, Union[six.integer_types] are deprecated
         """
+        if isinstance(modulus, six.integer_types):
+            warnings.warn("Modulus should be passed as base64 encoded string.")
+        else:
+            modulus = cryptutil.base64ToLong(modulus)
+        if isinstance(generator, six.integer_types):
+            warnings.warn("Generator should be passed as base64 encoded string.")
+        else:
+            generator = cryptutil.base64ToLong(generator)
+
         self.parameter_numbers = DHParameterNumbers(modulus, generator)
         parameters = self.parameter_numbers.parameters(default_backend())
         self.private_key = parameters.generate_private_key()
@@ -53,6 +62,7 @@ class DiffieHellman(object):
 
         @rtype: Union[six.integer_types]
         """
+        warnings.warn("Modulus property will return base64 encoded string.", DeprecationWarning)
         return self.parameter_numbers.p
 
     @property
@@ -61,7 +71,19 @@ class DiffieHellman(object):
 
         @rtype: Union[six.integer_types]
         """
+        warnings.warn("Generator property will return base64 encoded string.", DeprecationWarning)
         return self.parameter_numbers.g
+
+    @property
+    def parameters(self):
+        """Return base64 encoded modulus and generator.
+
+        @return: Tuple with modulus and generator
+        @rtype: Tuple[six.text_type, six.text_type]
+        """
+        modulus = self.parameter_numbers.p
+        generator = self.parameter_numbers.g
+        return cryptutil.longToBase64(modulus), cryptutil.longToBase64(generator)
 
     @property
     def public(self):
@@ -81,8 +103,7 @@ class DiffieHellman(object):
         return cryptutil.longToBase64(self.private_key.public_key().public_numbers().y)
 
     def usingDefaultValues(self):
-        return (self.modulus == DEFAULT_DH_MODULUS and
-                self.generator == DEFAULT_DH_GENERATOR)
+        return self.parameters == (DEFAULT_DH_MODULUS, DEFAULT_DH_GENERATOR)
 
     def getSharedSecret(self, composite):
         """Return a shared secret.

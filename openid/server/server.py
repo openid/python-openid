@@ -367,8 +367,6 @@ class DiffieHellmanSHA1ServerSession(object):
                                 % (missing,))
 
         if dh_modulus or dh_gen:
-            dh_modulus = cryptutil.base64ToLong(dh_modulus)
-            dh_gen = cryptutil.base64ToLong(dh_gen)
             dh = DiffieHellman(dh_modulus, dh_gen)
         else:
             dh = DiffieHellman.fromDefaults()

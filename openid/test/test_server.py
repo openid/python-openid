@@ -26,11 +26,9 @@ from openid.store import memstore
 
 # for more, see /etc/ssh/moduli
 
-ALT_MODULUS = int('1423261515703355186607439952816216983770573549498844689430217675736088990483613604225135575535147900'
-                  '4551229946895343158530081254885941985717109436635815890343316791551733211386105974742540867014420109'
-                  '9811846875730766487278261498262568348338476437200556998366087779709990807518291581860338635288400119'
-                  '293970087')
-ALT_GEN = 5
+ALT_MODULUS = ('AMqt3ewWZ/xotfoV1TxOFTLdJFYaGi1HoSwBq+oeAHMfaSGqxAdCMR/fnmNLtxMb7hryQCYVVDiakQQl4ETojINZsBD1rSuA4pyxpbA'
+               'nsZ2eAab2Om9F5dftL/aioAhQUKfQzzB8PbUdJJA1WQe0QnwjqY3x64q+8rogm7ev/oan')
+ALT_GEN = 'BQ=='
 
 
 # Example values to be used in tests
@@ -456,16 +454,15 @@ class TestDecode(unittest.TestCase):
             'openid.mode': 'associate',
             'openid.session_type': 'DH-SHA1',
             'openid.dh_consumer_public': "Rzup9265tw==",
-            'openid.dh_modulus': cryptutil.longToBase64(ALT_MODULUS),
-            'openid.dh_gen': cryptutil.longToBase64(ALT_GEN),
+            'openid.dh_modulus': ALT_MODULUS,
+            'openid.dh_gen': ALT_GEN,
         }
         r = self.decode(args)
         self.assertIsInstance(r, server.AssociateRequest)
         self.assertEqual(r.mode, "associate")
         self.assertEqual(r.session.session_type, "DH-SHA1")
         self.assertEqual(r.assoc_type, "HMAC-SHA1")
-        self.assertEqual(r.session.dh.modulus, ALT_MODULUS)
-        self.assertEqual(r.session.dh.generator, ALT_GEN)
+        self.assertEqual(r.session.dh.parameters, (ALT_MODULUS, ALT_GEN))
         self.assertTrue(r.session.consumer_pubkey)
 
     def test_associateDHCorruptModGen(self):

@@ -61,13 +61,35 @@ class TestStrXor(unittest.TestCase):
 class TestDiffieHellman(unittest.TestCase):
     """Test `DiffieHellman` class."""
 
+    def test_init(self):
+        dh = DiffieHellman(DEFAULT_DH_MODULUS, DEFAULT_DH_GENERATOR)
+        self.assertTrue(dh.usingDefaultValues())
+
+    def test_init_int(self):
+        dh = DiffieHellman(base64ToLong(DEFAULT_DH_MODULUS), base64ToLong(DEFAULT_DH_GENERATOR))
+        self.assertTrue(dh.usingDefaultValues())
+
     def test_modulus(self):
         dh = DiffieHellman.fromDefaults()
-        self.assertEqual(dh.modulus, DEFAULT_DH_MODULUS)
+        modulus = int('155172898181473697471232257763715539915724801966915404479707795314057629378541917580651227423698'
+                      '188993727816152646631438561595825688188889951272158842675419950341258706556549803580104870537681'
+                      '476726513255747040765857479291291572334510643245094715007229621094194349783925984760375594985848'
+                      '253359305585439638443')
+        warning_msg = "Modulus property will return base64 encoded string."
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            self.assertEqual(dh.modulus, modulus)
 
     def test_generator(self):
         dh = DiffieHellman.fromDefaults()
-        self.assertEqual(dh.generator, DEFAULT_DH_GENERATOR)
+        warning_msg = "Generator property will return base64 encoded string."
+        with ShouldWarn(DeprecationWarning(warning_msg)):
+            warnings.simplefilter('always')
+            self.assertEqual(dh.generator, 2)
+
+    def test_parameters(self):
+        dh = DiffieHellman.fromDefaults()
+        self.assertEqual(dh.parameters, (DEFAULT_DH_MODULUS, DEFAULT_DH_GENERATOR))
 
     consumer_private_key = int(
         '76773183260125655927407219021356850612958916567415386199501281181228346359328609688049646172182310748186340503'
