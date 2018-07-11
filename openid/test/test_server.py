@@ -1314,7 +1314,7 @@ class TestDiffieHellmanSHA1ServerSession(unittest.TestCase):
         server_dh = DiffieHellman.fromDefaults()
         consumer_dh = DiffieHellman.fromDefaults()
 
-        server_session = ZeroHashServerSession(server_dh, cryptutil.base64ToLong(consumer_dh.public_key))
+        server_session = ZeroHashServerSession(server_dh, consumer_dh.public_key)
         result = {'dh_server_public': server_dh.public_key, 'enc_mac_key': oidutil.toBase64(b'Rimmer is smeg head!')}
         with ShouldWarn() as captured:
             warnings.simplefilter('always')
@@ -1352,10 +1352,10 @@ class TestAssociate(unittest.TestCase):
         self.assertTrue(rfg("enc_mac_key"))
         self.assertTrue(rfg("dh_server_public"))
 
-        enc_key = oidutil.fromBase64(rfg("enc_mac_key"))
-        spub = cryptutil.base64ToLong(rfg("dh_server_public"))
+        enc_key = rfg("enc_mac_key")
+        spub = rfg("dh_server_public")
         secret = consumer_dh.xor_secret(spub, enc_key, hashes.SHA1())
-        self.assertEqual(secret, self.assoc.secret)
+        self.assertEqual(secret, oidutil.toBase64(self.assoc.secret))
 
     def test_dhSHA256(self):
         self.assoc = self.signatory.createAssociation(
@@ -1377,10 +1377,10 @@ class TestAssociate(unittest.TestCase):
         self.assertTrue(rfg("enc_mac_key"))
         self.assertTrue(rfg("dh_server_public"))
 
-        enc_key = oidutil.fromBase64(rfg("enc_mac_key"))
-        spub = cryptutil.base64ToLong(rfg("dh_server_public"))
+        enc_key = rfg("enc_mac_key")
+        spub = rfg("dh_server_public")
         secret = consumer_dh.xor_secret(spub, enc_key, hashes.SHA256())
-        self.assertEqual(secret, self.assoc.secret)
+        self.assertEqual(secret, oidutil.toBase64(self.assoc.secret))
 
     def test_protoError256(self):
         s256_session = DiffieHellmanSHA256ConsumerSession()

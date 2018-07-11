@@ -1,6 +1,7 @@
 """"Utilities for Diffie-Hellman key exchange."""
 from __future__ import unicode_literals
 
+import base64
 import warnings
 
 import six
@@ -10,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric.dh import DHParameterNumbers, DHP
 
 from openid import cryptutil
 from openid.constants import DEFAULT_DH_GENERATOR, DEFAULT_DH_MODULUS
+from openid.oidutil import toBase64
 
 
 def _xor(a_b):
@@ -118,16 +120,16 @@ class DiffieHellman(object):
     def get_shared_secret(self, public_key):
         """Return a shared secret.
 
-        @param public_key: Public key of the other party.
-        @type public_key: Union[six.integer_types]
+        @param public_key: Base64 encoded public key of the other party.
+        @type public_key: six.text_type
         @rtype: six.binary_type
         """
-        public_numbers = DHPublicNumbers(public_key, self.parameter_numbers)
+        public_numbers = DHPublicNumbers(cryptutil.base64ToLong(public_key), self.parameter_numbers)
         return self.private_key.exchange(public_numbers.public_key(default_backend()))
 
     def xorSecret(self, composite, secret, hash_func):
         warnings.warn("Method 'xorSecret' is deprecated, use 'xor_secret' instead.", DeprecationWarning)
-        dh_shared = self.get_shared_secret(composite)
+        dh_shared = self.get_shared_secret(cryptutil.longToBase64(composite))
 
         # The DH secret must be `btwoc` compatible.
         # See http://openid.net/specs/openid-authentication-2_0.html#rfc.section.8.2.3 for details.
@@ -137,11 +139,14 @@ class DiffieHellman(object):
         return strxor(secret, hashed_dh_shared)
 
     def xor_secret(self, public_key, secret, algorithm):
-        """Return a XOR of a secret key and hash of a DH exchanged secret.
+        """Return a base64 encoded XOR of a secret key and hash of a DH exchanged secret.
 
-        @type public_key: Union[six.integer_types]
-        @type secret: bytes
+        @param public_key: Base64 encoded public key of the other party.
+        @type public_key: six.text_type
+        @param secret: Base64 encoded secret
+        @type secret: six.text_type
         @type algorithm: hashes.HashAlgorithm
+        @rtype: six.text_type
         """
         dh_shared = self.get_shared_secret(public_key)
 
@@ -152,4 +157,4 @@ class DiffieHellman(object):
         digest = hashes.Hash(algorithm, backend=default_backend())
         digest.update(dh_shared)
         hashed_dh_shared = digest.finalize()
-        return strxor(secret, hashed_dh_shared)
+        return toBase64(strxor(base64.b64decode(secret), hashed_dh_shared))

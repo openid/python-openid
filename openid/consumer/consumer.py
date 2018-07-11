@@ -188,6 +188,7 @@ USING THIS LIBRARY
 """
 from __future__ import unicode_literals
 
+import base64
 import copy
 import logging
 import warnings
@@ -490,7 +491,7 @@ class DiffieHellmanSHA1ConsumerSession(object):
             warnings.warn("Attribute hash_func is deprecated, use algorithm instead.", DeprecationWarning)
             return self.dh.xorSecret(dh_server_public, enc_mac_key, self.hash_func)
         else:
-            return self.dh.xor_secret(dh_server_public, enc_mac_key, self.algorithm)
+            return base64.b64decode(self.dh.xor_secret(dh_server_public64, enc_mac_key64, self.algorithm))
 
 
 class DiffieHellmanSHA256ConsumerSession(DiffieHellmanSHA1ConsumerSession):
