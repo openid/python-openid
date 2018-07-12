@@ -1,6 +1,7 @@
 """"Utilities for Diffie-Hellman key exchange."""
 from __future__ import unicode_literals
 
+import base64
 import warnings
 
 import six
@@ -10,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric.dh import DHParameterNumbers, DHP
 
 from openid import cryptutil
 from openid.constants import DEFAULT_DH_GENERATOR, DEFAULT_DH_MODULUS
+from openid.oidutil import toBase64
 
 
 def _xor(a_b):
@@ -35,9 +37,18 @@ class DiffieHellman(object):
     def __init__(self, modulus, generator):
         """Create a new instance.
 
-        @type modulus: Union[six.integer_types]
-        @type generator: Union[six.integer_types]
+        @type modulus: six.text_type, Union[six.integer_types] are deprecated
+        @type generator: six.text_type, Union[six.integer_types] are deprecated
         """
+        if isinstance(modulus, six.integer_types):
+            warnings.warn("Modulus should be passed as base64 encoded string.")
+        else:
+            modulus = cryptutil.base64ToLong(modulus)
+        if isinstance(generator, six.integer_types):
+            warnings.warn("Generator should be passed as base64 encoded string.")
+        else:
+            generator = cryptutil.base64ToLong(generator)
+
         self.parameter_numbers = DHParameterNumbers(modulus, generator)
         parameters = self.parameter_numbers.parameters(default_backend())
         self.private_key = parameters.generate_private_key()
@@ -53,6 +64,7 @@ class DiffieHellman(object):
 
         @rtype: Union[six.integer_types]
         """
+        warnings.warn("Modulus property will return base64 encoded string.", DeprecationWarning)
         return self.parameter_numbers.p
 
     @property
@@ -61,7 +73,19 @@ class DiffieHellman(object):
 
         @rtype: Union[six.integer_types]
         """
+        warnings.warn("Generator property will return base64 encoded string.", DeprecationWarning)
         return self.parameter_numbers.g
+
+    @property
+    def parameters(self):
+        """Return base64 encoded modulus and generator.
+
+        @return: Tuple with modulus and generator
+        @rtype: Tuple[six.text_type, six.text_type]
+        """
+        modulus = self.parameter_numbers.p
+        generator = self.parameter_numbers.g
+        return cryptutil.longToBase64(modulus), cryptutil.longToBase64(generator)
 
     @property
     def public(self):
@@ -81,8 +105,7 @@ class DiffieHellman(object):
         return cryptutil.longToBase64(self.private_key.public_key().public_numbers().y)
 
     def usingDefaultValues(self):
-        return (self.modulus == DEFAULT_DH_MODULUS and
-                self.generator == DEFAULT_DH_GENERATOR)
+        return self.parameters == (DEFAULT_DH_MODULUS, DEFAULT_DH_GENERATOR)
 
     def getSharedSecret(self, composite):
         """Return a shared secret.
@@ -91,22 +114,22 @@ class DiffieHellman(object):
         @type composite: Union[six.integer_types]
         @rtype: Union[six.integer_types]
         """
-        warnings.warn("Method 'getSharedSecret' is deprecated in favor of 'get_shared_secret'.", DeprecationWarning)
-        return cryptutil.bytes_to_int(self.get_shared_secret(composite))
+        warnings.warn("Method 'getSharedSecret' is deprecated in favor of '_get_shared_secret'.", DeprecationWarning)
+        return cryptutil.bytes_to_int(self._get_shared_secret(composite))
 
-    def get_shared_secret(self, public_key):
+    def _get_shared_secret(self, public_key):
         """Return a shared secret.
 
-        @param public_key: Public key of the other party.
-        @type public_key: Union[six.integer_types]
+        @param public_key: Base64 encoded public key of the other party.
+        @type public_key: six.text_type
         @rtype: six.binary_type
         """
-        public_numbers = DHPublicNumbers(public_key, self.parameter_numbers)
+        public_numbers = DHPublicNumbers(cryptutil.base64ToLong(public_key), self.parameter_numbers)
         return self.private_key.exchange(public_numbers.public_key(default_backend()))
 
     def xorSecret(self, composite, secret, hash_func):
         warnings.warn("Method 'xorSecret' is deprecated, use 'xor_secret' instead.", DeprecationWarning)
-        dh_shared = self.get_shared_secret(composite)
+        dh_shared = self._get_shared_secret(cryptutil.longToBase64(composite))
 
         # The DH secret must be `btwoc` compatible.
         # See http://openid.net/specs/openid-authentication-2_0.html#rfc.section.8.2.3 for details.
@@ -116,13 +139,16 @@ class DiffieHellman(object):
         return strxor(secret, hashed_dh_shared)
 
     def xor_secret(self, public_key, secret, algorithm):
-        """Return a XOR of a secret key and hash of a DH exchanged secret.
+        """Return a base64 encoded XOR of a secret key and hash of a DH exchanged secret.
 
-        @type public_key: Union[six.integer_types]
-        @type secret: bytes
+        @param public_key: Base64 encoded public key of the other party.
+        @type public_key: six.text_type
+        @param secret: Base64 encoded secret
+        @type secret: six.text_type
         @type algorithm: hashes.HashAlgorithm
+        @rtype: six.text_type
         """
-        dh_shared = self.get_shared_secret(public_key)
+        dh_shared = self._get_shared_secret(public_key)
 
         # The DH secret must be `btwoc` compatible.
         # See http://openid.net/specs/openid-authentication-2_0.html#rfc.section.8.2.3 for details.
@@ -131,4 +157,4 @@ class DiffieHellman(object):
         digest = hashes.Hash(algorithm, backend=default_backend())
         digest.update(dh_shared)
         hashed_dh_shared = digest.finalize()
-        return strxor(secret, hashed_dh_shared)
+        return toBase64(strxor(base64.b64decode(secret), hashed_dh_shared))

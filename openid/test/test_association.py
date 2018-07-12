@@ -4,6 +4,7 @@ import time
 import unittest
 
 from openid import association
+from openid.constants import DEFAULT_DH_GENERATOR
 from openid.consumer.consumer import DiffieHellmanSHA1ConsumerSession, PlainTextConsumerSession
 from openid.dh import DiffieHellman
 from openid.message import BARE_NS, OPENID2_NS, OPENID_NS, Message
@@ -25,7 +26,7 @@ class AssociationSerializationTest(unittest.TestCase):
 
 
 def createNonstandardConsumerDH():
-    nonstandard_dh = DiffieHellman(1315291, 2)
+    nonstandard_dh = DiffieHellman('FBHb', DEFAULT_DH_GENERATOR)
     return DiffieHellmanSHA1ConsumerSession(nonstandard_dh)
 
 

@@ -117,6 +117,7 @@ From 1.1 to 2.0
 """
 from __future__ import unicode_literals
 
+import base64
 import logging
 import os
 import time
@@ -323,9 +324,8 @@ class DiffieHellmanSHA1ServerSession(object):
     @ivar dh: The Diffie-Hellman algorithm values for this request
     @type dh: DiffieHellman
 
-    @ivar consumer_pubkey: The public key sent by the consumer in the
-        associate request
-    @type consumer_pubkey: int, long in Python 2
+    @ivar consumer_public_key: The public key sent by the consumer in the associate request
+    @type consumer_public_key: six.text_type
 
     @see: U{OpenID Specs, Mode: associate
         <http://openid.net/specs.bml#mode-associate>}
@@ -336,9 +336,23 @@ class DiffieHellmanSHA1ServerSession(object):
     hash_func = None
     allowed_assoc_types = ['HMAC-SHA1']
 
-    def __init__(self, dh, consumer_pubkey):
+    def __init__(self, dh, consumer_public_key):
         self.dh = dh
-        self.consumer_pubkey = consumer_pubkey
+        if isinstance(consumer_public_key, six.integer_types):
+            warnings.warn("Public key should be base64 encoded.", DeprecationWarning)
+            consumer_public_key = cryptutil.longToBase64(consumer_public_key)
+        # Check if the key can be decoded
+        try:
+            base64.b64decode(consumer_public_key)
+        except (ValueError, TypeError) as error:
+            raise ValueError("{!r} is not a valid base64 string: {}".format(consumer_public_key, error))
+        self.consumer_public_key = consumer_public_key
+
+    @property
+    def consumer_pubkey(self):
+        """Return consumer public key as integer."""
+        warnings.warn("Attribute consumer_pubkey si deprecated, use consumer_public_key instead.", DeprecationWarning)
+        return cryptutil.base64ToLong(self.consumer_public_key)
 
     @classmethod
     def fromMessage(cls, message):
@@ -367,30 +381,27 @@ class DiffieHellmanSHA1ServerSession(object):
                                 % (missing,))
 
         if dh_modulus or dh_gen:
-            dh_modulus = cryptutil.base64ToLong(dh_modulus)
-            dh_gen = cryptutil.base64ToLong(dh_gen)
             dh = DiffieHellman(dh_modulus, dh_gen)
         else:
             dh = DiffieHellman.fromDefaults()
 
-        consumer_pubkey = message.getArg(OPENID_NS, 'dh_consumer_public')
-        if consumer_pubkey is None:
+        consumer_public_key = message.getArg(OPENID_NS, 'dh_consumer_public')
+        if consumer_public_key is None:
             raise ProtocolError(message, "Public key for DH-SHA1 session "
                                 "not found in message %s" % (message,))
 
-        consumer_pubkey = cryptutil.base64ToLong(consumer_pubkey)
-
-        return cls(dh, consumer_pubkey)
+        return cls(dh, consumer_public_key)
 
     def answer(self, secret):
         if self.hash_func is not None:
             warnings.warn("Attribute hash_func is deprecated, use algorithm instead.", DeprecationWarning)
-            mac_key = self.dh.xorSecret(self.consumer_pubkey, secret, self.hash_func)
+            mac_key = self.dh.xorSecret(cryptutil.base64ToLong(self.consumer_public_key), secret, self.hash_func)
+            mac_key = oidutil.toBase64(mac_key)
         else:
-            mac_key = self.dh.xor_secret(self.consumer_pubkey, secret, self.algorithm)
+            mac_key = self.dh.xor_secret(self.consumer_public_key, base64.b64encode(secret), self.algorithm)
         return {
             'dh_server_public': self.dh.public_key,
-            'enc_mac_key': oidutil.toBase64(mac_key),
+            'enc_mac_key': mac_key,
         }
 
 

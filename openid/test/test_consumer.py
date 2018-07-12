@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import base64
 import os
 import time
 import unittest
@@ -10,7 +11,8 @@ import six
 from six.moves.urllib.parse import parse_qsl, urlparse
 from testfixtures import LogCapture, ShouldWarn, StringComparison
 
-from openid import association, cryptutil, fetchers, kvform, oidutil
+from openid import association, fetchers, kvform, oidutil
+from openid.constants import DEFAULT_DH_GENERATOR
 from openid.consumer.consumer import (CANCEL, FAILURE, SETUP_NEEDED, SUCCESS, AuthRequest, CancelResponse, Consumer,
                                       DiffieHellmanSHA1ConsumerSession, DiffieHellmanSHA256ConsumerSession,
                                       FailureResponse, GenericConsumer, PlainTextConsumerSession, ProtocolError,
@@ -125,7 +127,7 @@ def makeFastConsumerSession(consumer_session_cls=DiffieHellmanSHA256ConsumerSess
     """
     Create custom DH object so tests run quickly.
     """
-    dh = DiffieHellman(100389557, 2)
+    dh = DiffieHellman('BfvStQ==', DEFAULT_DH_GENERATOR)
     return consumer_session_cls(dh)
 
 
@@ -1776,18 +1778,16 @@ class TestDiffieHellmanResponseParameters(object):
 
     def setUp(self):
         # Pre-compute DH with small prime so tests run quickly.
-        self.server_dh = DiffieHellman(100389557, 2)
-        self.consumer_dh = DiffieHellman(100389557, 2)
+        self.server_dh = DiffieHellman('BfvStQ==', DEFAULT_DH_GENERATOR)
+        self.consumer_dh = DiffieHellman('BfvStQ==', DEFAULT_DH_GENERATOR)
 
         # base64(btwoc(g ^ xb mod p))
         self.dh_server_public = self.server_dh.public_key
 
-        self.secret = os.urandom(self.session_cls.secret_size)
+        self.secret = base64.b64encode(os.urandom(self.session_cls.secret_size))
 
-        self.enc_mac_key = oidutil.toBase64(
-            self.server_dh.xor_secret(cryptutil.base64ToLong(self.consumer_dh.public_key),
-                                      self.secret,
-                                      self.session_cls.algorithm))
+        self.enc_mac_key = self.server_dh.xor_secret(self.consumer_dh.public_key, self.secret,
+                                                     self.session_cls.algorithm)
 
         self.consumer_session = self.session_cls(self.consumer_dh)
 
@@ -1798,7 +1798,7 @@ class TestDiffieHellmanResponseParameters(object):
         self.msg.setArg(OPENID_NS, 'enc_mac_key', self.enc_mac_key)
 
         extracted = self.consumer_session.extractSecret(self.msg)
-        self.assertEqual(extracted, self.secret)
+        self.assertEqual(extracted, base64.b64decode(self.secret))
 
     def testAbsentServerPublic(self):
         self.msg.setArg(OPENID_NS, 'enc_mac_key', self.enc_mac_key)
