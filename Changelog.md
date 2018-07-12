@@ -1,5 +1,26 @@
 # Changelog #
 
+## 3.0 ##
+
+ * Support Python3.
+ * Change most of the API to the text strings. UTF-8 encoded byte string should be compatible.
+ * Authentication methods based on SHA-256 are now preferred over SHA-1.
+ * Use `cryptography` library for cryptography tasks.
+ * Add new base64-based API for `DiffieHellman` class.
+ * Refactor script to negotiate association with an OpenID server.
+ * Decrease log levels on repetitive logs.
+ * Default fetcher is picked from more options.
+ * Remove `openid.consumer.html_parse` module.
+ * Remove `hmacSha*`, `randomString`, `randrange` and `sha*` functions from `openid.cryptutil`.
+ * A lot of refactoring and clean up.
+
+### Deprecation ###
+ * Binary strings are deprecated, unless explicitely allowed.
+ * `hash_func` is deprecated in favor of `algorithm` in `DiffieHellmanSHA*ServerSession` and `DiffieHellmanSHA*ConsumerSession`.
+ * `DiffieHellmanSHA*ServerSession.consumer_pubkey` is deprecated in favor of `consumer_public_key`.
+ * Functions `longToBinary` and `binaryToLong` deprecated in favor of `int_to_bytes` and `bytes_to_int`, respectively.
+ * Old `DiffieHellman` API is deprecated.
+
 ## 2.3.0 ##
 
  * Prevent timing attacks on signature comparison. Thanks to Carl Howells.
