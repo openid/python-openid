@@ -1,5 +1,0 @@
-[flake8]
-max-line-length = 120
-# Ignore E123 - enforce hang-closing instead
-ignore = E123,W503
-max-complexity = 24

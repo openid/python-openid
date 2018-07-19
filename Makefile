@@ -1,9 +1,10 @@
-.PHONY: test test-openid test-djopenid coverage isort check-all check-isort check-flake8
+.PHONY: all test test-openid test-djopenid coverage isort
 
 SOURCES = openid setup.py admin contrib
 
-# Run tests by default
-all: test
+# Run tox by default
+all:
+	tox
 
 test-openid:
 	python -m unittest discover --start=openid
@@ -22,11 +23,3 @@ coverage:
 
 isort:
 	isort --recursive ${SOURCES}
-
-check-all: check-isort check-flake8
-
-check-isort:
-	isort --check-only --diff --recursive ${SOURCES}
-
-check-flake8:
-	flake8 --format=pylint ${SOURCES}
