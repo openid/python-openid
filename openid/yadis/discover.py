@@ -1,13 +1,13 @@
-# -*- test-case-name: openid.test.test_yadis_discover -*-
-__all__ = ['discover', 'DiscoveryResult', 'DiscoveryFailure']
+from __future__ import unicode_literals
 
-from StringIO import StringIO
+from six import BytesIO, StringIO
 
 from openid import fetchers
-
-from openid.yadis.constants import \
-     YADIS_HEADER_NAME, YADIS_CONTENT_TYPE, YADIS_ACCEPT_HEADER
+from openid.yadis.constants import YADIS_ACCEPT_HEADER, YADIS_CONTENT_TYPE, YADIS_HEADER_NAME
 from openid.yadis.parsehtml import MetaNotFound, findHTMLMeta
+
+__all__ = ['discover', 'DiscoveryResult', 'DiscoveryFailure']
+
 
 class DiscoveryFailure(Exception):
     """Raised when a YADIS protocol error occurs in the discovery process"""
@@ -16,6 +16,7 @@ class DiscoveryFailure(Exception):
     def __init__(self, message, http_response):
         Exception.__init__(self, message)
         self.http_response = http_response
+
 
 class DiscoveryResult(object):
     """Contains the result of performing Yadis discovery on a URI"""
@@ -53,6 +54,7 @@ class DiscoveryResult(object):
         """Is the response text supposed to be an XRDS document?"""
         return (self.usedYadisLocation() or
                 self.content_type == YADIS_CONTENT_TYPE)
+
 
 def discover(uri):
     """Discover services for a given URI.
@@ -98,7 +100,6 @@ def discover(uri):
     return result
 
 
-
 def whereIsYadis(resp):
     """Given a HTTPResponse, return the location of the Yadis document.
 
@@ -107,7 +108,7 @@ def whereIsYadis(resp):
 
     [non-blocking]
 
-    @returns: str or None
+    @returns: six.text_type or None
     """
     # Attempt to find out where to go to discover the document
     # or if we already have it
@@ -115,8 +116,7 @@ def whereIsYadis(resp):
 
     # According to the spec, the content-type header must be an exact
     # match, or else we have to look for an indirection.
-    if (content_type and
-        content_type.split(';', 1)[0].lower() == YADIS_CONTENT_TYPE):
+    if content_type and content_type.split(';', 1)[0].lower() == YADIS_CONTENT_TYPE:
         return resp.final_url
     else:
         # Try the header
@@ -138,18 +138,17 @@ def whereIsYadis(resp):
                 encoding = 'UTF-8'
 
             try:
-                content = resp.body.decode(encoding)
+                buff = StringIO(resp.body.decode(encoding))
             except UnicodeError:
                 # Keep encoded version in case yadis location can be found before encoding shut this up.
                 # Possible errors will be caught lower.
-                content = resp.body
+                buff = BytesIO(resp.body)
 
             try:
-                yadis_loc = findHTMLMeta(StringIO(content))
+                yadis_loc = findHTMLMeta(buff)
             except (MetaNotFound, UnicodeError):
                 # UnicodeError: Response body could not be encoded and xrds location
                 # could not be found before troubles occurs.
                 pass
 
         return yadis_loc
-

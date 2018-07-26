@@ -1,8 +1,11 @@
-from django.conf.urls.defaults import *
+"""Djopenid URLs."""
+from __future__ import unicode_literals
 
-urlpatterns = patterns(
-    '',
-    ('^$', 'djopenid.views.index'),
-    ('^consumer/', include('djopenid.consumer.urls')),
-    ('^server/', include('djopenid.server.urls')),
-)
+from django.conf.urls import include, url
+from django.views.generic import TemplateView
+
+urlpatterns = [
+    url('^$', TemplateView.as_view(template_name='index.html'), name='index'),
+    url('^consumer/', include(('djopenid.consumer.urls', 'consumer'))),
+    url('^server/', include(('djopenid.server.urls', 'server'))),
+]

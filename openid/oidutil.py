@@ -4,35 +4,17 @@ the library.
 For users of this library, the C{L{log}} function is probably the most
 interesting.
 """
-
-__all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'autoSubmitHTML', 'toUnicode']
+from __future__ import unicode_literals
 
 import binascii
-import sys
-import urlparse
 import logging
+import warnings
 
-from urllib import urlencode
+import six
+from six.moves.urllib.parse import urlencode
 
-elementtree_modules = [
-    'lxml.etree',
-    'xml.etree.cElementTree',
-    'xml.etree.ElementTree',
-    'cElementTree',
-    'elementtree.ElementTree',
-    ]
+__all__ = ['log', 'appendArgs', 'toBase64', 'fromBase64', 'autoSubmitHTML']
 
-def toUnicode(value):
-    """Returns the given argument as a unicode object.
-
-    @param value: A UTF-8 encoded string or a unicode (coercable) object
-    @type message: str or unicode
-
-    @returns: Unicode object representing the input value.
-    """
-    if isinstance(value, str):
-        return value.decode('utf-8')
-    return unicode(value)
 
 def autoSubmitHTML(form, title='OpenID transaction in progress'):
     return """
@@ -52,41 +34,6 @@ for (var i = 0; i < elements.length; i++) {
 </html>
 """ % (title, form)
 
-def importElementTree(module_names=None):
-    """Find a working ElementTree implementation, trying the standard
-    places that such a thing might show up.
-
-    >>> ElementTree = importElementTree()
-
-    @param module_names: The names of modules to try to use as
-        ElementTree. Defaults to C{L{elementtree_modules}}
-
-    @returns: An ElementTree module
-    """
-    if module_names is None:
-        module_names = elementtree_modules
-
-    for mod_name in module_names:
-        try:
-            ElementTree = __import__(mod_name, None, None, ['unused'])
-        except ImportError:
-            pass
-        else:
-            # Make sure it can actually parse XML
-            try:
-                ElementTree.XML('<unused/>')
-            except (SystemExit, MemoryError, AssertionError):
-                raise
-            except:
-                logging.exception('Not using ElementTree library %r because it failed to '
-                    'parse a trivial document: %s' % mod_name)
-            else:
-                return ElementTree
-    else:
-        raise ImportError('No ElementTree library found. '
-                          'You may need to install one. '
-                          'Tried importing %r' % (module_names,)
-                          )
 
 def log(message, level=0):
     """Handle a log message from the OpenID library.
@@ -96,7 +43,7 @@ def log(message, level=0):
 
     @param message: A string containing a debugging message from the
         OpenID library
-    @type message: str
+    @type message: six.text_type, six.binary_type is deprecated
 
     @param level: The severity of the log message. This parameter is
         currently unused, but in the future, the library may indicate
@@ -105,9 +52,10 @@ def log(message, level=0):
 
     @returns: Nothing.
     """
+    message = string_to_text(message, "Binary values for log are deprecated. Use text input instead.")
 
-    logging.error("This is a legacy log message, please use the "
-      "logging module. Message: %s", message)
+    logging.error("This is a legacy log message, please use the logging module. Message: %s", message)
+
 
 def appendArgs(url, args):
     """Append query arguments to a HTTP(s) URL. If the URL already has
@@ -116,21 +64,22 @@ def appendArgs(url, args):
     detected or collapsed (both will appear in the output).
 
     @param url: The url to which the arguments will be appended
-    @type url: str
+    @type url: six.text_type, six.binary_type is deprecated
 
     @param args: The query arguments to add to the URL. If a
         dictionary is passed, the items will be sorted before
         appending them to the URL. If a sequence of pairs is passed,
         the order of the sequence will be preserved.
-    @type args: A dictionary from string to string, or a sequence of
-        pairs of strings.
+    @type args: Union[Dict[six.text_type, six.text_type], List[Tuple[six.text_type, six.text_type]]],
+        six.binary_type is deprecated
 
     @returns: The URL with the parameters added
-    @rtype: str
+    @rtype: six.text_type
     """
+    url = string_to_text(url, "Binary values for appendArgs are deprecated. Use text input instead.")
+
     if hasattr(args, 'items'):
-        args = args.items()
-        args.sort()
+        args = sorted(args.items())
     else:
         args = list(args)
 
@@ -142,49 +91,74 @@ def appendArgs(url, args):
     else:
         sep = '?'
 
-    # Map unicode to UTF-8 if present. Do not make any assumptions
-    # about the encodings of plain bytes (str).
     i = 0
     for k, v in args:
-        if type(k) is not str:
-            k = k.encode('UTF-8')
-
-        if type(v) is not str:
-            v = v.encode('UTF-8')
-
-        args[i] = (k, v)
+        k = string_to_text(k, "Binary values for appendArgs are deprecated. Use text input instead.")
+        v = string_to_text(v, "Binary values for appendArgs are deprecated. Use text input instead.")
+        args[i] = (k.encode('utf-8'), v.encode('utf-8'))
         i += 1
 
-    return '%s%s%s' % (url, sep, urlencode(args))
+    encoded_args = urlencode(args)
+    # `urlencode` returns `str` in both py27 and py3+. We need to convert it to six.text_type.
+    if not isinstance(encoded_args, six.text_type):
+        encoded_args = encoded_args.decode('utf-8')
+    return '%s%s%s' % (url, sep, encoded_args)
+
 
 def toBase64(s):
-    """Represent string s as base64, omitting newlines"""
-    return binascii.b2a_base64(s)[:-1]
+    """Return string s as base64, omitting newlines.
+
+    @type s: six.binary_type
+    @rtype six.text_type
+    """
+    return binascii.b2a_base64(s)[:-1].decode('utf-8')
+
 
 def fromBase64(s):
+    """Return binary data from base64 encoded string.
+
+    @type s: six.text_type, six.binary_type deprecated.
+    @rtype six.binary_type
+    """
+    s = string_to_text(s, "Binary values for s are deprecated. Use text input instead.")
     try:
         return binascii.a2b_base64(s)
-    except binascii.Error, why:
+    except binascii.Error as why:
         # Convert to a common exception type
-        raise ValueError(why[0])
+        raise ValueError(six.text_type(why))
+
 
 class Symbol(object):
     """This class implements an object that compares equal to others
     of the same type that have the same name. These are distict from
-    str or unicode objects.
+    string objects.
     """
 
     def __init__(self, name):
         self.name = name
 
     def __eq__(self, other):
-        return type(self) is type(other) and self.name == other.name
+        return type(self) == type(other) and self.name == other.name
 
     def __ne__(self, other):
         return not (self == other)
 
     def __hash__(self):
         return hash((self.__class__, self.name))
-   
+
     def __repr__(self):
         return '<Symbol %s>' % (self.name,)
+
+
+def string_to_text(value, deprecate_msg):
+    """
+    Return input string coverted to text string.
+
+    If input is text, it is returned as is.
+    If input is binary, it is decoded using UTF-8 to text.
+    """
+    assert isinstance(value, (six.text_type, six.binary_type))
+    if isinstance(value, six.binary_type):
+        warnings.warn(deprecate_msg, DeprecationWarning)
+        value = value.decode('utf-8')
+    return value

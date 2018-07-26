@@ -17,66 +17,61 @@ association.
 @var default_negotiator: A C{L{SessionNegotiator}} that allows all
     association types that are specified by the OpenID
     specification. It prefers to use HMAC-SHA1/DH-SHA1, if it's
-    available. If HMAC-SHA256 is not supported by your Python runtime,
-    HMAC-SHA256 and DH-SHA256 will not be available.
+    available.
 
 @var encrypted_negotiator: A C{L{SessionNegotiator}} that
     does not support C{'no-encryption'} associations. It prefers
     HMAC-SHA1/DH-SHA1 association types if available.
 """
+from __future__ import unicode_literals
+
+import time
+
+import six
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.constant_time import bytes_eq
+from cryptography.hazmat.primitives.hmac import HMAC
+
+from openid import kvform, oidutil
+from openid.message import OPENID_NS
+
+from .oidutil import string_to_text
 
 __all__ = [
     'default_negotiator',
     'encrypted_negotiator',
     'SessionNegotiator',
     'Association',
-    ]
+]
 
-import time
-
-from openid import cryptutil
-from openid import kvform
-from openid import oidutil
-from openid.message import OPENID_NS
 
 all_association_types = [
-    'HMAC-SHA1',
     'HMAC-SHA256',
-    ]
+    'HMAC-SHA1',
+]
 
-if hasattr(cryptutil, 'hmacSha256'):
-    supported_association_types = list(all_association_types)
+default_association_order = [
+    ('HMAC-SHA256', 'DH-SHA256'),
+    ('HMAC-SHA256', 'no-encryption'),
+    ('HMAC-SHA1', 'DH-SHA1'),
+    ('HMAC-SHA1', 'no-encryption'),
+]
 
-    default_association_order = [
-        ('HMAC-SHA1', 'DH-SHA1'),
-        ('HMAC-SHA1', 'no-encryption'),
-        ('HMAC-SHA256', 'DH-SHA256'),
-        ('HMAC-SHA256', 'no-encryption'),
-        ]
+only_encrypted_association_order = [
+    ('HMAC-SHA256', 'DH-SHA256'),
+    ('HMAC-SHA1', 'DH-SHA1'),
+]
 
-    only_encrypted_association_order = [
-        ('HMAC-SHA1', 'DH-SHA1'),
-        ('HMAC-SHA256', 'DH-SHA256'),
-        ]
-else:
-    supported_association_types = ['HMAC-SHA1']
-
-    default_association_order = [
-        ('HMAC-SHA1', 'DH-SHA1'),
-        ('HMAC-SHA1', 'no-encryption'),
-        ]
-
-    only_encrypted_association_order = [
-        ('HMAC-SHA1', 'DH-SHA1'),
-        ]
 
 def getSessionTypes(assoc_type):
     """Return the allowed session types for a given association type"""
     assoc_to_session = {
-        'HMAC-SHA1': ['DH-SHA1', 'no-encryption'],
         'HMAC-SHA256': ['DH-SHA256', 'no-encryption'],
-        }
+        'HMAC-SHA1': ['DH-SHA1', 'no-encryption'],
+    }
     return assoc_to_session.get(assoc_type, [])
+
 
 def checkSessionType(assoc_type, session_type):
     """Check to make sure that this pair of assoc type and session
@@ -85,6 +80,7 @@ def checkSessionType(assoc_type, session_type):
         raise ValueError(
             'Session type %r not valid for assocation type %r'
             % (session_type, assoc_type))
+
 
 class SessionNegotiator(object):
     """A session negotiator controls the allowed and preferred
@@ -131,7 +127,7 @@ class SessionNegotiator(object):
         determines preference. If an association/session type comes
         earlier in the list, the library is more likely to use that
         type.
-    @type allowed_types: [(str, str)]
+    @type allowed_types: List[Tuple[six.text_type, six.text_type]]
     """
 
     def __init__(self, allowed_types):
@@ -143,6 +139,11 @@ class SessionNegotiator(object):
     def setAllowedTypes(self, allowed_types):
         """Set the allowed association types, checking to make sure
         each combination is valid."""
+        # Convert strings to text
+        allowed_types = [
+            (string_to_text(a, "Binary values for assoc_type are deprecated. Use text input instead."),
+             string_to_text(s, "Binary values for session_type are deprecated. Use text input instead."))
+            for a, s in allowed_types]
         for (assoc_type, session_type) in allowed_types:
             checkSessionType(assoc_type, session_type)
 
@@ -168,7 +169,6 @@ class SessionNegotiator(object):
             checkSessionType(assoc_type, session_type)
             self.allowed_types.append((assoc_type, session_type))
 
-
     def isAllowed(self, assoc_type, session_type):
         """Is this combination of association type and session type allowed?"""
         assoc_good = (assoc_type, session_type) in self.allowed_types
@@ -183,8 +183,10 @@ class SessionNegotiator(object):
         except IndexError:
             return (None, None)
 
+
 default_negotiator = SessionNegotiator(default_association_order)
 encrypted_negotiator = SessionNegotiator(only_encrypted_association_order)
+
 
 def getSecretSize(assoc_type):
     if assoc_type == 'HMAC-SHA1':
@@ -193,6 +195,7 @@ def getSecretSize(assoc_type):
         return 32
     else:
         raise ValueError('Unsupported association type: %r' % (assoc_type,))
+
 
 class Association(object):
     """
@@ -206,14 +209,12 @@ class Association(object):
     C{L{assoc_type}} instance variables.
 
     @ivar handle: This is the handle the server gave this association.
-
-    @type handle: C{str}
+    @type handle: six.text_type
 
 
     @ivar secret: This is the shared secret the server generated for
         this association.
-
-    @type secret: C{str}
+    @type secret: six.binary_type
 
 
     @ivar issued: This is the time this association was issued, in
@@ -233,9 +234,10 @@ class Association(object):
     @ivar assoc_type: This is the type of association this instance
         represents.  The only valid value of this field at this time
         is C{'HMAC-SHA1'}, but new types may be defined in the future.
+    @type assoc_type: six.text_type
 
-    @type assoc_type: C{str}
-
+    @cvar hmac_algorithms: Mapping of association type to hash algorithm.
+    @type hmac_algorithms: Dict[six.text_type, hashes.HashAlgorithm]
 
     @sort: __init__, fromExpiresIn, getExpiresIn, __eq__, __ne__,
         handle, secret, issued, lifetime, assoc_type
@@ -249,15 +251,14 @@ class Association(object):
         'issued',
         'lifetime',
         'assoc_type',
-        ]
+    ]
 
+    hmac_algorithms = {
+        'HMAC-SHA1': hashes.SHA1(),
+        'HMAC-SHA256': hashes.SHA256(),
+    }
 
-    _macs = {
-        'HMAC-SHA1': cryptutil.hmacSha1,
-        'HMAC-SHA256': cryptutil.hmacSha256,
-        }
-
-
+    @classmethod
     def fromExpiresIn(cls, expires_in, handle, secret, assoc_type):
         """
         This is an alternate constructor used by the OpenID consumer
@@ -275,28 +276,21 @@ class Association(object):
 
         @param handle: This is the handle the server gave this
             association.
-
-        @type handle: C{str}
-
+        @type handle: six.text_type, six.binary_type is deprecated
 
         @param secret: This is the shared secret the server generated
             for this association.
-
-        @type secret: C{str}
-
+        @type secret: six.binary_type
 
         @param assoc_type: This is the type of association this
             instance represents.  The only valid value of this field
             at this time is C{'HMAC-SHA1'}, but new types may be
             defined in the future.
-
-        @type assoc_type: C{str}
+        @type assoc_type: six.text_type, six.binary_type is deprecated
         """
         issued = int(time.time())
         lifetime = expires_in
         return cls(handle, secret, issued, lifetime, assoc_type)
-
-    fromExpiresIn = classmethod(fromExpiresIn)
 
     def __init__(self, handle, secret, issued, lifetime, assoc_type):
         """
@@ -305,14 +299,12 @@ class Association(object):
 
         @param handle: This is the handle the server gave this
             association.
-
-        @type handle: C{str}
+        @type handle: six.text_type, six.binary_type is deprecated
 
 
         @param secret: This is the shared secret the server generated
             for this association.
-
-        @type secret: C{str}
+        @type secret: six.binary_type
 
 
         @param issued: This is the time this association was issued,
@@ -333,8 +325,7 @@ class Association(object):
             instance represents.  The only valid value of this field
             at this time is C{'HMAC-SHA1'}, but new types may be
             defined in the future.
-
-        @type assoc_type: C{str}
+        @type assoc_type: six.text_type, six.binary_type is deprecated
         """
         if assoc_type not in all_association_types:
             fmt = '%r is not a supported association type'
@@ -345,11 +336,13 @@ class Association(object):
 #             fmt = 'Wrong size secret (%s bytes) for association type %s'
 #             raise ValueError(fmt % (len(secret), assoc_type))
 
-        self.handle = handle
+        self.handle = string_to_text(handle, "Binary values for handle are deprecated. Use text input instead.")
+        assert isinstance(secret, six.binary_type)
         self.secret = secret
         self.issued = issued
         self.lifetime = lifetime
-        self.assoc_type = assoc_type
+        self.assoc_type = string_to_text(assoc_type,
+                                         "Binary values for assoc_type are deprecated. Use text input instead.")
 
     def getExpiresIn(self, now=None):
         """
@@ -380,7 +373,7 @@ class Association(object):
 
         @rtype: C{bool}
         """
-        return type(self) is type(other) and self.__dict__ == other.__dict__
+        return type(self) == type(other) and self.__dict__ == other.__dict__
 
     def __ne__(self, other):
         """
@@ -402,16 +395,16 @@ class Association(object):
         @return: String in KV form suitable for deserialization by
             deserialize.
 
-        @rtype: str
+        @rtype: six.text_type
         """
         data = {
-            'version':'2',
-            'handle':self.handle,
-            'secret':oidutil.toBase64(self.secret),
-            'issued':str(int(self.issued)),
-            'lifetime':str(int(self.lifetime)),
-            'assoc_type':self.assoc_type
-            }
+            'version': '2',
+            'handle': self.handle,
+            'secret': oidutil.toBase64(self.secret),
+            'issued': six.text_type(int(self.issued)),
+            'lifetime': six.text_type(int(self.lifetime)),
+            'assoc_type': self.assoc_type
+        }
 
         assert len(data) == len(self.assoc_keys)
         pairs = []
@@ -420,6 +413,7 @@ class Association(object):
 
         return kvform.seqToKV(pairs, strict=True)
 
+    @classmethod
     def deserialize(cls, assoc_s):
         """
         Parse an association as stored by serialize().
@@ -428,13 +422,12 @@ class Association(object):
 
 
         @param assoc_s: Association as serialized by serialize()
-
-        @type assoc_s: str
-
+        @type assoc_s: six.text_type, six.binary_type is deprecated
 
         @return: instance of this class
         """
-        pairs = kvform.kvToSeq(assoc_s, strict=True)
+        pairs = kvform.kvToSeq(
+            string_to_text(assoc_s, "Binary values for assoc_s are deprecated. Use text input instead."), strict=True)
         keys = []
         values = []
         for k, v in pairs:
@@ -452,32 +445,30 @@ class Association(object):
         secret = oidutil.fromBase64(secret)
         return cls(handle, secret, issued, lifetime, assoc_type)
 
-    deserialize = classmethod(deserialize)
-
     def sign(self, pairs):
         """
         Generate a signature for a sequence of (key, value) pairs
 
 
         @param pairs: The pairs to sign, in order
-
-        @type pairs: sequence of (str, str)
-
+        @type pairs: Iterable[six.text_type, six.text_type], six.binary_type is deprecated
 
         @return: The binary signature of this sequence of pairs
-
-        @rtype: str
+        @rtype: six.binary_type
         """
+        warning_msg = "Binary values for pairs are deprecated. Use text input instead."
+        pairs = [(string_to_text(a, warning_msg), string_to_text(b, warning_msg)) for a, b in pairs]
         kv = kvform.seqToKV(pairs)
 
         try:
-            mac = self._macs[self.assoc_type]
+            algorithm = self.hmac_algorithms[self.assoc_type]
         except KeyError:
             raise ValueError(
                 'Unknown association type: %r' % (self.assoc_type,))
 
-        return mac(self.secret, kv)
-
+        hmac = HMAC(self.secret, algorithm, backend=default_backend())
+        hmac.update(kv.encode('utf-8'))
+        return hmac.finalize()
 
     def getMessageSignature(self, message):
         """Return the signature of a message.
@@ -486,8 +477,7 @@ class Association(object):
         signed list.
 
         @return: the signature, base64 encoded
-
-        @rtype: str
+        @rtype: six.text_type
 
         @raises ValueError: If there is no signed list and I am not a sign-all
             type of association.
@@ -501,8 +491,7 @@ class Association(object):
         @return: a new Message object with a signature
         @rtype: L{openid.message.Message}
         """
-        if (message.hasKey(OPENID_NS, 'sig') or
-            message.hasKey(OPENID_NS, 'signed')):
+        if (message.hasKey(OPENID_NS, 'sig') or message.hasKey(OPENID_NS, 'signed')):
             raise ValueError('Message already has signed list or signature')
 
         extant_handle = message.getArg(OPENID_NS, 'assoc_handle')
@@ -532,8 +521,7 @@ class Association(object):
         if not message_sig:
             raise ValueError("%s has no sig." % (message,))
         calculated_sig = self.getMessageSignature(message)
-        return cryptutil.const_eq(calculated_sig, message_sig)
-
+        return bytes_eq(calculated_sig.encode('utf-8'), message_sig.encode('utf-8'))
 
     def _makePairs(self, message):
         signed = message.getArg(OPENID_NS, 'signed')

@@ -2,6 +2,10 @@
 endpoint information out of a Yadis XRD file using the ElementTree XML
 parser.
 """
+from __future__ import unicode_literals
+
+from openid.oidutil import string_to_text
+from openid.yadis.etxrd import expandService
 
 __all__ = [
     'BasicServiceEndpoint',
@@ -9,9 +13,8 @@ __all__ = [
     'IFilter',
     'TransformFilterMaker',
     'CompoundFilter',
-    ]
+]
 
-from openid.yadis.etxrd import expandService
 
 class BasicServiceEndpoint(object):
     """Generic endpoint object that contains parsed service
@@ -26,6 +29,7 @@ class BasicServiceEndpoint(object):
     The simplest kind of filter you can write implements
     fromBasicServiceEndpoint, which takes one of these objects.
     """
+
     def __init__(self, yadis_url, type_uris, uri, service_element):
         self.type_uris = type_uris
         self.yadis_url = yadis_url
@@ -39,13 +43,16 @@ class BasicServiceEndpoint(object):
         of a single protocol.
 
         @param type_uris: The URIs that you wish to check
-        @type type_uris: iterable of str
+        @type type_uris: Iterable[six.text_type], six.binary_type is deprecated
 
         @return: all types that are in both in type_uris and
             self.type_uris
         """
+        type_uris = [string_to_text(u, "Binary values for matchTypes are deprecated. Use text input instead.")
+                     for u in type_uris]
         return [uri for uri in type_uris if uri in self.type_uris]
 
+    @staticmethod
     def fromBasicServiceEndpoint(endpoint):
         """Trivial transform from a basic endpoint to itself. This
         method exists to allow BasicServiceEndpoint to be used as a
@@ -58,7 +65,6 @@ class BasicServiceEndpoint(object):
         """
         return endpoint
 
-    fromBasicServiceEndpoint = staticmethod(fromBasicServiceEndpoint)
 
 class IFilter(object):
     """Interface for Yadis filter objects. Other filter-like things
@@ -67,6 +73,7 @@ class IFilter(object):
     def getServiceEndpoints(self, yadis_url, service_element):
         """Returns an iterator of endpoint objects"""
         raise NotImplementedError
+
 
 class TransformFilterMaker(object):
     """Take a list of basic filters and makes a filter that transforms
@@ -123,10 +130,12 @@ class TransformFilterMaker(object):
 
         return None
 
+
 class CompoundFilter(object):
     """Create a new filter that applies a set of filters to an endpoint
     and collects their results.
     """
+
     def __init__(self, subfilters):
         self.subfilters = subfilters
 
@@ -139,9 +148,11 @@ class CompoundFilter(object):
                 subfilter.getServiceEndpoints(yadis_url, service_element))
         return endpoints
 
+
 # Exception raised when something is not able to be turned into a filter
 filter_type_error = TypeError(
     'Expected a filter, an endpoint, a callable or a list of any of these.')
+
 
 def mkFilter(parts):
     """Convert a filter-convertable thing into a filter
@@ -158,6 +169,7 @@ def mkFilter(parts):
         return mkCompoundFilter([parts])
     else:
         return mkCompoundFilter(parts)
+
 
 def mkCompoundFilter(parts):
     """Create a filter out of a list of filter-like things

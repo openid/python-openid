@@ -6,14 +6,20 @@ with a pattern like 'GET /foo?bar=baz HTTP'.
 
 Requires the 'xsel' program to get the contents of the clipboard.
 """
+from __future__ import unicode_literals
 
+import re
+import subprocess
+import sys
 from pprint import pformat
-from urlparse import urlsplit, urlunsplit
-import cgi, re, subprocess, sys
+
+import six
+from six.moves.urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from openid import message
 
 OPENID_SORT_ORDER = ['mode', 'identity', 'claimed_id']
+
 
 class NoQuery(Exception):
     def __init__(self, url):
@@ -42,7 +48,7 @@ def main():
     for url in urls:
         try:
             queries.append(queryFromURL(url))
-        except NoQuery, err:
+        except NoQuery as err:
             errors.append(err)
 
     queries.extend(queriesFromLogs(source))
@@ -51,15 +57,15 @@ def main():
         output.append('at %s:\n%s' % (where, openidFromQuery(query)))
 
     if output:
-        print '\n\n'.join(output)
+        print('\n\n'.join(output))
     elif errors:
         for err in errors:
-            print err
+            print(err)
 
 
 def queryFromURL(url):
     split_url = urlsplit(url)
-    query = cgi.parse_qs(split_url[3])
+    query = parse_qs(split_url[3])
 
     if not query:
         raise NoQuery(url)
@@ -73,9 +79,9 @@ def openidFromQuery(query):
     try:
         msg = message.Message.fromPostArgs(unlistify(query))
         s = formatOpenIDMessage(msg)
-    except Exception, err:
+    except Exception as err:
         # XXX - side effect.
-        sys.stderr.write(str(err))
+        sys.stderr.write(six.text_type(err))
         s = pformat(query)
 
     return s
@@ -103,8 +109,7 @@ def formatOpenIDMessage(msg):
             except KeyError:
                 pass
 
-        values = values.items()
-        values.sort()
+        values = sorted(values.items())
 
         for k, v in values:
             ns_output.append("    %s = %s" % (k, v))
@@ -121,8 +126,9 @@ def unlistify(d):
 def queriesFromLogs(s):
     qre = re.compile(r'GET (/.*)?\?(.+) HTTP')
 
-    return [(match.group(1), cgi.parse_qs(match.group(2)))
+    return [(match.group(1), parse_qs(match.group(2)))
             for match in qre.finditer(s)]
+
 
 def queriesFromPostdata(s):
     # This looks for query data in a line that starts POSTDATA=.
@@ -131,18 +137,20 @@ def queriesFromPostdata(s):
     qre = re.compile(r'(?:^Host=(?P<host>.+?)$.*?)?^POSTDATA=(?P<query>.*)$',
                      re.DOTALL | re.MULTILINE)
     return [(match.group('host') or 'POSTDATA',
-             cgi.parse_qs(match.group('query'))) for match in qre.finditer(s)]
+             parse_qs(match.group('query'))) for match in qre.finditer(s)]
+
 
 def find_urls(s):
     # Regular expression borrowed from urlscan
     # by Daniel Burrows <dburrows@debian.org>, GPL.
-    urlinternalpattern=r'[{}a-zA-Z/\-_0-9%?&.=:;+,#~]'
-    urltrailingpattern=r'[{}a-zA-Z/\-_0-9%&=+#]'
+    urlinternalpattern = r'[{}a-zA-Z/\-_0-9%?&.=:;+,#~]'
+    urltrailingpattern = r'[{}a-zA-Z/\-_0-9%&=+#]'
     httpurlpattern = r'(?:https?://' + urlinternalpattern + r'*' + urltrailingpattern + r')'
     # Used to guess that blah.blah.blah.TLD is a URL.
-    tlds=['biz', 'com', 'edu', 'info', 'org']
-    guessedurlpattern=r'(?:[a-zA-Z0-9_\-%]+(?:\.[a-zA-Z0-9_\-%]+)*\.(?:' + '|'.join(tlds) + '))'
-    urlre = re.compile(r'(?:<(?:URL:)?)?(' + httpurlpattern + '|' + guessedurlpattern + '|(?:mailto:[a-zA-Z0-9\-_]*@[0-9a-zA-Z_\-.]*[0-9a-zA-Z_\-]))>?')
+    tlds = ['biz', 'com', 'edu', 'info', 'org']
+    guessedurlpattern = r'(?:[a-zA-Z0-9_\-%]+(?:\.[a-zA-Z0-9_\-%]+)*\.(?:' + '|'.join(tlds) + '))'
+    urlre = re.compile(r'(?:<(?:URL:)?)?(' + httpurlpattern + '|' + guessedurlpattern +
+                       '|(?:mailto:[a-zA-Z0-9\-_]*@[0-9a-zA-Z_\-.]*[0-9a-zA-Z_\-]))>?')
 
     return [match.group(1) for match in urlre.finditer(s)]
 

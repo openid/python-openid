@@ -1,9 +1,13 @@
 """A simple store using only in-process memory."""
-
-from openid.store import nonce
+from __future__ import unicode_literals
 
 import copy
 import time
+
+import six
+
+from openid.store import nonce
+
 
 class ServerAssocs(object):
     def __init__(self):
@@ -40,7 +44,7 @@ class ServerAssocs(object):
         @return: tuple of (removed associations, remaining associations)
         """
         remove = []
-        for handle, assoc in self.assocs.iteritems():
+        for handle, assoc in six.iteritems(self.assocs):
             if assoc.getExpiresIn() == 0:
                 remove.append(handle)
         for handle in remove:
@@ -48,12 +52,12 @@ class ServerAssocs(object):
         return len(remove), len(self.assocs)
 
 
-
 class MemoryStore(object):
     """In-process memory store.
 
     Use for single long-running processes.  No persistence supplied.
     """
+
     def __init__(self):
         self.server_assocs = {}
         self.nonces = {}
@@ -84,7 +88,7 @@ class MemoryStore(object):
         if abs(timestamp - time.time()) > nonce.SKEW:
             return False
 
-        anonce = (str(server_url), int(timestamp), str(salt))
+        anonce = (six.text_type(server_url), int(timestamp), six.text_type(salt))
         if anonce in self.nonces:
             return False
         else:
@@ -94,7 +98,7 @@ class MemoryStore(object):
     def cleanupNonces(self):
         now = time.time()
         expired = []
-        for anonce in self.nonces.iterkeys():
+        for anonce in self.nonces:
             if abs(anonce[1] - now) > nonce.SKEW:
                 # removing items while iterating over the set could be bad.
                 expired.append(anonce)
@@ -106,7 +110,7 @@ class MemoryStore(object):
     def cleanupAssociations(self):
         remove_urls = []
         removed_assocs = 0
-        for server_url, assocs in self.server_assocs.iteritems():
+        for server_url, assocs in six.iteritems(self.server_assocs):
             removed, remaining = assocs.cleanup()
             removed_assocs += removed
             if not remaining:

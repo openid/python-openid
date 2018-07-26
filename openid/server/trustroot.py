@@ -1,4 +1,3 @@
-# -*- test-case-name: openid.test.test_rpverify -*-
 """
 This module contains the C{L{TrustRoot}} class, which helps handle
 trust root checking.  This module is used by the
@@ -8,24 +7,29 @@ implementers who wish to use it for additional trust root checking.
 It also implements relying party return_to URL verification, based on
 the realm.
 """
+from __future__ import unicode_literals
+
+import logging
+import re
+
+import six
+from six.moves.urllib.parse import urlsplit, urlunsplit
+
+from openid import urinorm
+from openid.oidutil import string_to_text
+from openid.yadis import services
 
 __all__ = [
     'TrustRoot',
     'RP_RETURN_TO_URL_TYPE',
-    'extractReturnToURLs',
+    'getAllowedReturnURLs',
     'returnToMatches',
     'verifyReturnTo',
-    ]
+]
 
-from openid import urinorm
-from openid.yadis import services
-
-from urlparse import urlparse, urlunparse
-import re
-import logging
+_LOGGER = logging.getLogger(__name__)
 
 ############################################
-_protocols = ['http', 'https']
 _top_level_domains = [
     'ac', 'ad', 'ae', 'aero', 'af', 'ag', 'ai', 'al', 'am', 'an',
     'ao', 'aq', 'ar', 'arpa', 'as', 'asia', 'at', 'au', 'aw',
@@ -64,11 +68,13 @@ _top_level_domains = [
 host_segment_re = re.compile(
     r"(?:[-a-zA-Z0-9!$&'\(\)\*+,;=._~]|%[a-zA-Z0-9]{2})+$")
 
+
 class RealmVerificationRedirected(Exception):
     """Attempting to verify this realm resulted in a redirect.
 
     @since: 2.1.0
     """
+
     def __init__(self, relying_party_url, rp_url_after_redirects):
         self.relying_party_url = relying_party_url
         self.rp_url_after_redirects = rp_url_after_redirects
@@ -85,33 +91,13 @@ def _parseURL(url):
         url = urinorm.urinorm(url)
     except ValueError:
         return None
-    proto, netloc, path, params, query, frag = urlparse(url)
-    if not path:
-        # Python <2.4 does not parse URLs with no path properly
-        if not query and '?' in netloc:
-            netloc, query = netloc.split('?', 1)
 
-        path = '/'
+    split_url = urlsplit(url)
 
-    path = urlunparse(('', '', path, params, query, frag))
+    path = urlunsplit(('', '', split_url.path or '/', split_url.query, split_url.fragment))
 
-    if ':' in netloc:
-        try:
-            host, port = netloc.split(':')
-        except ValueError:
-            return None
+    return split_url.scheme, split_url.hostname, split_url.port, path
 
-        if not re.match(r'\d+$', port):
-            return None
-    else:
-        host = netloc
-        port = ''
-
-    host = host.lower()
-    if not host_segment_re.match(host):
-        return None
-
-    return proto, host, port, path
 
 class TrustRoot(object):
     """
@@ -180,7 +166,7 @@ class TrustRoot(object):
         if self.wildcard:
             if len(tld) == 2 and len(host_parts[-2]) <= 3:
                 # It's a 2-letter tld with a short second to last segment
-                # so there needs to be more than two segments specified 
+                # so there needs to be more than two segments specified
                 # (e.g. *.co.uk is insane)
                 return len(host_parts) > 2
 
@@ -193,14 +179,14 @@ class TrustRoot(object):
 
 
         @param url: The URL to check
-
-        @type url: C{str}
+        @type url: six.text_type, six.binary_type is deprecated
 
 
         @return: Whether the given URL is within this trust root.
 
         @rtype: C{bool}
         """
+        url = string_to_text(url, "Binary values for validateURL are deprecated. Use text input instead.")
 
         url_parts = _parseURL(url)
         if url_parts is None:
@@ -241,11 +227,11 @@ class TrustRoot(object):
             else:
                 allowed = '?/'
 
-            return (self.path[-1] in allowed or
-                path[path_len] in allowed)
+            return (self.path[-1] in allowed or path[path_len] in allowed)
 
         return True
 
+    @classmethod
     def parse(cls, trust_root):
         """
         This method creates a C{L{TrustRoot}} instance from the given
@@ -254,8 +240,7 @@ class TrustRoot(object):
 
         @param trust_root: This is the trust root to parse into a
         C{L{TrustRoot}} object.
-
-        @type trust_root: C{str}
+        @type trust_root: six.text_type, six.binary_type is deprecated
 
 
         @return: A C{L{TrustRoot}} instance if trust_root parses as a
@@ -263,15 +248,12 @@ class TrustRoot(object):
 
         @rtype: C{NoneType} or C{L{TrustRoot}}
         """
+        trust_root = string_to_text(trust_root, "Binary values for trust_root are deprecated. Use text input instead.")
         url_parts = _parseURL(trust_root)
         if url_parts is None:
             return None
 
         proto, host, port, path = url_parts
-
-        # check for valid prototype
-        if proto not in _protocols:
-            return None
 
         # check for URI fragment
         if path.find('#') != -1:
@@ -298,10 +280,9 @@ class TrustRoot(object):
 
         return tr
 
-    parse = classmethod(parse)
-
+    @classmethod
     def checkSanity(cls, trust_root_string):
-        """str -> bool
+        """six.text_type -> bool, six.binary_type is deprecated
 
         is this a sane trust root?
         """
@@ -311,15 +292,12 @@ class TrustRoot(object):
         else:
             return trust_root.isSane()
 
-    checkSanity = classmethod(checkSanity)
-
+    @classmethod
     def checkURL(cls, trust_root, url):
         """quick func for validating a url against a trust root.  See the
         TrustRoot class if you need more control."""
         tr = cls.parse(trust_root)
         return tr is not None and tr.validateURL(url)
-
-    checkURL = classmethod(checkURL)
 
     def buildDiscoveryURL(self):
         """Return a discovery URL for this realm.
@@ -327,7 +305,7 @@ class TrustRoot(object):
         This function does not check to make sure that the realm is
         valid. Its behaviour on invalid inputs is undefined.
 
-        @rtype: str
+        @rtype: six.text_type
 
         @returns: The URL upon which relying party discovery should be run
             in order to verify the return_to URL
@@ -338,7 +316,11 @@ class TrustRoot(object):
             # Use "www." in place of the star
             assert self.host.startswith('.'), self.host
             www_domain = 'www' + self.host
-            return '%s://%s%s' % (self.proto, www_domain, self.path)
+            if self.port:
+                port = ':%s' % self.port
+            else:
+                port = ''
+            return '%s://%s%s%s' % (self.proto, www_domain, port, self.path)
         else:
             return self.unparsed
 
@@ -350,11 +332,13 @@ class TrustRoot(object):
     def __str__(self):
         return repr(self)
 
+
 # The URI for relying party discovery, used in realm verification.
 #
 # XXX: This should probably live somewhere else (like in
 # openid.consumer or openid.yadis somewhere)
 RP_RETURN_TO_URL_TYPE = 'http://specs.openid.net/auth/2.0/return_to'
+
 
 def _extractReturnURL(endpoint):
     """If the endpoint is a relying party OpenID return_to endpoint,
@@ -371,12 +355,13 @@ def _extractReturnURL(endpoint):
 
     @returns: The endpoint URL or None if the endpoint is not a
         relying party endpoint.
-    @rtype: str or NoneType
+    @rtype: six.text_type or NoneType
     """
     if endpoint.matchTypes([RP_RETURN_TO_URL_TYPE]):
         return endpoint.uri
     else:
         return None
+
 
 def returnToMatches(allowed_return_to_urls, return_to):
     """Is the return_to URL under one of the supplied allowed
@@ -392,7 +377,8 @@ def returnToMatches(allowed_return_to_urls, return_to):
         # a wildcard.
 
         return_realm = TrustRoot.parse(allowed_return_to)
-        if (# Parses as a trust root
+        if (
+            # Parses as a trust root
             return_realm is not None and
 
             # Does not have a wildcard
@@ -400,11 +386,12 @@ def returnToMatches(allowed_return_to_urls, return_to):
 
             # Matches the return_to that we passed in with it
             return_realm.validateURL(return_to)
-            ):
+        ):
             return True
 
     # No URL in the list matched
     return False
+
 
 def getAllowedReturnURLs(relying_party_url):
     """Given a relying party discovery URL return a list of return_to URLs.
@@ -422,6 +409,8 @@ def getAllowedReturnURLs(relying_party_url):
     return return_to_urls
 
 # _vrfy parameter is there to make testing easier
+
+
 def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):
     """Verify that a return_to URL is valid for the given realm.
 
@@ -442,13 +431,13 @@ def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):
 
     try:
         allowable_urls = _vrfy(realm.buildDiscoveryURL())
-    except RealmVerificationRedirected, err:
-        logging.exception(str(err))
+    except RealmVerificationRedirected as err:
+        _LOGGER.info(six.text_type(err))
         return False
 
     if returnToMatches(allowable_urls, return_to):
         return True
     else:
-        logging.error("Failed to validate return_to %r for realm %r, was not "
-                    "in %s" % (return_to, realm_str, allowable_urls))
+        _LOGGER.info("Failed to validate return_to %r for realm %r, was not in %s",
+                     return_to, realm_str, allowable_urls)
         return False

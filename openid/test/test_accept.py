@@ -1,24 +1,28 @@
-import unittest
+"""Test `openid.yadis.accept` module."""
+from __future__ import unicode_literals
+
 import os.path
+import unittest
+
 from openid.yadis import accept
+
 
 def getTestData():
     """Read the test data off of disk
 
-    () -> [(int, str)]
+    () -> [(int, six.text_type)]
     """
     filename = os.path.join(os.path.dirname(__file__), 'data', 'accept.txt')
-    i = 1
-    lines = []
-    for line in file(filename):
-        lines.append((i, line))
-        i += 1
+    with open(filename, 'rb') as data_file:
+        content = data_file.read().decode('utf-8')
+        lines = enumerate(content.splitlines(), start=1)
     return lines
+
 
 def chunk(lines):
     """Return groups of lines separated by whitespace or comments
 
-    [(int, str)] -> [[(int, str)]]
+    [(int, six.text_type)] -> [[(int, six.text_type)]]
     """
     chunks = []
     chunk = []
@@ -36,10 +40,11 @@ def chunk(lines):
 
     return chunks
 
+
 def parseLines(chunk):
     """Take the given chunk of lines and turn it into a test data dictionary
 
-    [(int, str)] -> {str:(int, str)}
+    [(int, six.text_type)] -> {six.text_type:(int, six.text_type)}
     """
     items = {}
     for (lineno, line) in chunk:
@@ -49,17 +54,19 @@ def parseLines(chunk):
 
     return items
 
+
 def parseAvailable(available_text):
     """Parse an Available: line's data
 
-    str -> [str]
+    six.text_type -> [six.text_type]
     """
     return [s.strip() for s in available_text.split(',')]
+
 
 def parseExpected(expected_text):
     """Parse an Expected: line's data
 
-    str -> [(str, float)]
+    six.text_type -> [(six.text_type, float)]
     """
     expected = []
     if expected_text:
@@ -76,52 +83,33 @@ def parseExpected(expected_text):
 
     return expected
 
-class MatchAcceptTest(unittest.TestCase):
-    def __init__(self, descr, accept_header, available, expected):
-        unittest.TestCase.__init__(self)
-        self.accept_header = accept_header
-        self.available = available
-        self.expected = expected
-        self.descr = descr
 
-    def shortDescription(self):
-        return self.descr
+class MatchAcceptTest(unittest.TestCase):
 
     def runTest(self):
-        accepted = accept.parseAcceptHeader(self.accept_header)
-        actual = accept.matchTypes(accepted, self.available)
-        self.failUnlessEqual(self.expected, actual)
+        lines = getTestData()
+        chunks = chunk(lines)
+        data_sets = [parseLines(l) for l in chunks]
+        for data in data_sets:
+            lnos = []
+            lno, accept_header = data['accept']
+            lnos.append(lno)
+            lno, avail_data = data['available']
+            lnos.append(lno)
+            try:
+                available = parseAvailable(avail_data)
+            except Exception:
+                print('On line', lno)
+                raise
 
-def pyUnitTests():
-    lines = getTestData()
-    chunks = chunk(lines)
-    data_sets = map(parseLines, chunks)
-    cases = []
-    for data in data_sets:
-        lnos = []
-        lno, header = data['accept']
-        lnos.append(lno)
-        lno, avail_data = data['available']
-        lnos.append(lno)
-        try:
-            available = parseAvailable(avail_data)
-        except:
-            print 'On line', lno
-            raise
+            lno, exp_data = data['expected']
+            lnos.append(lno)
+            try:
+                expected = parseExpected(exp_data)
+            except Exception:
+                print('On line', lno)
+                raise
 
-        lno, exp_data = data['expected']
-        lnos.append(lno)
-        try:
-            expected = parseExpected(exp_data)
-        except:
-            print 'On line', lno
-            raise
-
-        descr = 'MatchAcceptTest for lines %r' % (lnos,)
-        case = MatchAcceptTest(descr, header, available, expected)
-        cases.append(case)
-    return unittest.TestSuite(cases)
-
-if __name__ == '__main__':
-    runner = unittest.TextTestRunner()
-    runner.run(pyUnitTests())
+            accepted = accept.parseAcceptHeader(accept_header)
+            actual = accept.matchTypes(accepted, available)
+            self.assertEqual(actual, expected)

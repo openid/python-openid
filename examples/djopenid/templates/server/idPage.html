@@ -3,8 +3,8 @@
 {% block head %}
 <!-- We should be able to space-separate both rel values in one attribute,
      but some older OpenID implementations don't parse that. -->
-<link rel="openid.server" href="{{ server_url }}">
-<link rel="openid2.provider" href="{{ server_url }}">
+<link rel="openid.server" href="{{ endpoint_url }}">
+<link rel="openid2.provider" href="{{ endpoint_url }}">
 {% endblock %}
 
 {% block body %}

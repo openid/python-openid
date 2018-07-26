@@ -1,70 +1,34 @@
-"""
-This module contains an C{L{OpenIDStore}} implementation backed by
-flat files.
-"""
+"""This module contains an C{L{OpenIDStore}} implementation backed by flat files."""
+from __future__ import unicode_literals
 
-import string
+import logging
 import os
 import os.path
+import string
 import time
-import logging
-
 from errno import EEXIST, ENOENT
+from hashlib import sha1
+from tempfile import mkstemp
 
-try:
-    from tempfile import mkstemp
-except ImportError:
-    # Python < 2.3
-    import warnings
-    warnings.filterwarnings("ignore",
-                            "tempnam is a potential security risk",
-                            RuntimeWarning,
-                            "openid.store.filestore")
-
-    def mkstemp(dir):
-        for _ in range(5):
-            name = os.tempnam(dir)
-            try:
-                fd = os.open(name, os.O_CREAT | os.O_EXCL | os.O_RDWR, 0600)
-            except OSError, why:
-                if why.errno != EEXIST:
-                    raise
-            else:
-                return fd, name
-
-        raise RuntimeError('Failed to get temp file after 5 attempts')
-
+from openid import oidutil
 from openid.association import Association
-from openid.store.interface import OpenIDStore
+from openid.oidutil import string_to_text
 from openid.store import nonce
-from openid import cryptutil, oidutil
+from openid.store.interface import OpenIDStore
+
+_LOGGER = logging.getLogger(__name__)
 
 _filename_allowed = string.ascii_letters + string.digits + '.'
-try:
-    # 2.4
-    set
-except NameError:
-    try:
-        # 2.3
-        import sets
-    except ImportError:
-        # Python < 2.2
-        d = {}
-        for c in _filename_allowed:
-            d[c] = None
-        _isFilenameSafe = d.has_key
-        del d
-    else:
-        _isFilenameSafe = sets.Set(_filename_allowed).__contains__
-else:
-    _isFilenameSafe = set(_filename_allowed).__contains__
+_isFilenameSafe = set(_filename_allowed).__contains__
+
 
 def _safe64(s):
-    h64 = oidutil.toBase64(cryptutil.sha1(s))
+    h64 = oidutil.toBase64(sha1(s.encode('utf-8')).digest())
     h64 = h64.replace('+', '_')
     h64 = h64.replace('/', '.')
     h64 = h64.replace('=', '')
     return h64
+
 
 def _filenameEscape(s):
     filename_chunks = []
@@ -75,15 +39,16 @@ def _filenameEscape(s):
             filename_chunks.append('_%02X' % ord(c))
     return ''.join(filename_chunks)
 
+
 def _removeIfPresent(filename):
     """Attempt to remove a file, returning whether the file existed at
     the time of the call.
 
-    str -> bool
+    six.text_type -> bool
     """
     try:
         os.unlink(filename)
-    except OSError, why:
+    except OSError as why:
         if why.errno == ENOENT:
             # Someone beat us to it, but it's gone, so that's OK
             return 0
@@ -93,19 +58,21 @@ def _removeIfPresent(filename):
         # File was present
         return 1
 
+
 def _ensureDir(dir_name):
     """Create dir_name as a directory if it does not exist. If it
     exists, make sure that it is, in fact, a directory.
 
     Can raise OSError
 
-    str -> NoneType
+    six.text_type -> NoneType
     """
     try:
         os.makedirs(dir_name)
-    except OSError, why:
+    except OSError as why:
         if why.errno != EEXIST or not os.path.isdir(dir_name):
             raise
+
 
 class FileOpenIDStore(OpenIDStore):
     """
@@ -132,8 +99,7 @@ class FileOpenIDStore(OpenIDStore):
 
         @param directory: This is the directory to put the store
             directories in.
-
-        @type directory: C{str}
+        @type directory: six.text_type, six.binary_type is deprecated
         """
         # Make absolute
         directory = os.path.normpath(os.path.abspath(directory))
@@ -146,7 +112,7 @@ class FileOpenIDStore(OpenIDStore):
         # directory
         self.temp_dir = os.path.join(directory, 'temp')
 
-        self.max_nonce_age = 6 * 60 * 60 # Six hours, in seconds
+        self.max_nonce_age = 6 * 60 * 60  # Six hours, in seconds
 
         self._setup()
 
@@ -169,13 +135,15 @@ class FileOpenIDStore(OpenIDStore):
         the store, it is safe to remove all of the files in the
         temporary directory.
 
-        () -> (file, str)
+        () -> (file, six.text_type)
         """
         fd, name = mkstemp(dir=self.temp_dir)
         try:
             file_obj = os.fdopen(fd, 'wb')
             return file_obj, name
-        except:
+        except Exception:
+            # If there was an error, don't leave the temporary file
+            # around.
             _removeIfPresent(name)
             raise
 
@@ -186,8 +154,11 @@ class FileOpenIDStore(OpenIDStore):
         contain the domain name from the server URL for ease of human
         inspection of the data directory.
 
-        (str, str) -> str
+        (six.text_type, six.text_type) -> six.text_type, six.binary_type is deprecated
         """
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
+        handle = string_to_text(handle, "Binary values for handle are deprecated. Use text input instead.")
+
         if server_url.find('://') == -1:
             raise ValueError('Bad server URL: %r' % server_url)
 
@@ -206,22 +177,24 @@ class FileOpenIDStore(OpenIDStore):
     def storeAssociation(self, server_url, association):
         """Store an association in the association directory.
 
-        (str, Association) -> NoneType
+        (six.text_type, Association) -> NoneType, six.binary_type is deprecated
         """
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
+
         association_s = association.serialize()
         filename = self.getAssociationFilename(server_url, association.handle)
         tmp_file, tmp = self._mktemp()
 
         try:
             try:
-                tmp_file.write(association_s)
+                tmp_file.write(association_s.encode('utf-8'))
                 os.fsync(tmp_file.fileno())
             finally:
                 tmp_file.close()
 
             try:
                 os.rename(tmp, filename)
-            except OSError, why:
+            except OSError as why:
                 if why.errno != EEXIST:
                     raise
 
@@ -230,7 +203,7 @@ class FileOpenIDStore(OpenIDStore):
                 # file, but not in putting the temporary file in place.
                 try:
                     os.unlink(filename)
-                except OSError, why:
+                except OSError as why:
                     if why.errno == ENOENT:
                         pass
                     else:
@@ -239,7 +212,7 @@ class FileOpenIDStore(OpenIDStore):
                 # Now the target should not exist. Try renaming again,
                 # giving up if it fails.
                 os.rename(tmp, filename)
-        except:
+        except Exception:
             # If there was an error, don't leave the temporary file
             # around.
             _removeIfPresent(tmp)
@@ -249,8 +222,12 @@ class FileOpenIDStore(OpenIDStore):
         """Retrieve an association. If no handle is specified, return
         the association with the latest expiration.
 
-        (str, str or NoneType) -> Association or NoneType
+        (six.text_type, Optional[six.text_type]) -> Association or NoneType, six.binary_type is deprecated
         """
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
+        if handle is not None:
+            handle = string_to_text(handle, "Binary values for handle are deprecated. Use text input instead.")
+
         if handle is None:
             handle = ''
 
@@ -289,8 +266,8 @@ class FileOpenIDStore(OpenIDStore):
 
     def _getAssociation(self, filename):
         try:
-            assoc_file = file(filename, 'rb')
-        except IOError, why:
+            assoc_file = open(filename, 'rb')
+        except IOError as why:
             if why.errno == ENOENT:
                 # No association exists for that URL and handle
                 return None
@@ -303,7 +280,7 @@ class FileOpenIDStore(OpenIDStore):
                 assoc_file.close()
 
             try:
-                association = Association.deserialize(assoc_s)
+                association = Association.deserialize(assoc_s.decode('utf-8'))
             except ValueError:
                 _removeIfPresent(filename)
                 return None
@@ -318,8 +295,11 @@ class FileOpenIDStore(OpenIDStore):
     def removeAssociation(self, server_url, handle):
         """Remove an association if it exists. Do nothing if it does not.
 
-        (str, str) -> bool
+        (six.text_type, six.text_type) -> bool, six.binary_type is deprecated
         """
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
+        handle = string_to_text(handle, "Binary values for handle are deprecated. Use text input instead.")
+
         assoc = self.getAssociation(server_url, handle)
         if assoc is None:
             return 0
@@ -330,8 +310,11 @@ class FileOpenIDStore(OpenIDStore):
     def useNonce(self, server_url, timestamp, salt):
         """Return whether this nonce is valid.
 
-        str -> bool
+        @type server_url: six.text_type, six.binary_type is deprecated
+        @rtype: bool
         """
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
+
         if abs(timestamp - time.time()) > nonce.SKEW:
             return False
 
@@ -351,8 +334,8 @@ class FileOpenIDStore(OpenIDStore):
 
         filename = os.path.join(self.nonce_dir, filename)
         try:
-            fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0200)
-        except OSError, why:
+            fd = os.open(filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o200)
+        except OSError as why:
             if why.errno == EEXIST:
                 return False
             else:
@@ -364,16 +347,14 @@ class FileOpenIDStore(OpenIDStore):
     def _allAssocs(self):
         all_associations = []
 
-        association_filenames = map(
-            lambda filename: os.path.join(self.association_dir, filename),
-            os.listdir(self.association_dir))
+        association_filenames = [os.path.join(self.association_dir, f) for f in os.listdir(self.association_dir)]
         for association_filename in association_filenames:
             try:
-                association_file = file(association_filename, 'rb')
-            except IOError, why:
+                association_file = open(association_filename, 'rb')
+            except IOError as why:
                 if why.errno == ENOENT:
-                    logging.exception("%s disappeared during %s._allAssocs" % (
-                        association_filename, self.__class__.__name__))
+                    _LOGGER.exception("%s disappeared during %s._allAssocs",
+                                      association_filename, self.__class__.__name__)
                 else:
                     raise
             else:
@@ -384,7 +365,7 @@ class FileOpenIDStore(OpenIDStore):
 
                 # Remove expired or corrupted associations
                 try:
-                    association = Association.deserialize(assoc_s)
+                    association = Association.deserialize(assoc_s.decode('utf-8'))
                 except ValueError:
                     _removeIfPresent(association_filename)
                 else:

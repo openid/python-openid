@@ -1,4 +1,9 @@
+from __future__ import unicode_literals
+
+import warnings
+
 from openid import message as message_module
+
 
 class Extension(object):
     """An interface for OpenID extensions.

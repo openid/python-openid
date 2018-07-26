@@ -1,5 +1,8 @@
-__all__ = ['YADIS_HEADER_NAME', 'YADIS_CONTENT_TYPE', 'YADIS_ACCEPT_HEADER']
+from __future__ import unicode_literals
+
 from openid.yadis.accept import generateAcceptHeader
+
+__all__ = ['YADIS_HEADER_NAME', 'YADIS_CONTENT_TYPE', 'YADIS_ACCEPT_HEADER']
 
 YADIS_HEADER_NAME = 'X-XRDS-Location'
 YADIS_CONTENT_TYPE = 'application/xrds+xml'
@@ -10,4 +13,4 @@ YADIS_ACCEPT_HEADER = generateAcceptHeader(
     ('text/html', 0.3),
     ('application/xhtml+xml', 0.5),
     (YADIS_CONTENT_TYPE, 1.0),
-    )
+)

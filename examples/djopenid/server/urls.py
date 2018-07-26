@@ -1,12 +1,16 @@
+"""Server URLs."""
+from __future__ import unicode_literals
 
-from django.conf.urls.defaults import *
+from django.conf.urls import url
+from django.views.generic import TemplateView
 
-urlpatterns = patterns(
-    'djopenid.server.views',
-    (r'^$', 'server'),
-    (r'^xrds/$', 'idpXrds'),
-    (r'^processTrustResult/$', 'processTrustResult'),
-    (r'^user/$', 'idPage'),
-    (r'^endpoint/$', 'endpoint'),
-    (r'^trust/$', 'trustPage'),
-)
+from djopenid.server.views import endpoint, idPage, idpXrds, processTrustResult, server
+
+urlpatterns = [
+    url(r'^$', server, name='index'),
+    url(r'^xrds/$', idpXrds, name='xrds'),
+    url(r'^user/$', idPage, name='local_id'),
+    url(r'^endpoint/$', endpoint, name='endpoint'),
+    url(r'^trust/$', TemplateView.as_view(template_name='server/trust.html'), name='confirmation'),
+    url(r'^processTrustResult/$', processTrustResult, name='process-confirmation'),
+]

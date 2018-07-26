@@ -1,28 +1,35 @@
+from __future__ import unicode_literals
 
-from django.test.testcases import TestCase
-from djopenid.server import views
-from djopenid import util
-
+import django
 from django.http import HttpRequest
-from django.contrib.sessions.middleware import SessionWrapper
-
-from openid.server.server import CheckIDRequest
+from django.test.testcases import TestCase
+from django.urls import reverse
 from openid.message import Message
+from openid.server.server import HTTP_REDIRECT, CheckIDRequest
 from openid.yadis.constants import YADIS_CONTENT_TYPE
 from openid.yadis.services import applyFilter
+from six.moves.urllib.parse import urljoin
+
+from .. import util
+from ..server import views
+
+# Allow django tests to run through discover
+django.setup()
+
 
 def dummyRequest():
     request = HttpRequest()
-    request.session = SessionWrapper("test")
-    request.META['HTTP_HOST'] = 'example.invalid'
+    request.session = {}
+    request.META['HTTP_HOST'] = 'example.cz'
     request.META['SERVER_PROTOCOL'] = 'HTTP'
     return request
+
 
 class TestProcessTrustResult(TestCase):
     def setUp(self):
         self.request = dummyRequest()
 
-        id_url = util.getViewURL(self.request, views.idPage)
+        id_url = urljoin('http://example.cz/', reverse('server:local_id'))
 
         # Set up the OpenID request we're responding to.
         op_endpoint = 'http://127.0.0.1:8080/endpoint'
@@ -31,41 +38,39 @@ class TestProcessTrustResult(TestCase):
             'openid.identity': id_url,
             'openid.return_to': 'http://127.0.0.1/%s' % (self.id(),),
             'openid.sreg.required': 'postcode',
-            })
+        })
         self.openid_request = CheckIDRequest.fromMessage(message, op_endpoint)
 
         views.setRequest(self.request, self.openid_request)
-
 
     def test_allow(self):
         self.request.POST['allow'] = 'Yes'
 
         response = views.processTrustResult(self.request)
 
-        self.failUnlessEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, HTTP_REDIRECT)
         finalURL = response['location']
-        self.failUnless('openid.mode=id_res' in finalURL, finalURL)
-        self.failUnless('openid.identity=' in finalURL, finalURL)
-        self.failUnless('openid.sreg.postcode=12345' in finalURL, finalURL)
+        self.assertIn('openid.mode=id_res', finalURL)
+        self.assertIn('openid.identity=', finalURL)
+        self.assertIn('openid.sreg.postcode=12345', finalURL)
 
     def test_cancel(self):
         self.request.POST['cancel'] = 'Yes'
 
         response = views.processTrustResult(self.request)
 
-        self.failUnlessEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, HTTP_REDIRECT)
         finalURL = response['location']
-        self.failUnless('openid.mode=cancel' in finalURL, finalURL)
-        self.failIf('openid.identity=' in finalURL, finalURL)
-        self.failIf('openid.sreg.postcode=12345' in finalURL, finalURL)
-
+        self.assertIn('openid.mode=cancel', finalURL)
+        self.assertNotIn('openid.identity=', finalURL)
+        self.assertNotIn('openid.sreg.postcode=12345', finalURL)
 
 
 class TestShowDecidePage(TestCase):
     def test_unreachableRealm(self):
         self.request = dummyRequest()
 
-        id_url = util.getViewURL(self.request, views.idPage)
+        id_url = urljoin('http://example.cz/', reverse('server:local_id'))
 
         # Set up the OpenID request we're responding to.
         op_endpoint = 'http://127.0.0.1:8080/endpoint'
@@ -74,15 +79,13 @@ class TestShowDecidePage(TestCase):
             'openid.identity': id_url,
             'openid.return_to': 'http://unreachable.invalid/%s' % (self.id(),),
             'openid.sreg.required': 'postcode',
-            })
+        })
         self.openid_request = CheckIDRequest.fromMessage(message, op_endpoint)
 
         views.setRequest(self.request, self.openid_request)
 
         response = views.showDecidePage(self.request, self.openid_request)
-        self.failUnless('trust_root_valid is Unreachable' in response.content,
-                        response)
-
+        self.assertContains(response, 'trust_root_valid is Unreachable')
 
 
 class TestGenericXRDS(TestCase):
@@ -98,6 +101,6 @@ class TestGenericXRDS(TestCase):
         requested_url = 'http://requested.invalid/'
         (endpoint,) = applyFilter(requested_url, response.content)
 
-        self.failUnlessEqual(YADIS_CONTENT_TYPE, response['Content-Type'])
-        self.failUnlessEqual(type_uris, endpoint.type_uris)
-        self.failUnlessEqual(endpoint_url, endpoint.uri)
+        self.assertEqual(response['Content-Type'], YADIS_CONTENT_TYPE)
+        self.assertEqual(endpoint.type_uris, type_uris)
+        self.assertEqual(endpoint.uri, endpoint_url)

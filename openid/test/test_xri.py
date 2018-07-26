@@ -1,55 +1,43 @@
+from __future__ import unicode_literals
+
 from unittest import TestCase
+
 from openid.yadis import xri
+
 
 class XriDiscoveryTestCase(TestCase):
     def test_isXRI(self):
         i = xri.identifierScheme
-        self.failUnlessEqual(i('=john.smith'), 'XRI')
-        self.failUnlessEqual(i('@smiths/john'), 'XRI')
-        self.failUnlessEqual(i('smoker.myopenid.com'), 'URI')
-        self.failUnlessEqual(i('xri://=john'), 'XRI')
-        self.failUnlessEqual(i(''), 'URI')
+        self.assertEqual(i('=john.smith'), 'XRI')
+        self.assertEqual(i('@smiths/john'), 'XRI')
+        self.assertEqual(i('smoker.myopenid.com'), 'URI')
+        self.assertEqual(i('xri://=john'), 'XRI')
+        self.assertEqual(i(''), 'URI')
 
 
 class XriEscapingTestCase(TestCase):
     def test_escaping_percents(self):
-        self.failUnlessEqual(xri.escapeForIRI('@example/abc%2Fd/ef'),
-                             '@example/abc%252Fd/ef')
-
+        self.assertEqual(xri.escapeForIRI('@example/abc%2Fd/ef'), '@example/abc%252Fd/ef')
 
     def test_escaping_xref(self):
         # no escapes
         esc = xri.escapeForIRI
-        self.failUnlessEqual('@example/foo/(@bar)', esc('@example/foo/(@bar)'))
+        self.assertEqual('@example/foo/(@bar)', esc('@example/foo/(@bar)'))
         # escape slashes
-        self.failUnlessEqual('@example/foo/(@bar%2Fbaz)',
-                             esc('@example/foo/(@bar/baz)'))
-        self.failUnlessEqual('@example/foo/(@bar%2Fbaz)/(+a%2Fb)',
-                             esc('@example/foo/(@bar/baz)/(+a/b)'))
+        self.assertEqual('@example/foo/(@bar%2Fbaz)', esc('@example/foo/(@bar/baz)'))
+        self.assertEqual('@example/foo/(@bar%2Fbaz)/(+a%2Fb)', esc('@example/foo/(@bar/baz)/(+a/b)'))
         # escape query ? and fragment #
-        self.failUnlessEqual('@example/foo/(@baz%3Fp=q%23r)?i=j#k',
-                             esc('@example/foo/(@baz?p=q#r)?i=j#k'))
-
+        self.assertEqual('@example/foo/(@baz%3Fp=q%23r)?i=j#k', esc('@example/foo/(@baz?p=q#r)?i=j#k'))
 
 
 class XriTransformationTestCase(TestCase):
     def test_to_iri_normal(self):
-        self.failUnlessEqual(xri.toIRINormal('@example'), 'xri://@example')
+        self.assertEqual(xri.toIRINormal('@example'), 'xri://@example')
 
-    try:
-        unichr(0x10000)
-    except ValueError:
-        # bleh narrow python build
-        def test_iri_to_url(self):
-            s = u'l\xa1m'
-            expected = 'l%C2%A1m'
-            self.failUnlessEqual(xri.iriToURI(s), expected)
-    else:
-        def test_iri_to_url(self):
-            s = u'l\xa1m\U00101010n'
-            expected = 'l%C2%A1m%F4%81%80%90n'
-            self.failUnlessEqual(xri.iriToURI(s), expected)
-
+    def test_iri_to_url(self):
+        s = u'l\xa1m\U00101010n'
+        expected = 'l%C2%A1m%F4%81%80%90n'
+        self.assertEqual(xri.iriToURI(s), expected)
 
 
 class CanonicalIDTest(TestCase):
@@ -58,7 +46,7 @@ class CanonicalIDTest(TestCase):
             result = xri.providerIsAuthoritative(providerID, canonicalID)
             format = "%s providing %s, expected %s"
             message = format % (providerID, canonicalID, isAuthoritative)
-            self.failUnlessEqual(isAuthoritative, result, message)
+            self.assertEqual(result, isAuthoritative, message)
 
         return test
 
@@ -71,11 +59,12 @@ class CanonicalIDTest(TestCase):
     test_atEqualsAndTooDeepFails = mkTest('@!1234!ABCD', '=!1234', False)
     test_differentBeginningFails = mkTest('=!BABE', '=!D00D', False)
 
+
 class TestGetRootAuthority(TestCase):
     def mkTest(the_xri, expected_root):
         def test(self):
             actual_root = xri.rootAuthority(the_xri)
-            self.failUnlessEqual(actual_root, xri.XRI(expected_root))
+            self.assertEqual(actual_root, xri.XRI(expected_root))
         return test
 
     test_at = mkTest("@foo", "@")
@@ -94,8 +83,9 @@ class TestGetRootAuthority(TestCase):
     # Looking at the ABNF in XRI Syntax 2.0, I don't think you can
     # have example.com*bar.  You can do (example.com)*bar, but that
     # would mean something else.
-    ##("example.com*bar/(=baz)", "example.com*bar"),
-    ##("baz.example.com!01/foo", "baz.example.com!01"),
+    # ("example.com*bar/(=baz)", "example.com*bar"),
+    # ("baz.example.com!01/foo", "baz.example.com!01"),
+
 
 if __name__ == '__main__':
     import unittest

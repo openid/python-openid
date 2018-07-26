@@ -6,19 +6,23 @@ Once you understand this example you'll know the basics of OpenID
 and using the Python OpenID library. You can then move on to more
 robust examples, and integrating OpenID into your application.
 """
-__copyright__ = 'Copyright 2005-2008, Janrain, Inc.'
+from __future__ import unicode_literals
 
-from Cookie import SimpleCookie
 import cgi
-import urlparse
 import cgitb
+import optparse
 import sys
+from Cookie import SimpleCookie
+
+import six
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from six.moves.urllib.parse import parse_qsl, urljoin, urlparse
+
 
 def quoteattr(s):
     qs = cgi.escape(s, 1)
     return '"%s"' % (qs,)
 
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
 try:
     import openid
@@ -32,24 +36,26 @@ PYTHONPATH environment variable).
 For more information, see the README in the root of the library
 distribution.""")
     sys.exit(1)
+else:
+    del openid
+    from openid.consumer import consumer
+    from openid.extensions import pape, sreg
+    from openid.fetchers import Urllib2Fetcher, setDefaultFetcher
+    from openid.oidutil import appendArgs
+    from openid.store import filestore, memstore
+    from openid.store.nonce import make_nonce_salt
 
-from openid.store import memstore
-from openid.store import filestore
-from openid.consumer import consumer
-from openid.oidutil import appendArgs
-from openid.cryptutil import randomString
-from openid.fetchers import setDefaultFetcher, Urllib2Fetcher
-from openid.extensions import pape, sreg
 
 # Used with an OpenID provider affiliate program.
 OPENID_PROVIDER_NAME = 'MyOpenID'
-OPENID_PROVIDER_URL ='https://www.myopenid.com/affiliate_signup?affiliate_id=39'
+OPENID_PROVIDER_URL = 'https://www.myopenid.com/affiliate_signup?affiliate_id=39'
 
 
 class OpenIDHTTPServer(HTTPServer):
     """http server that contains a reference to an OpenID consumer and
     knows its base URL.
     """
+
     def __init__(self, store, *args, **kwargs):
         HTTPServer.__init__(self, *args, **kwargs)
         self.sessions = {}
@@ -60,6 +66,7 @@ class OpenIDHTTPServer(HTTPServer):
                              (self.server_name, self.server_port))
         else:
             self.base_url = 'http://%s/' % (self.server_name,)
+
 
 class OpenIDRequestHandler(BaseHTTPRequestHandler):
     """Request handler that knows how to verify an OpenID identity."""
@@ -93,7 +100,8 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
 
         # If a session id was not set, create a new one
         if sid is None:
-            sid = randomString(16, '0123456789abcdef')
+            # Pure pragmatism: Use function for nonce salt to generate session ID.
+            sid = make_nonce_salt(16)
             session = None
         else:
             session = self.server.sessions.get(sid)
@@ -126,9 +134,9 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         written to the requesting browser.
         """
         try:
-            self.parsed_uri = urlparse.urlparse(self.path)
+            self.parsed_uri = urlparse(self.path)
             self.query = {}
-            for k, v in cgi.parse_qsl(self.parsed_uri[4]):
+            for k, v in parse_qsl(self.parsed_uri[4]):
                 self.query[k] = v.decode('utf-8')
 
             path = self.parsed_uri[2]
@@ -143,9 +151,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             else:
                 self.notFound()
 
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
+        except Exception:
             self.send_response(500)
             self.send_header('Content-type', 'text/html')
             self.setSessionCookie()
@@ -168,12 +174,12 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         use_pape = 'use_pape' in self.query
         use_stateless = 'use_stateless' in self.query
 
-        oidconsumer = self.getConsumer(stateless = use_stateless)
+        oidconsumer = self.getConsumer(stateless=use_stateless)
         try:
             request = oidconsumer.begin(openid_url)
-        except consumer.DiscoveryFailure, exc:
+        except consumer.DiscoveryFailure as exc:
             fetch_error_string = 'Error in discovery: %s' % (
-                cgi.escape(str(exc[0])))
+                cgi.escape(six.text_type(exc[0])))
             self.render(fetch_error_string,
                         css_class='error',
                         form_contents=openid_url)
@@ -205,7 +211,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                 else:
                     form_html = request.htmlMarkup(
                         trust_root, return_to,
-                        form_tag_attrs={'id':'openid_message'},
+                        form_tag_attrs={'id': 'openid_message'},
                         immediate=immediate)
 
                     self.wfile.write(form_html)
@@ -228,7 +234,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         # us.  Status is a code indicating the response type. info is
         # either None or a string containing more information about
         # the return type.
-        url = 'http://'+self.headers.get('Host')+self.path
+        url = 'http://' + self.headers.get('Host') + self.path
         info = oidconsumer.complete(self.query, url)
 
         sreg_resp = None
@@ -298,8 +304,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(
                 '<div class="alert">No registration data was returned</div>')
         else:
-            sreg_list = sreg_data.items()
-            sreg_list.sort()
+            sreg_list = sorted(sreg_data.items())
             self.wfile.write(
                 '<h2>Registration Data</h2>'
                 '<table class="sreg">'
@@ -337,7 +342,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
     def buildURL(self, action, **query):
         """Build a URL relative to the server base_url, with the given
         query parameters added."""
-        base = urlparse.urljoin(self.server.base_url, action)
+        base = urljoin(self.server.base_url, action)
         return appendArgs(base, query)
 
     def notFound(self):
@@ -422,7 +427,7 @@ Content-type: text/html; charset=UTF-8
     <h1>%s</h1>
     <p>
       This example consumer uses the <a href=
-      "http://github.com/openid/python-openid" >Python
+      "https://github.com/ziima/python-openid" >Python
       OpenID</a> library. It just verifies that the identifier that you enter
       is your identifier.
     </p>
@@ -441,13 +446,16 @@ Content-type: text/html; charset=UTF-8
         <input type="submit" value="Verify" /><br />
         <input type="checkbox" name="immediate" id="immediate" /><label for="immediate">Use immediate mode</label>
         <input type="checkbox" name="use_sreg" id="use_sreg" /><label for="use_sreg">Request registration data</label>
-        <input type="checkbox" name="use_pape" id="use_pape" /><label for="use_pape">Request phishing-resistent auth policy (PAPE)</label>
-        <input type="checkbox" name="use_stateless" id="use_stateless" /><label for="use_stateless">Use stateless mode</label>
+        <input type="checkbox" name="use_pape" id="use_pape" />
+            <label for="use_pape">Request phishing-resistent auth policy (PAPE)</label>
+        <input type="checkbox" name="use_stateless" id="use_stateless" />
+            <label for="use_stateless">Use stateless mode</label>
       </form>
     </div>
   </body>
 </html>
 ''' % (quoteattr(self.buildURL('verify')), quoteattr(form_contents)))
+
 
 def main(host, port, data_path, weak_ssl=False):
     # Instantiate OpenID consumer store and OpenID consumer.  If you
@@ -464,44 +472,36 @@ def main(host, port, data_path, weak_ssl=False):
     addr = (host, port)
     server = OpenIDHTTPServer(store, addr, OpenIDRequestHandler)
 
-    print 'Server running at:'
-    print server.base_url
+    print('Server running at:')
+    print(server.base_url)
     server.serve_forever()
 
+
 if __name__ == '__main__':
-    host = 'localhost'
-    port = 8001
-    weak_ssl = False
+    parser = optparse.OptionParser('Usage:\n %prog [options]')
+    parser.add_option(
+        '-d', '--data-path', dest='data_path',
+        help='Data directory for storing OpenID consumer state. '
+        'Setting this option implies using a "FileStore."')
+    parser.add_option(
+        '-p', '--port', dest='port', type='int', default=8001,
+        help='Port on which to listen for HTTP requests. '
+        'Defaults to port %default.')
+    parser.add_option(
+        '-s', '--host', dest='host', default='localhost',
+        help='Host on which to listen for HTTP requests. '
+        'Also used for generating URLs. Defaults to %default.')
+    parser.add_option(
+        '-w', '--weakssl', dest='weakssl', default=False,
+        action='store_true', help='Skip ssl cert verification')
 
-    try:
-        import optparse
-    except ImportError:
-        pass # Use defaults (for Python 2.2)
-    else:
-        parser = optparse.OptionParser('Usage:\n %prog [options]')
-        parser.add_option(
-            '-d', '--data-path', dest='data_path',
-            help='Data directory for storing OpenID consumer state. '
-            'Setting this option implies using a "FileStore."')
-        parser.add_option(
-            '-p', '--port', dest='port', type='int', default=port,
-            help='Port on which to listen for HTTP requests. '
-            'Defaults to port %default.')
-        parser.add_option(
-            '-s', '--host', dest='host', default=host,
-            help='Host on which to listen for HTTP requests. '
-            'Also used for generating URLs. Defaults to %default.')
-        parser.add_option(
-            '-w', '--weakssl', dest='weakssl', default=False,
-            action='store_true', help='Skip ssl cert verification')
+    options, args = parser.parse_args()
+    if args:
+        parser.error('Expected no arguments. Got %r' % args)
 
-        options, args = parser.parse_args()
-        if args:
-            parser.error('Expected no arguments. Got %r' % args)
-
-        host = options.host
-        port = options.port
-        data_path = options.data_path
-        weak_ssl = options.weakssl
+    host = options.host
+    port = options.port
+    data_path = options.data_path
+    weak_ssl = options.weakssl
 
     main(host, port, data_path, weak_ssl)

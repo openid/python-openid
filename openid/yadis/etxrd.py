@@ -2,6 +2,18 @@
 """
 ElementTree interface to an XRD document.
 """
+from __future__ import unicode_literals
+
+import random
+from datetime import datetime
+from functools import total_ordering
+from operator import itemgetter
+from time import strptime
+
+import six
+from lxml import etree
+
+from openid.yadis import xri
 
 __all__ = [
     'nsTag',
@@ -16,31 +28,8 @@ __all__ = [
     'iterServices',
     'expandService',
     'expandServices',
-    ]
+]
 
-import sys
-import random
-
-from datetime import datetime
-from time import strptime
-
-from openid.oidutil import importElementTree
-ElementTree = importElementTree()
-
-# the different elementtree modules don't have a common exception
-# model. We just want to be able to catch the exceptions that signify
-# malformed XML data and wrap them, so that the other library code
-# doesn't have to know which XML library we're using.
-try:
-    # Make the parser raise an exception so we can sniff out the type
-    # of exceptions
-    ElementTree.XML('> purposely malformed XML <')
-except (SystemExit, MemoryError, AssertionError, ImportError):
-    raise
-except:
-    XMLError = sys.exc_info()[0]
-
-from openid.yadis import xri
 
 class XRDSError(Exception):
     """An error with the XRDS document."""
@@ -49,56 +38,62 @@ class XRDSError(Exception):
     reason = None
 
 
-
 class XRDSFraud(XRDSError):
     """Raised when there's an assertion in the XRDS that it does not have
     the authority to make.
     """
 
 
-
 def parseXRDS(text):
     """Parse the given text as an XRDS document.
+
+    @type text: six.binary_type
 
     @return: ElementTree containing an XRDS document
 
     @raises XRDSError: When there is a parse error or the document does
         not contain an XRDS.
     """
+    parser = etree.XMLParser(resolve_entities=False)
     try:
-        element = ElementTree.XML(text)
-    except XMLError, why:
+        element = etree.XML(text, parser)
+    except etree.Error as why:
         exc = XRDSError('Error parsing document as XML')
         exc.reason = why
         raise exc
     else:
-        tree = ElementTree.ElementTree(element)
+        tree = etree.ElementTree(element)
         if not isXRDS(tree):
             raise XRDSError('Not an XRDS document')
 
         return tree
 
+
 XRD_NS_2_0 = 'xri://$xrd*($v*2.0)'
 XRDS_NS = 'xri://$xrds'
+
 
 def nsTag(ns, t):
     return '{%s}%s' % (ns, t)
 
+
 def mkXRDTag(t):
-    """basestring -> basestring
+    """six.text_type -> six.text_type
 
     Create a tag name in the XRD 2.0 XML namespace suitable for using
     with ElementTree
     """
     return nsTag(XRD_NS_2_0, t)
 
+
 def mkXRDSTag(t):
-    """basestring -> basestring
+    """six.text_type -> six.text_type
 
     Create a tag name in the XRDS XML namespace suitable for using
     with ElementTree
     """
     return nsTag(XRDS_NS, t)
+
 
 # Tags that are used in Yadis documents
 root_tag = mkXRDSTag('XRDS')
@@ -111,10 +106,12 @@ expires_tag = mkXRDTag('Expires')
 # Other XRD tags
 canonicalID_tag = mkXRDTag('CanonicalID')
 
+
 def isXRDS(xrd_tree):
     """Is this document an XRDS document?"""
     root = xrd_tree.getroot()
     return root.tag == root_tag
+
 
 def getYadisXRD(xrd_tree):
     """Return the XRD element that should contain the Yadis services"""
@@ -131,6 +128,7 @@ def getYadisXRD(xrd_tree):
         raise XRDSError('No XRD present in tree')
 
     return xrd
+
 
 def getXRDExpiration(xrd_element, default=None):
     """Return the expiration date of this XRD element, or None if no
@@ -156,17 +154,18 @@ def getXRDExpiration(xrd_element, default=None):
         expires_time = strptime(expires_string, "%Y-%m-%dT%H:%M:%SZ")
         return datetime(*expires_time[0:6])
 
+
 def getCanonicalID(iname, xrd_tree):
     """Return the CanonicalID from this XRDS document.
 
     @param iname: the XRI being resolved.
-    @type iname: unicode
+    @type iname: six.text_type
 
     @param xrd_tree: The XRDS output from the resolver.
     @type xrd_tree: ElementTree
 
     @returns: The XRI CanonicalID or None.
-    @returntype: unicode or None
+    @returntype: six.text_type or None
     """
     xrd_list = xrd_tree.findall(xrd_tag)
     xrd_list.reverse()
@@ -194,19 +193,22 @@ def getCanonicalID(iname, xrd_tree):
     return canonicalID
 
 
-
+@total_ordering
 class _Max(object):
     """Value that compares greater than any other value.
 
     Should only be used as a singleton. Implemented for use as a
     priority value for when a priority is not specified."""
-    def __cmp__(self, other):
-        if other is self:
-            return 0
 
-        return 1
+    def __eq__(self, other):
+        return self is other
+
+    def __gt__(self, other):
+        return True
+
 
 Max = _Max()
+
 
 def getPriorityStrict(element):
     """Get the priority of this element.
@@ -226,6 +228,7 @@ def getPriorityStrict(element):
     # Any errors in parsing the priority fall through to here
     return Max
 
+
 def getPriority(element):
     """Get the priority of this element
 
@@ -236,16 +239,17 @@ def getPriority(element):
     except ValueError:
         return Max
 
+
 def prioSort(elements):
     """Sort a list of elements that have priority attributes"""
     # Randomize the services before sorting so that equal priority
     # elements are load-balanced.
     random.shuffle(elements)
 
-    prio_elems = [(getPriority(e), e) for e in elements]
-    prio_elems.sort()
+    prio_elems = sorted(((getPriority(e), e) for e in elements), key=itemgetter(0))
     sorted_elems = [s for (_, s) in prio_elems]
     return sorted_elems
+
 
 def iterServices(xrd_tree):
     """Return an iterable over the Service elements in the Yadis XRD
@@ -254,17 +258,28 @@ def iterServices(xrd_tree):
     xrd = getYadisXRD(xrd_tree)
     return prioSort(xrd.findall(service_tag))
 
+
 def sortedURIs(service_element):
     """Given a Service element, return a list of the contents of all
     URI tags in priority order."""
     return [uri_element.text for uri_element
             in prioSort(service_element.findall(uri_tag))]
 
+
 def getTypeURIs(service_element):
-    """Given a Service element, return a list of the contents of all
-    Type tags"""
-    return [type_element.text for type_element
-            in service_element.findall(type_tag)]
+    """Given a Service element, return a list of the contents of all Type tags.
+
+    @rtype: List[six.text_type]
+    """
+    output = []
+    for type_element in service_element.findall(type_tag):
+        type_uri = type_element.text
+        # Attribute `text` returns str in both python 2 and 3, convert to text_type in 2.7
+        if not isinstance(type_uri, six.text_type):
+            type_uri = type_uri.decode('utf-8')
+        output.append(type_uri)
+    return output
+
 
 def expandService(service_element):
     """Take a service element and expand it into an iterator of:
@@ -280,6 +295,7 @@ def expandService(service_element):
         expanded.append((type_uris, uri, service_element))
 
     return expanded
+
 
 def expandServices(service_elements):
     """Take a sorted iterator of service elements and expand it into a

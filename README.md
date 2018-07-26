@@ -1,31 +1,35 @@
-This is the Python OpenID library.
+# python-openid2 #
 
-[![Build Status][travis-image]][travis-link]
+[![Build Status](https://travis-ci.org/ziima/python-openid.svg?branch=master)](https://travis-ci.org/ziima/python-openid)
+[![codecov](https://codecov.io/gh/ziima/python-openid/branch/master/graph/badge.svg)](https://codecov.io/gh/ziima/python-openid)
+[![PyPI](https://img.shields.io/pypi/v/python-openid2.svg)](https://pypi.org/pypi/python-openid2/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/python-openid2.svg)](https://pypi.org/pypi/python-openid2/)
 
-[travis-image]: https://secure.travis-ci.org/openid/python-openid.png?branch=master
-[travis-link]: http://travis-ci.org/openid/python-openid
+Python OpenID library - OpenID support for servers and consumers.
+
+This is a set of Python packages to support use of the OpenID decentralized identity system in your application.
+Want to enable single sign-on for your web site?
+Use the `openid.consumer package`.
+Want to run your own OpenID server?
+Check out `openid.server`.
+Includes example code and support for a variety of storage back-ends.
+
+## REQUIREMENTS ##
+
+ - Python 2.7, >3.4
+ - lxml
+ - six
+ - cryptography
 
 
-REQUIREMENTS
-============
-
- - Python 2.6, 2.7.
-
-
-INSTALLATION
-============
+## INSTALLATION ##
 
 To install the base library, just run the following command:
 
-python setup.py install
-
-To run setup.py you need the distutils module from the Python standard
-library; some distributions package this seperately in a "python-dev"
-package.
+    pip install python-openid2
 
 
-GETTING STARTED
-===============
+## GETTING STARTED ##
 
 The examples directory includes an example server and consumer
 implementation.  See the README file in that directory for more
@@ -34,8 +38,7 @@ information on running the examples.
 Library documentation is available in html form in the doc directory.
 
 
-LOGGING
-=======
+## LOGGING ##
 
 This library offers a logging hook that will record unexpected
 conditions that occur in library code. If a condition is recoverable,
@@ -45,8 +48,7 @@ documentation for the openid.oidutil module for more on the logging
 hook.
 
 
-DOCUMENTATION
-=============
+## DOCUMENTATION ##
 
 The documentation in this library is in Epydoc format, which is
 detailed at:
@@ -54,14 +56,10 @@ detailed at:
   http://epydoc.sourceforge.net/
 
 
-CONTACT
-=======
+## CONTACT ##
 
 Send bug reports, suggestions, comments, and questions to
-http://openid.net/developers/dev-mailing-lists/.
+https://github.com/ziima/python-openid/issues/new
 
 If you have a bugfix or feature you'd like to contribute, don't
-hesitate to send it to us.  For more detailed information on how to
-contribute, see
-
-  http://openidenabled.com/contribute/
+hesitate to send it to us on GitHub.

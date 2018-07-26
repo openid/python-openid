@@ -1,3 +1,2 @@
-from django.db import models
-
-# Create your models here.
+"""Required module for Django application."""
+from __future__ import unicode_literals

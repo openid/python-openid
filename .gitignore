@@ -1,4 +1,12 @@
-*~
 *.pyc
-*.swp
-.tox
+__pycache__
+# Distribution
+/dist
+/*.egg-info
+# Tests
+/.tox
+/.eggs
+/sstore
+# Coverage
+/.coverage*
+/htmlcov

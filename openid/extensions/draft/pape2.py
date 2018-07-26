@@ -5,6 +5,14 @@ Extension 1.0
 
 @since: 2.1.0
 """
+from __future__ import unicode_literals
+
+import re
+import warnings
+
+import six
+
+from openid.extension import Extension
 
 __all__ = [
     'Request',
@@ -13,10 +21,10 @@ __all__ = [
     'AUTH_PHISHING_RESISTANT',
     'AUTH_MULTI_FACTOR',
     'AUTH_MULTI_FACTOR_PHYSICAL',
-    ]
+]
 
-from openid.extension import Extension
-import re
+warnings.warn("Module 'openid.extensions.draft.pape2' is deprecated. Use 'openid.extensions.pape' instead.",
+              DeprecationWarning)
 
 ns_uri = "http://specs.openid.net/extensions/pape/1.0"
 
@@ -29,13 +37,14 @@ AUTH_PHISHING_RESISTANT = \
 
 TIME_VALIDATOR = re.compile('^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ$')
 
+
 class Request(Extension):
     """A Provider Authentication Policy request, sent from a relying
     party to a provider
 
     @ivar preferred_auth_policies: The authentication policies that
         the relying party prefers
-    @type preferred_auth_policies: [str]
+    @type preferred_auth_policies: List[six.text_type]
 
     @ivar max_auth_age: The maximum time, in seconds, that the relying
         party wants to allow to have elapsed before the user must
@@ -53,9 +62,12 @@ class Request(Extension):
         self.preferred_auth_policies = preferred_auth_policies
         self.max_auth_age = max_auth_age
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.preferred_auth_policies or
                     self.max_auth_age is not None)
+
+    def __nonzero__(self):
+        return self.__bool__()
 
     def addPolicyURI(self, policy_uri):
         """Add an acceptable authentication policy URI to this request
@@ -74,14 +86,15 @@ class Request(Extension):
         """@see: C{L{Extension.getExtensionArgs}}
         """
         ns_args = {
-            'preferred_auth_policies':' '.join(self.preferred_auth_policies)
-            }
+            'preferred_auth_policies': ' '.join(self.preferred_auth_policies)
+        }
 
         if self.max_auth_age is not None:
-            ns_args['max_auth_age'] = str(self.max_auth_age)
+            ns_args['max_auth_age'] = six.text_type(self.max_auth_age)
 
         return ns_args
 
+    @classmethod
     def fromOpenIDRequest(cls, request):
         """Instantiate a Request object from the arguments in a
         C{checkid_*} OpenID message
@@ -94,8 +107,6 @@ class Request(Extension):
 
         self.parseExtensionArgs(args)
         return self
-
-    fromOpenIDRequest = classmethod(fromOpenIDRequest)
 
     def parseExtensionArgs(self, args):
         """Set the state of this request to be that expressed in these
@@ -142,10 +153,10 @@ class Request(Extension):
             sequence, and may be empty if the provider does not prefer
             any of the supported authentication types.
 
-        @returntype: [str]
+        @returntype: List[six.text_type]
         """
-        return filter(self.preferred_auth_policies.__contains__,
-                      supported_types)
+        return [i for i in supported_types if i in self.preferred_auth_policies]
+
 
 Request.ns_uri = ns_uri
 
@@ -181,6 +192,7 @@ class Response(Extension):
         if policy_uri not in self.auth_policies:
             self.auth_policies.append(policy_uri)
 
+    @classmethod
     def fromSuccessResponse(cls, success_response):
         """Create a C{L{Response}} object from a successful OpenID
         library response
@@ -246,25 +258,23 @@ class Response(Extension):
             elif strict:
                 raise ValueError("auth_time must be in RFC3339 format")
 
-    fromSuccessResponse = classmethod(fromSuccessResponse)
-
     def getExtensionArgs(self):
         """@see: C{L{Extension.getExtensionArgs}}
         """
         if len(self.auth_policies) == 0:
             ns_args = {
-                'auth_policies':'none',
+                'auth_policies': 'none',
             }
         else:
             ns_args = {
-                'auth_policies':' '.join(self.auth_policies),
-                }
+                'auth_policies': ' '.join(self.auth_policies),
+            }
 
         if self.nist_auth_level is not None:
             if self.nist_auth_level not in range(0, 5):
                 raise ValueError('nist_auth_level must be an integer between '
                                  'zero and four, inclusive')
-            ns_args['nist_auth_level'] = str(self.nist_auth_level)
+            ns_args['nist_auth_level'] = six.text_type(self.nist_auth_level)
 
         if self.auth_time is not None:
             if not TIME_VALIDATOR.match(self.auth_time):
@@ -273,5 +283,6 @@ class Response(Extension):
             ns_args['auth_time'] = self.auth_time
 
         return ns_args
+
 
 Response.ns_uri = ns_uri

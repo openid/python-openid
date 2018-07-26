@@ -1,20 +1,23 @@
-# -*- test-case-name: openid.test.test_ax -*-
 """Implements the OpenID Attribute Exchange specification, version 1.0.
 
 @since: 2.1.0
 """
+from __future__ import unicode_literals
+
+import six
+
+from openid import extension
+from openid.message import OPENID_NS, NamespaceMap
+from openid.oidutil import string_to_text
+from openid.server.trustroot import TrustRoot
 
 __all__ = [
-    'AttributeRequest',
+    'AttrInfo',
     'FetchRequest',
     'FetchResponse',
     'StoreRequest',
     'StoreResponse',
-    ]
-
-from openid import extension
-from openid.server.trustroot import TrustRoot
-from openid.message import NamespaceMap, OPENID_NS
+]
 
 # Use this as the 'count' value for an attribute in a FetchRequest to
 # ask for as many values as the OP can provide.
@@ -23,6 +26,7 @@ UNLIMITED_VALUES = "unlimited"
 # Minimum supported alias length in characters.  Here for
 # completeness.
 MINIMUM_SUPPORTED_ALIAS_LENGTH = 32
+
 
 def checkAlias(alias):
     """
@@ -60,11 +64,6 @@ class AXMessage(extension.Extension):
         be overridden in subclasses.
     """
 
-    # This class is abstract, so it's OK that it doesn't override the
-    # abstract method in Extension:
-    #
-    #pylint:disable-msg=W0223
-
     ns_alias = 'ax'
     mode = None
     ns_uri = 'http://openid.net/srv/ax/1.0'
@@ -90,7 +89,7 @@ class AXMessage(extension.Extension):
         basic information that must be in every attribute exchange
         message.
         """
-        return {'mode':self.mode}
+        return {'mode': self.mode}
 
 
 class AttrInfo(object):
@@ -111,7 +110,7 @@ class AttrInfo(object):
         represents and how it is serialized. For example, one type URI
         representing dates could represent a Unix timestamp in base 10
         and another could represent a human-readable string.
-    @type type_uri: str
+    @type type_uri: six.text_type
 
     @ivar alias: The name that should be given to this alias in the
         request. If it is not supplied, a generic name will be
@@ -119,13 +118,8 @@ class AttrInfo(object):
         value 'tstamp', set its alias to that value. If two attributes
         in the same message request to use the same alias, the request
         will fail to be generated.
-    @type alias: str or NoneType
+    @type alias: six.text_type or NoneType
     """
-
-    # It's OK that this class doesn't have public methods (it's just a
-    # holder for a bunch of attributes):
-    #
-    #pylint:disable-msg=R0903
 
     def __init__(self, type_uri, count=1, required=False, alias=None):
         self.required = required
@@ -146,6 +140,7 @@ class AttrInfo(object):
         """
         return self.count == UNLIMITED_VALUES
 
+
 def toTypeURIs(namespace_map, alias_list_s):
     """Given a namespace mapping and a string containing a
     comma-separated list of namespace aliases, return a list of type
@@ -156,7 +151,7 @@ def toTypeURIs(namespace_map, alias_list_s):
 
     @param alias_list_s: The string containing the comma-separated
         list of aliases. May also be None for convenience.
-    @type alias_list_s: str or NoneType
+    @type alias_list_s: Optional[six.text_type], six.binary_type is deprecated
 
     @returns: The list of namespace URIs that corresponds to the
         supplied list of aliases. If the string was zero-length or
@@ -168,6 +163,8 @@ def toTypeURIs(namespace_map, alias_list_s):
     uris = []
 
     if alias_list_s:
+        alias_list_s = string_to_text(alias_list_s,
+                                      "Binary values for alias_list_s are deprecated. Use text input instead.")
         for alias in alias_list_s.split(','):
             type_uri = namespace_map.getNamespaceURI(alias)
             if type_uri is None:
@@ -186,7 +183,7 @@ class FetchRequest(AXMessage):
 
     @ivar requested_attributes: The attributes that have been
         requested thus far, indexed by the type URI.
-    @type requested_attributes: {str:AttrInfo}
+    @type requested_attributes: Dict[six.text_type, AttrInfo]
 
     @ivar update_url: A URL that will accept responses for this
         attribute exchange request, even in the absence of the user
@@ -220,7 +217,7 @@ class FetchRequest(AXMessage):
         """Get the serialized form of this attribute fetch request.
 
         @returns: The fetch request message parameters
-        @rtype: {unicode:unicode}
+        @rtype: Dict[six.text_type, six.text_type]
         """
         aliases = NamespaceMap()
 
@@ -229,7 +226,7 @@ class FetchRequest(AXMessage):
 
         ax_args = self._newArgs()
 
-        for type_uri, attribute in self.requested_attributes.iteritems():
+        for type_uri, attribute in six.iteritems(self.requested_attributes):
             if attribute.alias is None:
                 alias = aliases.add(type_uri)
             else:
@@ -254,7 +251,7 @@ class FetchRequest(AXMessage):
                 if_available.append(alias)
 
             if attribute.count != 1:
-                ax_args['count.' + alias] = str(attribute.count)
+                ax_args['count.' + alias] = six.text_type(attribute.count)
 
             ax_args['type.' + alias] = type_uri
 
@@ -272,15 +269,16 @@ class FetchRequest(AXMessage):
 
         @returns: A list of the type URIs for attributes that have
             been marked as required.
-        @rtype: [str]
+        @rtype: List[six.text_type]
         """
         required = []
-        for type_uri, attribute in self.requested_attributes.iteritems():
+        for type_uri, attribute in six.iteritems(self.requested_attributes):
             if attribute.required:
                 required.append(type_uri)
 
         return required
 
+    @classmethod
     def fromOpenIDRequest(cls, openid_request):
         """Extract a FetchRequest from an OpenID message
 
@@ -304,7 +302,7 @@ class FetchRequest(AXMessage):
         self = cls()
         try:
             self.parseExtensionArgs(ax_args)
-        except NotAXMessage, err:
+        except NotAXMessage:
             return None
 
         if self.update_url:
@@ -323,8 +321,6 @@ class FetchRequest(AXMessage):
                               (self.update_url, realm,))
 
         return self
-
-    fromOpenIDRequest = classmethod(fromOpenIDRequest)
 
     def parseExtensionArgs(self, ax_args):
         """Given attribute exchange arguments, populate this FetchRequest.
@@ -349,7 +345,7 @@ class FetchRequest(AXMessage):
 
         aliases = NamespaceMap()
 
-        for key, value in ax_args.iteritems():
+        for key, value in six.iteritems(ax_args):
             if key.startswith('type.'):
                 alias = key[5:]
                 type_uri = value
@@ -392,7 +388,7 @@ class FetchRequest(AXMessage):
         """Iterate over the AttrInfo objects that are
         contained in this fetch_request.
         """
-        return self.requested_attributes.itervalues()
+        return six.itervalues(self.requested_attributes)
 
     def __iter__(self):
         """Iterate over the attribute type URIs in this fetch_request
@@ -413,11 +409,6 @@ class AXKeyValueMessage(AXMessage):
     fetch_response and store_request.
     """
 
-    # This class is abstract, so it's OK that it doesn't override the
-    # abstract method in Extension:
-    #
-    #pylint:disable-msg=W0223
-
     def __init__(self):
         AXMessage.__init__(self)
         self.data = {}
@@ -432,7 +423,7 @@ class AXKeyValueMessage(AXMessage):
 
         @param value: The value to add to the response to the relying
             party for this attribute
-        @type value: unicode
+        @type value: six.text_type
 
         @returns: None
         """
@@ -450,7 +441,7 @@ class AXKeyValueMessage(AXMessage):
         @param type_uri: The URI for the attribute
 
         @param values: A list of values to send for this attribute.
-        @type values: [unicode]
+        @type values: List[six.text_type]
         """
 
         self.data[type_uri] = values
@@ -467,11 +458,11 @@ class AXKeyValueMessage(AXMessage):
 
         ax_args = {}
 
-        for type_uri, values in self.data.iteritems():
+        for type_uri, values in six.iteritems(self.data):
             alias = aliases.add(type_uri)
 
             ax_args['type.' + alias] = type_uri
-            ax_args['count.' + alias] = str(len(values))
+            ax_args['count.' + alias] = six.text_type(len(values))
 
             for i, value in enumerate(values):
                 key = 'value.%s.%d' % (alias, i + 1)
@@ -485,7 +476,7 @@ class AXKeyValueMessage(AXMessage):
 
         @param ax_args: The attribute exchange fetch_response
             arguments, with namespacing removed.
-        @type ax_args: {unicode:unicode}
+        @type ax_args: Dict[six.text_type, six.text_type]
 
         @returns: None
 
@@ -499,20 +490,20 @@ class AXKeyValueMessage(AXMessage):
 
         aliases = NamespaceMap()
 
-        for key, value in ax_args.iteritems():
+        for key, value in six.iteritems(ax_args):
             if key.startswith('type.'):
                 type_uri = value
                 alias = key[5:]
                 checkAlias(alias)
                 aliases.addAlias(type_uri, alias)
 
-        for type_uri, alias in aliases.iteritems():
+        for type_uri, alias in aliases.items():
             try:
                 count_s = ax_args['count.' + alias]
             except KeyError:
                 value = ax_args['value.' + alias]
 
-                if value == u'':
+                if value == '':
                     values = []
                 else:
                     values = [value]
@@ -531,20 +522,21 @@ class AXKeyValueMessage(AXMessage):
         for this attribute, use the supplied default. If there is more
         than one value for this attribute, this method will fail.
 
-        @type type_uri: str
         @param type_uri: The URI for the attribute
+        @type type_uri: six.text_type, six.binary_type is deprecated
 
         @param default: The value to return if the attribute was not
             sent in the fetch_response.
 
         @returns: The value of the attribute in the fetch_response
             message, or the default supplied
-        @rtype: unicode or NoneType
+        @rtype: six.text_type or NoneType
 
         @raises ValueError: If there is more than one value for this
             parameter in the fetch_response message.
         @raises KeyError: If the attribute was not sent in this response
         """
+        type_uri = string_to_text(type_uri, "Binary values for type_uri are deprecated. Use text input instead.")
         values = self.data.get(type_uri)
         if not values:
             return default
@@ -568,7 +560,7 @@ class AXKeyValueMessage(AXMessage):
 
         @returns: The list of values for this attribute in the
             response. May be an empty list.
-        @rtype: [unicode]
+        @rtype: List[six.text_type]
 
         @raises KeyError: If the attribute was not sent in the response
         """
@@ -607,9 +599,12 @@ class FetchResponse(AXKeyValueMessage):
             request.  But if you do not supply the request, you may set
             the C{update_url} here.
 
-        @type update_url: str
+        @type update_url: Optional[six.text_type], six.binary_type is deprecated
         """
         AXKeyValueMessage.__init__(self)
+        if update_url is not None:
+            update_url = string_to_text(update_url,
+                                        "Binary values for update_url are deprecated. Use text input instead.")
         self.update_url = update_url
         self.request = request
 
@@ -619,7 +614,7 @@ class FetchResponse(AXKeyValueMessage):
 
         @returns: The dictionary of unqualified attribute exchange
             arguments that represent this fetch_response.
-        @rtype: {unicode;unicode}
+        @rtype: Dict[six.text_type, six.text_type]
         """
 
         aliases = NamespaceMap()
@@ -652,8 +647,7 @@ class FetchResponse(AXKeyValueMessage):
                     values = []
                     zero_value_types.append(attr_info)
 
-                if (attr_info.count != UNLIMITED_VALUES) and \
-                       (attr_info.count < len(values)):
+                if (attr_info.count != UNLIMITED_VALUES) and (attr_info.count < len(values)):
                     raise AXError(
                         'More than the number of requested values were '
                         'specified for %r' % (attr_info.type_uri,))
@@ -671,8 +665,7 @@ class FetchResponse(AXKeyValueMessage):
             kv_args['type.' + alias] = attr_info.type_uri
             kv_args['count.' + alias] = '0'
 
-        update_url = ((self.request and self.request.update_url)
-                      or self.update_url)
+        update_url = ((self.request and self.request.update_url) or self.update_url)
 
         if update_url:
             ax_args['update_url'] = update_url
@@ -686,6 +679,7 @@ class FetchResponse(AXKeyValueMessage):
         super(FetchResponse, self).parseExtensionArgs(ax_args)
         self.update_url = ax_args.get('update_url')
 
+    @classmethod
     def fromSuccessResponse(cls, success_response, signed=True):
         """Construct a FetchResponse object from an OpenID library
         SuccessResponse object.
@@ -709,12 +703,10 @@ class FetchResponse(AXKeyValueMessage):
 
         try:
             self.parseExtensionArgs(ax_args)
-        except NotAXMessage, err:
+        except NotAXMessage:
             return None
         else:
             return self
-
-    fromSuccessResponse = classmethod(fromSuccessResponse)
 
 
 class StoreRequest(AXKeyValueMessage):
@@ -739,6 +731,35 @@ class StoreRequest(AXKeyValueMessage):
         ax_args.update(kv_args)
         return ax_args
 
+    @classmethod
+    def fromOpenIDRequest(cls, openid_request):
+        """Extract a StoreRequest from an OpenID message
+
+        @param openid_request: The OpenID authentication request
+            containing the attribute fetch request
+        @type openid_request: C{L{openid.server.server.CheckIDRequest}}
+
+        @rtype: C{L{StoreRequest}} or C{None}
+        @returns: The StoreRequest extracted from the message or None, if
+            the message contained no AX extension.
+
+        @raises KeyError: if the AuthRequest is not consistent in its use
+            of namespace aliases.
+
+        @raises AXError: When parseExtensionArgs would raise same.
+
+        @see: L{parseExtensionArgs}
+        """
+        message = openid_request.message
+        ax_args = message.getArgs(cls.ns_uri)
+        self = cls()
+        try:
+            self.parseExtensionArgs(ax_args)
+        except NotAXMessage:
+            return None
+
+        return self
+
 
 class StoreResponse(AXMessage):
     """An indication that the store request was processed along with
@@ -752,8 +773,7 @@ class StoreResponse(AXMessage):
         AXMessage.__init__(self)
 
         if succeeded and error_message is not None:
-            raise AXError('An error message may only be included in a '
-                             'failing fetch response')
+            raise AXError('An error message may only be included in a failing fetch response')
         if succeeded:
             self.mode = self.SUCCESS_MODE
         else:
@@ -772,3 +792,32 @@ class StoreResponse(AXMessage):
             ax_args['error'] = self.error_message
 
         return ax_args
+
+    @classmethod
+    def fromSuccessResponse(cls, success_response, signed=True):
+        """Construct a StoreResponse object from an OpenID library
+        SuccessResponse object.
+
+        @param success_response: A successful id_res response object
+        @type success_response: openid.consumer.consumer.SuccessResponse
+
+        @param signed: Whether non-signed args should be
+            processsed. If True (the default), only signed arguments
+            will be processsed.
+        @type signed: bool
+
+        @returns: A StoreResponse containing the data from the OpenID
+            message, or None if the SuccessResponse did not contain AX
+            extension data.
+
+        @raises AXError: when the AX data cannot be parsed.
+        """
+        self = cls()
+        ax_args = success_response.extensionResponse(self.ns_uri, signed)
+
+        try:
+            self.parseExtensionArgs(ax_args)
+        except NotAXMessage:
+            return None
+        else:
+            return self

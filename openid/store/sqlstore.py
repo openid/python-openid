@@ -4,14 +4,21 @@ various SQL databases to back them.
 
 Example of how to initialize a store database::
 
-    python -c 'from openid.store import sqlstore; import pysqlite2.dbapi2; sqlstore.SQLiteStore(pysqlite2.dbapi2.connect("cstore.db")).createTables()'
+    python -c 'from openid.store import sqlstore; import pysqlite2.dbapi2;
+               sqlstore.SQLiteStore(pysqlite2.dbapi2.connect("cstore.db")).createTables()'
 """
+from __future__ import unicode_literals
+
 import re
 import time
 
+import six
+
 from openid.association import Association
-from openid.store.interface import OpenIDStore
+from openid.oidutil import string_to_text
 from openid.store import nonce
+from openid.store.interface import OpenIDStore
+
 
 def _inTxn(func):
     def wrapped(self, *args, **kwargs):
@@ -27,6 +34,7 @@ def _inTxn(func):
         wrapped.__doc__ = func.__doc__
 
     return wrapped
+
 
 class SQLStore(OpenIDStore):
     """
@@ -81,30 +89,30 @@ class SQLStore(OpenIDStore):
             specify the name of the table used for storing
             associations.  The default value is specified in
             C{L{SQLStore.associations_table}}.
-
-        @type associations_table: C{str}
-
+        @type associations_table: six.text_type, six.binary_type is deprecated
 
         @param nonces_table: This is an optional parameter to specify
             the name of the table used for storing nonces.  The
             default value is specified in C{L{SQLStore.nonces_table}}.
-
-        @type nonces_table: C{str}
+        @type nonces_table: six.text_type, six.binary_type is deprecated
         """
         self.conn = conn
         self.cur = None
         self._statement_cache = {}
+        associations_table = string_to_text(
+            associations_table, "Binary values for associations_table are deprecated. Use text input instead.")
+        nonces_table = string_to_text(nonces_table,
+                                      "Binary values for nonces_table are deprecated. Use text input instead.")
         self._table_names = {
             'associations': associations_table or self.associations_table,
             'nonces': nonces_table or self.nonces_table,
-            }
-        self.max_nonce_age = 6 * 60 * 60 # Six hours, in seconds
+        }
+        self.max_nonce_age = 6 * 60 * 60  # Six hours, in seconds
 
         # DB API extension: search for "Connection Attributes .Error,
         # .ProgrammingError, etc." in
         # http://www.python.org/dev/peps/pep-0249/
-        if (hasattr(self.conn, 'IntegrityError') and
-            hasattr(self.conn, 'OperationalError')):
+        if hasattr(self.conn, 'IntegrityError') and hasattr(self.conn, 'OperationalError'):
             self.exceptions = self.conn
 
         if not (hasattr(self.exceptions, 'IntegrityError') and
@@ -113,13 +121,13 @@ class SQLStore(OpenIDStore):
                                "(Maybe it can't be imported?)")
 
     def blobDecode(self, blob):
-        """Convert a blob as returned by the SQL engine into a str object.
+        """Convert a blob as returned by the SQL engine into a binary_type object.
 
-        str -> str"""
+        six.binary_type -> six.binary_type"""
         return blob
 
     def blobEncode(self, s):
-        """Convert a str object into the necessary object for storing
+        """Convert a six.binary_type object into the necessary object for storing
         in the database as a blob."""
         return s
 
@@ -138,12 +146,13 @@ class SQLStore(OpenIDStore):
         # arguments if they are passed in as unicode instead of str.
         # Currently the strings in our tables just have ascii in them,
         # so this ought to be safe.
+
         def unicode_to_str(arg):
-            if isinstance(arg, unicode):
-                return str(arg)
+            if isinstance(arg, six.text_type):
+                return arg.encode('utf-8')
             else:
                 return arg
-        str_args = map(unicode_to_str, args)
+        str_args = [unicode_to_str(i) for i in args]
         self.cur.execute(sql, str_args)
 
     def __getattr__(self, attr):
@@ -152,6 +161,7 @@ class SQLStore(OpenIDStore):
         # as an attribute of this object and executes it.
         if attr[:3] == 'db_':
             sql_name = attr[3:] + '_sql'
+
             def func(*args):
                 return self._execSQL(sql_name, *args)
             setattr(self, attr, func)
@@ -173,7 +183,7 @@ class SQLStore(OpenIDStore):
             finally:
                 self.cur.close()
                 self.cur = None
-        except:
+        except Exception:
             self.conn.rollback()
             raise
         else:
@@ -212,8 +222,11 @@ class SQLStore(OpenIDStore):
         """Get the most recent association that has been set for this
         server URL and handle.
 
-        str -> NoneType or Association
+        @type server_url: six.text_type, six.binary_type is deprecated
+        @rtype: Optional[Association]
         """
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
+
         if handle is not None:
             self.db_get_assoc(server_url, handle)
         else:
@@ -225,8 +238,10 @@ class SQLStore(OpenIDStore):
         else:
             associations = []
             for values in rows:
-                assoc = Association(*values)
-                assoc.secret = self.blobDecode(assoc.secret)
+                # Decode secret before association is created
+                handle, secret, issued, lifetime, assoc_type = values
+                secret = self.blobDecode(secret)
+                assoc = Association(handle, secret, issued, lifetime, assoc_type)
                 if assoc.getExpiresIn() == 0:
                     self.txn_removeAssociation(server_url, assoc.handle)
                 else:
@@ -244,10 +259,13 @@ class SQLStore(OpenIDStore):
         """Remove the association for the given server URL and handle,
         returning whether the association existed at all.
 
-        (str, str) -> bool
+        (six.text_type, six.text_type) -> bool, six.binary_type is deprecated
         """
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
+        handle = string_to_text(handle, "Binary values for handle are deprecated. Use text input instead.")
+
         self.db_remove_assoc(server_url, handle)
-        return self.cur.rowcount > 0 # -1 is undefined
+        return self.cur.rowcount > 0  # -1 is undefined
 
     removeAssociation = _inTxn(txn_removeAssociation)
 
@@ -255,7 +273,11 @@ class SQLStore(OpenIDStore):
         """Return whether this nonce is present, and if it is, then
         remove it from the set.
 
-        str -> bool"""
+        @type server_url: six.text_type, six.binary_type is deprecated
+        @rtype: bool
+        """
+        server_url = string_to_text(server_url, "Binary values for server_url are deprecated. Use text input instead.")
+
         if abs(timestamp - time.time()) > nonce.SKEW:
             return False
 
@@ -292,6 +314,10 @@ class SQLiteStore(SQLStore):
 
     All other methods are implementation details.
     """
+    try:
+        import sqlite3
+    except ImportError:
+        sqlite3 = None
 
     create_nonce_sql = """
     CREATE TABLE %(nonces)s (
@@ -338,10 +364,10 @@ class SQLiteStore(SQLStore):
     clean_nonce_sql = 'DELETE FROM %(nonces)s WHERE timestamp < ?;'
 
     def blobDecode(self, buf):
-        return str(buf)
+        return six.binary_type(buf)
 
     def blobEncode(self, s):
-        return buffer(s)
+        return self.sqlite3.Binary(s)
 
     def useNonce(self, *args, **kwargs):
         # Older versions of the sqlite wrapper do not raise
@@ -349,11 +375,12 @@ class SQLiteStore(SQLStore):
         # message from the OperationalError.
         try:
             return super(SQLiteStore, self).useNonce(*args, **kwargs)
-        except self.exceptions.OperationalError, why:
-            if re.match('^columns .* are not unique$', why[0]):
+        except self.exceptions.OperationalError as why:
+            if re.match('^columns .* are not unique$', six.text_type(why)):
                 return False
             else:
                 raise
+
 
 class MySQLStore(SQLStore):
     """
@@ -416,12 +443,13 @@ class MySQLStore(SQLStore):
     clean_nonce_sql = 'DELETE FROM %(nonces)s WHERE timestamp < %%s;'
 
     def blobDecode(self, blob):
-        if type(blob) is str:
+        if isinstance(blob, six.binary_type):
             # Versions of MySQLdb >= 1.2.2
             return blob
         else:
             # Versions of MySQLdb prior to 1.2.2 (as far as we can tell)
             return blob.tostring()
+
 
 class PostgreSQLStore(SQLStore):
     """
@@ -472,7 +500,7 @@ class PostgreSQLStore(SQLStore):
         REPLACE INTO is not supported by PostgreSQL (and is not
         standard SQL).
         """
-        result = self.db_get_assoc(server_url, handle)
+        self.db_get_assoc(server_url, handle)
         rows = self.cur.fetchall()
         if len(rows):
             # Update the table since this associations already exists.

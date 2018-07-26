@@ -1,12 +1,21 @@
-import unittest
-from openid.yadis import services, etxrd, xri
+from __future__ import unicode_literals
+
 import os.path
+import tempfile
+import unittest
+
+import six
+from lxml import etree
+
+from openid.yadis import etxrd, services, xri
+
 
 def datapath(filename):
     module_directory = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(module_directory, 'data', 'test_etxrd', filename)
 
-XRD_FILE =  datapath('valid-populated-xrds.xml')
+
+XRD_FILE = datapath('valid-populated-xrds.xml')
 NOXRDS_FILE = datapath('not-xrds.xml')
 NOXRD_FILE = datapath('no-xrd.xml')
 
@@ -15,6 +24,7 @@ NOXRD_FILE = datapath('no-xrd.xml')
 
 LID_2_0 = "http://lid.netmesh.org/sso/2.0b5"
 TYPEKEY_1_0 = "http://typekey.com/services/1.0"
+
 
 def simpleOpenIDTransformer(endpoint):
     """Function to extract information from an OpenID service element"""
@@ -27,9 +37,59 @@ def simpleOpenIDTransformer(endpoint):
     delegate = delegates[0].text
     return (endpoint.uri, delegate)
 
+
+class TestParseXRDS(unittest.TestCase):
+    """Test `parseXRDS` function."""
+
+    def assertXmlEqual(self, result, expected):
+        self.assertEqual(result.tag, expected.tag)
+        self.assertEqual(result.text, expected.text)
+        self.assertEqual(result.tail, expected.tail)
+        self.assertEqual(result.attrib, expected.attrib)
+        self.assertEqual(len(result), len(expected))
+        for child_r, child_e in zip(result, expected):
+            self.assertXmlEqual(child_r, child_e)
+
+    def test_minimal_xrds(self):
+        xml = '<xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)"></xrds:XRDS>'
+        tree = etxrd.parseXRDS(xml)
+        self.assertIsInstance(tree, type(etree.ElementTree()))
+        self.assertXmlEqual(tree.getroot(), etree.XML(xml))
+
+    def test_not_xrds(self):
+        xml = '<not_xrds />'
+        with six.assertRaisesRegex(self, etxrd.XRDSError, 'Not an XRDS document'):
+            etxrd.parseXRDS(xml)
+
+    def test_invalid_xml(self):
+        xml = '<'
+        with six.assertRaisesRegex(self, etxrd.XRDSError, 'Error parsing document as XML'):
+            etxrd.parseXRDS(xml)
+
+    def test_xxe(self):
+        xxe_content = b'XXE CONTENT'
+        _, tmp_file = tempfile.mkstemp()
+        try:
+            with open(tmp_file, 'wb') as xxe_file:
+                xxe_file.write(xxe_content)
+            # XXE example from Testing for XML Injection (OTG-INPVAL-008)
+            # https://www.owasp.org/index.php/Testing_for_XML_Injection_(OTG-INPVAL-008)
+            xml = ('<?xml version="1.0" encoding="ISO-8859-1"?>'
+                   '<!DOCTYPE foo ['
+                   '<!ELEMENT foo ANY >'
+                   '<!ENTITY xxe SYSTEM "file://%s" >]>'
+                   '<xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">&xxe;</xrds:XRDS>')
+            xml = xml % tmp_file
+            tree = etxrd.parseXRDS(xml.encode('utf-8'))
+            self.assertNotIn(xxe_content, etree.tostring(tree))
+        finally:
+            os.remove(tmp_file)
+
+
 class TestServiceParser(unittest.TestCase):
     def setUp(self):
-        self.xmldoc = file(XRD_FILE).read()
+        with open(XRD_FILE, 'rb') as xrd_file:
+            self.xmldoc = xrd_file.read()
         self.yadis_url = 'http://unittest.url/'
 
     def _getServices(self, flt=None):
@@ -37,7 +97,7 @@ class TestServiceParser(unittest.TestCase):
 
     def testParse(self):
         """Make sure that parsing succeeds at all"""
-        services = self._getServices()
+        self._getServices()
 
     def testParseOpenID(self):
         """Parse for OpenID services with a transformer function"""
@@ -48,13 +108,13 @@ class TestServiceParser(unittest.TestCase):
             ("http://www.schtuff.com/openid", "http://users.schtuff.com/josh"),
             ("http://www.livejournal.com/openid/server.bml",
              "http://www.livejournal.com/users/nedthealpaca/"),
-            ]
+        ]
 
         it = iter(services)
         for (server_url, delegate) in expectedServices:
             for (actual_url, actual_delegate) in it:
-                self.failUnlessEqual(server_url, actual_url)
-                self.failUnlessEqual(delegate, actual_delegate)
+                self.assertEqual(actual_url, server_url)
+                self.assertEqual(actual_delegate, delegate)
                 break
             else:
                 self.fail('Not enough services found')
@@ -66,7 +126,7 @@ class TestServiceParser(unittest.TestCase):
         for (type_uri, uri) in expectedServices:
             for service in it:
                 if type_uri in service.type_uris:
-                    self.failUnlessEqual(service.uri, uri)
+                    self.assertEqual(service.uri, uri)
                     break
             else:
                 self.fail('Did not find %r service' % (type_uri,))
@@ -77,16 +137,13 @@ class TestServiceParser(unittest.TestCase):
             # type, URL
             (TYPEKEY_1_0, None),
             (LID_2_0, "http://mylid.net/josh"),
-            ]
+        ]
 
         self._checkServices(expectedServices)
 
     def testGetSeveralForOne(self):
         """Getting services for one Service with several Type elements."""
-        types = [ 'http://lid.netmesh.org/sso/2.0b5'
-                , 'http://lid.netmesh.org/2.0b5'
-                ]
-
+        types = ['http://lid.netmesh.org/sso/2.0b5', 'http://lid.netmesh.org/2.0b5']
         uri = "http://mylid.net/josh"
 
         for service in self._getServices():
@@ -100,26 +157,22 @@ class TestServiceParser(unittest.TestCase):
     def testNoXRDS(self):
         """Make sure that we get an exception when an XRDS element is
         not present"""
-        self.xmldoc = file(NOXRDS_FILE).read()
-        self.failUnlessRaises(
-            etxrd.XRDSError,
-            services.applyFilter, self.yadis_url, self.xmldoc, None)
+        with open(NOXRDS_FILE, 'rb') as xml_file:
+            self.xmldoc = xml_file.read()
+        self.assertRaises(etxrd.XRDSError, services.applyFilter, self.yadis_url, self.xmldoc, None)
 
     def testEmpty(self):
         """Make sure that we get an exception when an XRDS element is
         not present"""
         self.xmldoc = ''
-        self.failUnlessRaises(
-            etxrd.XRDSError,
-            services.applyFilter, self.yadis_url, self.xmldoc, None)
+        self.assertRaises(etxrd.XRDSError, services.applyFilter, self.yadis_url, self.xmldoc, None)
 
     def testNoXRD(self):
         """Make sure that we get an exception when there is no XRD
         element present."""
-        self.xmldoc = file(NOXRD_FILE).read()
-        self.failUnlessRaises(
-            etxrd.XRDSError,
-            services.applyFilter, self.yadis_url, self.xmldoc, None)
+        with open(NOXRD_FILE, 'rb') as xml_file:
+            self.xmldoc = xml_file.read()
+        self.assertRaises(etxrd.XRDSError, services.applyFilter, self.yadis_url, self.xmldoc, None)
 
 
 class TestCanonicalID(unittest.TestCase):
@@ -129,8 +182,10 @@ class TestCanonicalID(unittest.TestCase):
         test for the given set of inputs"""
 
         filename = datapath(filename)
+
         def test(self):
-            xrds = etxrd.parseXRDS(file(filename).read())
+            with open(filename, 'rb') as xrds_file:
+                xrds = etxrd.parseXRDS(xrds_file.read())
             self._getCanonicalID(iname, xrds, expectedID)
         return test
 
@@ -179,12 +234,11 @@ class TestCanonicalID(unittest.TestCase):
     #   somewhere in the resolution chain.
 
     def _getCanonicalID(self, iname, xrds, expectedID):
-        if isinstance(expectedID, (str, unicode, type(None))):
+        if isinstance(expectedID, six.string_types + (type(None), )):
             cid = etxrd.getCanonicalID(iname, xrds)
-            self.failUnlessEqual(cid, expectedID and xri.XRI(expectedID))
+            self.assertEqual(cid, expectedID and xri.XRI(expectedID))
         elif issubclass(expectedID, etxrd.XRDSError):
-            self.failUnlessRaises(expectedID, etxrd.getCanonicalID,
-                                  iname, xrds)
+            self.assertRaises(expectedID, etxrd.getCanonicalID, iname, xrds)
         else:
             self.fail("Don't know how to test for expected value %r"
                       % (expectedID,))
