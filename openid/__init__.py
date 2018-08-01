@@ -23,7 +23,7 @@ module.
     and limitations under the License.
 """
 
-__version__ = '3.0rc1'
+__version__ = '3.0rc2'
 
 __all__ = [
     'association',
