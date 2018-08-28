@@ -168,6 +168,16 @@ class ParseAXValuesTest(unittest.TestCase):
     def test_singletonValue(self):
         self.assertAXValues({'type.foo': 'urn:foo', 'value.foo': 'Westfall'}, {'urn:foo': ['Westfall']})
 
+    def test_add_value_convert(self):
+        message = ax.AXKeyValueMessage()
+        message.addValue('http://example.com/attribute', 1492)
+        self.assertEqual(message.get('http://example.com/attribute'), ['1492'])
+
+    def test_set_values_convert(self):
+        message = ax.AXKeyValueMessage()
+        message.setValues('http://example.com/attribute', [1492, True, None])
+        self.assertEqual(message.get('http://example.com/attribute'), ['1492', 'True', 'None'])
+
 
 class FetchRequestTest(unittest.TestCase):
     def setUp(self):

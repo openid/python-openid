@@ -42,7 +42,7 @@ import six
 
 from openid.extension import Extension
 from openid.message import NamespaceAliasRegistrationError, registerNamespaceAlias
-from openid.oidutil import string_to_text
+from openid.oidutil import force_text, string_to_text
 
 __all__ = [
     'SRegRequest',
@@ -424,12 +424,10 @@ class SRegResponse(Extension):
         @param request: The simple registration request object
         @type request: SRegRequest
 
-        @param data: The simple registration data for this
-            response, as a dictionary from unqualified simple
-            registration field name to string (unicode) value. For
-            instance, the nickname should be stored under the key
-            'nickname'.
-        @type data: Dict[six.text_type, six.text_type], six.binary_type is deprecated
+        @param data: The simple registration data for this response, as a mapping of unqualified simple registration
+            field name to value. For instance, the nickname should be stored under the key 'nickname'. If the value is
+            missing or None, it will be skipped. If the value is not a text, it will be converted.
+        @type data: Dict[six.text_type, Any]
 
         @returns: a simple registration response object
         @rtype: SRegResponse
@@ -439,8 +437,7 @@ class SRegResponse(Extension):
         for field in request.allRequestedFields():
             value = data.get(field)
             if value is not None:
-                value = string_to_text(value, "Binary values for data are deprecated. Use text input instead.")
-                self.data[field] = value
+                self.data[field] = force_text(value)
         return self
 
     # Assign getSRegArgs to a static method so that it can be

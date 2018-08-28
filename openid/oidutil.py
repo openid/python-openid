@@ -162,3 +162,18 @@ def string_to_text(value, deprecate_msg):
         warnings.warn(deprecate_msg, DeprecationWarning)
         value = value.decode('utf-8')
     return value
+
+
+def force_text(value):
+    """
+    Return a text object representing value in UTF-8 encoding.
+    """
+    if isinstance(value, six.text_type):
+        # It's already a text, just return it.
+        return value
+    elif isinstance(value, bytes):
+        # It's a byte string, decode it.
+        return value.decode('utf-8')
+    else:
+        # It's not a string, convert it.
+        return six.text_type(value)

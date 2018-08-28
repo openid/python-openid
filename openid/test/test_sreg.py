@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import unittest
+from datetime import date
 
 from openid.extensions import sreg
 from openid.message import Message, NamespaceMap
@@ -460,6 +461,11 @@ class SendFieldsTest(unittest.TestCase):
         sreg_data_resp = resp_msg.getArgs(sreg.ns_uri)
         sent_data = {'nickname': 'linusaur', 'email': 'president@whitehouse.gov', 'fullname': 'Leonhard Euler'}
         self.assertEqual(sreg_data_resp, sent_data)
+
+    def test_extract_response_conversion(self):
+        sreg_request = sreg.SRegRequest(required=['dob'])
+        sreg_response = sreg.SRegResponse.extractResponse(sreg_request, {'dob': date(1989, 11, 17)})
+        self.assertEqual(sreg_response['dob'], '1989-11-17')
 
 
 if __name__ == '__main__':
