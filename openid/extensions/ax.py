@@ -8,7 +8,7 @@ import six
 
 from openid import extension
 from openid.message import OPENID_NS, NamespaceMap
-from openid.oidutil import string_to_text
+from openid.oidutil import force_text, string_to_text
 from openid.server.trustroot import TrustRoot
 
 __all__ = [
@@ -421,9 +421,9 @@ class AXKeyValueMessage(AXMessage):
 
         @param type_uri: The URI for the attribute
 
-        @param value: The value to add to the response to the relying
-            party for this attribute
-        @type value: six.text_type
+        @param value: The value to add to the response to the relying party for this attribute. It the value is not
+            a text, it will be converted.
+        @type value: Any
 
         @returns: None
         """
@@ -432,7 +432,7 @@ class AXKeyValueMessage(AXMessage):
         except KeyError:
             values = self.data[type_uri] = []
 
-        values.append(value)
+        values.append(force_text(value))
 
     def setValues(self, type_uri, values):
         """Set the values for the given attribute type. This replaces
@@ -440,11 +440,11 @@ class AXKeyValueMessage(AXMessage):
 
         @param type_uri: The URI for the attribute
 
-        @param values: A list of values to send for this attribute.
-        @type values: List[six.text_type]
+        @param values: A list of values to send for this attribute. Values which are not text, will be converted.
+        @type values: List[Any]
         """
 
-        self.data[type_uri] = values
+        self.data[type_uri] = [force_text(v) for v in values]
 
     def _getExtensionKVArgs(self, aliases=None):
         """Get the extension arguments for the key/value pairs

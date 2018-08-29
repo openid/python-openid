@@ -12,7 +12,7 @@ from mock import sentinel
 from testfixtures import ShouldWarn
 
 from openid import oidutil
-from openid.oidutil import string_to_text
+from openid.oidutil import force_text, string_to_text
 
 
 class TestBase64(unittest.TestCase):
@@ -179,3 +179,23 @@ class TestToText(unittest.TestCase):
 
         self.assertIsInstance(result, six.text_type)
         self.assertEqual(result, 'ěščřž')
+
+
+class TestForceText(unittest.TestCase):
+    """Test `force_text` utility function."""
+
+    def test_text(self):
+        self.assertEqual(force_text(''), '')
+        self.assertEqual(force_text('ascii'), 'ascii')
+        self.assertEqual(force_text('ůňíčóďé'), 'ůňíčóďé')
+
+    def test_bytes(self):
+        self.assertEqual(force_text(b''), '')
+        self.assertEqual(force_text(b'ascii'), 'ascii')
+        self.assertEqual(force_text('ůňíčóďé'.encode('utf-8')), 'ůňíčóďé')
+
+    def test_objects(self):
+        self.assertEqual(force_text(None), 'None')
+        self.assertEqual(force_text(14), '14')
+        self.assertEqual(force_text(True), 'True')
+        self.assertEqual(force_text(False), 'False')
