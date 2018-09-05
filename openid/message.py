@@ -206,7 +206,6 @@ class Message(object):
         namespaces = {}
         ns_args = []
         for key, value in six.iteritems(openid_args):
-            key = string_to_text(key, "Binary keys in message creations are deprecated. Use text input instead.")
             value = string_to_text(value, "Binary values in message creations are deprecated. Use text input instead.")
             if '.' not in key:
                 ns_alias = NULL_NAMESPACE
