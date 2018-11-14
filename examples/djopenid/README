@@ -12,9 +12,9 @@ SETUP
 
  1. Install the OpenID library, version 2.0.0 or later.
 
- 2. Install Django 0.95.1.
+ 2. Install Django.
 
-    If you find that the examples run on even newer versions of
+    If you find that the examples doesn't run on newer versions of
     Django, please let us know!
 
  3. Modify djopenid/settings.py appropriately; you may wish to change
@@ -23,11 +23,11 @@ SETUP
 
  4. In examples/djopenid/ run:
 
-    python manage.py syncdb
+    python manage.py migrate
 
  5. To run the example consumer or server, run
 
-    python manage.py runserver PORT
+    python manage.py runserver [PORT]
 
     where PORT is the port number on which to listen.
 

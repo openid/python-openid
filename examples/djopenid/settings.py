@@ -24,6 +24,8 @@ DATABASES = {
 }
 
 SECRET_KEY = 'u^bw6lmsa6fah0$^lz-ct$)y7x7#ag92-z+y45-8!(jk0lkavy'
+SESSION_ENGINE = 'django.contrib.sessions.backends.file'
+SESSION_SERIALIZER = 'django.contrib.sessions.serializers.PickleSerializer'
 
 TEMPLATES = [
     {
@@ -34,10 +36,8 @@ TEMPLATES = [
 ]
 
 MIDDLEWARE = (
-    'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.middleware.doc.XViewMiddleware',
+    'django.middleware.common.CommonMiddleware',
 )
 
 ROOT_URLCONF = 'djopenid.urls'

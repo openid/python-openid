@@ -116,8 +116,8 @@ def startOpenID(request):
 
         # Compute the trust root and return URL values to build the
         # redirect information.
-        trust_root = util.request.build_absolute_uri(reverse('consumer:index'))
-        return_to = util.request.build_absolute_uri(reverse('consumer:return_to'))
+        trust_root = request.build_absolute_uri(reverse('consumer:index'))
+        return_to = request.build_absolute_uri(reverse('consumer:return_to'))
 
         # Send the browser to the server either by sending a redirect
         # URL or by generating a POST form.
