@@ -486,20 +486,6 @@ class TestDecode(unittest.TestCase):
         }
         self.assertRaises(server.ProtocolError, self.decode, args)
 
-
-#     def test_associateDHInvalidModGen(self):
-#         # test dh with properly encoded values that are not a valid
-#         #   modulus/generator combination.
-#         args = {
-#             'openid.mode': 'associate',
-#             'openid.session_type': 'DH-SHA1',
-#             'openid.dh_consumer_public': "Rzup9265tw==",
-#             'openid.dh_modulus': cryptutil.longToBase64(9),
-#             'openid.dh_gen': cryptutil.longToBase64(27) ,
-#             }
-#         self.assertRaises(server.ProtocolError, self.decode, args)
-#     test_associateDHInvalidModGen.todo = "low-priority feature"
-
     def test_associateWeirdSession(self):
         args = {
             'openid.mode': 'associate',

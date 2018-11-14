@@ -34,7 +34,7 @@ def toIRINormal(xri):
     return escapeForIRI(xri)
 
 
-_xref_re = re.compile('\((.*?)\)')
+_xref_re = re.compile(r'\((.*?)\)')
 
 
 def _escape_xref(xref_match):

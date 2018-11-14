@@ -110,8 +110,7 @@ def supportsSReg(endpoint):
     @returns: Whether an sreg type was advertised by the endpoint
     @rtype: bool
     """
-    return (endpoint.usesExtension(ns_uri_1_1) or
-            endpoint.usesExtension(ns_uri_1_0))
+    return (endpoint.usesExtension(ns_uri_1_1) or endpoint.usesExtension(ns_uri_1_0))
 
 
 class SRegNamespaceError(ValueError):
@@ -294,8 +293,7 @@ class SRegRequest(Extension):
 
     def __contains__(self, field_name):
         """Was this field in the request?"""
-        return (field_name in self.required or
-                field_name in self.optional)
+        return (field_name in self.required or field_name in self.optional)
 
     def requestField(self, field_name, required=False, strict=False):
         """Request the specified field from the OpenID user

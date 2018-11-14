@@ -312,8 +312,7 @@ class FetchRequest(AXMessage):
                                    message.getArg(OPENID_NS, 'return_to'))
 
             if not realm:
-                raise AXError(("Cannot validate update_url %r " +
-                               "against absent realm") % (self.update_url,))
+                raise AXError("Cannot validate update_url %r against absent realm" % self.update_url)
 
             tr = TrustRoot.parse(realm)
             if not tr.validateURL(self.update_url):

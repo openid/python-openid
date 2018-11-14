@@ -122,8 +122,7 @@ class MemoryStore(object):
         return removed_assocs
 
     def __eq__(self, other):
-        return ((self.server_assocs == other.server_assocs) and
-                (self.nonces == other.nonces))
+        return ((self.server_assocs == other.server_assocs) and (self.nonces == other.nonces))
 
     def __ne__(self, other):
         return not (self == other)
