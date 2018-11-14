@@ -35,7 +35,7 @@ AUTH_MULTI_FACTOR = \
 AUTH_PHISHING_RESISTANT = \
     'http://schemas.openid.net/pape/policies/2007/06/phishing-resistant'
 
-TIME_VALIDATOR = re.compile('^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ$')
+TIME_VALIDATOR = re.compile(r'^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ$')
 
 
 class Request(Extension):
@@ -63,8 +63,7 @@ class Request(Extension):
         self.max_auth_age = max_auth_age
 
     def __bool__(self):
-        return bool(self.preferred_auth_policies or
-                    self.max_auth_age is not None)
+        return bool(self.preferred_auth_policies or self.max_auth_age is not None)
 
     def __nonzero__(self):
         return self.__bool__()

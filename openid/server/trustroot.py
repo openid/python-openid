@@ -206,8 +206,7 @@ class TrustRoot(object):
         if not self.wildcard:
             if host != self.host:
                 return False
-        elif ((not host.endswith(self.host)) and
-              ('.' + host) != self.host):
+        elif ((not host.endswith(self.host)) and ('.' + host) != self.host):
             return False
 
         if path != self.path:
@@ -379,13 +378,13 @@ def returnToMatches(allowed_return_to_urls, return_to):
         return_realm = TrustRoot.parse(allowed_return_to)
         if (
             # Parses as a trust root
-            return_realm is not None and
+            return_realm is not None
 
             # Does not have a wildcard
-            not return_realm.wildcard and
+            and not return_realm.wildcard
 
             # Matches the return_to that we passed in with it
-            return_realm.validateURL(return_to)
+            and return_realm.validateURL(return_to)
         ):
             return True
 

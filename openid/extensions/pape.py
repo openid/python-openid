@@ -36,7 +36,7 @@ AUTH_PHISHING_RESISTANT = \
 AUTH_NONE = \
     'http://schemas.openid.net/pape/policies/2007/06/none'
 
-TIME_VALIDATOR = re.compile('^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ$')
+TIME_VALIDATOR = re.compile(r'^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ$')
 
 LEVELS_NIST = 'http://csrc.nist.gov/publications/nistpubs/800-63/SP800-63V1_0_2.pdf'
 LEVELS_JISA = 'http://www.jisa.or.jp/spec/auth_level.html'
@@ -131,9 +131,7 @@ class Request(PAPEExtension):
                 self.addAuthLevel(auth_level)
 
     def __bool__(self):
-        return bool(self.preferred_auth_policies or
-                    self.max_auth_age is not None or
-                    self.preferred_auth_level_types)
+        return bool(self.preferred_auth_policies or self.max_auth_age is not None or self.preferred_auth_level_types)
 
     def __nonzero__(self):
         return self.__bool__()

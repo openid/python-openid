@@ -909,8 +909,7 @@ class GenericConsumer(object):
             raise ProtocolError(
                 'openid.identity is present without openid.claimed_id')
 
-        elif (to_match.claimed_id is not None and
-              to_match.local_id is None):
+        elif (to_match.claimed_id is not None and to_match.local_id is None):
             raise ProtocolError(
                 'openid.claimed_id is present without openid.identity')
 
@@ -1793,11 +1792,11 @@ class SuccessResponse(Response):
 
     def __eq__(self, other):
         return (
-            (self.endpoint == other.endpoint) and
-            (self.identity_url == other.identity_url) and
-            (self.message == other.message) and
-            (self.signed_fields == other.signed_fields) and
-            (self.status == other.status))
+            self.endpoint == other.endpoint
+            and self.identity_url == other.identity_url
+            and self.message == other.message
+            and self.signed_fields == other.signed_fields
+            and self.status == other.status)
 
     def __ne__(self, other):
         return not (self == other)

@@ -367,9 +367,7 @@ class DiffieHellmanSHA1ServerSession(object):
         """
         dh_modulus = message.getArg(OPENID_NS, 'dh_modulus')
         dh_gen = message.getArg(OPENID_NS, 'dh_gen')
-        if (dh_modulus is None and dh_gen is not None or
-                dh_gen is None and dh_modulus is not None):
-
+        if (dh_modulus is None and dh_gen is not None or dh_gen is None and dh_modulus is not None):
             if dh_modulus is None:
                 missing = 'modulus'
             else:
@@ -515,8 +513,7 @@ class AssociateRequest(OpenIDRequest):
         response.fields.updateArgs(OPENID_NS,
                                    self.session.answer(assoc.secret))
 
-        if not (self.session.session_type == 'no-encryption' and
-                self.message.isOpenID1()):
+        if not (self.session.session_type == 'no-encryption' and self.message.isOpenID1()):
             # The session type "no-encryption" did not have a name
             # in OpenID v1, it was just omitted.
             response.fields.setArg(

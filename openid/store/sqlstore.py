@@ -115,8 +115,7 @@ class SQLStore(OpenIDStore):
         if hasattr(self.conn, 'IntegrityError') and hasattr(self.conn, 'OperationalError'):
             self.exceptions = self.conn
 
-        if not (hasattr(self.exceptions, 'IntegrityError') and
-                hasattr(self.exceptions, 'OperationalError')):
+        if not (hasattr(self.exceptions, 'IntegrityError') and hasattr(self.exceptions, 'OperationalError')):
             raise RuntimeError("Error using database connection module "
                                "(Maybe it can't be imported?)")
 
