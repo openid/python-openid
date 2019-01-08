@@ -81,7 +81,7 @@ def strxor(x, y):
 def parse_kv_response(response):
     """Parse the key-value response."""
     decoded_data = {}
-    for line in response.iter_lines():
+    for line in response.text.splitlines():
         line = line.strip()
         if not line:
             continue
@@ -175,7 +175,7 @@ def establish_association(endpoint, assoc_type, session_type, generator, generat
             'session_type': association_data['session_type'],
             'assoc_handle': association_data['assoc_handle'],
             'expires_in': association_data['expires_in'],
-            'mac_key': base64.b64encode(mac_key)}
+            'mac_key': base64.b64encode(mac_key).decode('utf-8')}
 
 
 def main():
