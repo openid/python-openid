@@ -22,6 +22,7 @@ module.
     See the License for the specific language governing permissions
     and limitations under the License.
 """
+from __future__ import unicode_literals
 
 __version__ = '3.0'
 

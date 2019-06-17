@@ -4,5 +4,6 @@ persistent storage.
 
 @sort: interface, filestore, sqlstore, memstore
 """
+from __future__ import unicode_literals
 
 __all__ = ['interface', 'filestore', 'sqlstore', 'memstore', 'nonce']
