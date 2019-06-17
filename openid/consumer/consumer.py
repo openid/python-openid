@@ -1185,7 +1185,7 @@ class GenericConsumer(object):
                 try:
                     assoc = self._requestAssociation(
                         endpoint, assoc_type, session_type)
-                except ServerError as why:
+                except ServerError:
                     # Do not keep trying, since it rejected the
                     # association type that it told us to use.
                     _LOGGER.error('Server %s refused its suggested association type: session_type=%s, assoc_type=%s',
