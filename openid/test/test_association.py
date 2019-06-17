@@ -11,6 +11,12 @@ from openid.message import BARE_NS, OPENID2_NS, OPENID_NS, Message
 from openid.server.server import DiffieHellmanSHA1ServerSession, PlainTextServerSession
 
 
+class TestAssociation(unittest.TestCase):
+    def test_assoc_type_bytes(self):
+        assoc = association.Association('handle', b'secret', 1000, 1000, b'HMAC-SHA1')
+        self.assertEqual(assoc.assoc_type, 'HMAC-SHA1')
+
+
 class AssociationSerializationTest(unittest.TestCase):
     def test_roundTrip(self):
         issued = int(time.time())
