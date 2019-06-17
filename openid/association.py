@@ -327,6 +327,7 @@ class Association(object):
             defined in the future.
         @type assoc_type: six.text_type, six.binary_type is deprecated
         """
+        assoc_type = string_to_text(assoc_type, "Binary values for assoc_type are deprecated. Use text input instead.")
         if assoc_type not in all_association_types:
             fmt = '%r is not a supported association type'
             raise ValueError(fmt % (assoc_type,))
@@ -341,8 +342,7 @@ class Association(object):
         self.secret = secret
         self.issued = issued
         self.lifetime = lifetime
-        self.assoc_type = string_to_text(assoc_type,
-                                         "Binary values for assoc_type are deprecated. Use text input instead.")
+        self.assoc_type = assoc_type
 
     def getExpiresIn(self, now=None):
         """
