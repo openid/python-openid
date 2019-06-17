@@ -289,7 +289,7 @@ class CurlHTTPFetcher(HTTPFetcher):
         # and the blank line from the end
         empty_line = lines.pop()
         if empty_line:
-            raise HTTPError("No blank line at end of headers: %r" % (line,))
+            raise HTTPError("No blank line at end of headers: %r" % empty_line)
 
         headers = {}
         for line in lines:

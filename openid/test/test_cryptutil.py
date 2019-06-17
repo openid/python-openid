@@ -10,15 +10,9 @@ import six
 
 from openid import cryptutil
 
+
 # Most of the purpose of this test is to make sure that cryptutil can
 # find a good source of randomness on this machine.
-if six.PY2:
-    long_int = long
-else:
-    assert six.PY3
-    long_int = int
-
-
 class TestLongBinary(unittest.TestCase):
     """Test `longToBinary` and `binaryToLong` functions."""
 
@@ -27,7 +21,7 @@ class TestLongBinary(unittest.TestCase):
         for iteration in range(500):
             n = 0
             for i in range(10):
-                n += long_int(random.randrange(MAX))
+                n += random.randrange(MAX)
 
             s = cryptutil.longToBinary(n)
             assert isinstance(s, six.binary_type)
@@ -101,7 +95,7 @@ class TestLongToBase64(unittest.TestCase):
         try:
             for line in f:
                 parts = line.strip().split(' ')
-                assert parts[0] == cryptutil.longToBase64(long_int(parts[1]))
+                assert parts[0] == cryptutil.longToBase64(int(parts[1]))
         finally:
             f.close()
 
@@ -114,6 +108,6 @@ class TestBase64ToLong(unittest.TestCase):
         try:
             for line in f:
                 parts = line.strip().split(' ')
-                assert long_int(parts[1]) == cryptutil.base64ToLong(parts[0])
+                assert int(parts[1]) == cryptutil.base64ToLong(parts[0])
         finally:
             f.close()
