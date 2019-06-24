@@ -1,5 +1,13 @@
 # Changelog #
 
+## 3.1 ##
+ * Convert data values for extensions to text.
+ * Fixes in Python 2/3 support.
+ * Fix examples.
+ * Add support for python 3.7
+ * Fix static code checks
+ * Use bumpversion
+
 ## 3.0 ##
 
  * Support Python3.
