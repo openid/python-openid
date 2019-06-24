@@ -24,7 +24,7 @@ module.
 """
 from __future__ import unicode_literals
 
-__version__ = '3.0'
+__version__ = '3.1rc1'
 
 __all__ = [
     'association',
