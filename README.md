@@ -16,7 +16,7 @@ Includes example code and support for a variety of storage back-ends.
 
 ## REQUIREMENTS ##
 
- - Python 2.7, >3.4
+ - Python 2.7, >=3.5
  - lxml
  - six
  - cryptography
