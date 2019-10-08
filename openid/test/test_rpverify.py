@@ -3,9 +3,11 @@ from __future__ import unicode_literals
 
 import unittest
 
+from mock import patch, sentinel
 from testfixtures import LogCapture, StringComparison
 
 from openid.server import trustroot
+from openid.server.trustroot import getAllowedReturnURLs
 from openid.yadis import services
 from openid.yadis.discover import DiscoveryFailure, DiscoveryResult
 
@@ -181,6 +183,24 @@ class TestReturnToMatches(unittest.TestCase):
     def test_noMatch(self):
         r = 'http://example.com/return.to'
         self.assertFalse(trustroot.returnToMatches([r], 'http://example.com/xss_exploit'))
+
+
+class TestGetAllowedReturnURLs(unittest.TestCase):
+
+    def test_equal(self):
+        with patch('openid.yadis.services.getServiceEndpoints', autospec=True,
+                   return_value=('http://example.com/', sentinel.endpoints)):
+            endpoints = getAllowedReturnURLs('http://example.com/')
+
+        self.assertEqual(endpoints, sentinel.endpoints)
+
+    def test_normalized(self):
+        # Test redirect is not reported when the returned URL is normalized.
+        with patch('openid.yadis.services.getServiceEndpoints', autospec=True,
+                   return_value=('http://example.com/', sentinel.endpoints)):
+            endpoints = getAllowedReturnURLs('http://example.com:80')
+
+        self.assertEqual(endpoints, sentinel.endpoints)
 
 
 class TestVerifyReturnTo(unittest.TestCase):
