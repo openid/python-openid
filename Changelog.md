@@ -1,5 +1,9 @@
 # Changelog #
 
+## 3.2 ##
+ * Drop support for python 3.4.
+ * Fix false positive redirect error in consumer verification.
+
 ## 3.1 ##
  * Convert data values for extensions to text.
  * Fixes in Python 2/3 support.
