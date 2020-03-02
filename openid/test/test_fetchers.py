@@ -401,7 +401,7 @@ class TestRequestsFetcher(unittest.TestCase):
         # Test GET response
         with responses.RequestsMock() as rsps:
             rsps.add(responses.GET, 'http://example.cz/', status=200, body=b'BODY',
-                     headers={'Content-Type': 'text/plain'})
+                     content_type='text/plain')
             response = self.fetcher.fetch('http://example.cz/')
         expected = fetchers.HTTPResponse('http://example.cz/', 200, {'Content-Type': 'text/plain'}, b'BODY')
         assertResponse(expected, response)
@@ -410,7 +410,7 @@ class TestRequestsFetcher(unittest.TestCase):
         # Test POST response
         with responses.RequestsMock() as rsps:
             rsps.add(responses.POST, 'http://example.cz/', status=200, body=b'BODY',
-                     headers={'Content-Type': 'text/plain'})
+                     content_type='text/plain')
             response = self.fetcher.fetch('http://example.cz/', body=b'key=value')
         expected = fetchers.HTTPResponse('http://example.cz/', 200, {'Content-Type': 'text/plain'}, b'BODY')
         assertResponse(expected, response)
@@ -421,7 +421,7 @@ class TestRequestsFetcher(unittest.TestCase):
             rsps.add(responses.GET, 'http://example.cz/redirect/', status=302,
                      headers={'Location': 'http://example.cz/target/'})
             rsps.add(responses.GET, 'http://example.cz/target/', status=200, body=b'BODY',
-                     headers={'Content-Type': 'text/plain'})
+                     content_type='text/plain')
             response = self.fetcher.fetch('http://example.cz/redirect/')
         expected = fetchers.HTTPResponse('http://example.cz/target/', 200, {'Content-Type': 'text/plain'}, b'BODY')
         assertResponse(expected, response)
@@ -430,14 +430,18 @@ class TestRequestsFetcher(unittest.TestCase):
         # Test error responses - returned as obtained
         with responses.RequestsMock() as rsps:
             rsps.add(responses.GET, 'http://example.cz/error/', status=500, body=b'BODY',
-                     headers={'Content-Type': 'text/plain'})
+                     content_type='text/plain')
             response = self.fetcher.fetch('http://example.cz/error/')
         expected = fetchers.HTTPResponse('http://example.cz/error/', 500, {'Content-Type': 'text/plain'}, b'BODY')
         assertResponse(expected, response)
 
     def test_invalid_url(self):
         invalid_url = 'invalid://example.cz/'
-        with six.assertRaisesRegex(self, InvalidSchema, "No connection adapters were found for '" + invalid_url + "'"):
+        expected_message = (
+            'No connection adapters were found for '
+            + ('u' if six.PY2 else '')
+            + "'" + invalid_url + "'")
+        with six.assertRaisesRegex(self, InvalidSchema, expected_message):
             self.fetcher.fetch(invalid_url)
 
     def test_connection_error(self):
