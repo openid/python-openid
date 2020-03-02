@@ -5,6 +5,7 @@ import os.path
 import random
 import sys
 import unittest
+import warnings
 
 import six
 
@@ -18,15 +19,17 @@ class TestLongBinary(unittest.TestCase):
 
     def test_binaryLongConvert(self):
         MAX = sys.maxsize
-        for iteration in range(500):
-            n = 0
-            for i in range(10):
-                n += random.randrange(MAX)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=DeprecationWarning)
+            for iteration in range(500):
+                n = 0
+                for i in range(10):
+                    n += random.randrange(MAX)
 
-            s = cryptutil.longToBinary(n)
-            assert isinstance(s, six.binary_type)
-            n_prime = cryptutil.binaryToLong(s)
-            assert n == n_prime, (n, n_prime)
+                s = cryptutil.longToBinary(n)
+                assert isinstance(s, six.binary_type)
+                n_prime = cryptutil.binaryToLong(s)
+                assert n == n_prime, (n, n_prime)
 
         cases = [
             (b'\x00', 0),
@@ -39,11 +42,13 @@ class TestLongBinary(unittest.TestCase):
             (b'OpenID is cool', 1611215304203901150134421257416556)
         ]
 
-        for s, n in cases:
-            n_prime = cryptutil.binaryToLong(s)
-            s_prime = cryptutil.longToBinary(n)
-            assert n == n_prime, (s, n, n_prime)
-            assert s == s_prime, (n, s, s_prime)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=DeprecationWarning)
+            for s, n in cases:
+                n_prime = cryptutil.binaryToLong(s)
+                s_prime = cryptutil.longToBinary(n)
+                assert n == n_prime, (s, n, n_prime)
+                assert s == s_prime, (n, s, s_prime)
 
 
 class TestFixBtwoc(unittest.TestCase):
