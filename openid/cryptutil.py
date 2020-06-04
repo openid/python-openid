@@ -75,8 +75,8 @@ def binaryToLong(s):
     return bytes_to_int(s)
 
 
-def longToBase64(l):
-    return toBase64(int_to_bytes(l))
+def longToBase64(value):
+    return toBase64(int_to_bytes(value))
 
 
 def base64ToLong(s):

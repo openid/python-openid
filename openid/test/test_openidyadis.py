@@ -66,10 +66,10 @@ server_url_options = [
 # Used for generating test data
 
 
-def subsets(l):
+def subsets(lst):
     """Generate all non-empty sublists of a list"""
     subsets_list = [[]]
-    for x in l:
+    for x in lst:
         subsets_list += [[x] + t for t in subsets_list]
     return subsets_list
 
