@@ -89,7 +89,7 @@ class MatchAcceptTest(unittest.TestCase):
     def runTest(self):
         lines = getTestData()
         chunks = chunk(lines)
-        data_sets = [parseLines(l) for l in chunks]
+        data_sets = [parseLines(line) for line in chunks]
         for data in data_sets:
             lnos = []
             lno, accept_header = data['accept']
