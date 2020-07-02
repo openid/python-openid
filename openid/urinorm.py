@@ -122,10 +122,10 @@ def urinorm(uri):
     # This is hackish. `unquote` and `quote` requires `str` in both py27 and py3+.
     if isinstance(path, str):
         # Python 3 branch
-        path = quote(unquote(path))
+        path = quote(unquote(path), safe='/' + SUB_DELIMS)
     else:
         # Python 2 branch
-        path = quote(unquote(path.encode('utf-8'))).decode('utf-8')
+        path = quote(unquote(path.encode('utf-8')), safe=('/' + SUB_DELIMS).encode('utf-8')).decode('utf-8')
 
     path = remove_dot_segments(path)
     if not path:

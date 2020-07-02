@@ -71,10 +71,16 @@ class UrinormTest(unittest.TestCase):
         self.assertEqual(urinorm('http://example.com/Λ'), 'http://example.com/%CE%9B')
 
     def test_path_capitalize_percent_encoding(self):
-        self.assertEqual(urinorm('http://example.com/foo%2cbar'), 'http://example.com/foo%2Cbar')
+        self.assertEqual(urinorm('http://example.com/foo%3abar'), 'http://example.com/foo%3Abar')
 
     def test_path_percent_decode_unreserved(self):
         self.assertEqual(urinorm('http://example.com/foo%2Dbar%2dbaz'), 'http://example.com/foo-bar-baz')
+
+    def test_path_keep_sub_delims(self):
+        self.assertEqual(urinorm('http://example.com/foo+!bar'), 'http://example.com/foo+!bar')
+
+    def test_path_percent_decode_sub_delims(self):
+        self.assertEqual(urinorm('http://example.com/foo%2B%21bar'), 'http://example.com/foo+!bar')
 
     def test_illegal_characters(self):
         six.assertRaisesRegex(self, ValueError, 'Illegal characters in URI', urinorm, 'http://<illegal>.com/')
