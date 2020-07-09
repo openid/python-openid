@@ -11,6 +11,7 @@ Then cut-n-paste.
 from __future__ import unicode_literals
 
 import sys
+
 import urllib2
 
 langs = {
