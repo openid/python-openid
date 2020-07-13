@@ -225,9 +225,10 @@ class TestFileOpenIDStore(unittest.TestCase):
     """Test `FileOpenIDStore` class."""
 
     def test_filestore(self):
-        from openid.store import filestore
-        import tempfile
         import shutil
+        import tempfile
+
+        from openid.store import filestore
         try:
             temp_dir = tempfile.mkdtemp()
         except AttributeError:
