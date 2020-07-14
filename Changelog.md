@@ -1,8 +1,11 @@
 # Changelog #
 
 ## 3.2 ##
+ * Add support for python 3.8.
  * Drop support for python 3.4.
  * Fix false positive redirect error in consumer verification.
+ * Do not percent escape sub delimiters in path in URI normalization. Thanks Colin Watson for report.
+ * Fix tests and static code checks. Thanks Colin Watson.
 
 ## 3.1 ##
  * Convert data values for extensions to text.
