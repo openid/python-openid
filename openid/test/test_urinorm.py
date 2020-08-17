@@ -82,6 +82,14 @@ class UrinormTest(unittest.TestCase):
     def test_path_percent_decode_sub_delims(self):
         self.assertEqual(urinorm('http://example.com/foo%2B%21bar'), 'http://example.com/foo+!bar')
 
+    def test_query_encoding(self):
+        self.assertEqual(
+            urinorm('http://example.com/?openid.sreg.fullname=Unícöde+Person'),
+            'http://example.com/?openid.sreg.fullname=Un%C3%ADc%C3%B6de+Person')
+        self.assertEqual(
+            urinorm('http://example.com/?openid.sreg.fullname=Un%C3%ADc%C3%B6de+Person'),
+            'http://example.com/?openid.sreg.fullname=Un%C3%ADc%C3%B6de+Person')
+
     def test_illegal_characters(self):
         six.assertRaisesRegex(self, ValueError, 'Illegal characters in URI', urinorm, 'http://<illegal>.com/')
 
