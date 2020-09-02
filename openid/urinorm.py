@@ -132,8 +132,14 @@ def urinorm(uri):
         path = '/'
     _check_disallowed_characters(path, 'path')
 
-    # Normalize query
-    data = parse_qsl(split_uri.query)
+    # Normalize query.  On Python 2, `urlencode` without `doseq=True`
+    # requires values to be convertible to native strings using `str()`.
+    if isinstance(split_uri.query, str):
+        # Python 3 branch
+        data = parse_qsl(split_uri.query)
+    else:
+        # Python 2 branch
+        data = parse_qsl(split_uri.query.encode('utf-8'))
     query = urlencode(data)
     _check_disallowed_characters(query, 'query')
 
