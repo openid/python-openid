@@ -1,9 +1,9 @@
-# python-openid2 #
+# python-openid #
 
-[![Build Status](https://travis-ci.org/ziima/python-openid.svg?branch=master)](https://travis-ci.org/ziima/python-openid)
-[![codecov](https://codecov.io/gh/ziima/python-openid/branch/master/graph/badge.svg)](https://codecov.io/gh/ziima/python-openid)
-[![PyPI](https://img.shields.io/pypi/v/python-openid2.svg)](https://pypi.org/pypi/python-openid2/)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/python-openid2.svg)](https://pypi.org/pypi/python-openid2/)
+[![Build Status](https://travis-ci.org/openid/python-openid.svg?branch=master)](https://travis-ci.org/openid/python-openid)
+[![codecov](https://codecov.io/gh/openid/python-openid/branch/master/graph/badge.svg)](https://codecov.io/gh/openid/python-openid)
+[![PyPI](https://img.shields.io/pypi/v/python-openid.svg)](https://pypi.org/pypi/python-openid/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/python-openid.svg)](https://pypi.org/pypi/python-openid/)
 
 Python OpenID library - OpenID support for servers and consumers.
 
@@ -26,7 +26,7 @@ Includes example code and support for a variety of storage back-ends.
 
 To install the base library, just run the following command:
 
-    pip install python-openid2
+    pip install python-openid
 
 
 ## GETTING STARTED ##
@@ -59,7 +59,7 @@ detailed at:
 ## CONTACT ##
 
 Send bug reports, suggestions, comments, and questions to
-https://github.com/ziima/python-openid/issues/new
+https://github.com/openid/python-openid/issues/new
 
 If you have a bugfix or feature you'd like to contribute, don't
 hesitate to send it to us on GitHub.

@@ -48,12 +48,12 @@ CLASSIFIERS = [
 
 
 setup(
-    name='python-openid2',
+    name='python-openid',
     version=VERSION,
     description='Python OpenID library - OpenID support for servers and consumers.',
     long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
-    url='https://github.com/ziima/python-openid',
+    url='https://github.com/openid/python-openid',
     packages=['openid',
               'openid.consumer',
               'openid.server',
